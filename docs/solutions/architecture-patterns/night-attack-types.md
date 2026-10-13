@@ -110,7 +110,8 @@ flagship's own attack; the partner still takes her turn. The enemy never makes i
   the flagship is that fleet's.
 - **How often:** wikiwiki's `floor(3.5(√Lv + √Lv) + 1.1(√luck + √luck) + A + B - 33)` percent,
   A and B for a surface radar of 8 line of sight or more and a large searchlight on the
-  flagship, by which ship she is. The source has no rate for it. Nothing is rolled unless the
+  flagship, by which ship she is (榛名改二乙 15 and 丙 20 for the radar: the English wiki's
+  table has the two the other way round). The source has no rate for it. Nothing is rolled unless the
   fleet can make it and a surface ship is left to attack.
 - **How hard:** 2.6 for the flagship and 2.7 for her partner before the cap, 1.06 more since
   the update of 2026-04-23 (2.756 and 2.862; the source rounds them to 2.76 / 2.86), 1.25 at

@@ -32,6 +32,21 @@ execution: code
 - 发动率里榛名的电探补正：wikiwiki 与 zekamashi 是乙 15、丙 20，英文 wiki 2025-12 的存档是乙 20、丙 15；
   霧島改二丙 zekamashi 是 20／20，英文 wiki 是 20?／15～20。
 
+## 后续核对（2026-10-13）
+
+用户要求对上面两条再找资料。都没有改代码。
+
+- **榛名的电探补正：代码对。** 式子的原出处是 @Divinity_123 2024-08 的 Special Attacks Test
+  （`x.com/Divinity_123/status/1820114420569162214`）：「+ 15 * FS_has_radar if FS is Haruna K2B
+  + 20 * FS_has_radar if FS is Haruna K2C」，即乙 15、丙 20，与 wikiwiki、zekamashi、kankorekore 和
+  `KONGOU_ASSAULT_SHIPS` 一致；英文 wiki 的表把两列写反了。霧島改二丙的 20／20 有 @Xe_UCH 2025-10-14
+  的实测（`x.com/Xe_UCH/status/1977928479502217357`）：电探 895/1006＝88.97%，比不带的推定高 21.21%；
+  大型探照灯 880/1009＝87.22%，高 19.36%。
+- **其它特殊砲撃是否要求弹药不为 0：没有新资料。** 实测仍只有 @CC_jabberwock 2026-02-09 那一次
+  （`x.com/CC_jabberwock/status/2020912627766133161`，Q.E. 级弹药为 0 连续 6 次不发动）；KC3Kai 七种都加
+  的条件引的就是它，并且只看旗舰；wikiwiki 写不清楚是否通用；来源 `canSpecialAttackUnique` 没有弹药判断；
+  没找到 Nelson、長門型等在弹药为 0 时发动或不发动的记录。维持只有 106 有这个门。
+
 ## Verification
 
 - `the_kongou_night_assault_multiplier_follows_the_place_the_engagement_and_the_guns` 的期望值全部乘 1.06
