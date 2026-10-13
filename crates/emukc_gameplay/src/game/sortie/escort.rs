@@ -4,12 +4,18 @@
 
 use emukc_crypto::rng;
 use emukc_db::sea_orm::{ActiveModelTrait, ActiveValue, ConnectionTrait, IntoActiveModel};
-use emukc_model::codex::map::{CellItem, MapDefinition, MapStageDefinition};
+use emukc_model::codex::{
+    Codex,
+    map::{CellItem, MapDefinition, MapStageDefinition},
+};
 use emukc_time::chrono::Utc;
 
 use crate::{
     err::GameplayError,
-    game::{map::find_map_record_impl, use_item::add_use_item_impl},
+    game::{
+        map::{check_and_unlock_dependencies_impl, find_map_record_impl},
+        use_item::add_use_item_impl,
+    },
 };
 
 use super::{SortieEscortSuccess, SortieItemGet};
@@ -36,6 +42,7 @@ const BASIC: [CellItem; 4] = [CellItem::Fuel, CellItem::Ammo, CellItem::Steel, C
 // the gauge stands and by the ten up to 100 afterwards; the source has no distribution.
 pub(super) async fn arrive<C>(
     c: &C,
+    codex: &Codex,
     profile_id: i64,
     definition: &MapDefinition,
     stage: &MapStageDefinition,
@@ -68,6 +75,8 @@ where
     am.cleared = ActiveValue::Set(true);
     am.last_cleared_at = ActiveValue::Set(Some(Utc::now()));
     am.update(c).await?;
+    // As any map cleared for the first time: what waited on it opens.
+    check_and_unlock_dependencies_impl(c, codex, profile_id, definition.map_id).await?;
     add_use_item_impl(c, profile_id, PRESENT_BOX, 1).await?;
     Ok(SortieEscortSuccess {
         gain: SortieItemGet {

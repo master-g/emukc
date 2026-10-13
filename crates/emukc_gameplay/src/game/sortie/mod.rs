@@ -595,7 +595,7 @@ impl Ctx {
                     (default_sortie_airsearch(), None)
                 };
                 let escort = if next.event_id == escort::EVENT_ID {
-                    Some(escort::arrive(&tx, profile_id, definition, stage).await?)
+                    Some(escort::arrive(&tx, codex, profile_id, definition, stage).await?)
                 } else {
                     None
                 };

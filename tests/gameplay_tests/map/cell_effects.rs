@@ -556,7 +556,9 @@ mod tests {
         for label in ["G", "H"] {
             for _ in 0..20 {
                 let arrival = arrive(&context, pid, 63, label, async || {}).await;
-                assert_eq!(arrival.next.airsearch.as_ref().unwrap().result, 2, "{label}");
+                // A flying boat among the aircraft is the one the client is shown.
+                let airsearch = arrival.next.airsearch.as_ref().unwrap();
+                assert_eq!((airsearch.plane_type, airsearch.result), (1, 2), "{label}");
                 assert!(found(2, &gains(&arrival)[0]), "{label}: {:?}", arrival.next.itemget);
             }
         }

@@ -62,6 +62,14 @@ Issue #100。#96 留下的三类格子：6-3 的航空偵察（`event_id` 7）�
 - **U4 文档。** `docs/solutions/architecture-patterns/` 沉淀，`resource-and-maelstrom-cells.md` 的 Known gaps
   改指过去。
 
+## 实施记录
+
+- 审查发现 `plane_type` 取决于装备的先后：飞行艇之后再遇到水偵会被改回 2。已修，测试用「秋津洲带大艇、
+  阿武隈带零観」盯住。
+- 1-6 通关时也调 `check_and_unlock_dependencies_impl`，与另两条通关路径一致；现在的目录里没有依赖 1-6 的
+  海域。
+- 5-6 揚陸地点没有代码改动：issue 写的是「hands something over」，调研的结论是它不给东西。
+
 ## Risks
 
 - 偵察格最多抽两次随机数（スコア过了定数才抽大成功，成功了才抽报酬），护卫成功格通关前后各抽两次（种类与

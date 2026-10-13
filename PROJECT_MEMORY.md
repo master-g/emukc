@@ -149,7 +149,7 @@ Current verification baseline:
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
 
 - [2026-10-11] 対空カットイン（53 个种别全有，数值照来源模拟器，与 wiki 的 5 处差异列在文档里）：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
-- [2026-10-10] 质量门见 CLAUDE.md（全工作区零告警）；`PROJECT_MEMORY.md` 改动时钩子跑 `memory.py check`。
+- [2026-10-10] `PROJECT_MEMORY.md` 改动时钩子跑 `memory.py check`。
 - [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
   `api_c_list` 不发：改装系任务由服务器判持有。
 - [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
@@ -192,7 +192,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] #100 已做；#101、#102 未分拣。
+- [2026-10-13] #100 已做，fmt、clippy、全量测试（1406 条）全过；#101、#102 未分拣。
 
 ## Next Session
 

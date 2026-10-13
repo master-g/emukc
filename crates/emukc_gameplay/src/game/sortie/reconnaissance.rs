@@ -121,12 +121,13 @@ where
             }
             let los = codex.manifest.find_slotitem(item.mst_id).map_or(0, |mst| mst.api_saku);
             score += los as f64 * (left as f64).powf(0.25);
-            // The client draws a flying boat (1) or a reconnaissance seaplane (2).
-            plane_type = if flying_boat {
-                1
-            } else {
-                plane_type.max(2)
-            };
+            // The client draws a flying boat (1) or a reconnaissance seaplane (2); a
+            // flying boat anywhere in the fleet is the one it is shown.
+            if flying_boat {
+                plane_type = 1;
+            } else if plane_type == 0 {
+                plane_type = 2;
+            }
         }
     }
     let Some(constant) = node_constant(map_id, label).filter(|_| plane_type > 0) else {
