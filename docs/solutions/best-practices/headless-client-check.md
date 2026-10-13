@@ -159,6 +159,17 @@ screen, pass steps on the command line and read the screenshots:
   wants an attack of hers in the night packet, not said to be flown (she has no night crew);
   the client plays it as abyssal aircraft (`night2`). It fails when the day battle ends it or
   leaves her heavily damaged. A fleet need not be six ships: the fair check counts them.
+- `enemy_night_crew` sends two 古鷹 and four destroyers into 7-4 (南西海域 is the fourth tab,
+  510, 680; 7-4 the fourth map, 930, 520) with `god_mode` on and `one_hit_kill` off (`UNHURT`):
+  nothing hurts the fleet and it sinks next to nothing, so it gets four battles deep and the
+  enemy there is whole. Two heavy cruisers are sent to C, four destroyers from there to E, and
+  too little line of sight from J to K and so to M (cells 3, 17, 10, 19, 13). 追撃せず sits
+  where 進撃 does, so the same taps carry the fleet past each battle that the day leaves
+  open. At M it goes into the night against ヒ船団棲姫, who has a night crew of her own and
+  night aircraft: the check wants an attack of hers there with `api_n_mother_list` 1. It fails
+  when M is led by another (4 in 100). Three
+  runs of three on 2026-10-13, the same cells each time, without a page error; the client
+  plays her attack as aircraft over the fleet (`night1`).
 - `anti_air_cut_in` is the same fleet with 秋月 in the sixth place, sent to 2-5 (the extra
   operation sits where 6-5 does on its page, 700, 275), whose first battle meets carriers. The
   check is the fair one plus the `api_air_fire` she should send; it fails about 7 times in a

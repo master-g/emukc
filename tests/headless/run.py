@@ -262,6 +262,24 @@ def check_enemy_night_carrier(work: Path) -> list[str]:
     return problems
 
 
+def check_enemy_night_crew(work: Path) -> list[str]:
+    cells = [step["api_no"] for step in responses(work, "api_req_map/start") + responses(work, "api_req_map/next")]
+    nights = responses(work, "api_req_battle_midnight/battle")
+    print("cells", cells, "night battles", len(nights))
+    if not nights or cells[-1] != 13:
+        return [f"the fleet was to reach M (cell 13) and fight there at night; it went by {cells}"]
+    if nights[-1]["api_ship_ke"][0] != 2060:
+        return [f"M was led by {nights[-1]['api_ship_ke'][0]} this time (4 in 100), not ヒ船団棲姫: run it again"]
+    shelling = nights[-1]["api_hougeki"]
+    rows = zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_n_mother_list"], shelling["api_si_list"])
+    # She has a night crew of her own and night aircraft: her attack is flown.
+    hers = [(flown, shown) for by_enemy, at, flown, shown in rows if by_enemy and at == 0]
+    print("her attacks (flown, shown):", hers)
+    if not hers:
+        return ["ヒ船団棲姫 did not attack at night"]
+    return [f"ヒ船団棲姫 flies her night attacks; api_n_mother_list said {flown}" for flown, _ in hers if flown != 1]
+
+
 def check_night_cut_in(work: Path) -> list[str]:
     problems = check_fair_battle(work)
     nights = responses(work, "api_req_battle_midnight/battle")
@@ -420,6 +438,17 @@ SCENARIOS = {
         + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
         check_enemy_night_carrier,
     ),
+    # 南西海域, 7-4, with two heavy cruisers and four destroyers nothing can hurt: by C, E, J and
+    # K to M, and into the night against ヒ船団棲姫, who flies her attack there. Photographed
+    # through the night.
+    "enemy_night_crew": (
+        f"{TO_MAPS} c:510,680 w:4 c:930,520 w:3 {START} "
+        + f"{BATTLE} u:{TAPS}:api_req_map/next " * 4
+        + "u:600,400;670,278:api_req_sortie/battle u:600,400;770,365:api_req_battle_midnight/battle w:8 "
+        + " ".join(f"w:2 s:night{n}" for n in range(1, 13))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_enemy_night_crew,
+    ),
     # 南方海域, its extra operations, 5-6; three battles, the landing point, the boss, home.
     "transport_5_6": (
         f"{TO_MAPS} c:700,680 w:3 c:1105,415 w:4 c:660,420 w:3 {START} {BATTLE} {BATTLE} {BATTLE} "
@@ -470,6 +499,8 @@ SCENARIOS = {
 
 # Fought as the server would fight them for a player.
 FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "enemy_night_carrier", "kongou_night_assault", "nagato_broadside", "night_contact"}
+# Never hurt, but sinking nothing at a blow: for an enemy several battles in who has to live.
+UNHURT = {"enemy_night_crew"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:
@@ -496,7 +527,9 @@ def workspace(scenario: str) -> tuple[Path, Path]:
     game = work / "codex/game_config.json"
     # Short battles that are always won, except where the battle itself is what is looked at.
     cheats = scenario not in FAIR
-    game.write_text(json.dumps(json.loads(game.read_text()) | {"god_mode": cheats, "one_hit_kill": cheats}))
+    game.write_text(
+        json.dumps(json.loads(game.read_text()) | {"god_mode": cheats, "one_hit_kill": cheats and scenario not in UNHURT})
+    )
 
     replaced = ("workspace_root", "cache_root", "mods_root", "bind", "tls_cert", "tls_key")
     kept = [

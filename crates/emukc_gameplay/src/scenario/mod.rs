@@ -351,6 +351,18 @@ impl Scenario {
         scenario
     }
 
+    /// Two heavy cruisers and four destroyers into 7-4: sent by C, E, J and K to M, whose
+    /// flagship ヒ船団棲姫 has a night crew of her own and night aircraft. Far too weak to hurt
+    /// her, and with too little line of sight to be sent from J past K.
+    pub fn enemy_night_crew() -> Self {
+        let mut scenario = Self::transport_5_6();
+        scenario.fleet = vec![ShipSpec::new(951, 30); 6];
+        scenario.fleet[0] = ShipSpec::new(59, 30); // 古鷹
+        scenario.fleet[1] = ShipSpec::new(59, 30);
+        scenario.clear_maps.extend([61, 62, 63, 64, 71, 72, 73]);
+        scenario
+    }
+
     /// Four destroyers into 5-6, a drum and a radar each: enough small ships for the route
     /// past the landing point E, enough line of sight to be sent from there to the boss, and
     /// 40 transport points to land.
@@ -602,6 +614,13 @@ pub const PRESETS: &[Preset] = &[
         maparea: 2,
         mapinfo: 5,
         expects: PhaseExpectation::EnemyCarrierNightAttack,
+    },
+    Preset {
+        name: "enemy_night_crew",
+        build: Scenario::enemy_night_crew,
+        maparea: 7,
+        mapinfo: 4,
+        expects: PhaseExpectation::PlainBattle,
     },
     Preset {
         name: "transport_5_6",
