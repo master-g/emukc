@@ -193,7 +193,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] 特殊砲撃弹药三条（计划 2026-10-12-010），分支 `fix/special-attack-ammunition`，未合并。
+- [2026-10-12] 特殊砲撃弹药三条（计划 2026-10-12-010），已合并（PR #82）。
   质量门通过，基线没变，无头检查没重跑（报文不变）。
 
 ## Next Session
