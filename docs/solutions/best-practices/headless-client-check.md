@@ -135,6 +135,16 @@ screen, pass steps on the command line and read the screenshots:
   (78 in 100) or the day ends the battle. Seven runs on 2026-10-12: played four times, once
   with two hits and three times with one, without a page error. One of them found the
   cut-in's voice (`kcs/sound/kc…/991.mp3`) missing from the cache list.
+- `night_contact` is the same sortie led by 由良改二 at level 90 with a
+  零式水上偵察機11型甲改二 and a 二式水戦改: the fighter takes the air from an enemy that has
+  no fighter, and at her level the scout comes into contact every time, so the check is a
+  value: `api_disp_seiku` 1 or 2, `api_touch_plane` `[540, -1]`, and the scout's picture
+  (`slot/item_up/0540_…`) among what the client asked for, which `TaskShowTouchPlane` loads
+  only when it shows a contact. The requested paths are saved as `requested.json` for that.
+  The client puts our scout on the enemy's radar (`rader_e.touch_plane`), with 触接中! under
+  it. Three runs of three on 2026-10-13, without a page error and with the picture in the
+  cache list. The enemy's scout (`api_touch_plane[1]`) has not been played: nothing at 2-1
+  carries one.
 - `nagato_broadside` is the same sortie in 梯形陣 (the fourth button of the formation screen)
   led by 長門改二 and 陸奥改二. The check wants one row of type 101 by the flagship with up
   to three hits, by day or, if the day did not make it, at night, and never a second; it

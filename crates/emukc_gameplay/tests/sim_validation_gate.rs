@@ -67,7 +67,8 @@ fn reached_expectation(battle: &serde_json::Value, expects: PhaseExpectation) ->
         PhaseExpectation::PlainBattle
         | PhaseExpectation::NightAirAttack
         | PhaseExpectation::EnemyCarrierNightAttack
-        | PhaseExpectation::NightCutIn => true,
+        | PhaseExpectation::NightCutIn
+        | PhaseExpectation::NightContact => true,
     }
 }
 
@@ -313,6 +314,7 @@ async fn every_preset_night_battle_passes_protocol_validation() {
         let mut flown = false;
         let mut enemy_carrier_attacked = false;
         let mut cut_in = false;
+        let mut scouted = false;
 
         for &seed in SEEDS {
             // Discard any stale sortie state from the previous seed; restore the
@@ -355,6 +357,7 @@ async fn every_preset_night_battle_passes_protocol_validation() {
                     .zip(&hougeki.api_sp_list)
                     .any(|(by_enemy, kind)| *by_enemy == 0 && *kind >= 2)
             });
+            scouted |= night.api_touch_plane.first().is_some_and(|plane| *plane > 0);
             enemy_carrier_attacked |= night.api_hougeki.as_ref().is_some_and(|hougeki| {
                 hougeki.api_at_eflag.iter().zip(&hougeki.api_at_list).any(|(by_enemy, at)| {
                     *by_enemy == 1
@@ -369,6 +372,12 @@ async fn every_preset_night_battle_passes_protocol_validation() {
         assert!(
             enemy_carrier_attacked || preset.expects != PhaseExpectation::EnemyCarrierNightAttack,
             "preset {}: no enemy carrier attacked at night across {} seeds",
+            preset.name,
+            SEEDS.len(),
+        );
+        assert!(
+            scouted || preset.expects != PhaseExpectation::NightContact,
+            "preset {}: no night scout came into contact across {} seeds",
             preset.name,
             SEEDS.len(),
         );

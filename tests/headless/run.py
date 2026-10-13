@@ -289,6 +289,25 @@ def check_night_cut_in(work: Path) -> list[str]:
     return problems
 
 
+def check_night_contact(work: Path) -> list[str]:
+    problems = check_fair_battle(work)
+    seiku = responses(work, "api_req_sortie/battle")[0]["api_kouku"]["api_stage1"]["api_disp_seiku"]
+    if seiku not in (1, 2):
+        problems.append(f"the fighter takes the air from an enemy without one; api_disp_seiku said {seiku}")
+    nights = responses(work, "api_req_battle_midnight/battle")
+    if not nights:
+        return problems + ["the enemy was sunk by day this time, so no scout was flown: run it again"]
+    # The flagship's scout comes into contact every time at her level; the enemy carries none.
+    if nights[0]["api_touch_plane"] != [540, -1]:
+        problems.append(f"the flagship's scout is the fleet's and the enemy has none; api_touch_plane said {nights[0]['api_touch_plane']}")
+    # The client draws the scout it was told of from the equipment's own picture.
+    asked = [path for path in json.loads((work / "requested.json").read_text()) if "slot/item_up/0540_" in path]
+    if not asked:
+        problems.append("the client did not ask for the scout's picture (slot/item_up/0540_…), so it showed no contact")
+    print("api_disp_seiku", seiku, "api_touch_plane", nights[0]["api_touch_plane"], "asked for", asked)
+    return problems
+
+
 def check_kongou_night_assault(work: Path) -> list[str]:
     problems = check_fair_battle(work)
     nights = responses(work, "api_req_battle_midnight/battle")
@@ -380,6 +399,14 @@ SCENARIOS = {
         + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
         check_kongou_night_assault,
     ),
+    # 2-1 with 由良改二 leading, a night scout and a fighter aboard: the scout over the enemy
+    # at night. Photographed through the night.
+    "night_contact": (
+        f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;670,278:api_req_sortie/battle "
+        + "u:600,400;770,365:api_req_battle_midnight/battle w:4 " + " ".join(f"w:2 s:night{n}" for n in range(1, 17))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_night_contact,
+    ),
     # 2-1 in 梯形陣 with 長門改二 and 陸奥改二 leading: the flagship's special gunnery attack.
     # Photographed through the day.
     "nagato_broadside": (
@@ -446,7 +473,7 @@ SCENARIOS = {
 }
 
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "enemy_night_carrier", "kongou_night_assault", "nagato_broadside"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "enemy_night_carrier", "kongou_night_assault", "nagato_broadside", "night_contact"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:
@@ -647,6 +674,7 @@ def main() -> int:
         server.wait()
 
     report["resources"] = {"requested": len(requested)} | resource_report(work, requested)
+    (work / "requested.json").write_text(json.dumps(sorted(requested), indent=1))
     if not report["failed_step"]:
         report["problems"] = check(work)
     (work / "report.json").write_text(json.dumps(report, indent=1, ensure_ascii=False))
