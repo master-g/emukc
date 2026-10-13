@@ -387,7 +387,7 @@ def check_recon_6_3(work: Path) -> list[str]:
     offered = responses(work, "api_req_map/start")[0].get("api_select_route")
     asked = sorted((work / "api").glob("*_api_req_map.next.request"))[0].read_text()
     print("A offered:", offered, "and the client asked:", asked)
-    if offered != {"api_select_cells": [2, 3]} or "api_cell_id=3" not in asked:
+    if offered != {"api_select_cells": [2, 3]} or "api_cell_id=3" not in asked.split("&"):
         problems.append(f"A offered {offered} and the client asked {asked!r}, not for C of B and C")
     found = {}
     for label, cell in zip("GH", steps[2:4]):

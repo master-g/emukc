@@ -68,6 +68,9 @@ use super::{
 /// `api_event_id` of a landing cell (揚陸地点).
 const LANDING_EVENT_ID: i64 = 9;
 
+/// `api_event_id` and `api_event_kind` of a cell where the player picks the route (能動分岐).
+const ROUTE_CHOICE_EVENT: (i64, i64) = (6, 2);
+
 pub use super::sortie_result::SortieBattleResultResponse;
 
 #[derive(Debug, Clone)]
@@ -1360,7 +1363,7 @@ fn select_start_source_cell(stage: &MapStageDefinition) -> Result<&MapCellDefini
 /// The ways out of a cell where the player picks the route (能動分岐): the client asks
 /// which way where it is given more than one, and sends its pick with the next step.
 fn selectable_routes(cell: &MapCellDefinition) -> Option<Vec<i64>> {
-    (cell.event_id == 6 && cell.event_kind == 2 && cell.next_cells.len() > 1)
+    ((cell.event_id, cell.event_kind) == ROUTE_CHOICE_EVENT && cell.next_cells.len() > 1)
         .then(|| cell.next_cells.clone())
 }
 

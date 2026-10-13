@@ -23,9 +23,7 @@ pub(super) fn project_start(response: SortieStartResponse) -> KcApiMapStart {
         api_limit_state: response.limit_state,
         api_eventmap: None,
         api_airsearch: response.airsearch.map(project_airsearch),
-        api_select_route: response.select_route.map(|cells| KcApiMapSelectRoute {
-            api_select_cells: cells,
-        }),
+        api_select_route: response.select_route.map(project_select_route),
         api_e_deck_info: response
             .enemy_deck_preview
             .map(|preview| preview.into_iter().map(project_enemy_deck_preview).collect()),
@@ -67,9 +65,7 @@ pub(super) fn project_next(response: SortieNextResponse) -> KcApiMapNext {
         api_comment_kind: response.comment_kind,
         api_production_kind: response.production_kind,
         api_airsearch: response.airsearch.map(project_airsearch),
-        api_select_route: response.select_route.map(|cells| KcApiMapSelectRoute {
-            api_select_cells: cells,
-        }),
+        api_select_route: response.select_route.map(project_select_route),
         api_e_deck_info: response
             .enemy_deck_preview
             .map(|preview| preview.into_iter().map(project_enemy_deck_preview).collect()),
@@ -89,6 +85,12 @@ fn project_cell_data(cell: SortieCellData) -> KcApiMapCellData {
         api_color_no: cell.color_no,
         api_passed: i64::from(cell.passed),
         api_distance: cell.distance,
+    }
+}
+
+fn project_select_route(cells: Vec<i64>) -> KcApiMapSelectRoute {
+    KcApiMapSelectRoute {
+        api_select_cells: cells,
     }
 }
 

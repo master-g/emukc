@@ -18,6 +18,9 @@
 //! Advancing from branch node cell 1 into a child must spin the compass —
 //! the same shape as advancing from 2-1's branch node cell 3 into resource
 //! cell 2 or 5.
+//!
+//! A cell where the player picks the route (能動分岐, 6-3 A) is the exception: it
+//! offers its ways out and no compass spins on leaving it (issue #106).
 
 #[cfg(test)]
 mod tests {
@@ -116,6 +119,69 @@ mod tests {
         context.clear_sortie_state_if_any(pid).await;
         context.start_sortie(pid, 1, 6, 3).await.unwrap();
         assert!(context.next_sortie(pid, Some(10)).await.is_err());
+    }
+
+    /// No routing rule may sit on a route-choice cell of any map, or the offer would hold
+    /// a way the rules refuse. On the stage a fresh map stands at, each such cell offers
+    /// all its ways out when a step reaches it, and each is taken when asked for.
+    #[tokio::test]
+    async fn every_route_choice_cell_offers_ways_that_can_be_taken() {
+        let context = new_context().await;
+        let pid = new_profile(&context).await;
+        setup_fleet(&context, pid).await;
+
+        let park = async |map_id: i64, stage_id: &str, boss: i64, cell: i64| {
+            context.clear_sortie_state_if_any(pid).await;
+            context.start_sortie(pid, 1, 1, 1).await.unwrap();
+            let store = context.sortie_store();
+            let mut active = store.get_active(pid).unwrap();
+            active.map_id = map_id;
+            active.stage_id = stage_id.to_owned();
+            active.current_cell_id = cell;
+            active.boss_cell_id = boss;
+            active.visited_cell_ids = [cell].into();
+            active.locked_enemy_composition = None;
+            let _ = store.insert_active(pid, active);
+        };
+
+        let mut seen = 0;
+        let mut arrived = 0;
+        for (&map_id, definition) in &context.codex().maps.maps {
+            for (stage_id, stage) in &definition.variants {
+                for cell in &stage.cells {
+                    if (cell.event_id, cell.event_kind) != (6, 2) {
+                        continue;
+                    }
+                    seen += 1;
+                    let at = format!("map {map_id} {stage_id:?} cell {}", cell.cell_no);
+                    assert!(!stage.routing_rules.contains_key(&cell.cell_no), "{at} has rules");
+                    assert!(cell.next_cells.len() > 1, "{at} is no choice");
+
+                    // A step is taken on the stage the map record stands at: the first.
+                    if *stage_id != definition.default_variant {
+                        continue;
+                    }
+                    // Arriving by a step from the cell before it.
+                    if let Some(before) =
+                        stage.cells.iter().find(|from| from.next_cells.contains(&cell.cell_no))
+                        && !stage.routing_rules.contains_key(&before.cell_no)
+                    {
+                        park(map_id, stage_id, stage.boss_cell_no, before.cell_no).await;
+                        let next = context.next_sortie(pid, Some(cell.cell_no)).await.unwrap();
+                        assert_eq!(next.select_route.as_ref(), Some(&cell.next_cells), "{at}");
+                        arrived += 1;
+                    }
+                    for &way in &cell.next_cells {
+                        park(map_id, stage_id, stage.boss_cell_no, cell.cell_no).await;
+                        let next = context.next_sortie(pid, Some(way)).await.unwrap();
+                        assert_eq!(next.cell_no, way, "{at}");
+                        assert!(!next.rashin_flg, "{at}");
+                    }
+                }
+            }
+        }
+        assert!(arrived > 0, "no route-choice cell was reached by a step");
+        assert!(seen >= 12, "the regular maps have twelve such nodes, found {seen} cells");
     }
 
     /// A cell of any other kind offers nothing, however many ways lead out of it.
