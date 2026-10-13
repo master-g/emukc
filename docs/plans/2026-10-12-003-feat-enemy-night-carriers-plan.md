@@ -84,6 +84,8 @@ execution: code
 - `make headless-check SCENARIO=enemy_night_carrier` 通过：没有页面错误，没有缺失资源，夜战里 軽母ヌ級flagship
   的攻击演成深海舰载机（截图 `night2`）。带要员的敌舰（报文标记 1）在常规图里只有 5-6 第四阶段与 7-4，
   取值 2 的炮击演出只在 6-4，两者都没有在客户端里演过。
+  后补（2026-10-13）：无头场景 `enemy_night_crew` 在 7-4 的 M 格演了带要员的 ヒ船団棲姫（标记 1），三次全过；
+  5-6 第四阶段与 6-4 取值 2 仍没有演过。
 - 无头检查的 `check_fair_battle` 原来写死六艘舰，改成按舰队的舰数。
 - issue 的 Further Notes 建议合并前用 `battle sim` 对有 ヲ級flagship 的格子跑一批种子看受损分布：没有做。
 

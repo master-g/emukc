@@ -159,8 +159,8 @@ and `damage.rs` do not ask `simulation::night` themselves.
 - `abyssal_carrier_tests` in `night.rs`: the tables against what the script prints, who
   attacks, the searchlight, one power worked by hand, Béarn. The `enemy_night_carrier` preset
   (2-5, cell C) is in the gate with `PhaseExpectation::EnemyCarrierNightAttack`, and in the
-  headless check. A crewed enemy (flag 1) is met only in 5-6's fourth phase and in 7-4, and has not been
-  played in the client.
+  headless check. A crewed enemy (flag 1) is met only in 5-6's fourth phase and in 7-4; the headless
+  scenario `enemy_night_crew` meets 7-4's ヒ船団棲姫 at M and the client flies her attack.
 
 ## Known gaps
 
