@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-13 · branch `test/enemy-night-crew-headless`
+Last updated: 2026-10-13 · branch `chore/changelog-and-stray-test`
 
 ## Verified Facts
 
@@ -151,7 +151,7 @@ Current verification baseline:
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
 
 - [2026-10-11] 対空カットイン（53 个种别全有，数值照来源模拟器，与 wiki 的 5 处差异列在文档里）：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
-- [2026-10-10] 质量门是 `clippy --workspace --all-targets -- -D warnings`（钩子同款，全工作区零告警）；`PROJECT_MEMORY.md` 改动时钩子跑 `memory.py check`。
+- [2026-10-10] 质量门见 CLAUDE.md（全工作区零告警）；`PROJECT_MEMORY.md` 改动时钩子跑 `memory.py check`。
 - [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
   `api_c_list` 不发：改装系任务由服务器判持有。
 - [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
@@ -193,11 +193,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 无头场景 `night_contact`（#93 已合并）与 `enemy_night_crew`（#94）。质量门与无头场景都过。
+- [2026-10-13] 清了 `CHANGELOG.md` 的错条目与根目录没编译的测试文件；没跑质量门。
 
 ## Next Session
 
-- [2026-10-13] 未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
+- [2026-10-13] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+  未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   周常重置读系统时钟还没有规格。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：5-6 四阶段的带要员敌舰、6-4 取值 2 的炮击演出没在客户端演过。演习对手的夜间触接也没有。
