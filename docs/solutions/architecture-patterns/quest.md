@@ -45,8 +45,8 @@ via the quest operations on `Ctx`. Definitions come from the Codex
   records' `start_since`. `get_quest_records_at`,
   `quest_clear_and_claim_reward_at` and the debugging `quest_add_at` take it as
   a parameter, which is how tests run against fixed dates; the methods without
-  `_at` read the clock once and delegate. The quest day is the JST date with the day turning at 05:00
-  (`KcTime::jst_quest_day`).
+  `_at` read the clock once and delegate. The quest day is the JST date with
+  the day turning at 05:00 (`KcTime::jst_quest_day`).
 - Limited-day dailies: quest 211 (Bd4, period `Daily3rd7th0th`) is offered only
   on quest days ending in 3, 7 or 0, quest 212 (Bd6, `Daily2nd8th`) on those
   ending in 2 or 8 (`Period::appears_on`), on top of their prerequisite. They

@@ -1,5 +1,6 @@
 //! A weekly quest lasts until 05:00 on Monday, Japan time (issue #101).
-//! Every test runs against fixed times, never the clock.
+//! The quests under test are made and read at fixed times. Creating the profile still
+//! reads the clock; none of its records is one of them.
 
 #[cfg(test)]
 mod tests {
@@ -30,7 +31,9 @@ mod tests {
             .id
     }
 
-    /// Hand the profile a fulfilled quest and claim it, all at the given time.
+    /// Hand the profile a fulfilled quest and claim it, all at the given time. The quest
+    /// must not be on the list yet: Bw1 goes before Bd2, which the list offers it after,
+    /// and Bd2's own daily is left undone.
     async fn complete(context: &crate::TestContext, pid: i64, quest_id: i64, at: DateTime<Utc>) {
         context.get_quest_records_at(pid, at).await.unwrap();
         context.quest_add_at(pid, quest_id, at).await.unwrap();
@@ -48,26 +51,21 @@ mod tests {
         records.iter().any(|record| record.quest_id == quest_id)
     }
 
-    /// The daily Bw1 follows, done on the quest day of `at`. It is handed over while the
-    /// list does not offer it yet, its own daily being left undone.
-    async fn daily(context: &crate::TestContext, pid: i64, at: DateTime<Utc>) {
-        complete(context, pid, BD2, at).await;
-    }
-
     /// A weekly claimed in a week is gone for the rest of it and offered again from
     /// 05:00 on Monday, whichever side of today the week lies: a Sunday of 2026 that is
     /// over and one of 2027 that is to come.
     #[tokio::test]
     async fn a_weekly_claimed_is_offered_again_from_monday_0500() {
-        for (tag, sunday) in [("past", jst(2026, 3, 8, 12, 0)), ("future", jst(2027, 3, 7, 12, 0))]
-        {
+        for (tag, sunday, monday_0500) in [
+            ("past", jst(2026, 3, 8, 12, 0), jst(2026, 3, 9, 5, 0)),
+            ("future", jst(2027, 3, 7, 12, 0), jst(2027, 3, 8, 5, 0)),
+        ] {
             let context = crate::TestContext::new().await;
             let pid = new_profile(&context, tag).await;
-            let monday_0500 = sunday + Duration::hours(17);
 
             // Bw1 is handed over first: once its daily is done the list offers it unasked.
             complete(&context, pid, BW1, sunday).await;
-            daily(&context, pid, sunday).await;
+            complete(&context, pid, BD2, sunday).await;
             assert!(!listed(&context, pid, BW1, sunday).await, "{tag}: claimed");
 
             // 04:59 on Monday is still Sunday's quest day and last week.
@@ -75,7 +73,7 @@ mod tests {
             assert!(!listed(&context, pid, BW1, before).await, "{tag}: Monday 04:59");
 
             // From 05:00 the daily is new as well, and Bw1 follows it again.
-            daily(&context, pid, monday_0500).await;
+            complete(&context, pid, BD2, monday_0500).await;
             assert!(listed(&context, pid, BW1, monday_0500).await, "{tag}: Monday 05:00");
         }
     }
@@ -89,14 +87,14 @@ mod tests {
         let monday = jst(2027, 3, 8, 5, 0);
 
         complete(&context, pid, BW1, monday).await;
-        daily(&context, pid, monday).await;
+        complete(&context, pid, BD2, monday).await;
 
         let sunday = monday + Duration::days(6);
-        daily(&context, pid, sunday).await;
+        complete(&context, pid, BD2, sunday).await;
         assert!(!listed(&context, pid, BW1, sunday).await, "the same week");
 
         let next_monday = monday + Duration::weeks(1);
-        daily(&context, pid, next_monday).await;
+        complete(&context, pid, BD2, next_monday).await;
         assert!(listed(&context, pid, BW1, next_monday).await, "the next week");
     }
 }
