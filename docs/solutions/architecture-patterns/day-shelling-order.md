@@ -95,8 +95,13 @@ the sky is the enemy's. Day shelling and the night battle both pass it that way.
   fuel and of the ammunition, never less than 1; half as much ammunition again, rounded up,
   for a night after the day; a tenth of each where the battle opens at night. Against a
   combined fleet the night costs no more, and takes a special attack's cost away again.
-  The cells that cost otherwise (submarines, air raids, PT boats, radar fire) are not told
-  apart.
+  Some cells cost otherwise (`cell_supply_cost`, plan `2026-10-13-004`), in percent of fuel
+  and ammunition: PT boats alone 4 and 8, an air raid 6 and 4 (4 and 8 on 6-4 and 6-5),
+  radar fire 4 and 0, submarines alone 8 and 0 unless at a boss or at 4-1 D and 4-3 C.
+- **The ammunition modifier** (`ammo_modifier`, `resolve_damage`): below half her
+  ammunition a ship's damage, not her power, is multiplied by the percentage left over 50;
+  what comes to nothing is a scratch. Shelling, torpedoes, night attacks, attacks on
+  submarines and carrier air strikes all take it.
 - **Ammunition** (`special_attack_ammo`): the flagship and second ship of 101, 102 and 105
   and the three ships of 103 pay half as much again for the battle, the two of the night
   assault a tenth more. 106 is made only while both of its ships have ammunition left

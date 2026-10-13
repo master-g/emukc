@@ -59,7 +59,7 @@ pub use damage::apply_cap;
 // Public API — complete battle execution
 pub use execution::{SpMidnightSimulation, execute_day, execute_night, execute_sp_midnight};
 pub use outcome::{calculate_mvp, calculate_win_rank};
-pub use targeting::any_alive;
+pub use targeting::{any_alive, is_pt_only};
 
 // Public API — transcript renderer
 pub use transcript::{render_day_battle, render_night_battle};

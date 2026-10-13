@@ -96,7 +96,7 @@ NightBattlePacket {
                 ],
                 [
                     1,
-                    1,
+                    2,
                 ],
             ],
             api_sp_list: [
@@ -107,15 +107,15 @@ NightBattlePacket {
             api_damage: [
                 [
                     3,
-                    434,
+                    425,
                 ],
                 [
                     7,
-                    8,
+                    6,
                 ],
                 [
-                    3,
-                    2,
+                    5,
+                    425,
                 ],
             ],
         },

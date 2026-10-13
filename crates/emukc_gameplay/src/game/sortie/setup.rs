@@ -359,6 +359,7 @@ impl SortieBattleSetup {
             night_fought: false,
             night_start: false,
             enemy_combined: session.enemy_escort_start().is_some(),
+            cell_cost: None,
             special_attacks: session.packet.special_attacks(),
             mvp_combined,
             get_ship_exp_combined,

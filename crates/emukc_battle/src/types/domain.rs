@@ -244,12 +244,13 @@ pub(crate) struct AirstrikeOutput<'a> {
 ///
 /// Night battle does not use formation or engagement modifiers
 /// per `KanColle` mechanics, except for an attack on a submarine.
-pub(crate) struct NightBattleParams<'a> {
+pub(crate) struct NightBattleParams {
     /// Defender formations drive the 旗艦援護 (かばう) interception rate.
     pub friendly_formation_id: i64,
     pub enemy_formation_id: i64,
     pub engagement: EngagementType,
-    pub air_state: Option<&'a AirState>,
+    /// The night scouts in contact, the friendly fleet's and the enemy's.
+    pub contact: [Option<crate::accuracy::NightContact>; 2],
     /// A night-start (開幕夜戦) battle, where an attack on a submarine does real damage.
     pub night_start: bool,
     /// Who fired a star shell in the friendly and in the enemy fleet, -1 for nobody.

@@ -328,7 +328,7 @@ pub(crate) fn simulate_air_base_attack(
         let power =
             outcome.power_with(strike_power(mst, squadron.count, on_land), planes.critical_damage);
         let defense = calculate_defense_power(rng, enemy[target].ship.api_soukou[0]);
-        let damage = resolve_damage(rng, power, defense, enemy[target].hp());
+        let damage = resolve_damage(rng, power, defense, enemy[target].hp(), 1.0);
         struck = true;
         if damage > 0 {
             let (raw, dealt) = enemy[target].apply_damage(rng, damage, target);

@@ -12,7 +12,9 @@ use emukc_model::{
     },
 };
 
-use crate::accuracy::{HitOutcome, PlaneProficiency, plane_proficiency, shelling_proficiency};
+use crate::accuracy::{
+    HitOutcome, NightContact, PlaneProficiency, plane_proficiency, shelling_proficiency,
+};
 use crate::combined::{
     CombinedAttackClass, combined_correction_vs_enemy_combined, combined_correction_vs_single,
     combined_formation_modifier,
@@ -21,7 +23,7 @@ use crate::random::BattleRng;
 use crate::targeting::{
     has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type, ship_type, target_class,
 };
-use crate::types::{AirState, BattlePhase, BattleRuntimeShip, EngagementType, TargetClass};
+use crate::types::{BattlePhase, BattleRuntimeShip, EngagementType, TargetClass};
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -84,22 +86,25 @@ pub(crate) fn damage_state_modifier(current_hp: i64, max_hp: i64, phase: BattleP
     }
 }
 
-/// Resolve final damage after capping, applying defense and scratch damage logic.
-///
-/// If `capped_power < defense`, returns scratch (proportional) damage instead of minimum 1.
+/// The damage of an attack of `capped_power` against `defense`, after the source's
+/// `damageCommon`: what is left of the power after the armour, times the attacker's
+/// ammunition modifier `ammo`, rounded down; a scratch where that comes to nothing. An
+/// attack with no power, which is a miss, does none.
 pub(crate) fn resolve_damage(
     rng: &mut impl BattleRng,
     capped_power: f64,
     defense: f64,
     target_hp: i64,
+    ammo: f64,
 ) -> i64 {
     if capped_power <= 0.0 {
         return 0;
     }
-    if capped_power < defense {
+    let damage = ((capped_power - defense) * ammo).floor() as i64;
+    if damage <= 0 {
         calculate_scratch_damage(rng, target_hp.max(1))
     } else {
-        (capped_power - defense).floor().max(0.0) as i64
+        damage
     }
 }
 
@@ -184,11 +189,10 @@ pub(crate) fn calculate_shelling_damage(
     if let Some(m) = ci_multiplier {
         capped_power *= m;
     }
-    capped_power *= ammo_modifier(codex, attacker);
     let capped_power =
         outcome.power_with(capped_power, shelling_proficiency(codex, attacker).critical_damage);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
-    resolve_damage(rng, capped_power, defense, defender.hp())
+    resolve_damage(rng, capped_power, defense, defender.hp(), ammo_modifier(codex, attacker))
 }
 
 /// A torpedo's attack power after the cap, before ammunition and armour.
@@ -225,15 +229,14 @@ pub(crate) fn calculate_torpedo_damage(
     outcome: HitOutcome,
 ) -> i64 {
     let capped_power =
-        torpedo_attack_power(codex, attacker, defender, formation_id, engagement, phase)
-            * ammo_modifier(codex, attacker);
+        torpedo_attack_power(codex, attacker, defender, formation_id, engagement, phase);
     let capped_power = outcome.power(capped_power);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
-    resolve_damage(rng, capped_power, defense, defender.hp())
+    resolve_damage(rng, capped_power, defense, defender.hp(), ammo_modifier(codex, attacker))
 }
 
 /// What a ship attacks with at night from her guns and torpedoes, before the night scout and
-/// the cap. The source's `NBPower`: against an installation the torpedoes are left out, and
+/// the cap: firepower and torpedo, with none of the day's 5. The source's `NBPower`: against an installation the torpedoes are left out, and
 /// a submarine has 30 more firepower.
 // ponytail: the anti-installation equipment's multipliers and flat bonuses are not modelled,
 // by day or at night; they go here and in the day's shelling power together.
@@ -250,7 +253,7 @@ fn night_gun_power(
     } else {
         0
     };
-    (firepower + rest + 5) as f64 + improvement_bonus_night(codex, attacker)
+    (firepower + rest) as f64 + improvement_bonus_night(codex, attacker)
 }
 
 /// Calculate night battle damage for a single attack.
@@ -266,26 +269,25 @@ pub(crate) fn calculate_night_damage(
     rng: &mut impl BattleRng,
     attacker: &BattleRuntimeShip,
     defender: &BattleRuntimeShip,
-    air_state: Option<&AirState>,
+    contact: Option<NightContact>,
     ci_multiplier: Option<f64>,
     air_power: Option<f64>,
     outcome: HitOutcome,
 ) -> i64 {
     let own_power = air_power.unwrap_or_else(|| night_gun_power(codex, attacker, defender));
-    let basic_power = own_power + night_recon_bonus(codex, attacker, air_state);
+    let basic_power = own_power + contact.map_or(0.0, |contact| contact.power);
     let pre_cap = match ci_multiplier {
         Some(m) => basic_power * m,
         None => basic_power,
     };
-    let mut capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64;
-    capped_power *= ammo_modifier(codex, attacker);
+    let capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64;
     let capped_power = if air_power.is_some() {
         outcome.power_with(capped_power, plane_proficiency(codex, attacker).critical_damage)
     } else {
         outcome.power(capped_power)
     };
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
-    resolve_damage(rng, capped_power, defense, defender.hp())
+    resolve_damage(rng, capped_power, defense, defender.hp(), ammo_modifier(codex, attacker))
 }
 
 /// Calculate ASW damage against a submarine target. `planes` is the attacker's aircraft
@@ -333,7 +335,7 @@ pub(crate) fn calculate_asw_damage(
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     let armor_reduction = depth_charge_armor_reduction(codex, attacker);
     let adjusted_defense = (defense - armor_reduction).max(0.0);
-    resolve_damage(rng, capped, adjusted_defense, defender.hp())
+    resolve_damage(rng, capped, adjusted_defense, defender.hp(), ammo_modifier(codex, attacker))
 }
 
 /// Calculate airstrike damage for a single bomber slot.
@@ -369,7 +371,7 @@ pub(crate) fn calculate_single_slot_airstrike_damage(
     let raw_power = bomb_power + AIRSTRIKE_POWER_BONUS;
     let capped = apply_cap(raw_power, AIRSTRIKE_CAP) as f64;
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
-    resolve_damage(rng, capped, defense, defender.hp())
+    resolve_damage(rng, capped, defense, defender.hp(), 1.0)
 }
 
 /// Calculate scratch (proportional) damage when capped power is below defense.
@@ -433,29 +435,6 @@ pub(crate) fn light_gun_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
         })
         .count() as f64;
     single.sqrt() + 2.0 * twin.sqrt()
-}
-
-/// Night recon plane bonus based on air state.
-pub(crate) fn night_recon_bonus(
-    codex: &Codex,
-    ship: &BattleRuntimeShip,
-    air_state: Option<&AirState>,
-) -> f64 {
-    let has_night_recon = ship.slot_items.iter().any(|slot_item| {
-        codex
-            .find::<ApiMstSlotitem>(&slot_item.api_slotitem_id)
-            .ok()
-            .map(|mst| mst.api_type[3] == 50)
-            .unwrap_or(false)
-    });
-    if !has_night_recon {
-        return 0.0;
-    }
-    match air_state {
-        Some(AirState::Supremacy) => 9.0,
-        Some(AirState::Superiority) => 7.0,
-        _ => 5.0,
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -976,6 +955,22 @@ mod tests {
         assert!(low < full, "10% ammo must deal less than full (full {full}, low {low})");
     }
 
+    /// The source's `damageCommon`: the ammunition modifier is on what is left of the power
+    /// after the armour, and what comes to nothing is a scratch.
+    #[test]
+    fn low_ammunition_scales_the_damage_not_the_power() {
+        let mut rng = crate::random::SeededRng::new(1);
+        assert_eq!(resolve_damage(&mut rng, 100.0, 30.0, 100, 1.0), 70);
+        assert_eq!(resolve_damage(&mut rng, 100.0, 30.0, 100, 0.4), 28);
+        // None left, and power no more than the armour: a scratch, 6% of her hull and up.
+        for (power, ammo) in [(100.0, 0.0), (30.0, 1.0)] {
+            let scratch = resolve_damage(&mut rng, power, 30.0, 100, ammo);
+            assert!((6..14).contains(&scratch), "{scratch}");
+        }
+        // A miss is nothing at all.
+        assert_eq!(resolve_damage(&mut rng, 0.0, 30.0, 100, 1.0), 0);
+    }
+
     #[test]
     fn a_hit_of_a_cut_in_that_misses_scratches_and_is_written_as_a_hit() {
         let mut rng = crate::random::SeededRng::new(1);
@@ -1005,11 +1000,11 @@ mod tests {
         let power = |attacker, defender| night_gun_power(&codex, attacker, defender);
 
         let destroyer = ship(KcShipType::DD, 50, 80);
-        assert_eq!(power(&destroyer, &surface), 135.0);
-        assert_eq!(power(&destroyer, &installation), 55.0);
+        assert_eq!(power(&destroyer, &surface), 130.0);
+        assert_eq!(power(&destroyer, &installation), 50.0);
         let submarine = ship(KcShipType::SS, 10, 60);
-        assert_eq!(power(&submarine, &surface), 75.0);
-        assert_eq!(power(&submarine, &installation), 45.0);
+        assert_eq!(power(&submarine, &surface), 70.0);
+        assert_eq!(power(&submarine, &installation), 40.0);
     }
 
     #[test]

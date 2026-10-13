@@ -13,7 +13,7 @@ use super::aaci::roll_air_fire;
 use super::air_base::{ENEMY_FLAT_SHOT, fleet_anti_air, weighted_anti_air};
 use crate::accuracy::{HitOutcome, PROFICIENCY_EXP, plane_proficiency, roll_strike};
 use crate::combined::CombinedFleetRole;
-use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
+use crate::damage::{ammo_modifier, apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
 use crate::targeting::{is_air_combat_type, is_airstrike_attack_type, ship_type};
 use crate::types::{
@@ -394,7 +394,9 @@ pub(super) const AIRSTRIKE_HIT_PERCENT: f64 = 95.0;
 
 /// Calculate airstrike damage for a single bomber slot.
 ///
-/// Uses bomb/torpedo stat × √(onslot) + 25, capped at 170.
+/// Uses bomb/torpedo stat × √(onslot) + 25, capped at 170. `ammo` is the carrier's
+/// ammunition modifier.
+#[expect(clippy::too_many_arguments)]
 fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -403,6 +405,7 @@ fn calculate_single_slot_airstrike_damage(
     defender: &BattleRuntimeShip,
     outcome: HitOutcome,
     critical_damage: f64,
+    ammo: f64,
 ) -> i64 {
     if onslot <= 0 {
         return 0;
@@ -427,7 +430,7 @@ fn calculate_single_slot_airstrike_damage(
     let raw_power = bomb_power + 25.0 + aerial_correction(defender);
     let capped = outcome.power_with(apply_cap(raw_power, 170.0) as f64, critical_damage);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
-    resolve_damage(rng, capped, defense, defender.hp())
+    resolve_damage(rng, capped, defense, defender.hp(), ammo)
 }
 
 // ---------------------------------------------------------------------------
@@ -445,6 +448,7 @@ fn execute_airstrike_phase(
     // Phase 1: Dive bombing — iterate per bomber slot (non-torpedo types)
     for (ship_idx, ship) in attackers.iter_mut().enumerate() {
         let planes = plane_proficiency(codex, ship);
+        let ammo = ammo_modifier(codex, ship);
         for (slot_idx, slot_item) in ship.slot_items.iter().enumerate() {
             let onslot = ship.ship.api_onslot.get(slot_idx).copied().unwrap_or(0);
             if onslot <= 0 {
@@ -485,6 +489,7 @@ fn execute_airstrike_phase(
                 &defenders[target_idx],
                 outcome,
                 planes.critical_damage,
+                ammo,
             );
             if outcome == HitOutcome::Critical {
                 output.cl_flags[target_idx] = 1;
@@ -509,6 +514,7 @@ fn execute_airstrike_phase(
     // Phase 2: Torpedo bombing — iterate per torpedo bomber slot
     for (ship_idx, ship) in attackers.iter_mut().enumerate() {
         let planes = plane_proficiency(codex, ship);
+        let ammo = ammo_modifier(codex, ship);
         for (slot_idx, slot_item) in ship.slot_items.iter().enumerate() {
             let onslot = ship.ship.api_onslot.get(slot_idx).copied().unwrap_or(0);
             if onslot <= 0 {
@@ -545,6 +551,7 @@ fn execute_airstrike_phase(
                 &defenders[target_idx],
                 outcome,
                 planes.critical_damage,
+                ammo,
             );
             if outcome == HitOutcome::Critical {
                 output.cl_flags[target_idx] = 1;

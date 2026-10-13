@@ -337,6 +337,7 @@ impl BattleState {
     }
 
     /// Consume state, verify invariants, produce the night battle simulation result.
+    #[expect(clippy::too_many_arguments)]
     pub fn finalize_night(
         self,
         friendly_nowhps: Vec<i64>,
@@ -344,6 +345,7 @@ impl BattleState {
         enemy_nowhps: Vec<i64>,
         enemy_maxhps: Vec<i64>,
         flare_pos: [i64; 2],
+        touch_plane: [i64; 2],
         hougeki: Option<crate::types::BattleNightHougeki>,
     ) -> NightBattleSimulation {
         verify_protected_ships_alive(&self.friendly);
@@ -364,7 +366,7 @@ impl BattleState {
             friendly_maxhps,
             enemy_nowhps,
             enemy_maxhps,
-            touch_plane: [-1, -1],
+            touch_plane,
             flare_pos,
             hougeki,
         };

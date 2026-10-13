@@ -27,6 +27,41 @@ mod tests {
         context.update_fleet_ships(pid, 1, &fleet_slots).await.unwrap();
     }
 
+    /// 1-5's first cell fields submarines alone: 8% of the fuel and no ammunition
+    /// (wikiwiki 資材「燃料・弾薬の消費」), where an ordinary battle takes a fifth of each.
+    #[tokio::test]
+    async fn a_submarine_cell_costs_a_little_fuel_and_no_ammunition() {
+        use emukc_internal::gameplay::scenario::{Scenario, apply_scenario};
+
+        let context = new_context().await;
+        let pid = new_profile(&context).await;
+        // Six ships at full supply, with 1-1 to 1-4 cleared.
+        apply_scenario(&context, pid, &Scenario::opening_asw()).await.unwrap();
+        let supply = |ships: Vec<emukc_internal::prelude::KcApiShip>| {
+            ships.into_iter().map(|ship| (ship.api_id, (ship.api_fuel, ship.api_bull)))
+        };
+        let before = supply(context.get_ships(pid).await.unwrap()).collect::<Vec<_>>();
+
+        context.start_sortie(pid, 1, 1, 5).await.unwrap();
+        let battle = context.sortie_battle(pid, 1).await.unwrap();
+        context.sortie_battle_result(pid).await.unwrap();
+
+        let fought = battle.api_f_nowhps.len();
+        let after = supply(context.get_ships(pid).await.unwrap())
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let mut charged = 0;
+        for (id, (fuel, ammo)) in before {
+            let (fuel_left, ammo_left) = after[&id];
+            if fuel_left == fuel {
+                continue;
+            }
+            charged += 1;
+            assert_eq!(fuel - fuel_left, (fuel * 8 / 100).max(1), "ship {id}'s fuel");
+            assert_eq!(ammo_left, ammo, "ship {id}'s ammunition");
+        }
+        assert_eq!(charged, fought, "every ship that fought paid for it");
+    }
+
     #[tokio::test]
     async fn sortie_1_1_battle_enemy_ship_ids_are_abyssal() {
         let context = new_context().await;
