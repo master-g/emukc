@@ -193,12 +193,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 战斗消耗分档、夜战对陆、切入未命中擦伤（计划 2026-10-13-003），已合并
-  （PR #90）。质量门通过，战斗基线重冻。
+- [2026-10-13] 弹药量补正位置、夜间触接、按格子的消耗（计划 2026-10-13-004），分支
+  `fix/damage-pipeline-and-night-contact`，未合并。质量门通过，战斗基线重冻。
 
 ## Next Session
 
-- [2026-10-13] 未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 003。
+- [2026-10-13] 未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   周常重置读系统时钟还没有规格。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。

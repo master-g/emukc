@@ -132,6 +132,18 @@ flagship's own attack; the partner still takes her turn. The enemy never makes i
   1.2 before 2026-04-23, which is what wikiwiki's page still says). None is made
   against PT boats alone.
 
+## Attack power and night contact
+
+A ship attacks at night with firepower plus torpedo plus her equipment's improvement, with
+none of the day's 5 (`night_gun_power`). As the night begins each fleet puts its night scouts
+up (`roll_night_contact`, the source's `getNightEquipsScout`): each comes into contact at
+`floor(√Lv × √LoS) / 25`, and the one with the most accuracy of those that do is the
+fleet's. A fleet that lost the air by day flies none, nor does one that met the enemy on even
+terms, unless the battle opens at night. The scout in contact goes into `api_touch_plane` and
+gives every night attack of its fleet, by its own accuracy of 1, 2 or 3: 5, 7 or 9 attack
+power before the cap, 1.1, 1.15 or 1.2 on the base accuracy of 69, and a critical factor of
+1.57, 1.64 or 1.7 in place of 1.5 (`NightContact`).
+
 ## A hit that misses
 
 A plain attack that misses does nothing and is written `0` in `api_cl_list`. A hit of a
@@ -147,7 +159,6 @@ double attack, a cut-in or a special attack that misses still scratches and is w
 - A night attack on an installation is firepower alone, 30 more for a submarine
   (`night_gun_power`, the source's `NBPower`). The anti-installation equipment's multipliers
   and flat bonuses are modelled neither by day nor at night.
-- The night's own power has a `+ 5` the source's `NBPower` does not have.
 - The destroyer cut-ins with a lookout show any lookout and any drum-type equipment.
 - Played in the client (`night_cut_in`): types 2, 3, 5 and 7 and the star shell; the
   submarine's torpedo cut-in with her radar and her plain attack (`night_asw`); the Kongou
