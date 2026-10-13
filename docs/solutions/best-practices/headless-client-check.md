@@ -138,16 +138,17 @@ screen, pass steps on the command line and read the screenshots:
 - `night_contact` is the same sortie led by 由良改二 at level 90 with a
   零式水上偵察機11型甲改二 and a 二式水戦改: the fighter takes the air from an enemy that has
   no fighter, and at her level the scout comes into contact every time, so the check is a
-  value: `api_disp_seiku` 1 or 2, `api_touch_plane` `[540, -1]`, and the scout's picture
-  (`slot/item_up/0540_…`) among what the client asked for, which `TaskShowTouchPlane` loads
-  only when it shows a contact. The requested paths are saved as `requested.json` for that.
-  The client puts our scout on the enemy's radar (`rader_e.touch_plane`), with 触接中! under
-  it. The scout's picture appears about a second after the label and stays; the label blinks
-  (0.9 s in every 1.1), so one screenshot may show either without the other (`night3`,
-  `night4`, `night6` of the first run: label alone, both, picture alone). Three runs of three on 2026-10-13, without a page error and with the picture in the
-  cache list. The enemy's scout (`api_touch_plane[1]`) cannot be played: no abyssal
-  equipment in `api_mst_slotitem` has the night scout's icon (`api_type[3]` 50), so
-  `roll_night_contact` never finds one for the enemy.
+  value: `api_disp_seiku` 1 or 2 and `api_touch_plane` `[540, -1]`. That the client shows it
+  is in the screenshots only: our scout on the enemy's radar (`rader_e.touch_plane`) with
+  触接中! under it. The scout's picture appears about a second after the label and stays; the
+  label blinks (0.9 s in every 1.1), so one screenshot may show either without the other
+  (`night3`, `night4`, `night6` of the first run: label alone, both, picture alone). The
+  request for the picture (`slot/item_up/0540_…`) proves nothing: the day's `PhaseSakuteki`
+  loads the same one for the scout it sends out. Three runs of three on 2026-10-13, without
+  a page error. In a sortie the enemy's scout (`api_touch_plane[1]`) cannot be played: no
+  abyssal equipment in `api_mst_slotitem` has the night scout's icon (`api_type[3]` 50). An
+  exercise can: the opponent's ships carry what they are built with, 川内改二 a 九八式夜偵.
+  That has not been played.
 - `nagato_broadside` is the same sortie in 梯形陣 (the fourth button of the formation screen)
   led by 長門改二 and 陸奥改二. The check wants one row of type 101 by the flagship with up
   to three hits, by day or, if the day did not make it, at night, and never a second; it

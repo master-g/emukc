@@ -300,11 +300,7 @@ def check_night_contact(work: Path) -> list[str]:
     # The flagship's scout comes into contact every time at her level; the enemy carries none.
     if nights[0]["api_touch_plane"] != [540, -1]:
         problems.append(f"the flagship's scout is the fleet's and the enemy has none; api_touch_plane said {nights[0]['api_touch_plane']}")
-    # The client draws the scout it was told of from the equipment's own picture.
-    asked = [path for path in json.loads((work / "requested.json").read_text()) if "slot/item_up/0540_" in path]
-    if not asked:
-        problems.append("the client did not ask for the scout's picture (slot/item_up/0540_…), so it showed no contact")
-    print("api_disp_seiku", seiku, "api_touch_plane", nights[0]["api_touch_plane"], "asked for", asked)
+    print("api_disp_seiku", seiku, "api_touch_plane", nights[0]["api_touch_plane"])
     return problems
 
 
@@ -674,7 +670,6 @@ def main() -> int:
         server.wait()
 
     report["resources"] = {"requested": len(requested)} | resource_report(work, requested)
-    (work / "requested.json").write_text(json.dumps(sorted(requested), indent=1))
     if not report["failed_step"]:
         report["problems"] = check(work)
     (work / "report.json").write_text(json.dumps(report, indent=1, ensure_ascii=False))
