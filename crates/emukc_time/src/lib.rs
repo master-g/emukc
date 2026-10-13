@@ -210,13 +210,15 @@ impl KcTime {
     /// A `DateTime<Utc>` representing the next Monday's 5 AM JST.
     pub fn jst_next_monday_0500(ts: &DateTime<Utc>) -> DateTime<Utc> {
         let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-        let tokyo_then = ts.with_timezone(&tokyo_tz);
-        let monday_0500 = Self::jst_monday_0500_utc();
-        if tokyo_then < monday_0500 {
-            monday_0500
-        } else {
-            monday_0500 + chrono::Duration::weeks(1)
-        }
+        // The week turns with the quest day: Monday 04:59 still belongs to Sunday.
+        let quest_day = Self::jst_quest_day(ts);
+        let days_left = 7 - i64::from(quest_day.weekday().num_days_from_monday());
+        let next_monday = quest_day + chrono::Duration::days(days_left);
+
+        tokyo_tz
+            .from_local_datetime(&next_monday.and_hms_opt(5, 0, 0).unwrap())
+            .unwrap()
+            .with_timezone(&Utc)
     }
 
     /// Get the next 5 AM JST (UTC+9) of the nth day of the month from the given time.

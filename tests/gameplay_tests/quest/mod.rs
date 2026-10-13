@@ -7,3 +7,4 @@ mod factory_progress;
 mod limited_day;
 mod progress;
 mod reward;
+mod weekly_reset;
