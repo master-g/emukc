@@ -193,12 +193,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] 特殊砲撃弹药三条（计划 2026-10-12-010），已合并（PR #82）。
-  质量门通过，基线没变，无头检查没重跑（报文不变）。
+- [2026-10-13] 金剛型夜战突击威力 ×1.06（计划 2026-10-13-001），分支 `fix/kongou-assault-power`，未合并。
+  质量门通过，无头检查没重跑。
 
 ## Next Session
 
-- [2026-10-12] 特殊砲撃未定的见 `day-shelling-order.md` 的 Unsettled 与计划 010「没有做」。
+- [2026-10-13] 特殊砲撃未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010 与 2026-10-13-001。
   周常重置读系统时钟还没有规格。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。

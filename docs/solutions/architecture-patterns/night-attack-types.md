@@ -112,11 +112,13 @@ flagship's own attack; the partner still takes her turn. The enemy never makes i
   A and B for a surface radar of 8 line of sight or more and a large searchlight on the
   flagship, by which ship she is. The source has no rate for it. Nothing is rolled unless the
   fleet can make it and a surface ship is left to attack.
-- **How hard:** 2.6 for the flagship and 2.7 for her partner before the cap, 1.25 at T
-  advantage and 0.8 at T disadvantage, and her own 35.6cm guns (改四 / 改三丙: 1.11 for one,
-  1.15 for more; 改二 / 改三(ダズル迷彩仕様): 1.05, 1.08). 1.4 to accuracy. The source's later
-  2.76 / 2.86 is marked an estimate there and is not taken; its second gun id for the lesser
-  pair, 529, is a destroyer's gun and read as 329.
+- **How hard:** 2.6 for the flagship and 2.7 for her partner before the cap, 1.06 more since
+  the update of 2026-04-23 (2.756 and 2.862; the source rounds them to 2.76 / 2.86), 1.25 at
+  T advantage and 0.8 at T disadvantage, and her own 35.6cm guns (改四 / 改三丙: 1.11 for
+  one, 1.15 for more; 改二 / 改三(ダズル迷彩仕様): 1.05, 1.08). 1.4 to accuracy. The source's
+  second gun id for the lesser pair, 529, is a destroyer's gun and read as 329.
+- **The rate is the one from before 2026-04-23.** That update raised it "a little" and nobody
+  has published a formula since (plan `2026-10-13-001`).
 - **The client** (`_kongo_cutin`, `PhaseKongoAttack`) takes the two attackers from the fleet's
   first two places, not from the row, reads no equipment, and plays up to three targets. Its
   cut-in speaks one of the flagship's voices 900 and 990 to 993 by the pair; the cache list

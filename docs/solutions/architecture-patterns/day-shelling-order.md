@@ -96,7 +96,8 @@ the sky is the enemy's. Day shelling and the night battle both pass it that way.
   assault a tenth more. 106 is made only while both of its ships have ammunition left
   (`check_qe_attack`). Evidence in plan `2026-10-12-010`.
 - **Unsettled:** whether 106 costs ammunition (the source charges nothing, wikiwiki says
-  nothing) and whether the other attacks also need ammunition left. The cost is a factor on
+  nothing) and whether the other attacks also need ammunition left (KC3Kai asks it of every
+  one of them, on the strength of the same one measurement). The cost is a factor on
   the flat fifth a battle; the steps by day, night and opening night, their rounding, and
   the cost lost on going into the night against a combined fleet are not modelled. The
   rates of 103, 105 and 106 are the Nagato class's (plan `2026-10-12-006`).
