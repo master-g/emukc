@@ -36,8 +36,6 @@ Current verification baseline:
 - [2026-09-18] `required_exp(99) == required_exp(100) == 1_000_000` 是设计（结婚在同一经验值解锁 Lv.100），
   所以 `exp_to_ship_level(1_000_000)` 得 100，未结婚的调用方靠 `min(cap)` 兜底。不是 bug。
   见 `kc2/level.rs`、`game/ship/exp.rs` 的测试。
-- [2026-09-19] `update_quest_progress_for_action` 只读任务进度行与 codex（`quest/update.rs:174-244`），
-  所以在领域事务里的任何位置都能跑；U8 把它移到 `commit` 前，行为零变化。
 - [2026-09-19] `questlist` 的 `api_tab_id` 是客户端标签栏（0,9,1,2,3,4,5 = 全部/进行中/日/周/月/一次性/
   其他），客户端自己不做过滤；`api_label_type` 决定行标签（1,2,3,6,7,101..=112）。
   见 `main.decoded.js` 的 `DutyDataHolder`、`_createTab`。
@@ -78,15 +76,12 @@ Current verification baseline:
   `KC3Kai/edges.json`（kcwiki `map/edge.json` 是其纯键名镜像）**不接**——675 条边 674 条只是确认我们，
   唯一分歧 7-4 edge 3 是上游错；`real_map_start_data/` 36 份只有 34 份有效，7-4/7-5 是错误页（已跳过）。
 
-- [2026-09-21] `emukc_network` 的下载层先读完 body 再开目标文件，非 2xx 直接报错，失败的传输从不写出
-  半截文件。计划 005 的 `.part` + rename 只堵了 truncate-to-copy 窗口；真正的数据丢失来自
+- [2026-09-21] `emukc_network` 下载先读完 body 再开目标文件，失败的传输不写半截文件；真正的数据丢失来自
   `bootstrap --force-update` 在下载前就删文件。
 - [2026-09-21] kccp 源里 11 条任务缺 name（256/615/616/622/627/628/630/632/633/648/652），游戏内显示
   `n/a`。上游数据缺失，不是解析器问题，补标题需要另一个数据源。
-- [2026-09-21] `extract_label_type` 的第五种周期字母 `s`（Cs1/2/3/5/6，5 个真实 wiki_id）在 `match` 里
-  没有分支，落到 label_type 1——而这个结果是对的：本仓库把 `Frequency::Seasonal` 映射成
-  `Kc3rdQuestPeriod::Oneshot`，1 正是客户端的一次性标签页（011 已写进测试）。计划 002 说它「和未命中的
-  年任务一样落到 1」有误导；计划 011 的修复只提了 By/Cy 的 7 个，别漏掉 `s`。
+- [2026-09-21] `extract_label_type` 的周期字母 `s`（Cs1/2/3/5/6）在 `match` 里没有分支，落到 label_type 1，
+  这是对的：`Frequency::Seasonal` 映射成 `Oneshot`，1 正是客户端的一次性标签页（已有测试）。
 
 - [2026-09-21] `serde` 的 `visit_map` 按文档顺序交付条目，所以「保序地读一个 JSON 对象」不必开
   `serde_json/preserve_order`——该 feature 在 feature unification 下全工作区生效，会改掉 27 处
@@ -96,9 +91,8 @@ Current verification baseline:
   `holes_report.rs`，无写入方）与活着的 `ShipPathHoles` 跳过表（manifest 规则在用）。按词清理会误删后者。
 - [2026-09-21] `.html` 缓存无法内容嗅探：真实 `kcs2/hc.html` 仅 54 字节且与错误页同形，
   所以 008 只给它留非空检查。
-- [2026-09-21] 需求解析失败在 `or` 与 `and`/`then` 下处理相反：丢一个 `or` 分支只减少完成路径
-  （更严格），丢一个 `and` 条件则白送。统一 `?` 传播会误杀 api_no 1019 这类一坏一好分支的任务。
-  三条的完整依据见 `docs/plans/2026-09-20-bootstrap-cache-audit/README.md` 的 006/008/010 段。
+- [2026-09-21] 需求解析失败：丢一个 `or` 分支只是更严格，丢一个 `and` 条件则白送；统一 `?` 传播会误杀
+  api_no 1019。以上三条的依据见 `docs/plans/2026-09-20-bootstrap-cache-audit/README.md` 的 006/008/010 段。
 - [2026-09-21] `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 在全部镜像上都是 200 + 空 body（4 个 w0* 主机实测）。
   `Kache` 现在把「每个镜像都应答且都不可用」返回成 `InvalidFile` 而非 `FailedOnAllCdn`，populate 归入
   missing 不再重试；注意 `exists_on_remote` 走 HEAD，仍判 `Present`。
@@ -149,13 +143,13 @@ Current verification baseline:
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
 
 - [2026-10-11] 対空カットイン（53 个种别全有，数值照来源模拟器，与 wiki 的 5 处差异列在文档里）：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
-- [2026-10-10] `PROJECT_MEMORY.md` 改动时钩子跑 `memory.py check`。
 - [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
   `api_c_list` 不发：改装系任务由服务器判持有。
 - [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
   周常的 `jst_next_monday_0500`、`init`、`quest_add` 仍读系统时钟，固定时间的测试只用过去的日期。
 - [2026-10-12] 夜战攻击种别与谁出手（表、抽签先后、照明弾、`canNB`；客户端种别 3 必须发两件展示装备）：`docs/solutions/architecture-patterns/night-attack-types.md`。
 - [2026-10-13] 资源点与渦潮：`resource-and-maelstrom-cells.md`；偵察、護衛成功、揚陸格：`reconnaissance-and-escort-cells.md`。
+  能動分岐格离开时不转罗针盘是本项目定的，没有抓包：`sortie-compass-rashin-flag.md`。
 - [2026-10-12] 敌方空母的夜战：`carrier-night-air-attack.md` 的 Enemy carriers。取值 3 的轻空母看的是**玩家**的探照灯，#55 原文写反了。
 
 ## Failed Attempts / Pitfalls
@@ -177,10 +171,8 @@ Current verification baseline:
 | [2026-09-19] Missing `main-decoder/node_modules` makes `bun run decode` fail as `Unexpected HTTP` / `Cannot find module '@babel/generator'`, which reads like a corrupt download. `bun install` first; it also unblocks `bun run check`. | git `688e29c` |
 | [2026-09-19] Pinning decoder tests to webpack module ids breaks on every upstream build (`DutyModel_` 56360→82131, `PhaseHougeki` 65622→two modules 1830/74885). Match `readableName`, and for duplicate names take the deepest hotspot cleanup. | git `b1016fc` |
 | [2026-09-19] A refactor comment saying "keeps feeding X as before" was preserving a bug: plan 002 froze the day-battle `enemy_nowhps` copy, so night-only sinks fired no quest event. Treat "as before" as unverified. | git `HEAD` |
-| [2026-09-19] Per-file gate checks break when a file holds both `Ctx` methods and `_impl`s (U8: `ndock.rs` had to both call and not call `observe`); rely on the AE grep instead. `tests/gameplay_tests/quest/*.rs` use sync `#[test]`, so `#[tokio::test]` counts are 0. | session 2026-09-19, U8 |
-| [2026-09-20] Duplicate progress bars are NOT error line-wraps: any terminal write bypassing `MultiProgress` strands a copy of the bar block in scrollback and is itself overwritten (invisible). Spinner churn, resizes and `mp.suspend` all tested clean. | session 2026-09-20 |
 | [2026-09-21] A plan naming one instance of a defect does not bound the fix to it: 007 cited `unwrap_or(false)` in `gauge.rs`; one line down `make_gauge_by_id` mapped every error to `Ok(false)` — same swallow, 3 call sites. Grep the file for the shape, not the cited line. | git `2497efc` |
-| [2026-09-20] Never `mp.add()` a `ProgressBar` per work item: indicatif 0.18 reaps only zombies consecutive from the head of `ordering`, and the head is the permanent aggregate bar, so finished bars leak and every redraw walks them. 73k spinners = 2m13s vs 3s. | session 2026-09-20, `populate.rs` |
+| [2026-09-20] indicatif: never `mp.add()` a `ProgressBar` per work item (finished bars leak behind the permanent head bar; 73k spinners = 2m13s vs 3s), and any terminal write bypassing `MultiProgress` strands a duplicate bar block in scrollback. | session 2026-09-20, `populate.rs` |
 
 | [2026-09-21] 「无 .data 跑测试」时备份必须放到**仓库外**：cache rules 的测试会 `create_dir_all(".data/tmp")`，`mv .data .data.bak` 再移回会把备份塞进新目录。 | session 2026-09-21 |
 | [2026-09-21] `crates/emukc_battle/tests/golden/*.txt` 是 `{:#?}` dump，加字段就全量
