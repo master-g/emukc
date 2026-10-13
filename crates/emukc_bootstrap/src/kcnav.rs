@@ -577,8 +577,10 @@ pub fn load_repo_kcnav_cell_events()
 /// That source knows whether a node has a name, not what happens on it, so every named node
 /// became a battle. Only the plain kinds are corrected — nothing, battle, boss, the "nothing
 /// happened" message, a resource pick-up, a start point; the catalog's own codes for air
-/// raids, night battles and reconnaissance are left alone, and so are the kinds nothing here
-/// plays out (8, 9). Returns how many cells changed, or the cells whose label disagrees.
+/// raids, night battles and reconnaissance are left alone, and so is a landing cell (9). A
+/// second way into a reconnaissance (7) or escort-success (8) node is corrected too: the other
+/// sources know the node by its first edge only. Returns how many cells changed, or the cells
+/// whose label disagrees.
 pub fn apply_cell_events(
     catalog: &mut MapCatalog,
     events: &KcnavCellEventsAsset,
@@ -602,7 +604,11 @@ pub fn apply_cell_events(
                     ));
                     continue;
                 }
-                if cell.event_id == seen.event_id || !matches!(cell.event_id, 1 | 4 | 5 | 6) {
+                // A reconnaissance node's colour is the landing cell's, which is what a
+                // cell known by its colour alone was taken for.
+                let guessed = matches!(cell.event_id, 1 | 4 | 5 | 6)
+                    || (cell.event_id == 9 && seen.event_id == 7);
+                if cell.event_id == seen.event_id || !guessed {
                     continue;
                 }
                 let colour = |fallback| {
@@ -628,6 +634,8 @@ pub fn apply_cell_events(
                             1
                         },
                     ),
+                    // Drawn as the node's other edge is.
+                    7 | 8 => (cell.color_no, seen.event_id, cell.event_kind),
                     _ => continue,
                 };
                 (cell.color_no, cell.event_id, cell.event_kind) = kind;
@@ -1098,7 +1106,9 @@ mod tests {
                 (4, "D", (5, 5, 1)),   // flagged boss, really a resource pick-up
                 (5, "E", (10, 10, 1)), // the catalog's own code for an air raid: left alone
                 (6, "F", battle),      // nobody recorded this edge: left alone
-                (7, "G", (6, 1, 0)),   // a kind nothing here plays out: left alone
+                (7, "G", (6, 1, 0)),   // a second way into an escort-success node
+                (8, "H", (9, 9, 1)),   // a second way into a reconnaissance node
+                (9, "I", (9, 9, 1)),   // a landing cell: left alone
             ],
             4,
         );
@@ -1109,9 +1119,11 @@ mod tests {
             (4, "D", 2, 2),
             (5, "E", 10, 4),
             (7, "G", 8, 8),
+            (8, "H", 9, 7),
+            (9, "I", 6, 9),
         ]);
 
-        assert_eq!(apply_cell_events(&mut catalog, &recorded), Ok(4));
+        assert_eq!(apply_cell_events(&mut catalog, &recorded), Ok(6));
 
         let variant = &catalog.maps[&11].variants[""];
         let kinds = variant
@@ -1121,7 +1133,17 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(
             kinds,
-            vec![(4, 6, 1), (4, 6, 2), (5, 5, 1), (2, 2, 0), (10, 10, 1), battle, (6, 1, 0)]
+            vec![
+                (4, 6, 1),
+                (4, 6, 2),
+                (5, 5, 1),
+                (2, 2, 0),
+                (10, 10, 1),
+                battle,
+                (6, 8, 0),
+                (9, 7, 1),
+                (9, 9, 1)
+            ]
         );
         assert_eq!(
             variant.boss_cell_no, 3,

@@ -216,7 +216,7 @@ pub static DEFAULT_MAP_RECORDS: LazyLock<Vec<MapRecord>> = LazyLock::new(|| {
             None,
             MapDefeatContext {
                 defeat_count: 0,
-                defeat_required: 4,
+                defeat_required: 7,
                 gauge_num: 1,
                 gauge_type: MapGaugeType::Destroy,
                 refresh_type: MapRefreshType::Monthly,
