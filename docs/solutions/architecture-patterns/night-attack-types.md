@@ -143,7 +143,8 @@ terms, unless the battle opens at night. The scout in contact goes into `api_tou
 gives every night attack of its fleet, by its own accuracy of 1, 2 or 3: 5, 7 or 9 attack
 power before the cap, 1.1, 1.15 or 1.2 on the base accuracy of 69, and a critical factor of
 1.57, 1.64 or 1.7 in place of 1.5 (`NightContact`). The client shows the scout on the other
-fleet's radar; the headless scenario `night_contact` plays ours.
+fleet's radar; the headless scenario `night_contact` plays ours. The enemy's stays -1: no
+abyssal equipment has the night scout's icon (`api_type[3]` 50).
 
 ## A hit that misses
 
