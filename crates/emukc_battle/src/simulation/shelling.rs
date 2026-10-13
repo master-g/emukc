@@ -1,10 +1,10 @@
 //! Day shelling phase simulation.
 
 use crate::accuracy::{Aim, AttackKind, asw_proficiency, roll_attack};
-use crate::damage::{calculate_asw_damage, calculate_shelling_damage};
+use crate::damage::{calculate_asw_damage, calculate_shelling_damage, cut_in_hit};
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
-use crate::simulation::day_cutin::{day_accuracy_modifier, resolve_day_attack};
+use crate::simulation::day_cutin::{DayAttackType, day_accuracy_modifier, resolve_day_attack};
 use crate::simulation::special_attack;
 use crate::targeting::{any_alive, can_shell_day_ship, select_random_target_index, target_class};
 use crate::types::{
@@ -297,7 +297,6 @@ fn shell_turn(
             let mut cls = Vec::with_capacity(2);
             for _ in 0..2 {
                 let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
-                cls.push(outcome.cl());
                 let raw = calculate_shelling_damage(
                     codex,
                     rng,
@@ -308,6 +307,8 @@ fn shell_turn(
                     ci_mult,
                     outcome,
                 );
+                let (raw, cl) = cut_in_hit(rng, outcome, raw, defenders[target_idx].hp());
+                cls.push(cl);
                 let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
                 if !params.attacker_is_enemy {
                     ship.damage_dealt += dealt;
@@ -343,6 +344,12 @@ fn shell_turn(
                 ci_mult,
                 outcome,
             );
+            // A plain attack that misses does nothing; a cut-in's still scratches.
+            let (raw, cl) = if resolved.at_type == DayAttackType::Normal {
+                (raw, outcome.cl())
+            } else {
+                cut_in_hit(rng, outcome, raw, defenders[target_idx].hp())
+            };
             let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
             if !params.attacker_is_enemy {
                 ship.damage_dealt += dealt;
@@ -359,7 +366,7 @@ fn shell_turn(
                 idx,
                 vec![target_idx as i64],
                 vec![damage_cell(display, shield)],
-                vec![outcome.cl()],
+                vec![cl],
             );
         }
     }

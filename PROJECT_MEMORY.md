@@ -193,12 +193,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 特殊砲撃发动率改用 TsunDB 拟合式（计划 2026-10-13-002），已合并（PR #88）。
-  质量门通过，无头检查没重跑。
+- [2026-10-13] 战斗消耗分档、夜战对陆、切入未命中擦伤（计划 2026-10-13-003），分支
+  `fix/battle-supply-and-night-hits`，未合并。质量门通过，战斗基线重冻。
 
 ## Next Session
 
-- [2026-10-13] 特殊砲撃未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001、002。
+- [2026-10-13] 未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 003。
   周常重置读系统时钟还没有规格。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。

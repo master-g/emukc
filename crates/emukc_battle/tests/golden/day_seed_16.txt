@@ -6,7 +6,7 @@ BattlePacket {
     ],
     friendly_nowhps: [
         60,
-        37,
+        33,
     ],
     enemy_nowhps: [
         0,
@@ -122,7 +122,7 @@ BattlePacket {
         1,
         1,
         0,
-        1,
+        0,
     ],
     hougeki1: Some(
         BattleHougeki {
@@ -265,10 +265,10 @@ BattlePacket {
                 ],
                 [
                     2,
-                    0,
+                    1,
                 ],
                 [
-                    0,
+                    1,
                 ],
             ],
             api_damage: [
@@ -277,49 +277,14 @@ BattlePacket {
                 ],
                 [
                     5,
-                    0,
+                    4,
                 ],
                 [
-                    0,
+                    77,
                 ],
             ],
         },
     ),
     hougeki3: None,
-    raigeki: Some(
-        BattleRaigeki {
-            api_frai: [
-                0,
-                -1,
-            ],
-            api_fcl: [
-                1,
-                0,
-            ],
-            api_fdam: [
-                0,
-                0,
-            ],
-            api_fydam: [
-                111,
-                0,
-            ],
-            api_erai: [
-                1,
-                -1,
-            ],
-            api_ecl: [
-                0,
-                0,
-            ],
-            api_edam: [
-                111,
-                0,
-            ],
-            api_eydam: [
-                0,
-                0,
-            ],
-        },
-    ),
+    raigeki: None,
 }

@@ -44,6 +44,12 @@ pub struct SortieBattleResultSnapshot {
     pub air_battle: bool,
     /// The fleet special attacks the fleet made in the battle, day and night, by their type.
     pub special_attacks: Vec<i64>,
+    /// Whether a night battle followed the day battle.
+    pub night_fought: bool,
+    /// Whether the battle opened at night (開幕夜戦), with no day battle before it.
+    pub night_start: bool,
+    /// Whether the enemy was a combined fleet.
+    pub enemy_combined: bool,
     pub enemy_ship_types: Vec<i64>,
     pub win_rank: String,
     pub get_exp: i64,
@@ -633,17 +639,17 @@ where
 
         // Sunk ships: save HP=0 but skip resource consumption and EXP
         if !is_sunk {
-            // Consume fuel and ammo: 20% of max per battle node.
             if let Ok(mst) =
                 codex.find::<emukc_model::kc2::start2::ApiMstShip>(&api_ship.api_ship_id)
             {
-                let fuel_max = mst.api_fuel_max.unwrap_or(0);
-                let ammo_max = mst.api_bull_max.unwrap_or(0);
-                let fuel_cost = (fuel_max * 2 / 10).max(1);
                 let kongou_pair = snapshot.get_ship_exp_combined.as_ref().map_or(0, |_| main_len);
-                let ammo_cost = ((ammo_max * 2 / 10).max(1) as f64
-                    * special_attack_ammo(&snapshot.special_attacks, idx, kongou_pair))
-                    as i64;
+                let special = special_attack_ammo(&snapshot.special_attacks, idx, kongou_pair);
+                let (fuel_cost, ammo_cost) = battle_supply_cost(
+                    mst.api_fuel_max.unwrap_or(0),
+                    mst.api_bull_max.unwrap_or(0),
+                    &snapshot,
+                    special,
+                );
                 api_ship.api_fuel = (api_ship.api_fuel - fuel_cost).max(0);
                 api_ship.api_bull = (api_ship.api_bull - ammo_cost).max(0);
             }
@@ -959,6 +965,35 @@ where
     Ok(0)
 }
 
+/// The fuel and ammunition a battle costs a ship of these capacities, after the source's
+/// `updateSupply`: a fifth of each, a tenth where the battle opens at night, never less
+/// than 1. Going on into the night costs half as much ammunition again, rounded up, but not
+/// against a combined fleet. `special` is [`special_attack_ammo`]'s factor for her, on the
+/// whole and rounded down; a night against a combined fleet takes it away again.
+// ponytail: the cells that cost otherwise (submarines 8/0, air raids 6/4 and 4/8, PT boats
+// 4/8, radar fire 4/0) are not told apart; give the snapshot the cell's kind when they are.
+fn battle_supply_cost(
+    fuel_max: i64,
+    ammo_max: i64,
+    snapshot: &SortieBattleResultSnapshot,
+    special: f64,
+) -> (i64, i64) {
+    let part = if snapshot.night_start {
+        10
+    } else {
+        5
+    };
+    let fuel = (fuel_max / part).max(1);
+    let mut ammo = (ammo_max / part).max(1);
+    if snapshot.night_fought && !snapshot.enemy_combined {
+        ammo += (ammo_max + 9) / 10;
+    }
+    if !(snapshot.night_fought && snapshot.enemy_combined) {
+        ammo = (ammo as f64 * special) as i64;
+    }
+    (fuel, ammo)
+}
+
 /// What a ship's ammunition for the battle is multiplied by for the special attack she
 /// joined. The source's `updateSupply`: 1.5 for the flagship and second ship of the Nagato
 /// and Richelieu classes' attacks. The source leaves out the Colorado class's; wikiwiki
@@ -996,6 +1031,9 @@ mod tests {
             friendly_onslots: vec![],
             air_battle: false,
             special_attacks: Vec::new(),
+            night_fought: false,
+            night_start: false,
+            enemy_combined: false,
             enemy_ship_types: vec![],
             win_rank: win_rank.to_string(),
             get_exp: 0,
@@ -1436,6 +1474,35 @@ mod tests {
         assert_eq!(pick(89), Some(1));
         assert_eq!(pick(90), Some(2));
         assert_eq!(pick(100), Some(3));
+    }
+
+    /// The source's `updateSupply`, and the amounts wikiwiki works out.
+    #[test]
+    fn what_a_battle_costs_follows_when_it_was_fought_and_against_whom() {
+        let cost = |ammo_max, night_fought, night_start, enemy_combined, special| {
+            let snapshot = SortieBattleResultSnapshot {
+                night_fought,
+                night_start,
+                enemy_combined,
+                ..snapshot("S")
+            };
+            battle_supply_cost(100, ammo_max, &snapshot, special)
+        };
+        // A day battle: a fifth of each, and at least 1.
+        assert_eq!(cost(15, false, false, false, 1.0), (20, 3));
+        assert_eq!(battle_supply_cost(4, 4, &snapshot("S"), 1.0), (1, 1));
+        // Going on into the night: half as much ammunition again, rounded up; no more fuel.
+        assert_eq!(cost(15, true, false, false, 1.0), (20, 5));
+        // A battle that opens at night: a tenth of each.
+        assert_eq!(cost(160, false, true, false, 1.0), (10, 16));
+        // The special attack's factor on the whole, rounded down: 長門改二 by day and with
+        // the night, 金剛改二丙 opening at night.
+        assert_eq!(cost(225, false, false, false, 1.5).1, 67);
+        assert_eq!(cost(225, true, false, false, 1.5).1, 102);
+        assert_eq!(cost(160, false, true, false, 1.1).1, 17);
+        // Against a combined fleet the night costs no more, and takes the attack's cost away.
+        assert_eq!(cost(225, false, false, true, 1.5).1, 67);
+        assert_eq!(cost(225, true, false, true, 1.5).1, 45);
     }
 
     #[test]

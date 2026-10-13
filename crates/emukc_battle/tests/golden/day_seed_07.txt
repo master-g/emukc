@@ -5,8 +5,8 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        56,
-        41,
+        60,
+        31,
     ],
     enemy_nowhps: [
         0,
@@ -122,7 +122,7 @@ BattlePacket {
         1,
         1,
         0,
-        1,
+        0,
     ],
     hougeki1: Some(
         BattleHougeki {
@@ -196,7 +196,7 @@ BattlePacket {
                 ],
                 [
                     1,
-                    0,
+                    1,
                 ],
             ],
             api_damage: [
@@ -211,7 +211,7 @@ BattlePacket {
                 ],
                 [
                     5,
-                    0,
+                    5,
                 ],
             ],
         },
@@ -230,7 +230,7 @@ BattlePacket {
             ],
             api_at_type: [
                 0,
-                0,
+                2,
                 0,
             ],
             api_df_list: [
@@ -238,6 +238,7 @@ BattlePacket {
                     1,
                 ],
                 [
+                    1,
                     1,
                 ],
                 [
@@ -251,8 +252,11 @@ BattlePacket {
                     ),
                 ],
                 [
-                    Num(
-                        105,
+                    Text(
+                        "105",
+                    ),
+                    Text(
+                        "8",
                     ),
                 ],
                 [
@@ -267,59 +271,26 @@ BattlePacket {
                 ],
                 [
                     1,
+                    1,
                 ],
                 [
-                    0,
+                    1,
                 ],
             ],
             api_damage: [
                 [
-                    117,
+                    117.1,
                 ],
                 [
-                    2,
+                    4,
+                    3,
                 ],
                 [
-                    0,
+                    75,
                 ],
             ],
         },
     ),
     hougeki3: None,
-    raigeki: Some(
-        BattleRaigeki {
-            api_frai: [
-                0,
-                -1,
-            ],
-            api_fcl: [
-                1,
-                0,
-            ],
-            api_fdam: [
-                4,
-                0,
-            ],
-            api_fydam: [
-                111,
-                0,
-            ],
-            api_erai: [
-                0,
-                -1,
-            ],
-            api_ecl: [
-                1,
-                0,
-            ],
-            api_edam: [
-                111,
-                0,
-            ],
-            api_eydam: [
-                4,
-                0,
-            ],
-        },
-    ),
+    raigeki: None,
 }

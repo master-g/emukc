@@ -34,13 +34,16 @@ NightBattlePacket {
                 0,
                 1,
                 0,
+                1,
             ],
             api_at_list: [
                 0,
                 0,
                 1,
+                1,
             ],
             api_n_mother_list: [
+                0,
                 0,
                 0,
                 0,
@@ -51,15 +54,31 @@ NightBattlePacket {
                     1,
                 ],
                 [
-                    0,
-                    0,
+                    1,
                 ],
                 [
                     0,
                     0,
                 ],
+                [
+                    1,
+                    1,
+                ],
             ],
             api_si_list: [
+                [
+                    Text(
+                        "7",
+                    ),
+                    Text(
+                        "11",
+                    ),
+                ],
+                [
+                    Num(
+                        105,
+                    ),
+                ],
                 [
                     Text(
                         "7",
@@ -76,23 +95,18 @@ NightBattlePacket {
                         "8",
                     ),
                 ],
-                [
-                    Text(
-                        "7",
-                    ),
-                    Text(
-                        "11",
-                    ),
-                ],
             ],
             api_cl_list: [
                 [
-                    0,
+                    1,
                     1,
                 ],
                 [
                     0,
-                    0,
+                ],
+                [
+                    1,
+                    1,
                 ],
                 [
                     1,
@@ -101,21 +115,25 @@ NightBattlePacket {
             ],
             api_sp_list: [
                 1,
+                0,
                 1,
                 1,
             ],
             api_damage: [
                 [
-                    0,
-                    283,
+                    3,
+                    4,
                 ],
                 [
-                    0,
                     0,
                 ],
                 [
                     282,
                     0,
+                ],
+                [
+                    5.1,
+                    5.1,
                 ],
             ],
         },

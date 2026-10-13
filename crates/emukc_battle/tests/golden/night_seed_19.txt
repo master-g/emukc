@@ -88,14 +88,14 @@ NightBattlePacket {
             api_cl_list: [
                 [
                     2,
-                    0,
+                    1,
                 ],
                 [
                     1,
                     1,
                 ],
                 [
-                    0,
+                    1,
                     1,
                 ],
             ],
@@ -114,8 +114,8 @@ NightBattlePacket {
                     7,
                 ],
                 [
-                    0,
-                    283,
+                    3,
+                    3,
                 ],
             ],
         },

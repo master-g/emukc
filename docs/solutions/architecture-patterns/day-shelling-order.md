@@ -91,15 +91,21 @@ the sky is the enemy's. Day shelling and the night battle both pass it that way.
   for an AP shell and for a surface radar.
 - **One row**: the client reads all three hits from one row of the flagship's
   (`PhaseHougeki._nelson_touch` and the others, `d_indexes[0..3]`), by day and at night.
+- **What a battle costs** (`battle_supply_cost`, plan `2026-10-13-003`): a fifth of the
+  fuel and of the ammunition, never less than 1; half as much ammunition again, rounded up,
+  for a night after the day; a tenth of each where the battle opens at night. Against a
+  combined fleet the night costs no more, and takes a special attack's cost away again.
+  The cells that cost otherwise (submarines, air raids, PT boats, radar fire) are not told
+  apart.
 - **Ammunition** (`special_attack_ammo`): the flagship and second ship of 101, 102 and 105
   and the three ships of 103 pay half as much again for the battle, the two of the night
   assault a tenth more. 106 is made only while both of its ships have ammunition left
   (`check_qe_attack`). Evidence in plan `2026-10-12-010`.
 - **Unsettled:** whether 106 costs ammunition (the source charges nothing, wikiwiki says
   nothing) and whether the other attacks also need ammunition left (KC3Kai asks it of every
-  one of them, on the strength of the same one measurement). The cost is a factor on
-  the flat fifth a battle; the steps by day, night and opening night, their rounding, and
-  the cost lost on going into the night against a combined fleet are not modelled. 105
+  one of them, on the strength of the same one measurement). The factor is on the whole
+  of the battle's ammunition and rounded down, as the source has it; wikiwiki rounds the
+  Nagato class's up against a single fleet (長門改二 by day: 68 there, 67 here). 105
   and 106 take the Nagato class's rate, having none of their own on record.
 - **How often** (`trigger_rate`, plan `2026-10-13-002`): the formulas fitted to TsunDB's
   samples in 2024-08. 100: `floor(1.1√Lv1 + 1.4√luck1 + √Lv3 + √Lv5) + 25` percent. 103: the

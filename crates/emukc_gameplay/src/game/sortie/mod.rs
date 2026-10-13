@@ -934,6 +934,7 @@ impl Ctx {
 
         if let Some(mut snapshot) = store.take_pending_result(profile_id) {
             snapshot.special_attacks.extend(night.packet.special_attacks());
+            snapshot.night_fought = true;
             snapshot.win_rank = night.outcome.win_rank.to_string();
             snapshot.get_exp = calculate_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
             snapshot.friendly_nowhps = session.friendly.iter().map(|f| f.hp().max(0)).collect();
@@ -1022,6 +1023,7 @@ impl Ctx {
                 );
                 let mut snapshot = setup.result_snapshot(codex, &session);
                 snapshot.special_attacks = night_session.packet.special_attacks();
+                snapshot.night_start = true;
                 let mut active = setup.active;
                 active.pending_battle_cell_id = Some(active.current_cell_id);
                 active.special_attacks_made.record(&snapshot.special_attacks);
