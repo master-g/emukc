@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-13 · branch `fix/resource-and-maelstrom-cells`
+Last updated: 2026-10-13 · branch `docs/cell-effects-played`
 
 ## Verified Facts
 
@@ -192,7 +192,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] #96 资源点与渦潮按格子结算。质量门过；没在客户端演过。
+- [2026-10-13] #96（PR #97）已合并，客户端演过（见其文档 Known gaps）。仅文档。
 
 ## Next Session
 

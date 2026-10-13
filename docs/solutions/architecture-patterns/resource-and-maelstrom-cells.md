@@ -104,7 +104,13 @@ Ours, not a source's:
 - 6-3's reconnaissance cells, 5-6's landing cell and the escort-success cells
   (`api_itemget_eo_*`) have rules of their own that are not here.
 - Event maps, and a combined fleet's two ways of sparing its ships a maelstrom.
-- Not played in the client.
+- Played in the client on 2026-10-13, by hand-given steps on the `transport_5_6` preset and
+  without a page error: 4-1 B (the fuel icon and ×113, and 113 more fuel in port), 2-3 H
+  (43 ammunition, in port likewise), 3-3 F (「うずしおが発生しました！」) and 3-3 H (the
+  furniture box's icon and ×1, which is the `api_usemst` 5 path). Not played: a special
+  material, a strong maelstrom, 7-4 O's two items, and what the client shows of a
+  maelstrom's loss and of the radar. There is no scenario for it: which cells a fleet
+  comes to is the compass's choice (3-3 F leads to H in about three runs of eleven).
 
 ## When a test breaks
 
