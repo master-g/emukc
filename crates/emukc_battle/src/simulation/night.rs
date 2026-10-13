@@ -999,7 +999,8 @@ fn kongou_assault_rate(
 }
 
 /// What one of the two hits with, before the cap: 2.6 for the flagship and 2.7 for her partner,
-/// by the engagement, and by her own guns.
+/// 1.06 more since the update of 2026-04-23 (measured, and in `KC3Kai`'s
+/// `estimateKongouCutinModifier`), by the engagement, and by her own guns.
 fn kongou_assault_multiplier(
     ship: &BattleRuntimeShip,
     is_flagship: bool,
@@ -1028,7 +1029,7 @@ fn kongou_assault_multiplier(
         1 => 1.11,
         _ => 1.15,
     };
-    base * engagement * guns_a * guns_b
+    base * 1.06 * engagement * guns_a * guns_b
 }
 
 /// The night assault in the friendly flagship's turn, if it comes up: one row, the flagship's
@@ -4147,16 +4148,17 @@ mod attack_type_tests {
             kongou_assault_multiplier(&ship, flagship, engagement)
         };
         let close = |value: f64, wanted: f64| (value - wanted).abs() < 1e-9;
-        assert!(close(multiplier(&[], true, SameCourse), 2.6));
-        assert!(close(multiplier(&[], false, HeadOn), 2.7));
-        assert!(close(multiplier(&[], true, TAdvantage), 2.6 * 1.25));
-        assert!(close(multiplier(&[], true, TDisadvantage), 2.6 * 0.8));
+        // 2.6 and 2.7, and 1.06 more since 2026-04-23.
+        assert!(close(multiplier(&[], true, SameCourse), 2.756));
+        assert!(close(multiplier(&[], false, HeadOn), 2.862));
+        assert!(close(multiplier(&[], true, TAdvantage), 2.756 * 1.25));
+        assert!(close(multiplier(&[], true, TDisadvantage), 2.756 * 0.8));
         // 35.6cm連装砲改四 / 改三丙, and 改二 / 改三(ダズル迷彩仕様): by how many, the two multiplied.
-        assert!(close(multiplier(&[503], true, SameCourse), 2.6 * 1.11));
-        assert!(close(multiplier(&[503, 530, 530], true, SameCourse), 2.6 * 1.15));
-        assert!(close(multiplier(&[329], true, SameCourse), 2.6 * 1.05));
-        assert!(close(multiplier(&[329, 502], true, SameCourse), 2.6 * 1.08));
-        assert!(close(multiplier(&[503, 502], false, SameCourse), 2.7 * 1.11 * 1.05));
+        assert!(close(multiplier(&[503], true, SameCourse), 2.756 * 1.11));
+        assert!(close(multiplier(&[503, 530, 530], true, SameCourse), 2.756 * 1.15));
+        assert!(close(multiplier(&[329], true, SameCourse), 2.756 * 1.05));
+        assert!(close(multiplier(&[329, 502], true, SameCourse), 2.756 * 1.08));
+        assert!(close(multiplier(&[503, 502], false, SameCourse), 2.862 * 1.11 * 1.05));
     }
 
     #[test]
