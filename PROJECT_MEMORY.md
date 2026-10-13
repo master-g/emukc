@@ -193,14 +193,14 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 无头场景 `night_contact`（PR #93）与 `enemy_night_crew`（叠在 #93 上的 PR），未合并。质量门通过，各三次全过。
+- [2026-10-13] 无头场景 `night_contact`（#93 已合并）与 `enemy_night_crew`（#94）。质量门与无头场景都过。
 
 ## Next Session
 
 - [2026-10-13] 未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   周常重置读系统时钟还没有规格。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
-  #55 留下的：6-4 取值 2 的炮击演出没在客户端演过。
+  #55 留下的：5-6 四阶段的带要员敌舰、6-4 取值 2 的炮击演出没在客户端演过。演习对手的夜间触接也没有。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
   #52 与航空队留下的见 `carrier-night-air-attack.md`、`air-corps.md` 的 Known gaps。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；

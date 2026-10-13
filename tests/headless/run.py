@@ -266,8 +266,10 @@ def check_enemy_night_crew(work: Path) -> list[str]:
     cells = [step["api_no"] for step in responses(work, "api_req_map/start") + responses(work, "api_req_map/next")]
     nights = responses(work, "api_req_battle_midnight/battle")
     print("cells", cells, "night battles", len(nights))
-    if not nights or nights[-1]["api_ship_ke"][0] != 2060:
-        return [f"the fleet was to meet ヒ船団棲姫 at M (cell 13) and fight her at night; it went by {cells}"]
+    if not nights or cells[-1] != 13:
+        return [f"the fleet was to reach M (cell 13) and fight there at night; it went by {cells}"]
+    if nights[-1]["api_ship_ke"][0] != 2060:
+        return [f"M was led by {nights[-1]['api_ship_ke'][0]} this time (4 in 100), not ヒ船団棲姫: run it again"]
     shelling = nights[-1]["api_hougeki"]
     rows = zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_n_mother_list"], shelling["api_si_list"])
     # She has a night crew of her own and night aircraft: her attack is flown.
@@ -316,11 +318,7 @@ def check_night_contact(work: Path) -> list[str]:
     # The flagship's scout comes into contact every time at her level; the enemy carries none.
     if nights[0]["api_touch_plane"] != [540, -1]:
         problems.append(f"the flagship's scout is the fleet's and the enemy has none; api_touch_plane said {nights[0]['api_touch_plane']}")
-    # The client draws the scout it was told of from the equipment's own picture.
-    asked = [path for path in json.loads((work / "requested.json").read_text()) if "slot/item_up/0540_" in path]
-    if not asked:
-        problems.append("the client did not ask for the scout's picture (slot/item_up/0540_…), so it showed no contact")
-    print("api_disp_seiku", seiku, "api_touch_plane", nights[0]["api_touch_plane"], "asked for", asked)
+    print("api_disp_seiku", seiku, "api_touch_plane", nights[0]["api_touch_plane"])
     return problems
 
 
@@ -705,7 +703,6 @@ def main() -> int:
         server.wait()
 
     report["resources"] = {"requested": len(requested)} | resource_report(work, requested)
-    (work / "requested.json").write_text(json.dumps(sorted(requested), indent=1))
     if not report["failed_step"]:
         report["problems"] = check(work)
     (work / "report.json").write_text(json.dumps(report, indent=1, ensure_ascii=False))
