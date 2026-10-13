@@ -99,10 +99,12 @@ Ours, not a source's:
 ## Known gaps
 
 - What was gathered is in memory with the rest of a sortie: a server restart loses it.
+  Kept so (owner's decision, 2026-10-13): the sortie itself is lost with it, the client
+  has to reload, and a reload voids what was gathered anyway.
 - No cap on the bonus of drums and landing craft at an ordinary cell, and the even draw
   within a range, for want of a source.
 - 6-3's reconnaissance cells, 5-6's landing cell and the escort-success cells
-  (`api_itemget_eo_*`) have rules of their own that are not here.
+  (`api_itemget_eo_*`) have rules of their own that are not here (#100).
 - Event maps, and a combined fleet's two ways of sparing its ships a maelstrom.
 - Played in the client on 2026-10-13, by hand-given steps on the `transport_5_6` preset and
   without a page error: 4-1 B (the fuel icon and ×113, and 113 more fuel in port), 2-3 H

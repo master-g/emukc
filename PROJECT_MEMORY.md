@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-13 · branch `docs/cell-effects-played`
+Last updated: 2026-10-13 · branch `docs/open-leftover-issues`
 
 ## Verified Facts
 
@@ -192,13 +192,13 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] #96（PR #97）已合并，客户端演过（见其文档 Known gaps）。仅文档。
+- [2026-10-13] 遗留开了 #99–#102（未分拣）；出撃状态只在内存，维持现状（用户定）。
 
 ## Next Session
 
 - [2026-10-13] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
-  周常重置读系统时钟还没有规格。
+  周常重置读系统时钟：#101。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：5-6 四阶段的带要员敌舰、6-4 取值 2 的炮击演出没在客户端演过。演习对手的夜间触接也没有。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
