@@ -19,9 +19,9 @@ use crate::combined::{
 };
 use crate::random::BattleRng;
 use crate::targeting::{
-    has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type, ship_type,
+    has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type, ship_type, target_class,
 };
-use crate::types::{AirState, BattlePhase, BattleRuntimeShip, EngagementType};
+use crate::types::{AirState, BattlePhase, BattleRuntimeShip, EngagementType, TargetClass};
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -217,6 +217,27 @@ pub(crate) fn calculate_torpedo_damage(
     resolve_damage(rng, capped_power, defense, defender.hp())
 }
 
+/// What a ship attacks with at night from her guns and torpedoes, before the night scout and
+/// the cap. The source's `NBPower`: against an installation the torpedoes are left out, and
+/// a submarine has 30 more firepower.
+// ponytail: the anti-installation equipment's multipliers and flat bonuses are not modelled,
+// by day or at night; they go here and in the day's shelling power together.
+fn night_gun_power(
+    codex: &Codex,
+    attacker: &BattleRuntimeShip,
+    defender: &BattleRuntimeShip,
+) -> f64 {
+    let firepower = attacker.ship.api_karyoku[0].max(0);
+    let rest = if target_class(codex, defender) != TargetClass::Installation {
+        attacker.ship.api_raisou[0].max(0)
+    } else if target_class(codex, attacker).is_submarine() {
+        30
+    } else {
+        0
+    };
+    (firepower + rest + 5) as f64 + improvement_bonus_night(codex, attacker)
+}
+
 /// Calculate night battle damage for a single attack.
 ///
 /// When `ci_multiplier` is `Some(m)`, the multiplier is applied to basic power
@@ -235,10 +256,7 @@ pub(crate) fn calculate_night_damage(
     air_power: Option<f64>,
     outcome: HitOutcome,
 ) -> i64 {
-    let own_power = air_power.unwrap_or_else(|| {
-        (attacker.ship.api_karyoku[0].max(0) + attacker.ship.api_raisou[0].max(0) + 5) as f64
-            + improvement_bonus_night(codex, attacker)
-    });
+    let own_power = air_power.unwrap_or_else(|| night_gun_power(codex, attacker, defender));
     let basic_power = own_power + night_recon_bonus(codex, attacker, air_state);
     let pre_cap = match ci_multiplier {
         Some(m) => basic_power * m,
@@ -941,6 +959,31 @@ mod tests {
         let low = shell(bull_max / 10, 42);
         assert!(full > 5, "setup: full-ammo CA->DD should deal real damage, got {full}");
         assert!(low < full, "10% ammo must deal less than full (full {full}, low {low})");
+    }
+
+    /// The source's `NBPower`: no torpedoes against an installation, and 30 more firepower
+    /// for a submarine there.
+    #[test]
+    fn a_night_attack_on_an_installation_leaves_the_torpedoes_out() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |stype, firepower, torpedo| {
+            let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, stype), 50);
+            ship.ship.api_karyoku[0] = firepower;
+            ship.ship.api_raisou[0] = torpedo;
+            ship.slot_items.clear();
+            BattleRuntimeShip::from(ship)
+        };
+        let surface = ship(KcShipType::DD, 0, 0);
+        let mut installation = surface.clone();
+        installation.ship.api_ship_id = ship_mst_id_by_name(&codex, "飛行場姫");
+        let power = |attacker, defender| night_gun_power(&codex, attacker, defender);
+
+        let destroyer = ship(KcShipType::DD, 50, 80);
+        assert_eq!(power(&destroyer, &surface), 135.0);
+        assert_eq!(power(&destroyer, &installation), 55.0);
+        let submarine = ship(KcShipType::SS, 10, 60);
+        assert_eq!(power(&submarine, &surface), 75.0);
+        assert_eq!(power(&submarine, &installation), 45.0);
     }
 
     #[test]
