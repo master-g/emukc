@@ -1,6 +1,7 @@
 //! Map gameplay integration tests
 
 mod boss_fleet;
+mod cell_effects;
 mod compass;
 mod enemy_formation;
 mod monthly_reset;

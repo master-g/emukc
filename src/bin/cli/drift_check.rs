@@ -528,10 +528,11 @@ mod tests {
             "gear_bonus",
             "map_gauge_rules",
             "map_gauge_phases",
+            "map_cell_effects",
         ] {
             assert!(paths.iter().any(|(key, _)| key == name), "{name} is not fingerprinted");
         }
-        assert_eq!(paths.len(), 21);
+        assert_eq!(paths.len(), 22);
     }
 
     #[test]

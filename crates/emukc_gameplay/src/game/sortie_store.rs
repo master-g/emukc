@@ -24,6 +24,7 @@ pub struct SortieStore {
     active_sorties: Mutex<HashMap<i64, ActiveSortieState>>,
     pending_results: Mutex<HashMap<i64, SortieBattleResultSnapshot>>,
     pending_battles: Mutex<HashMap<i64, SortieBattleSession>>,
+    pending_gains: Mutex<HashMap<i64, [i64; 4]>>,
     profile_locks: Mutex<HashMap<i64, Arc<AsyncMutex<()>>>>,
 }
 
@@ -34,6 +35,7 @@ impl SortieStore {
             active_sorties: Mutex::new(HashMap::new()),
             pending_results: Mutex::new(HashMap::new()),
             pending_battles: Mutex::new(HashMap::new()),
+            pending_gains: Mutex::new(HashMap::new()),
             profile_locks: Mutex::new(HashMap::new()),
         }
     }
@@ -94,8 +96,28 @@ impl SortieStore {
         self.pending_battles.lock().remove(&profile_id)
     }
 
+    // ── pending gains ───────────────────────────────────────────────
+
+    /// Put by what a resource cell gave of fuel, ammunition, steel or bauxite (`index` 0 to
+    /// 3) until the fleet is back in port.
+    // ponytail: in memory like the rest of a sortie, so a server restart loses it.
+    pub fn add_pending_gain(&self, profile_id: i64, index: usize, amount: i64) {
+        self.pending_gains.lock().entry(profile_id).or_default()[index] += amount;
+    }
+
+    /// Read what the resource cells gave since the fleet was last in port.
+    pub fn pending_gains(&self, profile_id: i64) -> Option<[i64; 4]> {
+        self.pending_gains.lock().get(&profile_id).copied()
+    }
+
+    /// Take what the resource cells gave since the fleet was last in port.
+    pub fn take_pending_gains(&self, profile_id: i64) -> Option<[i64; 4]> {
+        self.pending_gains.lock().remove(&profile_id)
+    }
+
     /// Clear all runtime state.
     pub fn clear(&self) {
+        self.pending_gains.lock().clear();
         self.active_sorties.lock().clear();
         self.pending_results.lock().clear();
         self.pending_battles.lock().clear();

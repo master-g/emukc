@@ -38,11 +38,12 @@ pub struct KcApiMapItemGet {
 /// Maelstrom (渦潮) resource loss at a non-battle node.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KcApiMapHappening {
-    /// Resource type: 1=fuel, 2=ammo, 3=steel, 4=bauxite
+    /// Always 1.
     pub api_type: i64,
     pub api_count: i64,
     /// 1 if a 電探 (radar) reduced the loss
     pub api_dentan: i64,
+    /// What was lost: 1=fuel, 2=ammo. The client reads this one.
     pub api_mst_id: i64,
     pub api_icon_id: i64,
 }

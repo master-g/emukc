@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use emukc_db::sea_orm::TransactionTrait;
 use emukc_model::{
-    kc2::{KcApiGameSetting, KcApiShip, KcApiUserBasic},
+    kc2::{KcApiGameSetting, KcApiShip, KcApiUserBasic, MaterialCategory},
     profile::{fleet::Fleet, material::Material, ndock::RepairDock},
 };
 
@@ -14,7 +14,7 @@ use crate::{
         airbase::settle_relocations_impl,
         basic::{find_profile, get_user_basic_impl},
         fleet::get_fleets_impl,
-        material::{get_mat_impl, update_materials_impl},
+        material::{add_material_impl, get_mat_impl, update_materials_impl},
         ndock::get_ndocks_impl,
         settings::game::get_game_settings_impl,
         slot_item::{
@@ -75,6 +75,16 @@ impl Ctx {
         let tx = self.db.begin().await?;
 
         let profile = find_profile(&tx, profile_id).await?;
+        // What the resource cells gave on the way reaches headquarters in port.
+        if let Some([fuel, ammo, steel, bauxite]) = self.sortie_store.pending_gains(profile_id) {
+            let gains = [
+                (MaterialCategory::Fuel, fuel),
+                (MaterialCategory::Ammo, ammo),
+                (MaterialCategory::Steel, steel),
+                (MaterialCategory::Bauxite, bauxite),
+            ];
+            add_material_impl(&tx, codex, profile_id, &gains).await?;
+        }
         update_materials_impl(&tx, codex, profile_id, profile.hq_level).await?;
         refresh_proficiency_levels_impl(&tx, profile_id).await?;
 
@@ -96,6 +106,7 @@ impl Ctx {
         let game_settings: KcApiGameSetting = get_game_settings_impl(&tx, profile_id).await?.into();
 
         tx.commit().await?;
+        let _ = self.sortie_store.take_pending_gains(profile_id);
 
         // `Ctx::get_ships` owns the `api_onslot_max` and `api_sp_effect_items`
         // filling, which is private to the `ship` module, so ships keep their

@@ -79,6 +79,10 @@ assembles in a fixed order: kcdata → public overlay → `stat.json` →
 `normalize_p_unlock_variants` → wikiwiki label overlay. The authority rules
 above are unchanged; only where the wikiwiki data enters moved.
 
+Since then the recorded cell kinds and the gauge phases go in after normalization, and
+`map_cell_effects.json` after those (2026-10-13): an effect belongs on a cell of its
+kind, so it is pinned once the kinds are final. See `resource-and-maelstrom-cells.md`.
+
 The wikiwiki asset is label-space and carries only routing rules, enemy
 fleets and ship drops — no cell metadata — so applying it last cannot change
 any metadata authority. It goes last because resolving a label to cells needs

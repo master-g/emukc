@@ -34,6 +34,103 @@ pub struct MapCatalog {
     /// Maps not in this table have no prerequisite (always unlocked, e.g., 1-1).
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub prerequisites: HashMap<i64, i64>,
+    /// What the resource cells give and the maelstroms take.
+    #[serde(default)]
+    pub cell_effects: CellEffects,
+}
+
+/// What the resource cells give and the maelstroms take, by map id and cell number.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct CellEffects {
+    /// The equipment that counts as a landing craft at a resource cell.
+    pub landing_craft: Vec<i64>,
+    /// The equipment that counts as a drum.
+    pub drums: Vec<i64>,
+    pub cells: BTreeMap<i64, BTreeMap<i64, CellEffect>>,
+}
+
+/// What one cell gives or takes.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CellEffect {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub gains: Vec<CellGain>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maelstrom: Option<CellMaelstrom>,
+}
+
+/// What a cell gives or a maelstrom takes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CellItem {
+    Fuel,
+    Ammo,
+    Steel,
+    Bauxite,
+    Torch,
+    Bucket,
+    DevMat,
+    BoxSmall,
+    BoxMedium,
+    BoxLarge,
+}
+
+impl CellItem {
+    /// The `api_mst_useitem` id of a furniture box; `None` for a material.
+    pub fn furniture_box(self) -> Option<i64> {
+        match self {
+            Self::BoxSmall => Some(10),
+            Self::BoxMedium => Some(11),
+            Self::BoxLarge => Some(12),
+            _ => None,
+        }
+    }
+
+    /// The material's id, 1 for fuel to 7 for development material, as `api_material`
+    /// numbers them; `None` for a furniture box.
+    pub fn material_id(self) -> Option<i64> {
+        self.furniture_box().is_none().then_some(self as i64 + 1)
+    }
+}
+
+/// One thing a resource cell gives: a figure between `min` and `max` in steps of 5, more
+/// for each drum and landing craft in the fleet, `cap` at most.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CellGain {
+    pub item: CellItem,
+    pub min: i64,
+    pub max: i64,
+    #[serde(default, skip_serializing_if = "is_zero_f64")]
+    pub per_drum: f64,
+    #[serde(default, skip_serializing_if = "is_zero_f64")]
+    pub per_craft: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cap: Option<i64>,
+    /// What about this entry is a guess rather than a figure from its source.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub guess: Option<String>,
+}
+
+/// What a maelstrom takes of each ship: `rate` percent of what she has left, `cap` at
+/// most. Where `strong_rate` is set, that is the percentage once in a while.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CellMaelstrom {
+    pub item: CellItem,
+    pub rate: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cap: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub strong_rate: Option<i64>,
+    /// What about this entry is a guess rather than a figure from its source.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub guess: Option<String>,
+}
+
+#[expect(clippy::trivially_copy_pass_by_ref)]
+fn is_zero_f64(value: &f64) -> bool {
+    *value == 0.0
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

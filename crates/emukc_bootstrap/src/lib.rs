@@ -26,6 +26,7 @@ mod download;
 pub mod kc3kai_source;
 mod kcnav;
 mod make_list;
+mod map_cell_effects;
 mod map_gauge_phases;
 mod map_overlay;
 mod map_pipeline;

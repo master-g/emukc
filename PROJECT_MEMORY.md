@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-13 · branch `chore/changelog-and-stray-test`
+Last updated: 2026-10-13 · branch `fix/resource-and-maelstrom-cells`
 
 ## Verified Facts
 
@@ -119,10 +119,8 @@ Current verification baseline:
   缺一层就把命中记到错误的舰上：`docs/solutions/architecture-patterns/combined-fleet-index-spaces.md`。
 
 - [2026-10-08] 真实 mapinfo：未强化的海域在 `api_air_base_expanded_info` 里没有条目（整備Lv 0 = 不报），航空隊默认名用汉字数字。
-- [2026-09-22] 基地航空隊的客户端硬限制（`AIRUNIT_MAX`/`SQUADRON_MAX`）、
-  `airbase_count` 是出撃可能数而非拥有数、`expand_base` 是増开一隊而非扩槽、
-  空槽为何不落库：四条都在
-  `docs/plans/2026-09-22-001-feat-land-base-air-corps-plan.md` 的前提表与各 U 修正段。
+- [2026-09-22] 航空隊的客户端硬限制、`airbase_count` 是出撃可能数、`expand_base` 是増开一隊、空槽不落库：
+  计划 2026-09-22-001 的前提表与各 U 修正段。
 - [2026-09-22] `remodel_slot_recover`：客户端走 `slot.get(id).__updateObject__(api_after_slot)`，
   所以 `api_after_slot` 必须是**同一实例 id**（重置不能删建装备，★10 variant 也不退回原装备）；
   `api_dev_num` 只有 1/2/3，成功率上游不告诉客户端，50/75/100 是本项目定值
@@ -157,6 +155,7 @@ Current verification baseline:
 - [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
   周常的 `jst_next_monday_0500`、`init`、`quest_add` 仍读系统时钟，固定时间的测试只用过去的日期。
 - [2026-10-12] 夜战攻击种别与谁出手（表、抽签先后、照明弾、`canNB`；客户端种别 3 必须发两件展示装备）：`docs/solutions/architecture-patterns/night-attack-types.md`。
+- [2026-10-13] 资源点与渦潮（手工资产、出处、推定值、回港入账、报文取值、测试陷阱）：`resource-and-maelstrom-cells.md`。
 - [2026-10-12] 敌方空母的夜战：`carrier-night-air-attack.md` 的 Enemy carriers。取值 3 的轻空母看的是**玩家**的探照灯，#55 原文写反了。
 
 ## Failed Attempts / Pitfalls
@@ -189,11 +188,11 @@ Current verification baseline:
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 | [2026-09-23] 在 git worktree 里跑 cargo 而 `CARGO_TARGET_DIR` 共用 `~/.cache/cargo-build`，会覆盖主检出的产物（同名 path 依赖指纹冲突），随后主检出报「方法不存在」。worktree 里要设独立的 `CARGO_TARGET_DIR`。 | session 2026-09-23 |
-| [2026-10-11] 全量测试加 `--no-fail-fast`：`cargo test --workspace` 默认在第一个失败的 crate 就停，后面的 crate 不跑，通过数会偏少。 | session 2026-10-11 |
+| [2026-10-11] 全量测试加 `--no-fail-fast`：`cargo test --workspace` 默认在第一个失败的 crate 就停，通过数会偏少。 | session 2026-10-11 |
 
 ## Last Session
 
-- [2026-10-13] 清了 `CHANGELOG.md` 的错条目与根目录没编译的测试文件；没跑质量门。
+- [2026-10-13] #96 资源点与渦潮按格子结算。质量门过；没在客户端演过。
 
 ## Next Session
 

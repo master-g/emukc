@@ -74,6 +74,10 @@ impl Ctx {
         &self,
         profile_id: i64,
     ) -> Result<RequireInfoView, GameplayError> {
+        // The client asks for this when the page loads and at no other time. A page
+        // reloaded at sea forfeits what the fleet gathered there.
+        let _ = self.sortie_store.take_pending_gains(profile_id);
+
         // `Ctx::get_furnitures` owns the codex to `KcApiFurniture` mapping and has
         // no `_impl`, so furniture keeps its own read.
         let furnitures = self.get_furnitures(profile_id).await?;

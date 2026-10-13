@@ -12,7 +12,7 @@ use crate::game::sortie_result::{
 use emukc_battle::{BattleContext, BattleShipInput, CombinedSetup, CombinedType, EngagementType};
 use emukc_bootstrap::prelude::build_final_map_catalog;
 use emukc_db::{
-    entity::profile::{map_record, material as profile_material, ship as profile_ship},
+    entity::profile::{map_record, ship as profile_ship},
     prelude::new_mem_db,
     sea_orm::{
         ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter,
@@ -502,170 +502,6 @@ async fn sortie_one_hit_kill_clears_enemies_and_rejects_night_battle() {
     store.clear();
 }
 
-#[tokio::test]
-async fn maelstrom_drains_ship_resource_without_touching_profile_materials() {
-    let db = new_mem_db().await.unwrap();
-    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = Ctx::new(Arc::new(db), Arc::new(codex));
-    let account = context.sign_up("maelstrom-loss", "1234567").await.unwrap();
-    let profile =
-        context.new_profile(&account.access_token.token, "maelstrom-admin").await.unwrap();
-    let session =
-        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
-    let profile_id = session.profile.id;
-    let ship = context.add_ship(profile_id, 951).await.unwrap();
-
-    let ship_before = profile_ship::Entity::find_by_id(ship.api_id)
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-    let materials_before = profile_material::Entity::find()
-        .filter(profile_material::Column::ProfileId.eq(profile_id))
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-
-    let cell = MapCellDefinition {
-        cell_no: 99,
-        color_no: 3,
-        event_id: 3,
-        event_kind: 0,
-        next_cells: vec![],
-        node_label: Some("H".to_string()),
-        master_cell_id: None,
-        distance: None,
-    };
-
-    let (itemget, happening) = resolve_non_battle_node_effect(
-        context.db.as_ref(),
-        context.codex.as_ref(),
-        profile_id,
-        &cell,
-        std::slice::from_ref(&ship_before),
-    )
-    .await
-    .unwrap();
-    assert!(itemget.is_none());
-    let happening = happening.expect("maelstrom should produce a happening response");
-    assert_eq!(happening.resource_type, 1);
-    assert!(happening.amount > 0);
-
-    let ship_after = profile_ship::Entity::find_by_id(ship.api_id)
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-    let materials_after = profile_material::Entity::find()
-        .filter(profile_material::Column::ProfileId.eq(profile_id))
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(materials_after, materials_before);
-    assert_eq!(ship_after.ammo, ship_before.ammo);
-    assert!(ship_after.fuel < ship_before.fuel);
-    assert_eq!(ship_before.fuel - ship_after.fuel, happening.amount);
-}
-
-#[tokio::test]
-async fn maelstrom_drains_ammo_when_color_no_is_4() {
-    let db = new_mem_db().await.unwrap();
-    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = Ctx::new(Arc::new(db), Arc::new(codex));
-    let account = context.sign_up("maelstrom-ammo", "1234567").await.unwrap();
-    let profile =
-        context.new_profile(&account.access_token.token, "maelstrom-ammo-admin").await.unwrap();
-    let session =
-        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
-    let profile_id = session.profile.id;
-    let ship = context.add_ship(profile_id, 951).await.unwrap();
-
-    let ship_before = profile_ship::Entity::find_by_id(ship.api_id)
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-    let materials_before = profile_material::Entity::find()
-        .filter(profile_material::Column::ProfileId.eq(profile_id))
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-
-    let cell = MapCellDefinition {
-        cell_no: 99,
-        color_no: 4,
-        event_id: 3,
-        event_kind: 0,
-        next_cells: vec![],
-        node_label: Some("H".to_string()),
-        master_cell_id: None,
-        distance: None,
-    };
-
-    let (itemget, happening) = resolve_non_battle_node_effect(
-        context.db.as_ref(),
-        context.codex.as_ref(),
-        profile_id,
-        &cell,
-        std::slice::from_ref(&ship_before),
-    )
-    .await
-    .unwrap();
-
-    assert!(itemget.is_none());
-    let happening = happening.expect("maelstrom ammo drain should produce a happening");
-    assert_eq!(happening.resource_type, 2, "color_no=4 should drain ammo");
-    assert!(happening.amount > 0);
-
-    let ship_after = profile_ship::Entity::find_by_id(ship.api_id)
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-    let materials_after = profile_material::Entity::find()
-        .filter(profile_material::Column::ProfileId.eq(profile_id))
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-
-    assert_eq!(materials_after, materials_before);
-    assert_eq!(ship_after.fuel, ship_before.fuel, "ammo maelstrom must not touch fuel");
-    assert!(ship_after.ammo < ship_before.ammo);
-    assert_eq!(ship_before.ammo - ship_after.ammo, happening.amount);
-}
-
-async fn equip_radar_on_ship(
-    db: &emukc_db::sea_orm::DatabaseConnection,
-    codex: &Codex,
-    profile_id: i64,
-    ship_api_id: i64,
-) -> profile_ship::Model {
-    use crate::game::slot_item::add_slot_item_impl;
-    use emukc_db::entity::profile::item::slot_item;
-
-    let radar_mst_id = 27; // 13号対空電探, type3=12
-    let radar = add_slot_item_impl(db, codex, profile_id, radar_mst_id, 0, 0).await.unwrap();
-
-    let ship_model = profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap();
-    let mut am = ship_model.into_active_model();
-    am.slot_1 = ActiveValue::Set(radar.id);
-    am.update(db).await.unwrap();
-
-    let radar_am = slot_item::ActiveModel {
-        id: ActiveValue::Set(radar.id),
-        equip_on: ActiveValue::Set(ship_api_id),
-        ..radar.into_active_model()
-    };
-    radar_am.update(db).await.unwrap();
-
-    profile_ship::Entity::find_by_id(ship_api_id).one(db).await.unwrap().unwrap()
-}
-
 /// Equip `count` drum canisters on one ship, filling its slots in order.
 async fn equip_drums_on_ship(
     db: &emukc_db::sea_orm::DatabaseConnection,
@@ -1005,181 +841,6 @@ async fn route_context_carries_escort_facts_only_for_a_combined_fleet() {
     context.update_fleet_ships(pid, 2, &[escort, -1, -1, -1, -1, -1]).await.unwrap();
     context.set_combined_type(pid, 1).await.unwrap();
     assert_eq!(escort_of().await, vec![1]);
-}
-
-#[tokio::test]
-async fn maelstrom_radar_reduces_fuel_loss_across_all_tiers() {
-    // Exercises every arm of the `radar_ship_count` match in
-    // `resolve_non_battle_node_effect` (sortie/mod.rs): 0, 1, 2, 3, 4, 5, 6+ ships.
-    //
-    // Each iteration builds a fresh 6-ship fleet with fuel overridden to 1000 so
-    // per-tier losses are distinguishable:
-    //   N=0 r=0.00 -> per_ship=300 -> total=1800
-    //   N=1 r=0.25 -> per_ship=225 -> total=1350
-    //   N=2 r=0.40 -> per_ship=180 -> total=1080
-    //   N=3 r=0.50 -> per_ship=150 -> total= 900
-    //   N=4 r=0.55 -> per_ship=135 -> total= 810
-    //   N=5 r=0.58 -> per_ship=126 -> total= 756
-    //   N=6 r=0.60 -> per_ship=120 -> total= 720
-    let db = new_mem_db().await.unwrap();
-    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = Ctx::new(Arc::new(db), Arc::new(codex.clone()));
-    let account = context.sign_up("maelstrom-radar", "1234567").await.unwrap();
-    let profile =
-        context.new_profile(&account.access_token.token, "maelstrom-radar-admin").await.unwrap();
-    let session =
-        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
-    let profile_id = session.profile.id;
-
-    let cell = MapCellDefinition {
-        cell_no: 99,
-        color_no: 3,
-        event_id: 3,
-        event_kind: 0,
-        next_cells: vec![],
-        node_label: Some("H".to_string()),
-        master_cell_id: None,
-        distance: None,
-    };
-
-    const STOCK: i64 = 1000;
-    let expected_totals = [1800_i64, 1350, 1080, 900, 810, 756, 720];
-
-    for n_radars in 0usize..=6 {
-        // Fresh 6-ship fleet per iteration avoids needing to unequip slot items.
-        let mut ship_ids = Vec::with_capacity(6);
-        for _ in 0..6 {
-            let s = context.add_ship(profile_id, 951).await.unwrap();
-            ship_ids.push(s.api_id);
-        }
-
-        // Equip radars on the first N ships of this fleet.
-        for &api_id in &ship_ids[..n_radars] {
-            equip_radar_on_ship(context.db.as_ref(), &codex, profile_id, api_id).await;
-        }
-
-        // Override fuel to STOCK on all 6 ships AFTER equip (equip_radar_on_ship
-        // rewrites the ship row and would otherwise reset `fuel`).
-        let mut fleet = Vec::with_capacity(6);
-        for &api_id in &ship_ids {
-            let model = profile_ship::Entity::find_by_id(api_id)
-                .one(context.db.as_ref())
-                .await
-                .unwrap()
-                .unwrap();
-            let mut am = model.into_active_model();
-            am.fuel = ActiveValue::Set(STOCK);
-            am.update(context.db.as_ref()).await.unwrap();
-            let fresh = profile_ship::Entity::find_by_id(api_id)
-                .one(context.db.as_ref())
-                .await
-                .unwrap()
-                .unwrap();
-            assert_eq!(fresh.fuel, STOCK);
-            fleet.push(fresh);
-        }
-
-        let (itemget, happening) = resolve_non_battle_node_effect(
-            context.db.as_ref(),
-            context.codex.as_ref(),
-            profile_id,
-            &cell,
-            &fleet,
-        )
-        .await
-        .unwrap();
-        assert!(itemget.is_none());
-        let happening = happening.expect("maelstrom always emits a happening");
-        assert_eq!(happening.resource_type, 1);
-        assert_eq!(
-            happening.amount, expected_totals[n_radars],
-            "tier N={n_radars}: expected total fuel loss {}",
-            expected_totals[n_radars]
-        );
-        assert_eq!(happening.radar_reduced, n_radars > 0);
-
-        // Integration: fuel loss is persisted per-ship, not only reported.
-        let per_ship_loss = expected_totals[n_radars] / 6;
-        for &api_id in &ship_ids {
-            let after = profile_ship::Entity::find_by_id(api_id)
-                .one(context.db.as_ref())
-                .await
-                .unwrap()
-                .unwrap();
-            assert_eq!(
-                after.fuel,
-                STOCK - per_ship_loss,
-                "tier N={n_radars}: per-ship fuel should drop by {per_ship_loss}"
-            );
-        }
-    }
-}
-
-#[tokio::test]
-async fn maelstrom_zero_resource_ship_skips_loss_without_underflow() {
-    let db = new_mem_db().await.unwrap();
-    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-    let context = Ctx::new(Arc::new(db), Arc::new(codex));
-    let account = context.sign_up("maelstrom-zero", "1234567").await.unwrap();
-    let profile =
-        context.new_profile(&account.access_token.token, "maelstrom-zero-admin").await.unwrap();
-    let session =
-        context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
-    let profile_id = session.profile.id;
-    let ship = context.add_ship(profile_id, 951).await.unwrap();
-
-    // Drain fuel to 0
-    let ship_model = profile_ship::Entity::find_by_id(ship.api_id)
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-    let mut am = ship_model.into_active_model();
-    am.fuel = ActiveValue::Set(0);
-    am.update(context.db.as_ref()).await.unwrap();
-
-    let ship_zero = profile_ship::Entity::find_by_id(ship.api_id)
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(ship_zero.fuel, 0);
-
-    let cell = MapCellDefinition {
-        cell_no: 99,
-        color_no: 3,
-        event_id: 3,
-        event_kind: 0,
-        next_cells: vec![],
-        node_label: Some("H".to_string()),
-        master_cell_id: None,
-        distance: None,
-    };
-
-    let (itemget, happening) = resolve_non_battle_node_effect(
-        context.db.as_ref(),
-        context.codex.as_ref(),
-        profile_id,
-        &cell,
-        std::slice::from_ref(&ship_zero),
-    )
-    .await
-    .unwrap();
-
-    assert!(itemget.is_none());
-    // event_id=3 always emits a happening; a 0-fuel ship is skipped by the
-    // `ship_loss <= 0` guard so total_loss stays 0 but the happening is still Some.
-    let happening = happening.expect("maelstrom always emits a happening at event_id=3");
-    assert_eq!(happening.resource_type, 1, "color_no=3 drains fuel");
-    assert_eq!(happening.amount, 0, "zero-stock ship contributes zero loss");
-    assert!(!happening.radar_reduced, "no radars equipped");
-
-    let ship_after = profile_ship::Entity::find_by_id(ship.api_id)
-        .one(context.db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
-    assert_eq!(ship_after.fuel, 0, "no underflow");
 }
 
 #[test]
@@ -2690,4 +2351,44 @@ async fn the_ships_of_a_special_attack_pay_more_ammunition_for_the_battle() {
         return;
     }
     panic!("no battle of thirty made the special attack");
+}
+
+/// 1-2 opens onto A or B, and B is a resource cell: the sortie's first cell gives as any
+/// other does.
+#[tokio::test]
+async fn a_sortie_that_opens_onto_a_resource_cell_is_given_it() {
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
+    let account = context.sign_up("start-on-resource", "1234567").await.unwrap();
+    let profile = context.new_profile(&account.access_token.token, "start-on").await.unwrap();
+    let pid = context
+        .start_game(&account.access_token.token, profile.profile.id)
+        .await
+        .unwrap()
+        .profile
+        .id;
+    let mut fleet = [-1; 6];
+    for slot in &mut fleet {
+        *slot = context.add_ship(pid, 951).await.unwrap().api_id;
+    }
+    context.update_fleet_ships(pid, 1, &fleet).await.unwrap();
+    crate::game::map::clear_and_unlock_map_impl(context.db.as_ref(), &context.codex, pid, 11)
+        .await
+        .unwrap();
+
+    for _ in 0..200 {
+        let start = context.start_sortie(pid, 1, 1, 2).await.unwrap();
+        if start.cell_no != 2 {
+            assert!(start.itemget.is_none());
+            continue;
+        }
+        let [gain] = start.itemget.as_deref().unwrap() else {
+            panic!("{:?}", start.itemget);
+        };
+        assert_eq!(gain.item, CellItem::Ammo);
+        assert!((10..=20).contains(&gain.amount));
+        return;
+    }
+    panic!("1-2 never opened onto B");
 }

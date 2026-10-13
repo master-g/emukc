@@ -1,0 +1,843 @@
+{
+  "note": "What each resource cell of the regular maps gives and each maelstrom takes, by map name and node label. Maintained by hand from wikiwiki's seven area pages and its 資材 page (read 2026-10-13); 7-4 O is from zekamashi. A gain is a figure between min and max in steps of 5, plus per_drum and per_craft for each drum and landing craft in the fleet, cap at most. A maelstrom takes rate percent of what each ship has left, cap at most; strong_rate is the percentage of a 強うずしお. landing_craft is the 資源マス column of wikiwiki's 大発系装備早見表. guess says what an entry does not have from its source. See docs/solutions/architecture-patterns/resource-and-maelstrom-cells.md.",
+  "landing_craft": {
+    "68": "大発動艇",
+    "166": "大発動艇(八九式中戦車&陸戦隊)",
+    "167": "特二式内火艇",
+    "193": "特大発動艇",
+    "408": "装甲艇(AB艇)",
+    "409": "武装大発",
+    "436": "大発動艇(II号戦車/北アフリカ仕様)",
+    "449": "特大発動艇+一式砲戦車",
+    "525": "特四式内火艇",
+    "526": "特四式内火艇改",
+    "576": "大発動艇(R35&フランス兵)"
+  },
+  "drums": {
+    "75": "ドラム缶(輸送用)"
+  },
+  "maps": {
+    "1-2": {
+      "B": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 10,
+            "max": 20,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      }
+    },
+    "1-3": {
+      "D": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 10,
+            "max": 20,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "G": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 10,
+            "max": 30,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "H": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 40,
+          "cap": 20,
+          "strong_rate": 150
+        }
+      }
+    },
+    "1-4": {
+      "C": {
+        "gains": [
+          {
+            "item": "steel",
+            "min": 10,
+            "max": 20,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "E": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 10,
+            "max": 20,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "G": {
+        "gains": [
+          {
+            "item": "bauxite",
+            "min": 10,
+            "max": 20,
+            "per_drum": 1.5,
+            "per_craft": 2
+          }
+        ]
+      }
+    },
+    "1-6": {
+      "G": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 20,
+            "max": 20,
+            "per_craft": 5,
+            "cap": 40
+          }
+        ]
+      },
+      "M": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 40,
+            "max": 40,
+            "per_craft": 10,
+            "cap": 80
+          }
+        ]
+      }
+    },
+    "2-1": {
+      "B": {
+        "gains": [
+          {
+            "item": "steel",
+            "min": 10,
+            "max": 30,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "E": {
+        "gains": [
+          {
+            "item": "torch",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      }
+    },
+    "2-2": {
+      "A": {
+        "gains": [
+          {
+            "item": "bauxite",
+            "min": 10,
+            "max": 20,
+            "per_drum": 1.5,
+            "per_craft": 2
+          }
+        ]
+      },
+      "F": {
+        "gains": [
+          {
+            "item": "bauxite",
+            "min": 15,
+            "max": 35,
+            "per_drum": 1.5,
+            "per_craft": 2
+          }
+        ]
+      },
+      "J": {
+        "gains": [
+          {
+            "item": "torch",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      }
+    },
+    "2-3": {
+      "D": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 15,
+            "max": 45,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "G": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 15,
+            "max": 45,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "H": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 35,
+            "max": 40,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "I": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 15,
+            "max": 45,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      }
+    },
+    "2-4": {
+      "A": {
+        "gains": [
+          {
+            "item": "bucket",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      },
+      "C": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "cap": 30
+        }
+      },
+      "D": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 25,
+            "max": 60,
+            "per_drum": 2,
+            "per_craft": 3,
+            "guess": "the source prints the figures with a question mark"
+          }
+        ]
+      },
+      "G": {
+        "gains": [
+          {
+            "item": "dev_mat",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      },
+      "N": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 20,
+            "max": 60,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      }
+    },
+    "2-5": {
+      "G": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 40,
+          "cap": 150,
+          "strong_rate": 150
+        }
+      },
+      "M": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 70,
+            "max": 70,
+            "guess": "the source has 70 and no bonus on record"
+          }
+        ]
+      },
+      "N": {
+        "gains": [
+          {
+            "item": "steel",
+            "min": 50,
+            "max": 60,
+            "guess": "the source has no bonus on record"
+          }
+        ]
+      }
+    },
+    "3-1": {
+      "A": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 35,
+            "max": 140,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      }
+    },
+    "3-2": {
+      "B": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 50,
+            "max": 150,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "G": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 35,
+          "cap": 30
+        }
+      },
+      "I": {
+        "gains": [
+          {
+            "item": "box_small",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      }
+    },
+    "3-3": {
+      "C": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "cap": 40
+        }
+      },
+      "D": {
+        "gains": [
+          {
+            "item": "box_medium",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      },
+      "F": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 40,
+          "cap": 40,
+          "strong_rate": 150
+        }
+      },
+      "H": {
+        "gains": [
+          {
+            "item": "box_large",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      }
+    },
+    "3-4": {
+      "D": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "guess": "the source could not confirm a cap; none here"
+        }
+      },
+      "E": {
+        "gains": [
+          {
+            "item": "bauxite",
+            "min": 25,
+            "max": 150,
+            "per_drum": 1.5,
+            "per_craft": 2
+          }
+        ]
+      },
+      "F": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 40,
+          "cap": 70,
+          "strong_rate": 150
+        }
+      },
+      "K": {
+        "gains": [
+          {
+            "item": "box_large",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      },
+      "O": {
+        "gains": [
+          {
+            "item": "box_medium",
+            "min": 1,
+            "max": 1
+          }
+        ]
+      }
+    },
+    "3-5": {
+      "J": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 50,
+            "max": 50,
+            "per_drum": 10,
+            "guess": "the source does not know the cap"
+          }
+        ]
+      }
+    },
+    "4-1": {
+      "B": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 40,
+            "max": 120,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      }
+    },
+    "4-2": {
+      "J": {
+        "gains": [
+          {
+            "item": "bauxite",
+            "min": 40,
+            "max": 60,
+            "per_drum": 1.5,
+            "per_craft": 2
+          }
+        ]
+      },
+      "K": {
+        "gains": [
+          {
+            "item": "steel",
+            "min": 20,
+            "max": 80,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      }
+    },
+    "4-3": {
+      "B": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 30,
+            "max": 90,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "E": {
+        "maelstrom": {
+          "item": "ammo",
+          "rate": 35,
+          "cap": 60
+        }
+      },
+      "J": {
+        "gains": [
+          {
+            "item": "bauxite",
+            "min": 50,
+            "max": 100,
+            "per_drum": 1.5,
+            "per_craft": 2
+          }
+        ]
+      },
+      "K": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 45,
+          "cap": 80
+        }
+      }
+    },
+    "4-4": {
+      "C": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 60,
+            "max": 150,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "D": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "guess": "the source has no figures; 30% of fuel and no cap here"
+        }
+      },
+      "J": {
+        "gains": [
+          {
+            "item": "steel",
+            "min": 40,
+            "max": 70,
+            "per_drum": 2,
+            "per_craft": 3,
+            "guess": "the source prints the figures with a question mark"
+          }
+        ]
+      }
+    },
+    "4-5": {
+      "R": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 35,
+          "cap": 100
+        }
+      }
+    },
+    "5-1": {
+      "A": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "guess": "the source could not confirm a cap; none here"
+        }
+      },
+      "C": {
+        "gains": [
+          {
+            "item": "steel",
+            "min": 25,
+            "max": 50,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "H": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 45,
+            "max": 70,
+            "per_drum": 2,
+            "per_craft": 3,
+            "guess": "the source has no bonus on record; the general 2 and 3 here"
+          }
+        ]
+      }
+    },
+    "5-2": {
+      "A": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "cap": 70
+        }
+      },
+      "G": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 20,
+            "max": 50,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "J": {
+        "gains": [
+          {
+            "item": "bauxite",
+            "min": 40,
+            "max": 80,
+            "per_drum": 1.5,
+            "per_craft": 2
+          }
+        ]
+      },
+      "M": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 40,
+          "cap": 100,
+          "strong_rate": 150
+        }
+      }
+    },
+    "5-3": {
+      "F": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 60,
+            "max": 60,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "H": {
+        "gains": [
+          {
+            "item": "steel",
+            "min": 50,
+            "max": 80,
+            "per_drum": 2,
+            "per_craft": 3,
+            "guess": "the source prints the figures with a question mark"
+          }
+        ]
+      },
+      "L": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "cap": 70
+        }
+      }
+    },
+    "5-4": {
+      "D": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "guess": "the source could not confirm a cap; none here"
+        }
+      },
+      "I": {
+        "gains": [
+          {
+            "item": "ammo",
+            "min": 60,
+            "max": 60,
+            "per_drum": 10,
+            "per_craft": 15,
+            "cap": 180
+          }
+        ]
+      },
+      "K": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 40,
+          "cap": 120,
+          "strong_rate": 150
+        }
+      }
+    },
+    "5-5": {
+      "D": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 35,
+          "cap": 80
+        }
+      },
+      "E": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 40,
+            "max": 40,
+            "per_drum": 15,
+            "per_craft": 10,
+            "cap": 180
+          }
+        ]
+      },
+      "L": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 40,
+          "cap": 120,
+          "strong_rate": 150
+        }
+      }
+    },
+    "6-2": {
+      "D": {
+        "maelstrom": {
+          "item": "ammo",
+          "rate": 40,
+          "cap": 15,
+          "strong_rate": 150
+        }
+      }
+    },
+    "7-1": {
+      "A": {
+        "maelstrom": {
+          "item": "ammo",
+          "rate": 35,
+          "guess": "the source could not confirm a cap; none here"
+        }
+      },
+      "E": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 10,
+            "max": 20,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "I": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 30,
+            "max": 50,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      }
+    },
+    "7-2": {
+      "A": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "cap": 40
+        }
+      },
+      "K": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 25,
+            "max": 40,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      }
+    },
+    "7-3": {
+      "H": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 30,
+            "max": 50,
+            "per_drum": 2,
+            "per_craft": 3
+          }
+        ]
+      },
+      "K": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "guess": "the source has no figures; 30% of fuel and no cap here"
+        }
+      },
+      "L": {
+        "maelstrom": {
+          "item": "fuel",
+          "rate": 30,
+          "guess": "the source has no figures; 30% of fuel and no cap here"
+        }
+      },
+      "O": {
+        "gains": [
+          {
+            "item": "bauxite",
+            "min": 40,
+            "max": 50,
+            "per_drum": 1.5,
+            "per_craft": 2,
+            "guess": "the source prints the figures with a question mark, and a bonus of 2 and 3 that no other bauxite cell has; 1.5 and 2 here"
+          }
+        ]
+      }
+    },
+    "7-4": {
+      "O": {
+        "gains": [
+          {
+            "item": "fuel",
+            "min": 40,
+            "max": 40,
+            "per_drum": 8,
+            "per_craft": 7,
+            "cap": 200,
+            "guess": "zekamashi 7-4-O; the base is worked back from its two examples"
+          },
+          {
+            "item": "bauxite",
+            "min": 20,
+            "max": 20,
+            "per_drum": 6,
+            "per_craft": 10,
+            "cap": 120,
+            "guess": "zekamashi 7-4-O; the base is worked back from its two examples"
+          }
+        ]
+      }
+    }
+  }
+}
