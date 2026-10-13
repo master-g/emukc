@@ -118,6 +118,7 @@ fn successful_boss_snapshot() -> SortieBattleResultSnapshot {
         night_fought: false,
         night_start: false,
         enemy_combined: false,
+        cell_cost: None,
         special_attacks: Vec::new(),
         enemy_ship_types: vec![],
         win_rank: "S".to_string(),
@@ -203,6 +204,7 @@ async fn combined_midnight_battle_is_fought_by_the_escort_deck_alone() {
             night_fought: false,
             night_start: false,
             enemy_combined: false,
+            cell_cost: None,
             special_attacks: Vec::new(),
             enemy_ship_types: vec![0; session.enemy_ship_ids.len()],
             win_rank: session.outcome.win_rank.to_string(),
@@ -301,6 +303,7 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
             night_fought: false,
             night_start: false,
             enemy_combined: false,
+            cell_cost: None,
             special_attacks: Vec::new(),
             enemy_ship_types: session
                 .enemy_ship_ids

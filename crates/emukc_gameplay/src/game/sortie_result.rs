@@ -50,6 +50,9 @@ pub struct SortieBattleResultSnapshot {
     pub night_start: bool,
     /// Whether the enemy was a combined fleet.
     pub enemy_combined: bool,
+    /// What the cell costs in percent of fuel and of ammunition, where it is one of the
+    /// kinds that cost otherwise ([`cell_supply_cost`]).
+    pub cell_cost: Option<(i64, i64)>,
     pub enemy_ship_types: Vec<i64>,
     pub win_rank: String,
     pub get_exp: i64,
@@ -965,28 +968,65 @@ where
     Ok(0)
 }
 
+/// What a cell of one of the kinds that cost otherwise takes, in percent of fuel and of
+/// ammunition; `None` for an ordinary battle. wikiwiki 資材「燃料・弾薬の消費」, in the order
+/// of the source's `updateSupply`: PT boats alone, an air raid (6-4 and 6-5 the other way
+/// round), radar fire, submarines alone.
+// ponytail: a cell is taken for a submarine cell by the fleet that came up, where the game
+// has it marked; 4-1 D and 4-3 C are the two wikiwiki names as costing in full all the same.
+pub(crate) fn cell_supply_cost(
+    pt_only: bool,
+    air_raid_of_area: Option<i64>,
+    radar_fire: bool,
+    submarines_only: bool,
+    boss: bool,
+    cell: (i64, &str),
+) -> Option<(i64, i64)> {
+    if pt_only {
+        Some((4, 8))
+    } else if let Some(area) = air_raid_of_area {
+        Some(if area == 6 {
+            (4, 8)
+        } else {
+            (6, 4)
+        })
+    } else if radar_fire {
+        Some((4, 0))
+    } else if submarines_only && !boss && !matches!(cell, (41, "D") | (43, "C")) {
+        Some((8, 0))
+    } else {
+        None
+    }
+}
+
 /// The fuel and ammunition a battle costs a ship of these capacities, after the source's
-/// `updateSupply`: a fifth of each, a tenth where the battle opens at night, never less
-/// than 1. Going on into the night costs half as much ammunition again, rounded up, but not
-/// against a combined fleet. `special` is [`special_attack_ammo`]'s factor for her, on the
-/// whole and rounded down; a night against a combined fleet takes it away again.
-// ponytail: the cells that cost otherwise (submarines 8/0, air raids 6/4 and 4/8, PT boats
-// 4/8, radar fire 4/0) are not told apart; give the snapshot the cell's kind when they are.
+/// `updateSupply`: a fifth of each, a tenth where the battle opens at night, or what the
+/// cell's kind takes ([`cell_supply_cost`]); never less than 1 of what is charged at all.
+/// Going on into the night costs half as much ammunition again, rounded up, but not against
+/// a combined fleet. `special` is [`special_attack_ammo`]'s factor for her, on the whole and
+/// rounded down; a night against a combined fleet takes it away again.
 fn battle_supply_cost(
     fuel_max: i64,
     ammo_max: i64,
     snapshot: &SortieBattleResultSnapshot,
     special: f64,
 ) -> (i64, i64) {
-    let part = if snapshot.night_start {
-        10
+    let (fuel_percent, ammo_percent) = snapshot.cell_cost.unwrap_or(if snapshot.night_start {
+        (10, 10)
     } else {
-        5
+        (20, 20)
+    });
+    let part = |max: i64, percent: i64| {
+        if percent == 0 {
+            0
+        } else {
+            (max * percent / 100).max(1)
+        }
     };
-    let fuel = (fuel_max / part).max(1);
-    let mut ammo = (ammo_max / part).max(1);
+    let fuel = part(fuel_max, fuel_percent);
+    let mut ammo = part(ammo_max, ammo_percent);
     if snapshot.night_fought && !snapshot.enemy_combined {
-        ammo += (ammo_max + 9) / 10;
+        ammo += (ammo_max * ammo_percent + 199) / 200;
     }
     if !(snapshot.night_fought && snapshot.enemy_combined) {
         ammo = (ammo as f64 * special) as i64;
@@ -1034,6 +1074,7 @@ mod tests {
             night_fought: false,
             night_start: false,
             enemy_combined: false,
+            cell_cost: None,
             enemy_ship_types: vec![],
             win_rank: win_rank.to_string(),
             get_exp: 0,
@@ -1503,6 +1544,46 @@ mod tests {
         // Against a combined fleet the night costs no more, and takes the attack's cost away.
         assert_eq!(cost(225, false, false, true, 1.5).1, 67);
         assert_eq!(cost(225, true, false, true, 1.5).1, 45);
+    }
+
+    /// wikiwiki 資材「燃料・弾薬の消費」 and the order of the source's `updateSupply`.
+    #[test]
+    fn the_cells_that_cost_otherwise() {
+        let ordinary = (11, "A");
+        let cost =
+            |pt, raid, radar, subs, boss, cell| cell_supply_cost(pt, raid, radar, subs, boss, cell);
+        assert_eq!(cost(false, None, false, false, false, ordinary), None);
+        // PT boats alone, before anything else.
+        assert_eq!(cost(true, Some(5), false, false, false, ordinary), Some((4, 8)));
+        // An air raid, and 6-4 and 6-5 the other way round.
+        assert_eq!(cost(false, Some(5), false, false, false, ordinary), Some((6, 4)));
+        assert_eq!(cost(false, Some(6), false, false, false, ordinary), Some((4, 8)));
+        // Radar fire.
+        assert_eq!(cost(false, None, true, false, false, ordinary), Some((4, 0)));
+        // Submarines alone: no ammunition, but not at a boss, nor at 4-1 D and 4-3 C.
+        assert_eq!(cost(false, None, false, true, false, (15, "A")), Some((8, 0)));
+        assert_eq!(cost(false, None, false, true, true, (15, "J")), None);
+        assert_eq!(cost(false, None, false, true, false, (41, "D")), None);
+        assert_eq!(cost(false, None, false, true, false, (43, "C")), None);
+
+        let of = |cell_cost, night_fought, special| {
+            let snapshot = SortieBattleResultSnapshot {
+                cell_cost,
+                night_fought,
+                ..snapshot("S")
+            };
+            battle_supply_cost(100, 225, &snapshot, special)
+        };
+        assert_eq!(of(Some((8, 0)), false, 1.0), (8, 0));
+        assert_eq!(of(Some((6, 4)), false, 1.0), (6, 9));
+        // The night and a special attack's factor on a PT cell: 18, 9 more, half as much again.
+        assert_eq!(of(Some((4, 8)), true, 1.5), (4, 40));
+        // Less than 1 is 1, but nothing is nothing.
+        let small = SortieBattleResultSnapshot {
+            cell_cost: Some((4, 0)),
+            ..snapshot("S")
+        };
+        assert_eq!(battle_supply_cost(10, 10, &small, 1.0), (1, 0));
     }
 
     #[test]

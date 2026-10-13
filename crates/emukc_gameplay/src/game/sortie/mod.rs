@@ -1024,6 +1024,7 @@ impl Ctx {
                 let mut snapshot = setup.result_snapshot(codex, &session);
                 snapshot.special_attacks = night_session.packet.special_attacks();
                 snapshot.night_start = true;
+                snapshot.cell_cost = cell_cost(codex, &setup.active, &session, BattleType::Normal);
                 let mut active = setup.active;
                 active.pending_battle_cell_id = Some(active.current_cell_id);
                 active.special_attacks_made.record(&snapshot.special_attacks);
@@ -1168,6 +1169,38 @@ async fn refresh_sortie_stage(
     Ok(true)
 }
 
+/// What the cell the fleet is fighting on costs, where it is not an ordinary battle's
+/// ([`cell_supply_cost`]).
+fn cell_cost(
+    codex: &Codex,
+    active: &ActiveSortieState,
+    session: &SortieBattleSession,
+    battle_type: BattleType,
+) -> Option<(i64, i64)> {
+    let catalog = active_map_catalog(codex);
+    let label = catalog
+        .as_ref()
+        .map_definition(active.map_id)
+        .and_then(|definition| definition.stage(&active.stage_id))
+        .and_then(|stage| stage.cell(active.current_cell_id))
+        .and_then(|cell| cell.node_label.clone())
+        .unwrap_or_default();
+    let submarines_only = !session.enemy_ship_ids.is_empty()
+        && session.enemy_ship_ids.iter().all(|id| {
+            codex
+                .find::<emukc_model::kc2::start2::ApiMstShip>(id)
+                .is_ok_and(|mst| matches!(mst.api_stype, 13 | 14))
+        });
+    crate::game::sortie_result::cell_supply_cost(
+        emukc_battle::is_pt_only(codex, &session.enemy),
+        (battle_type == BattleType::LdAirBattle).then_some(active.map_id / 10),
+        battle_type == BattleType::LdShooting,
+        submarines_only,
+        active.current_cell_id == active.boss_cell_id,
+        (active.map_id, &label),
+    )
+}
+
 async fn sortie_battle_impl(
     store: &crate::game::sortie_store::SortieStore,
     codex: &Codex,
@@ -1204,7 +1237,9 @@ async fn sortie_battle_impl(
             if endpoint == SortieBattleEndpoint::EnemyCombined {
                 response = response.with_enemy_escort(&setup.enemy.escort_ships);
             }
-            store.insert_pending_result(profile_id, setup.result_snapshot(codex, &session));
+            let mut snapshot = setup.result_snapshot(codex, &session);
+            snapshot.cell_cost = cell_cost(codex, &setup.active, &session, battle_type);
+            store.insert_pending_result(profile_id, snapshot);
 
             let mut active = setup.active;
             active.pending_battle_cell_id = Some(active.current_cell_id);
