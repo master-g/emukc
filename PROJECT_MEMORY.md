@@ -193,12 +193,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-12] 特殊砲撃照来源重做（计划 2026-10-12-009），已合并（PR #80；008 是 PR #78）。
-  质量门通过，基线没变，无头检查演过。
+- [2026-10-12] 特殊砲撃弹药三条（计划 2026-10-12-010），分支 `fix/special-attack-ammunition`，未合并。
+  质量门通过，基线没变，无头检查没重跑（报文不变）。
 
 ## Next Session
 
-- [2026-10-12] 特殊砲撃未定的见 `day-shelling-order.md` 的 Unsettled（Colorado 的弹药等）。
+- [2026-10-12] 特殊砲撃未定的见 `day-shelling-order.md` 的 Unsettled 与计划 010「没有做」。
   周常重置读系统时钟还没有规格。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：带要员的敌舰（5-6 四阶段、7-4）没在客户端演过。

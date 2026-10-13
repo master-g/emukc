@@ -961,15 +961,19 @@ where
 
 /// What a ship's ammunition for the battle is multiplied by for the special attack she
 /// joined. The source's `updateSupply`: 1.5 for the flagship and second ship of the Nagato
-/// and Richelieu classes' attacks. wikiwiki 金剛改二丙: 1.2 for the two of the night assault,
-/// who lead 第2艦隊 in a combined fleet (`kongou_pair` is where they begin).
+/// and Richelieu classes' attacks. The source leaves out the Colorado class's; wikiwiki
+/// Colorado and zekamashi have its three ships paying the same 1.5. 1.1 for the two of the
+/// night assault (`kongouSpecialBuff5`, the update of 2026-04-23), who lead 第2艦隊 in a
+/// combined fleet (`kongou_pair` is where they begin).
 fn special_attack_ammo(special_attacks: &[i64], idx: usize, kongou_pair: usize) -> f64 {
     let mut factor = 1.0;
-    if idx < 2 && special_attacks.iter().any(|kind| matches!(kind, 101 | 102 | 105)) {
+    if idx < 2 && special_attacks.iter().any(|kind| matches!(kind, 101 | 102 | 105))
+        || idx < 3 && special_attacks.contains(&103)
+    {
         factor *= 1.5;
     }
     if (kongou_pair..kongou_pair + 2).contains(&idx) && special_attacks.contains(&104) {
-        factor *= 1.2;
+        factor *= 1.1;
     }
     factor
 }
@@ -1443,14 +1447,16 @@ mod tests {
         for kind in [101, 102, 105] {
             assert_eq!(of(&[kind], 0), [1.5, 1.5, 1.0, 1.0, 1.0, 1.0]);
         }
-        // The source charges nothing for a Nelson Touch, nor for 103 and 106.
-        for kind in [100, 103, 106] {
+        // The Colorado class's: all three of them.
+        assert_eq!(of(&[103], 0), [1.5, 1.5, 1.5, 1.0, 1.0, 1.0]);
+        // A Nelson Touch costs nothing, nor is the source charging 106.
+        for kind in [100, 106] {
             assert_eq!(of(&[kind], 0), [1.0; 6]);
         }
         // The night assault: the first two, of 第2艦隊 in a combined fleet.
-        assert_eq!(of(&[104], 0), [1.2, 1.2, 1.0, 1.0, 1.0, 1.0]);
-        assert_eq!(of(&[104], 6), [1.0, 1.0, 1.0, 1.2, 1.2, 1.0]);
-        assert_eq!(of(&[101, 104], 6), [1.5, 1.5, 1.0, 1.2, 1.2, 1.0]);
+        assert_eq!(of(&[104], 0), [1.1, 1.1, 1.0, 1.0, 1.0, 1.0]);
+        assert_eq!(of(&[104], 6), [1.0, 1.0, 1.0, 1.1, 1.1, 1.0]);
+        assert_eq!(of(&[101, 104], 6), [1.5, 1.5, 1.0, 1.1, 1.1, 1.0]);
         assert_eq!(of(&[], 0), [1.0; 6]);
     }
 }

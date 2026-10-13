@@ -384,7 +384,8 @@ fn check_richelieu_attack(
 }
 
 /// Check the Queen Elizabeth class's attack (106): Warspite改 or Valiant改 as flagship and
-/// one of them second, 梯形陣.
+/// one of them second, 梯形陣, neither with her ammunition spent (wikiwiki Warspite改, six
+/// misses in six at 67.5%; not in the source, and not known of the other attacks).
 fn check_qe_attack(
     codex: &Codex,
     fleet: &[BattleRuntimeShip],
@@ -400,6 +401,8 @@ fn check_qe_attack(
         || !of_the_class(second)
         || !is_flagship_healthy(flagship)
         || !is_companion_healthy(second)
+        || flagship.ship.api_bull <= 0
+        || second.ship.api_bull <= 0
     {
         return None;
     }
@@ -769,6 +772,12 @@ mod tests {
         assert_eq!(qe([WARSPIRE_KAI_ID, VALIANT_KAI_ID]), pair(106, 1240, 1240));
         assert_eq!(qe([VALIANT_KAI_ID, WARSPIRE_KAI_ID]), pair(106, 1200, 1240));
         assert_eq!(qe([WARSPIRE_KAI_ID, bb]), None);
+        // Neither of the two with her ammunition spent.
+        for spent in 0..2 {
+            let mut fleet = fleet_of(&codex, [WARSPIRE_KAI_ID, VALIANT_KAI_ID]);
+            fleet[spent].ship.api_bull = 0;
+            assert_eq!(made(check_qe_attack(&codex, &fleet, 4)), None);
+        }
 
         // Nelson or Rodney with the third and the fifth ship, neither a carrier.
         let nelson = |ids: [i64; 5]| made(check_nelson_touch(&codex, &fleet_of(&codex, ids), 2));
