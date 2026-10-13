@@ -477,8 +477,8 @@ pub enum PhaseExpectation {
     /// Some friendly night attack must be a cut-in: an `api_sp_list` entry of 2 or more. A
     /// day battle is asked nothing.
     NightCutIn,
-    /// Some night battle must carry the friendly fleet's scout in `api_touch_plane`. A day
-    /// battle is asked nothing.
+    /// Some night battle that follows a day battle must carry the friendly fleet's scout in
+    /// `api_touch_plane`: the air has to be taken by day for it to fly.
     NightContact,
     /// Nothing beyond a plain battle is required.
     PlainBattle,
