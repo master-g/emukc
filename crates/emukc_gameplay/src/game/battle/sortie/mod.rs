@@ -353,6 +353,7 @@ mod tests {
                 visited_cell_ids: BTreeSet::new(),
                 locked_enemy_composition: None,
                 landing_tp: None,
+                recon_rewards: Vec::new(),
                 air_strikes: vec![],
                 raided: false,
                 special_attacks_made: emukc_battle::SpecialAttacksMade {

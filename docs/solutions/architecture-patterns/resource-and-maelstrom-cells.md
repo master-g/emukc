@@ -103,8 +103,8 @@ Ours, not a source's:
   has to reload, and a reload voids what was gathered anyway.
 - No cap on the bonus of drums and landing craft at an ordinary cell, and the even draw
   within a range, for want of a source.
-- 6-3's reconnaissance cells, 5-6's landing cell and the escort-success cells
-  (`api_itemget_eo_*`) have rules of their own that are not here (#100).
+- 6-3's reconnaissance cells, 5-6's landing cell and 1-6's escort-success cell have rules
+  of their own: `reconnaissance-and-escort-cells.md`.
 - Event maps, and a combined fleet's two ways of sparing its ships a maelstrom.
 - Played in the client on 2026-10-13, by hand-given steps on the `transport_5_6` preset and
   without a page error: 4-1 B (the fuel icon and ×113, and 113 more fuel in port), 2-3 H
