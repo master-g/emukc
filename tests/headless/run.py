@@ -8,7 +8,7 @@ that long (its own time: see `advance`), `c:<x>,<y>` clicks the game canvas
 (1200x720), `s:<name>` saves a screenshot, `api:<path>` waits until the client has called
 that KCSAPI path since the last call a step waited for, and `u:<x>,<y>:<path>` does the
 same while clicking that spot every few seconds (several spots, separated by `;`, are
-clicked in turn). Every KCSAPI response is saved under api/, and the report lists the
+clicked in turn). Every KCSAPI response is saved under api/ with what the client sent (`.request`), and the report lists the
 resources the client asked for that the cache list misses or the origin does not have. The run fails on a page error, a failed request or a step that
 times out; the report and screenshots land in .data/temp/headless/<scenario>/. A run that
 has no result after `LIMIT` seconds is stopped, naming the step it stood at.
@@ -51,6 +51,8 @@ TO_MAPS = (
 )
 # 決定, then 出撃開始.
 START = "c:1015,668 w:4 u:830,668:api_req_map/start"
+# 6-3's cell 3 (C), where `kcs2/resources/map/006/03_info.json` puts it.
+SPOT_C = "436,444"
 
 
 def responses(work: Path, path: str) -> list[dict]:
@@ -381,6 +383,12 @@ def check_recon_6_3(work: Path) -> list[str]:
     visited = [cell["api_no"] for cell in steps]
     if visited != [3, 5, 7, 12, 10]:
         return [f"the fleet went {visited}, not C, E, the reconnaissance cells G and H and the boss J"]
+    # A is a choice of route: the start offers B and C, and the client sends the one tapped.
+    offered = responses(work, "api_req_map/start")[0].get("api_select_route")
+    asked = sorted((work / "api").glob("*_api_req_map.next.request"))[0].read_text()
+    print("A offered:", offered, "and the client asked:", asked)
+    if offered != {"api_select_cells": [2, 3]} or "api_cell_id=3" not in asked:
+        problems.append(f"A offered {offered} and the client asked {asked!r}, not for C of B and C")
     found = {}
     for label, cell in zip("GH", steps[2:4]):
         items = cell.get("api_itemget") or []
@@ -420,10 +428,10 @@ def check_escort_1_6(work: Path) -> list[str]:
 
 
 SCENARIOS = {
-    # 中部海域, 6-3: a battle at C and at E, the reconnaissance cells G and H, the boss J, home.
+    # 中部海域, 6-3: the choice of route at A, where C is tapped, a battle at C and at E, the reconnaissance cells G and H, the boss J, home.
     # Two 二式大艇 and two 零観 make a great success of both. Photographed through each.
     "recon_6_3": (
-        f"{TO_MAPS} c:800,680 w:4 c:280,525 w:3 {START} u:{TAPS}:api_req_map/next {BATTLE} "
+        f"{TO_MAPS} c:800,680 w:4 c:280,525 w:3 {START} w:8 s:choice u:{TAPS};{SPOT_C}:api_req_map/next w:1 s:leaving {BATTLE} "
         f"u:{TAPS}:api_req_map/next {BATTLE} u:{TAPS}:api_req_map/next "
         + " ".join(f"w:1.5 s:g{n}" for n in range(1, 9))
         + f" u:{TAPS}:api_req_map/next "
@@ -688,6 +696,7 @@ def main() -> int:
                     report["api"].append(path)
                     dump = work / "api" / f"{len(report['api']):03}_{path.replace('/', '.')}.json"
                     dump.write_text(response.text().removeprefix("svdata="))
+                    dump.with_suffix(".request").write_text(response.request.post_data or "")
 
             page.on("response", on_response)
             page.route(re.compile(r"/kcs2/js/main\.js"), lambda route: route.fulfill(body=client, content_type="application/javascript"))
