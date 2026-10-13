@@ -142,7 +142,9 @@ screen, pass steps on the command line and read the screenshots:
   (`slot/item_up/0540_…`) among what the client asked for, which `TaskShowTouchPlane` loads
   only when it shows a contact. The requested paths are saved as `requested.json` for that.
   The client puts our scout on the enemy's radar (`rader_e.touch_plane`), with 触接中! under
-  it. Three runs of three on 2026-10-13, without a page error and with the picture in the
+  it. The scout's picture appears about a second after the label and stays; the label blinks
+  (0.9 s in every 1.1), so one screenshot may show either without the other (`night3`,
+  `night4`, `night6` of the first run: label alone, both, picture alone). Three runs of three on 2026-10-13, without a page error and with the picture in the
   cache list. The enemy's scout (`api_touch_plane[1]`) has not been played: nothing at 2-1
   carries one.
 - `nagato_broadside` is the same sortie in 梯形陣 (the fourth button of the formation screen)
