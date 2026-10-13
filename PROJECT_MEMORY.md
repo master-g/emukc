@@ -193,7 +193,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 特殊砲撃发动率改用 TsunDB 拟合式（计划 2026-10-13-002），分支 `fix/special-attack-rates`，未合并。
+- [2026-10-13] 特殊砲撃发动率改用 TsunDB 拟合式（计划 2026-10-13-002），已合并（PR #88）。
   质量门通过，无头检查没重跑。
 
 ## Next Session
