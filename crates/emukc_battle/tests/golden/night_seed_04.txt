@@ -72,11 +72,11 @@ NightBattlePacket {
             ],
             api_cl_list: [
                 [
-                    0,
+                    1,
                     1,
                 ],
                 [
-                    0,
+                    1,
                     1,
                 ],
             ],
@@ -86,12 +86,12 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    0,
+                    4,
                     285,
                 ],
                 [
-                    0,
-                    282,
+                    5,
+                    287,
                 ],
             ],
         },

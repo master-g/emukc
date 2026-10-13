@@ -7,7 +7,7 @@
 use emukc_model::{codex::Codex, kc2::KcShipType};
 
 use crate::accuracy::{Aim, AttackKind, roll_attack};
-use crate::damage::calculate_shelling_damage;
+use crate::damage::{calculate_shelling_damage, cut_in_hit};
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
 use crate::targeting::{has_slotitem_id, select_surface_target, ship_type, target_class};
@@ -632,7 +632,6 @@ pub(crate) fn execute_special_attack(
             Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id)
                 .with_modifier(hit.accuracy),
         );
-        hits.push(outcome.cl());
         // By day the multiplier is applied after the cap.
         let raw = calculate_shelling_damage(
             codex,
@@ -644,6 +643,8 @@ pub(crate) fn execute_special_attack(
             Some(hit.multiplier),
             outcome,
         );
+        let (raw, cl) = cut_in_hit(rng, outcome, raw, defenders[target_idx].hp());
+        hits.push(cl);
         let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
         if !is_enemy {
             attacker.damage_dealt += dealt;

@@ -9,7 +9,9 @@ use emukc_model::{
 };
 
 use crate::accuracy::{Aim, AttackKind, HitOutcome, asw_proficiency, roll_attack};
-use crate::damage::{calculate_asw_damage, calculate_night_damage, calculate_scratch_damage};
+use crate::damage::{
+    calculate_asw_damage, calculate_night_damage, calculate_scratch_damage, cut_in_hit,
+};
 use crate::random::BattleRng;
 use crate::simulation::abyssal_night::{ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_IDS};
 use crate::simulation::night_attack_table::{NIGHT_ATTACKS, NightAttackRow, SPECIAL_TORPEDO_IDS};
@@ -1160,11 +1162,12 @@ fn special_attack_row(
             None,
             outcome,
         );
+        let (raw, cl) = cut_in_hit(rng, outcome, raw, enemy[target_idx].hp());
         let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
         ship.damage_dealt += dealt;
         let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
         targets.push(target_idx as i64);
-        cls.push(outcome.cl());
+        cls.push(cl);
         damages.push(if shield {
             DamageCell::Shielded(display)
         } else {
@@ -1390,11 +1393,17 @@ fn night_turn(
                 outcome,
             )
         };
+        // A plain attack that misses does nothing; a double attack's or a cut-in's scratches.
+        let (raw, cl) = if attack_type == NightAttackType::Normal {
+            (raw, outcome.cl())
+        } else {
+            cut_in_hit(rng, outcome, raw, defenders[target_idx].hp())
+        };
         let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
         total_dealt += dealt;
         let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
         hit_damages.push(display);
-        hit_cls.push(outcome.cl());
+        hit_cls.push(cl);
     }
     ship.damage_dealt += total_dealt;
 

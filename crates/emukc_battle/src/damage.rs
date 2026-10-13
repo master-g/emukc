@@ -103,6 +103,21 @@ pub(crate) fn resolve_damage(
     }
 }
 
+/// One hit of a double attack, a cut-in or a special attack: the damage it does and what
+/// `api_cl_list` says of it. The source's `shell` and `NBattack`: a hit of these that misses
+/// still scratches, and is written as a hit.
+pub(crate) fn cut_in_hit(
+    rng: &mut impl BattleRng,
+    outcome: HitOutcome,
+    raw: i64,
+    target_hp: i64,
+) -> (i64, i64) {
+    match outcome {
+        HitOutcome::Miss => (calculate_scratch_damage(rng, target_hp.max(1)), HitOutcome::Hit.cl()),
+        _ => (raw, outcome.cl()),
+    }
+}
+
 /// Post-cap ammunition modifier based on the attacker's remaining ammo (弾薬量補正).
 ///
 /// Friendly ships deal reduced damage when low on ammo. At ≥50% remaining the
@@ -959,6 +974,17 @@ mod tests {
         let low = shell(bull_max / 10, 42);
         assert!(full > 5, "setup: full-ammo CA->DD should deal real damage, got {full}");
         assert!(low < full, "10% ammo must deal less than full (full {full}, low {low})");
+    }
+
+    #[test]
+    fn a_hit_of_a_cut_in_that_misses_scratches_and_is_written_as_a_hit() {
+        let mut rng = crate::random::SeededRng::new(1);
+        let (damage, cl) = cut_in_hit(&mut rng, HitOutcome::Miss, 0, 100);
+        // `getScratchDamage`: 6% of her hull and up to 8% more.
+        assert!((6..14).contains(&damage), "{damage}");
+        assert_eq!(cl, 1);
+        assert_eq!(cut_in_hit(&mut rng, HitOutcome::Hit, 40, 100), (40, 1));
+        assert_eq!(cut_in_hit(&mut rng, HitOutcome::Critical, 60, 100), (60, 2));
     }
 
     /// The source's `NBPower`: no torpedoes against an installation, and 30 more firepower
