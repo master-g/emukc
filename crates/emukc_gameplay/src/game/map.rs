@@ -4,7 +4,7 @@ use std::{
 };
 
 use emukc_db::{
-    entity::profile::map_record,
+    entity::profile::{map_record, quest::oneshot},
     sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
 };
 #[cfg(test)]
@@ -380,6 +380,57 @@ fn parse_map_select_rank(rank: i64) -> Result<MapSelectRank, GameplayError> {
         .ok_or_else(|| GameplayError::WrongType(format!("invalid map rank {rank}")))
 }
 
+/// Regular maps that also wait on a one-shot quest, which the structural table
+/// in `build_regular_prerequisites` cannot express: 6-5 opens only once 6-4 is
+/// cleared *and* 中部海域「基地航空隊」展開！ (647) is claimed. The client draws
+/// that lock itself (`main.decoded.js:88686`). See plan 2026-10-14-008.
+const QUEST_GATED_MAPS: &[(i64, i64)] = &[(65, 647)];
+
+/// Whether the quest `map_id` waits on, if any, is done.
+async fn quest_gate_met<C>(c: &C, profile_id: i64, map_id: i64) -> Result<bool, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let Some(&(_, quest_id)) = QUEST_GATED_MAPS.iter().find(|(gated, _)| *gated == map_id) else {
+        return Ok(true);
+    };
+    let done = oneshot::Entity::find()
+        .filter(oneshot::Column::ProfileId.eq(profile_id))
+        .filter(oneshot::Column::QuestId.eq(quest_id))
+        .one(c)
+        .await?;
+    Ok(done.is_some())
+}
+
+/// Open the maps `quest_id` holds back whose previous map is already cleared,
+/// returning those opened. Called when the quest is claimed; a map whose
+/// previous map is still to be cleared opens with that clear instead.
+pub(crate) async fn unlock_quest_gated_maps_impl<C>(
+    c: &C,
+    codex: &Codex,
+    profile_id: i64,
+    quest_id: i64,
+) -> Result<Vec<i64>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let catalog = active_map_catalog(codex);
+    let mut opened = Vec::new();
+    for &(map_id, _) in QUEST_GATED_MAPS.iter().filter(|(_, quest)| *quest == quest_id) {
+        let Some(previous) = catalog.prerequisite_for(map_id) else {
+            continue;
+        };
+        ensure_map_records_impl(c, codex, profile_id).await?;
+        if find_map_record_impl(c, profile_id, previous).await?.cleared
+            && !find_map_record_impl(c, profile_id, map_id).await?.unlocked
+        {
+            unlock_map_impl(c, codex, profile_id, map_id).await?;
+            opened.push(map_id);
+        }
+    }
+    Ok(opened)
+}
+
 pub(crate) async fn check_and_unlock_dependencies_impl<C>(
     c: &C,
     codex: &Codex,
@@ -403,7 +454,7 @@ where
 
     let mut newly_unlocked = Vec::new();
     for record in records {
-        if !record.unlocked {
+        if !record.unlocked && quest_gate_met(c, profile_id, record.map_id).await? {
             let dep_id = record.map_id;
             let mut am = record.into_active_model();
             am.unlocked = ActiveValue::Set(true);
@@ -870,5 +921,57 @@ mod tests {
         let info = build_map_info(&definition, &sample_record(None));
 
         assert!(info.api_gauge_type_e.is_none());
+    }
+
+    // ------------------------------------------------------------------ 6-5 waits for quest 647
+
+    async fn profile_context(name: &str) -> (Ctx, i64) {
+        let db = emukc_db::prelude::new_mem_db().await.unwrap();
+        let context = Ctx::new(std::sync::Arc::new(db), std::sync::Arc::new(load_codex()));
+        let account = context.sign_up(name, "1234567").await.unwrap();
+        let profile = context.new_profile(&account.access_token.token, name).await.unwrap();
+        let session =
+            context.start_game(&account.access_token.token, profile.profile.id).await.unwrap();
+        (context, session.profile.id)
+    }
+
+    async fn clear_6_4(context: &Ctx, profile_id: i64) -> Vec<i64> {
+        let mut opened =
+            check_and_unlock_dependencies_impl(context.db.as_ref(), &context.codex, profile_id, 64)
+                .await
+                .unwrap();
+        opened.sort();
+        opened
+    }
+
+    async fn unlocked(context: &Ctx, profile_id: i64, map_id: i64) -> bool {
+        find_map_record_impl(context.db.as_ref(), profile_id, map_id).await.unwrap().unlocked
+    }
+
+    #[tokio::test]
+    async fn clearing_6_4_leaves_6_5_locked_until_quest_647_is_done() {
+        let (context, pid) = profile_context("gate-locked").await;
+
+        assert_eq!(clear_6_4(&context, pid).await, vec![71]);
+        assert!(!unlocked(&context, pid, 65).await);
+    }
+
+    #[tokio::test]
+    async fn clearing_6_4_opens_6_5_once_quest_647_is_done() {
+        use emukc_db::entity::profile::quest::oneshot;
+
+        let (context, pid) = profile_context("gate-open").await;
+        oneshot::ActiveModel {
+            id: ActiveValue::NotSet,
+            profile_id: ActiveValue::Set(pid),
+            quest_id: ActiveValue::Set(647),
+            complete_time: ActiveValue::Set(Utc::now()),
+        }
+        .insert(context.db.as_ref())
+        .await
+        .unwrap();
+
+        assert_eq!(clear_6_4(&context, pid).await, vec![65, 71]);
+        assert!(unlocked(&context, pid, 65).await);
     }
 }

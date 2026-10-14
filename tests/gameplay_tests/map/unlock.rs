@@ -169,4 +169,54 @@ mod tests {
         let msg = err.to_string();
         assert!(msg.contains("locked"), "error should mention locked, got: {msg}",);
     }
+
+    async fn clear_area_6(context: &crate::TestContext, pid: i64) {
+        let scenario = Scenario {
+            clear_maps: vec![61, 62, 63, 64],
+            ..Default::default()
+        };
+        apply_scenario(context, pid, &scenario).await.unwrap();
+    }
+
+    /// Claim 中部海域「基地航空隊」展開！ and return the `api_c_flag` on its air base bonus.
+    async fn claim_647(context: &crate::TestContext, pid: i64) -> Option<i64> {
+        let cost = [(MaterialCategory::Fuel, 1200), (MaterialCategory::Bauxite, 3000)];
+        context.add_material(pid, &cost).await.unwrap();
+        context.quest_add(pid, 647).await.unwrap();
+        context.quest_start(pid, 647).await.unwrap();
+        let resp = context.quest_clear_and_claim_reward(pid, 647, None).await.unwrap();
+        let bonus = resp
+            .api_bounus
+            .iter()
+            .find(|b| b.api_type == KcApiQuestClearItemBonusType::AirUnitBase as i64)
+            .expect("647 rewards the central-area air base");
+        bonus.api_item.as_ref().unwrap().api_c_flag
+    }
+
+    async fn shows(context: &crate::TestContext, pid: i64, map_id: i64) -> bool {
+        context.get_map_infos(pid).await.unwrap().iter().any(|info| info.api_id == map_id)
+    }
+
+    #[tokio::test]
+    async fn claiming_647_after_6_4_opens_6_5_and_flags_it() {
+        let context = new_context().await;
+        let pid = new_profile(&context).await;
+        clear_area_6(&context, pid).await;
+        assert!(!shows(&context, pid, 65).await, "6-5 waits for 647");
+
+        assert_eq!(claim_647(&context, pid).await, Some(1));
+        assert!(shows(&context, pid, 65).await);
+    }
+
+    #[tokio::test]
+    async fn claiming_647_before_6_4_leaves_6_5_to_the_clear() {
+        let context = new_context().await;
+        let pid = new_profile(&context).await;
+
+        assert_eq!(claim_647(&context, pid).await, Some(0));
+        assert!(!shows(&context, pid, 65).await);
+
+        clear_area_6(&context, pid).await;
+        assert!(shows(&context, pid, 65).await);
+    }
 }

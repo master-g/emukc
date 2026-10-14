@@ -421,9 +421,11 @@ impl Scenario {
 impl Scenario {
     /// The air corps preset with 6-5 open: the one regular map whose sortie brings a raid on
     /// the air base, once its boss was sunk twice. Four destroyers go A, C, D, G and the boss.
+    /// 6-5 also waits on quest 647, so it is opened outright.
     pub fn air_raid_6_5() -> Self {
         let mut scenario = Self::air_corps_6_4();
         scenario.clear_maps.push(64);
+        scenario.unlock_maps.push(65);
         scenario
     }
 }
