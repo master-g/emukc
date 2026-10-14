@@ -187,12 +187,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] #124 #125 #127 #129 已依次合入 `main`（`3ce94d58`，与验证过的树一致：1471 测试过、0 ignored），分支已删，只用主检出。分支 `docs/triage-records`：提交 triage 遗留的 `issue-tracker.md` 模板刷新与 `.out-of-scope/expedition-unlock-table.md`（#120 关闭评论引用它）。
+- [2026-10-14] 分支 `feat/practice-rivals`（#102，计划 006）：对手按玩家 HQ 与组别生成，按 balance 流程处理经验落差（用户选）。fmt、clippy 过，全量 1477 过、0 ignored；code-review 无实质问题。已提交，未推送。
 
 ## Next Session
 
 - [2026-10-14] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  quest：#122 #123 等抓包，#102 #109 未排期。叠放 PR 合并前先把上层 PR 改指 `main`，否则会合进旧分支。
+  quest：#122 #123 等抓包。#102 待开 PR；之后 #109 用新对手等级核演习经验公式（规则见 `practice-rivals.md`）。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
