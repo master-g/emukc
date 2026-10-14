@@ -10,7 +10,8 @@ applies_when:
   - "Changing how an expedition's requirements are read, checked or reported"
   - "Consuming kcanotify's expedition.json or ships_filter_data.json"
   - "Touching start_expedition, complete_expedition or the fleet launch columns"
-tags: [expedition, requirements, kcanotify, escort-carrier]
+  - "Changing expedition resource rewards or the landing craft table"
+tags: [expedition, requirements, kcanotify, escort-carrier, landing-craft]
 related_components: [emukc_model, emukc_bootstrap, emukc_db]
 ---
 
@@ -77,6 +78,35 @@ in kcanotify: `"7/27"` lets it lead, a bare `"7"` would not.
 The list goes stale when a new escort carrier ships, until kcanotify adds it
 and the codex is rebuilt.
 
+### Rewards: landing craft bonus
+
+`calculate_expedition_resource_reward` gives the four resources as
+`⌊R·S⌋ + ⌊R·S·(B1 + B★)⌋ + ⌊R·S·B2⌋` (#119), item rewards unchanged:
+
+- `R` the base amount, `S` 1 or 1.5 on great success; `R·S` is not floored first.
+- `B1 = min(20%, Σ craft rates + 5% for Kinu Kai Ni)`; `B★ = B1 × average
+  stars / 100`, the average taken over the craft with a rate (not Kinu).
+- `B2 = min(cap, 2% × 特大発動艇 count)`, the cap read from `TOKU_CAPS` by
+  特大発 count (up to 3, 4 or more) and 大発動艇 (68) count.
+
+Rates and caps are KC3Kai's `calcLandingCraftInfo` (`KC3Kai@6b0534d2`), checked
+against wikiwiki's 大発動艇 and 特大発動艇 pages; the three separate floors are
+fandom's `Expedition/Introduction`. kcanotify differs twice and is not followed:
+its star term is a flat `0.2% × average stars`, and its cap column counts 166 and
+167 along with 68. A unit test pins each difference. wikiwiki writes two floors
+instead of three, which gives 1 more when `R·S` ends in .5 (R=35 great success
+with four 大発: 62 here, 63 there); change it only on a live counterexample.
+
+The craft are read on return, from all six slots of `mission_ships`, like the
+requirements: the reinforcement slot can be re-equipped while the fleet is away,
+and KC3Kai counts it too. Arithmetic is in integers (basis points, `S` as
+3/2), because `f64` rates such as 0.29 floor 1 short.
+
+`LANDING_CRAFT_RATES` is a hand-kept id list: type 24 also holds craft with no
+rate (230, 355, 482, ...). It goes stale when a new landing craft ships; add it
+from wikiwiki's 大発動艇 equipment table and KC3Kai. Kinu Kai Ni's combined-fleet
+rule does not apply: expeditions have no combined fleet.
+
 ## Why This Matters
 
 The wrong reading made B1 ask for 200 firepower, let any flagship take 43 and
@@ -85,5 +115,5 @@ what the official game does.
 
 ## Known gaps
 
-- 大発 bonuses (#119) are a numeric change under the Balance Defaults Policy and
-  are not covered here.
+- The 特大発 cap for 4 or more is marked unverified on fandom; wikiwiki and
+  KC3Kai agree on the table used.

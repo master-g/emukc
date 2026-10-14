@@ -2,7 +2,7 @@
 title: "Expedition Landing Craft Bonus - Plan"
 type: feat
 date: 2026-10-14
-status: draft
+status: implemented
 execution: code
 ---
 
