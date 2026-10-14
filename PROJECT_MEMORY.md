@@ -143,7 +143,8 @@ Current verification baseline:
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
 
 - [2026-10-11] 対空カットイン（53 个种别全有，数值照来源模拟器，与 wiki 的 5 处差异列在文档里）：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
-- [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
+- [2026-10-14] 任务 `api_voice_id` = 1000+任务号，领奖时播；名单以 KC3Kai `quotes.json` 的 `npc` 为准（含 1005→2005）。`kc9999/1101` 是客户端替 190 换的，不能按 `npc` 键反推。
+- [2026-10-14] 领奖文案 `api_message` 无结构化来源，`extra.rs` 手写，缺的等抓包（#122 #123）。TsunKitQuests 的 1033 缺出击列表，解析跳过。
   `api_c_list` 不发：改装系任务由服务器判持有。
 - [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
   周常在周一 05:00 重置，只看传入时刻；建档的 `quest::init` 仍读时钟，固定时刻的测试用 `quest_add_at` 造记录。
@@ -152,6 +153,9 @@ Current verification baseline:
   能動分岐格离开时不转罗针盘是本项目定的，没有抓包：`sortie-compass-rashin-flag.md`。
 - [2026-10-12] 敌方空母的夜战：`carrier-night-air-attack.md` 的 Enemy carriers。取值 3 的轻空母看的是**玩家**的探照灯，#55 原文写反了。
 
+- [2026-10-14] 季常任务在 3/6/9/12 月 1 日 05:00 JST 重置；年常的 `label_type` 100+N 即第 N 月重置（KC3Kai `QuestManager.js` repeatableTypes）。代码待改（#112）。
+- [2026-10-14] kcanotify 的 `total-fp` 是对空合计，27 是护卫空母（`cve_ids`），来源见 #116 #117；改修、Bw1、远征列表的计数规则已入 `quest.md`。客户端把 `mission` 列表里没有的远征置 -1（`main.decoded.js:15821`）。
+
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -159,13 +163,12 @@ Current verification baseline:
 | populate 基准三坑：`head -200` 清单全是 mp3（带宽受限，收益被掩成 10%，全量实为 49% mp3 + 49% png，要随机抽样）；`Kache::build()` 要求 `cache_root` 已存在，否则 exit 1 且无输出；配置里的相对路径按 config 文件所在目录解析。 | 计划 003 (2026-09-21) |
 | `emukc_bootstrap` 的 `make_list` 两个测试打真实 CDN（`make_kache()` 用 `socks5://127.0.0.1:1086`），网络一抖就 `FailedOnAllCdn`，fail-fast 会让整轮 workspace 测试在该 crate 中断。已加 `skip_if_offline`：只吞这一种错；服务器回空文件（`EOF while parsing`）不吞，单独重跑即过（2026-10-14）。 | session 2026-09-21 |
 | 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方在这些阶段仍打两支 deck，切片会连带砍掉敌方目标池。须按船过滤。 | session 2026-09-21 |
-| Grepping `test result:` to verify tests misses failures — a FAILED target prints its own line that is easy to lose among many suites. Check the cargo exit code instead. | plan 004 U5 (2026-06-22): reported "821 passed" while 3 `sortie_battle.rs` tests were failing |
+| 全量测试用 `cargo test --workspace --no-fail-fast` 并看退出码：默认在第一个失败的 crate 停，通过数偏少；只 grep `test result:` 会漏掉 FAILED 行。 | plan 004 U5 (2026-06-22)、session 2026-10-11 |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
 | `clearing_1_1_unlocks_1_2` flakiness is compass routing plus damage carrying across retries, not damage RNG (~80% of 1-1 sorties dead-end before the boss). Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt. Leveling the fleet does not help. | session 2026-08-26 |
 | `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
 | [2026-09-18] `net::router::version::test::test_font` writes to `./target/tmp/`, which does not exist when `CARGO_TARGET_DIR` points outside the repo. `mkdir -p target/tmp` once per clone; `cargo clean` or a new machine breaks it again. | session 2026-09-18 |
-| [2026-09-18] A stale `target/` can fail `cargo test` with `BattleContext::head_on` not found although the fn is `pub`; `cargo clean -p emukc_battle` fixes it. Diagnose before blaming a change. | session 2026-09-18, U1 worker report |
 | [2026-09-19] `tests/gameplay_tests/mod.rs` is a dead file: the compiled entry is `tests/gameplay_tests.rs` with `#[path]` module decls, so a `mod` added only there registers nothing. | session 2026-09-19 |
 | [2026-09-19] `sed -i.bak X && cargo test; mv X.bak X` 给假结果：`.bak` 保留原 mtime，cargo 认为没变，复用按**改动后**源码编出的产物。还原后必须 `touch` 再跑。 | session 2026-09-19 |
 | [2026-09-19] Missing `main-decoder/node_modules` makes `bun run decode` fail as `Unexpected HTTP` / `Cannot find module '@babel/generator'`, which reads like a corrupt download. `bun install` first; it also unblocks `bun run check`. | git `688e29c` |
@@ -179,18 +182,18 @@ Current verification baseline:
 失配，哪怕值恒为 `None`。不是模拟漂移：`EMUKC_BLESS_GOLDEN=1` 后确认每份 diff 只有那一行。
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
-| [2026-10-14] worktree 与主检出共用 `~/.cache/cargo-build` 会互相复用产物（同名 path 依赖指纹冲突）：主检出报「方法不存在」；也会让测试二进制沿用别的 checkout 固化的 `CARGO_MANIFEST_DIR`，读 `../../.data` 报 NotFound，单跑 `-p` 却能过。worktree 里设独立 `CARGO_TARGET_DIR`，中招就 `touch` 该 crate 源文件。 | session 2026-09-23、2026-10-14 |
-| [2026-10-14] 当前 `.data/temp/tsunkit_quests.json` 有一处 1-6 `"node": "n"`，不含 quest 分支解析修复的分支跑 `--codex-only` 会报 unknown variant `n`；worktree 里放一份改成 `"N"` 的副本即可（语义相同）。 | session 2026-10-14 |
-| [2026-10-11] 全量测试加 `--no-fail-fast`：`cargo test --workspace` 默认在第一个失败的 crate 就停，通过数会偏少。 | session 2026-10-11 |
+| [2026-10-14] 产物过期会假报错（`pub` fn 「not found」、读 `../../.data` 报 NotFound 而单跑 `-p` 能过）：多个检出共用 `~/.cache/cargo-build` 时指纹冲突、`CARGO_MANIFEST_DIR` 沿用别的检出。`touch` 该 crate 源文件或 `cargo clean -p`；worktree 设独立 `CARGO_TARGET_DIR`。 | session 2026-09-18、09-23、10-14 |
+| [2026-10-14] 调试用 `quest_add_at` 把新行 `progress` 写成 `Completed`：测未接取任务要读条件里的剩余计数，不能看 `progress`。 | session 2026-10-14 |
 
 ## Last Session
 
-- [2026-10-14] 分支 `feat/expedition-landing-craft`（#119，worktree `../emukc-landing-craft`）：远征资源报酬加大発加成，按计划 005 实施，返回时读六槽，整数三段取整。fmt、clippy 过；`cargo test --workspace --no-fail-fast` 1429 过、0 失败、0 ignored；code-review 两路无实质问题。已推送，PR #129。
+- [2026-10-14] #129（#119 大発加成）已合并。新 `main`（含 #126 #128 #129）合进 `fix/quest-progress-events`，`PROJECT_MEMORY.md` 两节冲突已解，再逐级并进 #125、#127 分支；验证结果见 #127 分支本节。
 
 ## Next Session
 
-- [2026-10-13] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  远征：判定时机与 kcanotify 字段语义见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。#119 已在分支 `feat/expedition-landing-craft` 实施（计划 005），PR #129 待合并；取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。#124/#125/#127 合并时 `PROJECT_MEMORY.md` 的两节改写会冲突，以最后合的为准。
+- [2026-10-14] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+  quest：#124 → #125 → #127 依次合并（叠放 PR，base 依次是前一个分支）；#122 #123 等抓包，#102 #109 未排期。
+  远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。

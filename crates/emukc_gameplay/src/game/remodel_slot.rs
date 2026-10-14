@@ -16,6 +16,7 @@ use emukc_model::{prelude::*, profile::material::Material};
 use emukc_time::chrono::{Datelike, Utc};
 
 use crate::err::GameplayError;
+use crate::game::quest::observe::{GameplayOutcome, observe};
 use crate::gameplay::Ctx;
 
 use super::fleet::get_fleet_ships_impl;
@@ -256,6 +257,13 @@ impl Ctx {
         };
 
         let after_material = get_mat_impl(&tx, profile_id).await?;
+
+        // A failed attempt counts toward improvement quests too.
+        let outcome = GameplayOutcome::SlotItemImproved {
+            item_mst_id: after_mst_id,
+            stars: after_slot.as_ref().map_or(stars_before, |slot| slot.api_level),
+        };
+        observe(&tx, codex, profile_id, &[outcome]).await?;
 
         tx.commit().await?;
 

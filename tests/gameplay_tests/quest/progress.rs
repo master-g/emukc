@@ -102,6 +102,7 @@ mod tests {
             map: None,
             result: None,
             times: 0,
+            count_at_sortie_start: false,
         });
         assert!(cond.is_satisfied());
     }
@@ -115,6 +116,7 @@ mod tests {
             map: None,
             result: Some(KcSortieResult::Any),
             times: 3,
+            count_at_sortie_start: false,
         });
         assert!(!cond.is_satisfied());
     }
@@ -334,6 +336,7 @@ mod tests {
                 map: None,
                 result: Some(KcSortieResult::Any),
                 times: 0, // completed
+                count_at_sortie_start: false,
             },
         )]);
         assert_eq!(req.calculate_progress(&req), QuestProgressStatus::Completed);
@@ -349,6 +352,7 @@ mod tests {
                 map: None,
                 result: None,
                 times: 0, // done
+                count_at_sortie_start: false,
             }),
             Kc3rdQuestCondition::Factory(Kc3rdQuestConditionFactory::ShipConstruction(2)), // not done
         ]);

@@ -8,12 +8,6 @@
 //!
 //! Adding a `GameplayOutcome` variant without mapping it here does not compile:
 //! the `match` below is exhaustive.
-//!
-//! [`GameplayOutcome::SlotItemImproved`] has no producer yet. Four quests
-//! (618, 619, 1166, 1167) require slot item improvement and the matcher already
-//! handles them, but `api_req_kousyou/remodel_slot*` is unimplemented (P1 in
-//! `docs/api_coverage.md`). The variant stays so that the day that handler
-//! lands, the mapping is already here.
 
 use emukc_db::sea_orm::ConnectionTrait;
 use emukc_model::{
@@ -84,12 +78,23 @@ pub(crate) enum GameplayOutcome {
         /// The fleet composition at the time of the battle.
         fleet_ships: Vec<FleetShipSnapshot>,
     },
+    /// A fleet set out on a sortie.
+    SortieStarted {
+        /// The map area ID.
+        maparea_id: i64,
+        /// The map number within the area.
+        mapinfo_no: i64,
+        /// The fleet that set out.
+        fleet_id: i64,
+    },
     /// A sortie battle was settled.
     SortieBattleCompleted {
         /// The map area ID.
         maparea_id: i64,
         /// The map number within the area.
         mapinfo_no: i64,
+        /// The map's gauge (1-based) when the battle was fought.
+        gauge_phase: i64,
         /// Whether the battle happened on a boss cell.
         boss_cell: bool,
         /// The battle result rank.
@@ -109,12 +114,11 @@ pub(crate) enum GameplayOutcome {
         /// The sunk enemy's ship type.
         ship_stype: i64,
     },
-    /// A slot item was improved. See the module docs: no producer yet.
-    #[allow(dead_code, reason = "no producer until remodel_slot is implemented")]
+    /// An improvement was attempted, whether or not it succeeded.
     SlotItemImproved {
-        /// The improved item's manifest ID.
+        /// The item's manifest ID after the attempt.
         item_mst_id: i64,
-        /// The item's improvement stars after the upgrade.
+        /// The item's improvement stars after the attempt.
         stars: i64,
     },
 }
@@ -175,15 +179,26 @@ impl GameplayOutcome {
                 win_rank: *win_rank,
                 fleet_ships: fleet_ships.clone(),
             },
+            Self::SortieStarted {
+                maparea_id,
+                mapinfo_no,
+                fleet_id,
+            } => QuestActionEvent::SortieStarted {
+                maparea_id: *maparea_id,
+                mapinfo_no: *mapinfo_no,
+                fleet_id: *fleet_id,
+            },
             Self::SortieBattleCompleted {
                 maparea_id,
                 mapinfo_no,
+                gauge_phase,
                 boss_cell,
                 win_rank,
                 fleet_id,
             } => QuestActionEvent::SortieBattleCompleted {
                 maparea_id: *maparea_id,
                 mapinfo_no: *mapinfo_no,
+                gauge_phase: *gauge_phase,
                 boss_cell: *boss_cell,
                 win_rank: *win_rank,
                 fleet_id: *fleet_id,

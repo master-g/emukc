@@ -79,14 +79,12 @@ only the quest progress tables and the codex, and `progress_after_event` is pure
 arithmetic, so it does not depend on any intermediate state of the other tables
 written earlier in the transaction.
 
-### Variants without a producer stay
+### A failed attempt still produces its outcome
 
-`GameplayOutcome::SlotItemImproved` has no producer. Four quests (618, 619,
-1166, 1167) require slot item improvement and the matcher already handles them;
-`api_req_kousyou/remodel_slot*` is simply unimplemented (P1 in
-`docs/api_coverage.md`). The variant and the header note stay so the mapping is
-there when the handler lands. Deleting an unproduced variant deletes quest
-support for a feature that is only missing, not cancelled.
+`Ctx::remodel_slot` produces `SlotItemImproved` on every attempt, failed ones
+included: KC3Kai counts 619, 1166 and 1167 on every `remodel_slot` response
+regardless of `api_remodel_flag`. `remodel_slot_recover` (the ★ reset) produces
+nothing. An outcome describes what the player did, not only what succeeded.
 
 ## Rationale
 

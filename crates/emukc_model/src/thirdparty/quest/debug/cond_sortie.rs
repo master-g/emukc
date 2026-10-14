@@ -14,6 +14,7 @@ impl Kc3rdQuestDebugJson for Kc3rdQuestConditionSortie {
             "fleet_id": self.fleet_id,
             "defeat_boss": self.defeat_boss,
             "times": self.times,
+            "count_at_sortie_start": self.count_at_sortie_start,
             "result": self.result,
             "map": self.map.as_ref().map(|m| m.to_json(mst)),
         })

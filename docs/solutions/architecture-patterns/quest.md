@@ -133,10 +133,26 @@ is now internal to the quest module and is reached only from `observe`; see
   is fired with each sunk enemy's `stype` (`api_stype`); `Sink` conditions
   check `Kc3rdQuestConditionShip` (ShipType matching) and decrement the count
   on match.
-- Slot item improvement (改修工廠, future feature): the `SlotItemImproved`
-  outcome and its `Factory::SlotItemImprovement` matching exist, but there is no
-  producer yet because `api_req_kousyou/remodel_slot*` is unimplemented. The
-  variant is kept deliberately (quests 618, 619, 1166, 1167 need it).
+- Slot item improvement (改修工廠): every `remodel_slot` attempt, failed or
+  not, produces `SlotItemImproved` and decrements `Factory::SlotItemImprovement`
+  (618, 619, 1166, 1167). The ★ reset (`remodel_slot_recover`) does not count.
+- Gauge phases: `SortieBattleCompleted` carries `gauge_phase`, the map record's
+  `gauge_index` read at the start of settlement, before anything moves the
+  gauge; the battle that empties gauge 1 is phase 1. A map entry with
+  `phase: Some(n)` matches only phase `n`, `None` matches any (872, 893, 896).
+- Counted at sortie start: a `Sortie` condition with `count_at_sortie_start`
+  counts `SortieStarted` (from `start_sortie`) and ignores battles; every other
+  `Sortie` condition does the reverse. The matcher reads the flag from the
+  master condition. The tsunkit parser sets it on Bw1 (214)'s first requirement
+  only: Bd2 (216) and Bd3 (210) have the same raw shape and count battles.
+- Expedition lists: an entry matches by mission id or by the expedition's code
+  (`A1` is 100, resolved through the codex). A multi-entry list means each
+  listed expedition `times` times; the parser splits it into single-entry items,
+  except for 410 and 411 (東京急行), which keep one shared any-of counter. The
+  `And` progress ratio counts each listed expedition. Rows saved before that
+  split are split the next time the quest list is read
+  (`split_expedition_lists`); the shared count cannot say which expedition
+  was run, so each listed expedition starts again from the master's count.
 
 ### Quest rewards
 

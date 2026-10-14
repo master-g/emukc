@@ -11,8 +11,18 @@ impl Kc3rdQuestRequirement {
     pub fn calculate_progress(&self, _mst: &Kc3rdQuestRequirement) -> QuestProgressStatus {
         match self {
             Kc3rdQuestRequirement::And(conditions) => {
-                let total = conditions.len();
-                let completed = conditions.iter().filter(|c| c.is_satisfied()).count();
+                // Each expedition an `Expedition` condition lists counts on its own.
+                let (total, completed) = conditions
+                    .iter()
+                    .map(|c| match c {
+                        Kc3rdQuestCondition::Expedition(exps) => {
+                            (exps.len(), exps.iter().filter(|e| e.times == 0).count())
+                        }
+                        _ => (1, usize::from(c.is_satisfied())),
+                    })
+                    .fold((0, 0), |(total, completed), (units, done)| {
+                        (total + units, completed + done)
+                    });
                 progress_from_ratio(completed, total)
             }
             Kc3rdQuestRequirement::OneOf(conditions) => {

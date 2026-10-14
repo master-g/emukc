@@ -234,6 +234,7 @@ impl Sortie {
             map,
             result,
             times,
+            count_at_sortie_start: false,
         }
     }
 }
