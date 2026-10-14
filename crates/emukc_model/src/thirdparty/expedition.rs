@@ -72,14 +72,19 @@ pub struct Kc3rdExpeditionRequirements {
     /// Fleet total level requirement (optional)
     pub fleet_level: Option<i64>,
 
-    /// Flagship type requirement (optional)
-    pub flagship_type: Option<i64>,
+    /// Ship types the flagship may be, any of them; empty for no requirement.
+    /// 27 is an escort carrier (see [`crate::codex::Codex::escort_carriers`]).
+    #[serde(default)]
+    pub flagship_types: Vec<i64>,
 
     /// Composition condition (OR condition list)
     pub composition: Vec<Kc3rdCompositionAlternative>,
 
     /// Fleet firepower requirement (optional)
     pub total_firepower: Option<i64>,
+
+    /// Fleet anti-air requirement (optional)
+    pub total_aa: Option<i64>,
 
     /// Fleet ASW requirement (optional)
     pub total_asw: Option<i64>,
