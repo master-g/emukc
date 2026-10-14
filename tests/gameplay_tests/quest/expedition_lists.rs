@@ -3,11 +3,21 @@
 //!
 //! Runs the codex's own quest conditions (so the parser's expansion is under
 //! test too) through `apply_event_with_context` with the codex, which is what
-//! resolves `A1` to mission 100.
+//! resolves `A1` to mission 100. The last test covers rows saved before the
+//! split.
 
 #[cfg(test)]
 mod tests {
-    use emukc_internal::prelude::*;
+    use emukc_internal::{
+        db::{
+            entity::profile::quest::progress,
+            sea_orm::{
+                ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel,
+                QueryFilter,
+            },
+        },
+        prelude::*,
+    };
 
     /// The quest's `Expedition` condition as the codex holds it, plus its master.
     fn expedition_condition(quest_id: i64) -> Kc3rdQuestCondition {
@@ -87,5 +97,39 @@ mod tests {
         let progress = Kc3rdQuestRequirement::And(vec![current])
             .calculate_progress(&Kc3rdQuestRequirement::And(master.clone()));
         assert_eq!(progress, emukc_internal::model::profile::quest::QuestProgressStatus::Half);
+    }
+
+    #[tokio::test]
+    async fn a_row_saved_with_a_shared_counter_is_split_on_load() {
+        let context = crate::TestContext::new().await;
+        let account = context.sign_up("test-exp-split", "1234567").await.unwrap();
+        let profile = context.new_profile(&account.access_token.token, "exp-split").await.unwrap();
+        let pid = context
+            .start_game(&account.access_token.token, profile.profile.id)
+            .await
+            .unwrap()
+            .profile
+            .id;
+        context.quest_add(pid, 426).await.unwrap();
+
+        // How 426 was saved before the parser split its list.
+        let row = progress::Entity::find()
+            .filter(progress::Column::ProfileId.eq(pid))
+            .filter(progress::Column::QuestId.eq(426))
+            .one(context.db())
+            .await
+            .unwrap()
+            .unwrap();
+        let mut am = row.into_active_model();
+        am.requirements = ActiveValue::Set(serde_json::json!([
+            {"Expedition": [{"list": ["3", "4", "5", "10"], "times": 1}]}
+        ]));
+        am.update(context.db()).await.unwrap();
+
+        let records = context.get_quest_records(pid).await.unwrap();
+        let record = records.iter().find(|r| r.quest_id == 426).unwrap();
+        let conditions: Vec<Kc3rdQuestCondition> =
+            serde_json::from_value(record.requirements.clone()).unwrap();
+        assert_eq!(conditions, vec![expedition_condition(426)]);
     }
 }

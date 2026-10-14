@@ -8,7 +8,9 @@ use emukc_db::{
 };
 use emukc_model::{
     codex::Codex,
-    prelude::{Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestRequirement},
+    prelude::{
+        Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestConditionExpedition, Kc3rdQuestRequirement,
+    },
     profile::quest::QuestProgressStatus,
     thirdparty::QuestActionEvent,
 };
@@ -60,6 +62,9 @@ where
             should_commit = true;
             progress::Entity::delete_by_id(quest.id).exec(c).await?;
         } else {
+            let split = split_expedition_lists(c, codex, quest).await?;
+            should_commit |= split.is_some();
+            let quest = split.as_ref().unwrap_or(quest);
             // recalculate progress only for activated quests
             if quest.status == progress::Status::Activated {
                 let mst = codex.find::<Kc3rdQuest>(&quest.quest_id).unwrap();
@@ -83,6 +88,62 @@ where
     }
 
     Ok(should_commit)
+}
+
+/// Rows saved before expedition lists meant "each of" hold one shared counter
+/// where the master now lists each expedition on its own. Each listed
+/// expedition takes over what the shared counter had left. Returns the
+/// rewritten row, `None` when there was nothing to split.
+async fn split_expedition_lists<C>(
+    c: &C,
+    codex: &Codex,
+    model: &progress::Model,
+) -> Result<Option<progress::Model>, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let Ok(mst) = codex.find::<Kc3rdQuest>(&model.quest_id) else {
+        return Ok(None);
+    };
+    let (Kc3rdQuestRequirement::And(master)
+    | Kc3rdQuestRequirement::OneOf(master)
+    | Kc3rdQuestRequirement::Sequential(master)) = &mst.requirements;
+    let mut conditions: Vec<Kc3rdQuestCondition> =
+        serde_json::from_value(model.requirements.clone())?;
+
+    let mut changed = false;
+    for (condition, master) in conditions.iter_mut().zip(master) {
+        let (Kc3rdQuestCondition::Expedition(saved), Kc3rdQuestCondition::Expedition(split)) =
+            (&*condition, master)
+        else {
+            continue;
+        };
+        if saved.len() == split.len() {
+            continue;
+        }
+        let split = split
+            .iter()
+            .map(|item| {
+                let shared = saved.iter().find(|saved| match (&saved.list, &item.list) {
+                    (Some(saved), Some(listed)) => listed.iter().all(|id| saved.contains(id)),
+                    _ => false,
+                });
+                Kc3rdQuestConditionExpedition {
+                    list: item.list.clone(),
+                    times: shared.map_or(item.times, |shared| shared.times.min(item.times)),
+                }
+            })
+            .collect();
+        *condition = Kc3rdQuestCondition::Expedition(split);
+        changed = true;
+    }
+    if !changed {
+        return Ok(None);
+    }
+
+    let mut am = model.clone().into_active_model();
+    am.requirements = ActiveValue::Set(serde_json::to_value(&conditions)?);
+    Ok(Some(am.update(c).await?))
 }
 
 async fn recalculate_quest_progress<C>(

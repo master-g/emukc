@@ -150,7 +150,9 @@ is now internal to the quest module and is reached only from `observe`; see
   listed expedition `times` times; the parser splits it into single-entry items,
   except for 410 and 411 (東京急行), which keep one shared any-of counter. The
   `And` progress ratio counts each listed expedition. Rows saved before that
-  split keep the any-of shape until their next reset.
+  split are split the next time the quest list is read
+  (`split_expedition_lists`); each listed expedition takes over what the
+  shared counter had left.
 
 ### Quest rewards
 
