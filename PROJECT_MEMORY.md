@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-13 · branch `main`
+Last updated: 2026-10-13 · branch `fix/weekly-quest-clock`
 
 ## Verified Facts
 
@@ -146,7 +146,7 @@ Current verification baseline:
 - [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
   `api_c_list` 不发：改装系任务由服务器判持有。
 - [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
-  周常的 `jst_next_monday_0500`、`init`、`quest_add` 仍读系统时钟，固定时间的测试只用过去的日期。
+  周常在周一 05:00 重置，只看传入时刻；建档的 `quest::init` 仍读时钟，固定时刻的测试用 `quest_add_at` 造记录。
 - [2026-10-12] 夜战攻击种别与谁出手（表、抽签先后、照明弾、`canNB`；客户端种别 3 必须发两件展示装备）：`docs/solutions/architecture-patterns/night-attack-types.md`。
 - [2026-10-13] 资源点与渦潮：`resource-and-maelstrom-cells.md`；偵察、護衛成功、揚陸格：`reconnaissance-and-escort-cells.md`。
   能動分岐格离开时不转罗针盘是本项目定的，没有抓包：`sortie-compass-rashin-flag.md`。
@@ -184,13 +184,13 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] #106 已合并（PR #107），质量门全过，客户端已演；#101、#102 未分拣。
+- [2026-10-13] 分支 `fix/weekly-quest-clock`：#101 做完未合并，质量门全过；#102 未分拣，等方案。
 
 ## Next Session
 
 - [2026-10-13] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
-  周常重置读系统时钟：#101。#100 留下的见 `reconnaissance-and-escort-cells.md`。
+  #100 留下的见 `reconnaissance-and-escort-cells.md`。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
   #55 留下的：5-6 四阶段的带要员敌舰、6-4 取值 2 的炮击演出没在客户端演过。演习对手的夜间触接也没有。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。

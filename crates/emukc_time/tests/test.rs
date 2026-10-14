@@ -161,6 +161,26 @@ mod test {
         assert_eq!(next(at(2, 28, 12, 0)), at(3, 1, 5, 0));
     }
 
+    /// 2027-03-08 is a Monday. The week runs from 05:00 on Monday to 04:59 on the next,
+    /// whatever today is.
+    #[test]
+    fn the_next_monday_0500_depends_only_on_the_given_time() {
+        let jst = FixedOffset::east_opt(9 * 3600).unwrap();
+        let at = |year, month, day, hour, minute| {
+            jst.with_ymd_and_hms(year, month, day, hour, minute, 0).unwrap().with_timezone(&Utc)
+        };
+        let next = |ts| KcTime::jst_next_monday_0500(&ts);
+
+        assert_eq!(next(at(2027, 3, 3, 12, 0)), at(2027, 3, 8, 5, 0));
+        assert_eq!(next(at(2027, 3, 7, 23, 59)), at(2027, 3, 8, 5, 0));
+        assert_eq!(next(at(2027, 3, 8, 4, 59)), at(2027, 3, 8, 5, 0));
+        assert_eq!(next(at(2027, 3, 8, 5, 0)), at(2027, 3, 15, 5, 0));
+        assert_eq!(next(at(2027, 3, 14, 12, 0)), at(2027, 3, 15, 5, 0));
+        // A week long over, and one across the turn of a year.
+        assert_eq!(next(at(2020, 1, 1, 12, 0)), at(2020, 1, 6, 5, 0));
+        assert_eq!(next(at(2026, 12, 31, 12, 0)), at(2027, 1, 4, 5, 0));
+    }
+
     #[test]
     fn the_quest_day_turns_at_0500_jst() {
         let jst = FixedOffset::east_opt(9 * 3600).unwrap();

@@ -175,6 +175,23 @@ impl Ctx {
     /// - `profile_id`: The profile ID.
     /// - `quest_id`: The quest ID.
     pub async fn quest_add(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
+        self.quest_add_at(profile_id, quest_id, chrono::Utc::now()).await
+    }
+
+    /// Add a quest to a profile as if at the given time.
+    /// for debugging only
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `quest_id`: The quest ID.
+    /// - `now`: The time the quest's record starts at.
+    pub async fn quest_add_at(
+        &self,
+        profile_id: i64,
+        quest_id: i64,
+        now: chrono::DateTime<chrono::Utc>,
+    ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
@@ -202,7 +219,7 @@ impl Ctx {
             period: ActiveValue::Set(
                 quest_manifest.period.try_into().expect("unknown period filtered upstream"),
             ),
-            start_since: ActiveValue::Set(chrono::Utc::now()),
+            start_since: ActiveValue::Set(now),
             requirements: ActiveValue::Set(serde_json::to_value(requirements).unwrap()),
             requirement_type: ActiveValue::Set(typ),
         };

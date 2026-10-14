@@ -42,18 +42,24 @@ via the quest operations on `Ctx`. Definitions come from the Codex
   completed first).
 - Time: `update_quests_impl` takes the current time from its caller and passes
   it to both the reset check (`ShouldReset::should_reset(now)`) and the new
-  records' `start_since`. `get_quest_records_at` and
-  `quest_clear_and_claim_reward_at` take it as a parameter, which is how tests
-  run against fixed dates; the methods without `_at` read the clock once and
-  delegate. The quest day is the JST date with the day turning at 05:00
-  (`KcTime::jst_quest_day`).
+  records' `start_since`. `get_quest_records_at`,
+  `quest_clear_and_claim_reward_at` and the debugging `quest_add_at` take it as
+  a parameter, which is how tests run against fixed dates; the methods without
+  `_at` read the clock once and delegate. The quest day is the JST date with
+  the day turning at 05:00 (`KcTime::jst_quest_day`).
 - Limited-day dailies: quest 211 (Bd4, period `Daily3rd7th0th`) is offered only
   on quest days ending in 3, 7 or 0, quest 212 (Bd6, `Daily2nd8th`) on those
   ending in 2 or 8 (`Period::appears_on`), on top of their prerequisite. They
   reset at the next 05:00 like any daily (`Period::reset_time`), so they are gone
   the day after and rebuilt on their next day. Their prerequisite 201 is itself
-  a daily and has to be cleared again that day. The weekly reset still reads the
-  system clock (`KcTime::jst_next_monday_0500`).
+  a daily and has to be cleared again that day.
+- Weeklies: the week runs from 05:00 JST on Monday to 04:59 on the next, turning
+  with the quest day, so Monday 04:59 is still last week. A record, in progress
+  or claimed, resets at the first Monday 05:00 after it started
+  (`KcTime::jst_next_monday_0500`, a function of the time given alone); one that
+  started at Monday 05:00 sharp lasts to the next. `quest_add_at` stamps a record
+  with a given time for tests. Profile creation (`quest::init`) still stamps its
+  records with the clock: a test at fixed times makes its own.
 - Activation (`quest_start`) on an idle quest: status → Activated; if the quest
   has Exercise conditions, activation headroom may be applied (sets `times=1`
   if inactive had `times<=0`); if already at Completed progress, it is reset to
