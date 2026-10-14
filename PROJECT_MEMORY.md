@@ -131,7 +131,7 @@ Current verification baseline:
 
 - [2026-10-11] 対空カットイン（53 个种别全有，数值照来源模拟器，与 wiki 的 5 处差异列在文档里）：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
 - [2026-10-14] 任务 `api_voice_id` = 1000+任务号，领奖时播；名单以 KC3Kai `quotes.json` 的 `npc` 为准（含 1005→2005）。`kc9999/1101` 是客户端替 190 换的，不能按 `npc` 键反推。
-- [2026-10-14] 领奖文案 `api_message` 无结构化来源，`extra.rs` 手写，缺的等抓包（#122 #123）。TsunKitQuests 的 1033 缺出击列表，解析跳过。
+- [2026-10-14] 领奖文案 `api_message` 无结构化来源；`extra.rs` 是按任务名搜玩家攻略与 X 帖子的领奖截图转写的（用户说明）：两份来源对照，用 `main.js` 写死的第一行校准，X 原图走 `api.fxtwitter.com`。TsunKitQuests 的 1033 缺出击列表，解析跳过。
   `api_c_list` 不发：改装系任务由服务器判持有。
 - [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
   周常在周一 05:00 重置，只看传入时刻；建档的 `quest::init` 仍读时钟，固定时刻的测试用 `quest_add_at` 造记录。
@@ -174,11 +174,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] #102、#109 已合并（PR #131、#132），`main` 干净。issue 队列只剩 #122 #123（`needs-info`，等抓包），没有计划中的工作。本次只压缩本文件。
+- [2026-10-14] 分支 `fix/6-5-unlock`（#123，计划 008）：6-5 要 6-4 通关且 647 已领，领 647 时开了 6-5 才发 `api_c_flag: 1`。fmt、clippy 过，全量 1485 过、0 ignored；未跑 code-review 与 `make headless-check SCENARIO=air_raid_6_5`。
 
 ## Next Session
 
-- [2026-10-14] 先定方向：#122 #123 抓包还是挂起；或把下面的未定项转成 issue。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-14] 先 code-review、开 PR（`Closes #123`）。再修 #122（新分支）：只需 1160、1163 进 `extra.rs`，文案与核对结果写进 issue；1154/1155/1158 客户端自播空文案，653 的动画分支属于 2017 年节分旧任务。随后改掉两个 issue 下「拿不到」的评论。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
