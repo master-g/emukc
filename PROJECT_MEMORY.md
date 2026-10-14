@@ -185,12 +185,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] 分支 `feat/expedition-landing-craft`（#119，worktree `../emukc-landing-craft`）：远征资源报酬加大発加成，按计划 005 实施，返回时读六槽，整数三段取整。fmt、clippy 过；`cargo test --workspace --no-fail-fast` 1429 过、0 失败、0 ignored；code-review 两路无实质问题。已提交，未推送、未开 PR。
+- [2026-10-14] 分支 `feat/expedition-landing-craft`（#119，worktree `../emukc-landing-craft`）：远征资源报酬加大発加成，按计划 005 实施，返回时读六槽，整数三段取整。fmt、clippy 过；`cargo test --workspace --no-fail-fast` 1429 过、0 失败、0 ignored；code-review 两路无实质问题。已推送，PR #129。
 
 ## Next Session
 
 - [2026-10-13] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  远征：判定时机与 kcanotify 字段语义见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。#119 已在分支 `feat/expedition-landing-craft` 实施（计划 005），待推送开 PR；取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。#124/#125/#127 合并时 `PROJECT_MEMORY.md` 的两节改写会冲突，以最后合的为准。
+  远征：判定时机与 kcanotify 字段语义见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。#119 已在分支 `feat/expedition-landing-craft` 实施（计划 005），PR #129 待合并；取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。#124/#125/#127 合并时 `PROJECT_MEMORY.md` 的两节改写会冲突，以最后合的为准。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
