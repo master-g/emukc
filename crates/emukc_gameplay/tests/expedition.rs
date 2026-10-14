@@ -185,8 +185,16 @@ async fn recalled_expedition_fails_without_advancing_quest() {
     assert_eq!(quest.progress, quest::progress::Progress::Empty);
 }
 
+/// Fuel, ammo, steel, bauxite and buckets: what a successful expedition can pay.
+async fn rewards_held(context: &Ctx, profile_id: i64) -> [i64; 5] {
+    let m = context.get_materials(profile_id).await.unwrap();
+    [m.fuel, m.ammo, m.steel, m.bauxite, m.bucket]
+}
+
+/// Mission 10 asks for two light cruisers: one short of it still sails, and
+/// fails on return without paying anything.
 #[tokio::test]
-async fn expedition_start_validates_fleet_composition() {
+async fn an_expedition_short_of_its_composition_sails_and_fails_on_return() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;
 
@@ -194,14 +202,34 @@ async fn expedition_start_validates_fleet_composition() {
     let dd_1 = add_ship_with_type(&context, pid, 2, 1).await;
     let dd_2 = add_ship_with_type(&context, pid, 2, 1).await;
     set_fleet_ships(&context, pid, 1, &[cl, dd_1, dd_2]).await;
+    // Morale that survives the return, so only the composition can fail it.
+    for ship in [cl, dd_1, dd_2] {
+        set_ship_condition(&context, ship, 43).await;
+    }
 
-    let err = context.start_expedition(pid, 1, 10).await.unwrap_err();
-    assert!(err.to_string().contains("composition"));
-
-    let cl_2 = add_ship_with_type(&context, pid, 3, 1).await;
-    set_fleet_ships(&context, pid, 1, &[cl, cl_2, dd_1]).await;
     let started = context.start_expedition(pid, 1, 10).await.unwrap();
     assert!(started.complete_time > Utc::now());
+    let held = rewards_held(&context, pid).await;
+    make_fleet_ready_for_result(&context, pid, 1).await;
+
+    let result = context.complete_expedition(pid, 1).await.unwrap();
+    assert_eq!(result.result, ExpeditionResult::Failure);
+    assert!(result.resource_reward.is_none());
+    assert_eq!(rewards_held(&context, pid).await, held);
+
+    // A fresh fleet: the first trip left these short of fuel.
+    let cl = add_ship_with_type(&context, pid, 3, 3).await;
+    let cl_2 = add_ship_with_type(&context, pid, 3, 1).await;
+    let dd = add_ship_with_type(&context, pid, 2, 1).await;
+    set_fleet_ships(&context, pid, 1, &[cl, cl_2, dd]).await;
+    // Morale drops on return; 40 would come back fatigued.
+    for ship in [cl, cl_2, dd] {
+        set_ship_condition(&context, ship, 43).await;
+    }
+    context.start_expedition(pid, 1, 10).await.unwrap();
+    make_fleet_ready_for_result(&context, pid, 1).await;
+    let result = context.complete_expedition(pid, 1).await.unwrap();
+    assert_ne!(result.result, ExpeditionResult::Failure);
 }
 
 #[tokio::test]
@@ -228,7 +256,7 @@ async fn expedition_start_deducts_ship_fuel() {
 }
 
 #[tokio::test]
-async fn expedition_start_requires_full_supply_even_if_current_stocks_cover_cost() {
+async fn a_ship_not_fully_supplied_sails_and_fails_on_return() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;
 
@@ -237,20 +265,23 @@ async fn expedition_start_requires_full_supply_even_if_current_stocks_cover_cost
     set_fleet_ships(&context, pid, 1, &[ship_1, ship_2]).await;
 
     let before_1 = get_ship_supply(&context, ship_1).await;
-    let before_2 = get_ship_supply(&context, ship_2).await;
     set_ship_supply(&context, ship_1, before_1.0, before_1.1 - 1).await;
+    set_ship_condition(&context, ship_1, 43).await;
+    set_ship_condition(&context, ship_2, 43).await;
 
-    let err = context.start_expedition(pid, 1, 1).await.unwrap_err();
-    assert!(err.to_string().contains("ammo"));
+    context.start_expedition(pid, 1, 1).await.unwrap();
+    let held = rewards_held(&context, pid).await;
+    make_fleet_ready_for_result(&context, pid, 1).await;
 
-    assert_eq!(get_ship_supply(&context, ship_1).await, (before_1.0, before_1.1 - 1));
-    assert_eq!(get_ship_supply(&context, ship_2).await, before_2);
-    let fleet = context.get_fleet(pid, 1).await.unwrap();
-    assert!(fleet.mission.is_none());
+    let result = context.complete_expedition(pid, 1).await.unwrap();
+    assert_eq!(result.result, ExpeditionResult::Failure);
+    assert_eq!(rewards_held(&context, pid).await, held);
 }
 
+/// Mission 1 costs a destroyer 4 fuel; one with 3 sails and comes back with
+/// none (and fails, not being fully supplied).
 #[tokio::test]
-async fn expedition_start_rejects_when_fuel_is_insufficient_without_partial_changes() {
+async fn a_launch_cost_takes_a_short_ship_down_to_zero_fuel() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;
 
@@ -261,21 +292,21 @@ async fn expedition_start_rejects_when_fuel_is_insufficient_without_partial_chan
     let before_1 = get_ship_supply(&context, ship_1).await;
     let before_2 = get_ship_supply(&context, ship_2).await;
     set_ship_supply(&context, ship_1, 3, before_1.1).await;
+    set_ship_condition(&context, ship_1, 43).await;
+    set_ship_condition(&context, ship_2, 43).await;
 
-    let err = context.start_expedition(pid, 1, 1).await.unwrap_err();
-    assert!(err.to_string().contains("fuel"));
+    context.start_expedition(pid, 1, 1).await.unwrap();
 
-    assert_eq!(get_ship_supply(&context, ship_1).await, (3, before_1.1));
-    assert_eq!(get_ship_supply(&context, ship_2).await, before_2);
-
-    let fleet = context.get_fleet(pid, 1).await.unwrap();
-    assert!(fleet.mission.is_none());
-    let (records, _) = context.get_expeditions(pid).await.unwrap();
-    assert!(records.iter().all(|record| record.mission_id != 1));
+    assert_eq!(get_ship_supply(&context, ship_1).await, (0, before_1.1));
+    assert_eq!(get_ship_supply(&context, ship_2).await, (before_2.0 - 4, before_2.1));
+    make_fleet_ready_for_result(&context, pid, 1).await;
+    let result = context.complete_expedition(pid, 1).await.unwrap();
+    assert_eq!(result.result, ExpeditionResult::Failure);
 }
 
+/// Mission 3 costs a fifth of a ship's ammo, more than 2.
 #[tokio::test]
-async fn expedition_start_rejects_when_ammo_is_insufficient_without_partial_changes() {
+async fn a_launch_cost_takes_a_short_ship_down_to_zero_ammo() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;
 
@@ -284,22 +315,14 @@ async fn expedition_start_rejects_when_ammo_is_insufficient_without_partial_chan
     let ship_3 = add_ship_with_type(&context, pid, 2, 1).await;
     set_fleet_ships(&context, pid, 1, &[ship_1, ship_2, ship_3]).await;
 
-    let before_1 = get_ship_supply(&context, ship_1).await;
     let before_2 = get_ship_supply(&context, ship_2).await;
-    let before_3 = get_ship_supply(&context, ship_3).await;
     set_ship_supply(&context, ship_2, before_2.0, 2).await;
 
-    let err = context.start_expedition(pid, 1, 3).await.unwrap_err();
-    assert!(err.to_string().contains("ammo"));
+    context.start_expedition(pid, 1, 3).await.unwrap();
 
-    assert_eq!(get_ship_supply(&context, ship_1).await, before_1);
-    assert_eq!(get_ship_supply(&context, ship_2).await, (before_2.0, 2));
-    assert_eq!(get_ship_supply(&context, ship_3).await, before_3);
-
+    assert_eq!(get_ship_supply(&context, ship_2).await.1, 0);
     let fleet = context.get_fleet(pid, 1).await.unwrap();
-    assert!(fleet.mission.is_none());
-    let (records, _) = context.get_expeditions(pid).await.unwrap();
-    assert!(records.iter().all(|record| record.mission_id != 3));
+    assert!(fleet.mission.is_some());
 }
 
 #[tokio::test]

@@ -77,6 +77,8 @@ enum GreatSuccessType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ExpeditionFailureKind {
     Recall,
+    /// The fleet did not meet the expedition's requirements when it left.
+    RequirementsNotMet,
     Fatigue,
 }
 
@@ -156,7 +158,13 @@ impl Ctx {
         }
 
         let fleet_ships = get_fleet_ships_impl(&tx, profile_id, fleet_id).await?;
-        validate_expedition_start(&tx, codex, &fleet_ships, expedition_condition).await?;
+        if fleet_ships.is_empty() {
+            return Err(GameplayError::WrongType("fleet is empty".to_string()));
+        }
+        // A fleet short of the requirements still sails; it fails on return.
+        let requirements_met =
+            evaluate_expedition_requirements(&tx, codex, &fleet_ships, expedition_condition)
+                .await?;
         let launch_snapshot = collect_expedition_launch_snapshot(&tx, &fleet_ships).await?;
         let supply_costs = calculate_expedition_supply_costs(codex, mission_mst, &fleet_ships)?;
         apply_expedition_supply_costs(&tx, &fleet_ships, &supply_costs).await?;
@@ -173,6 +181,7 @@ impl Ctx {
             am.launch_flagship_level = ActiveValue::Set(launch_snapshot.flagship_level);
             am.launch_drum_ship_count = ActiveValue::Set(launch_snapshot.drum_ship_count);
             am.launch_total_drums = ActiveValue::Set(launch_snapshot.total_drums);
+            am.launch_requirements_met = ActiveValue::Set(requirements_met);
             am.update(&tx).await?;
         }
 
@@ -252,23 +261,19 @@ impl Ctx {
                 return Err(idle_fleet_err(fleet_id, "not on an expedition"));
             }
         };
-        let result = match fleet_model.mission_status {
-            fleet::MissionStatus::ForceReturning => ExpeditionResult::Failure,
-            fleet::MissionStatus::Returning | fleet::MissionStatus::InMission => {
-                if mission_ships.iter().any(|ship| ship.condition <= 39) {
-                    ExpeditionResult::Failure
-                } else {
-                    determine_expedition_success_result(expedition_condition, launch_snapshot)
-                }
-            }
-            fleet::MissionStatus::Idle => {
-                return Err(idle_fleet_err(fleet_id, "cannot determine expedition result"));
-            }
+        // Recall, then requirements unmet at launch, then fatigue.
+        let failure_kind = if is_recall {
+            Some(ExpeditionFailureKind::Recall)
+        } else if !fleet_model.launch_requirements_met {
+            Some(ExpeditionFailureKind::RequirementsNotMet)
+        } else if mission_ships.iter().any(|ship| ship.condition <= 39) {
+            Some(ExpeditionFailureKind::Fatigue)
+        } else {
+            None
         };
-        let failure_kind = match result {
-            ExpeditionResult::Failure if is_recall => Some(ExpeditionFailureKind::Recall),
-            ExpeditionResult::Failure => Some(ExpeditionFailureKind::Fatigue),
-            _ => None,
+        let result = match failure_kind {
+            Some(_) => ExpeditionResult::Failure,
+            None => determine_expedition_success_result(expedition_condition, launch_snapshot),
         };
 
         let mut outcomes: Vec<GameplayOutcome> = Vec::new();
@@ -327,7 +332,7 @@ impl Ctx {
                             .collect();
                         (profile, ship_exp, ship_exp_after, None, [None, None])
                     }
-                    ExpeditionFailureKind::Fatigue => {
+                    ExpeditionFailureKind::Fatigue | ExpeditionFailureKind::RequirementsNotMet => {
                         let admiral_exp =
                             calculate_failed_expedition_admiral_exp(expedition_condition);
                         let profile =
@@ -366,9 +371,9 @@ impl Ctx {
             result,
             ship_ids,
             admiral_exp: match failure_kind {
-                Some(ExpeditionFailureKind::Fatigue) => {
-                    calculate_failed_expedition_admiral_exp(expedition_condition)
-                }
+                Some(
+                    ExpeditionFailureKind::Fatigue | ExpeditionFailureKind::RequirementsNotMet,
+                ) => calculate_failed_expedition_admiral_exp(expedition_condition),
                 _ if result == ExpeditionResult::Success
                     || result == ExpeditionResult::GreatSuccess =>
                 {
@@ -425,27 +430,29 @@ impl Ctx {
     }
 }
 
-async fn validate_expedition_start<C>(
+/// Whether the fleet meets the expedition's requirements. The reason it does
+/// not is logged, not returned: a fleet short of them still sails.
+async fn evaluate_expedition_requirements<C>(
     c: &C,
     codex: &Codex,
     fleet_ships: &[ship::Model],
     expedition_condition: &Kc3rdExpeditionCondition,
-) -> Result<(), GameplayError>
+) -> Result<bool, GameplayError>
 where
     C: ConnectionTrait,
 {
-    if fleet_ships.is_empty() {
-        return Err(GameplayError::WrongType("fleet is empty".to_string()));
-    }
+    let unmet = |reason: String| {
+        debug!("expedition {} requirement not met: {reason}", expedition_condition.api_id);
+        Ok(false)
+    };
 
-    validate_expedition_full_supply(codex, fleet_ships)?;
+    if !is_fully_supplied(codex, fleet_ships)? {
+        return unmet("a ship is not fully supplied".to_string());
+    }
 
     let requirements = &expedition_condition.requirements;
     if fleet_ships.len() < requirements.ship_count as usize {
-        return Err(GameplayError::WrongType(format!(
-            "fleet requires at least {} ships for expedition {}",
-            requirements.ship_count, expedition_condition.api_id,
-        )));
+        return unmet(format!("needs at least {} ships", requirements.ship_count));
     }
 
     let flagship = fleet_ships.first().unwrap();
@@ -455,66 +462,43 @@ where
         .ok_or(GameplayError::ManifestNotFound(flagship.mst_id))?;
 
     if requirements.flagship_level.is_some_and(|min| flagship.level < min) {
-        return Err(GameplayError::WrongType(format!(
-            "flagship level {} is lower than required {}",
-            flagship.level,
-            requirements.flagship_level.unwrap_or_default(),
-        )));
+        return unmet(format!("flagship level {}", flagship.level));
     }
 
     if requirements.flagship_type.is_some_and(|stype| flagship_mst.api_stype != stype) {
-        return Err(GameplayError::WrongType(format!(
-            "flagship type {} does not satisfy required {}",
-            flagship_mst.api_stype,
-            requirements.flagship_type.unwrap_or_default(),
-        )));
+        return unmet(format!("flagship type {}", flagship_mst.api_stype));
     }
 
     if requirements
         .fleet_level
         .is_some_and(|min_total| fleet_ships.iter().map(|ship| ship.level).sum::<i64>() < min_total)
     {
-        return Err(GameplayError::WrongType(format!(
-            "fleet total level is lower than required {}",
-            requirements.fleet_level.unwrap_or_default(),
-        )));
+        return unmet("fleet total level".to_string());
     }
 
     if requirements.total_firepower.is_some_and(|min_total| {
         fleet_ships.iter().map(|ship| ship.firepower_now).sum::<i64>() < min_total
     }) {
-        return Err(GameplayError::WrongType(format!(
-            "fleet total firepower is lower than required {}",
-            requirements.total_firepower.unwrap_or_default(),
-        )));
+        return unmet("fleet total firepower".to_string());
     }
 
     if requirements.total_asw.is_some_and(|min_total| {
         fleet_ships.iter().map(|ship| ship.asw_now).sum::<i64>() < min_total
     }) {
-        return Err(GameplayError::WrongType(format!(
-            "fleet total ASW is lower than required {}",
-            requirements.total_asw.unwrap_or_default(),
-        )));
+        return unmet("fleet total ASW".to_string());
     }
 
     if requirements.total_los.is_some_and(|min_total| {
         fleet_ships.iter().map(|ship| ship.los_now).sum::<i64>() < min_total
     }) {
-        return Err(GameplayError::WrongType(format!(
-            "fleet total LOS is lower than required {}",
-            requirements.total_los.unwrap_or_default(),
-        )));
+        return unmet("fleet total LOS".to_string());
     }
 
     if let Some(drum) = &requirements.drum_requirements {
         let (ships_with_drums, total_drums) = count_drum_canisters(c, fleet_ships).await?;
         let ship_count_ok = drum.optional || ships_with_drums >= drum.ship_count;
         if !ship_count_ok || total_drums < drum.total_count {
-            return Err(GameplayError::WrongType(format!(
-                "fleet drum canister requirement not met: ships={}, total={}",
-                ships_with_drums, total_drums,
-            )));
+            return unmet(format!("drums: ships={ships_with_drums}, total={total_drums}"));
         }
     }
 
@@ -524,13 +508,10 @@ where
             .iter()
             .any(|alt| expedition_alternative_matches(codex, fleet_ships, alt))
     {
-        return Err(GameplayError::WrongType(format!(
-            "fleet composition does not satisfy expedition {}",
-            expedition_condition.api_id,
-        )));
+        return unmet("fleet composition".to_string());
     }
 
-    Ok(())
+    Ok(true)
 }
 
 fn expedition_alternative_matches(
@@ -655,10 +636,7 @@ fn find_mission_mst(codex: &Codex, mission_id: i64) -> Option<&ApiMstMission> {
     codex.manifest.api_mst_mission.iter().find(|mission| mission.api_id == mission_id)
 }
 
-fn validate_expedition_full_supply(
-    codex: &Codex,
-    fleet_ships: &[ship::Model],
-) -> Result<(), GameplayError> {
+fn is_fully_supplied(codex: &Codex, fleet_ships: &[ship::Model]) -> Result<bool, GameplayError> {
     for ship in fleet_ships {
         let mst = codex.find::<ApiMstShip>(&ship.mst_id)?;
         let max_fuel = mst.api_fuel_max.ok_or_else(|| {
@@ -674,21 +652,12 @@ fn validate_expedition_full_supply(
             ))
         })?;
 
-        if ship.fuel < max_fuel {
-            return Err(GameplayError::Insufficient(format!(
-                "ship {} is not fully fueled: has {}, needs {}",
-                ship.id, ship.fuel, max_fuel
-            )));
-        }
-        if ship.ammo < max_ammo {
-            return Err(GameplayError::Insufficient(format!(
-                "ship {} is not fully supplied with ammo: has {}, needs {}",
-                ship.id, ship.ammo, max_ammo
-            )));
+        if ship.fuel < max_fuel || ship.ammo < max_ammo {
+            return Ok(false);
         }
     }
 
-    Ok(())
+    Ok(true)
 }
 
 fn calculate_expedition_supply_costs(
@@ -899,6 +868,8 @@ fn calculate_expedition_resource_reward(
     }
 }
 
+/// Take each ship's launch cost from its fuel and ammo, down to 0 at most: a
+/// ship short of the cost still sails.
 async fn apply_expedition_supply_costs<C>(
     c: &C,
     fleet_ships: &[ship::Model],
@@ -912,28 +883,9 @@ where
             GameplayError::EntryNotFound(format!("supply cost for ship {}", ship.id))
         })?;
 
-        if ship.fuel < cost.fuel {
-            return Err(GameplayError::Insufficient(format!(
-                "ship {} fuel: has {}, needs {}",
-                ship.id, ship.fuel, cost.fuel
-            )));
-        }
-        if ship.ammo < cost.ammo {
-            return Err(GameplayError::Insufficient(format!(
-                "ship {} ammo: has {}, needs {}",
-                ship.id, ship.ammo, cost.ammo
-            )));
-        }
-    }
-
-    for ship in fleet_ships {
-        let cost = supply_costs.iter().find(|cost| cost.ship_id == ship.id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!("supply cost for ship {}", ship.id))
-        })?;
-
         let mut am = (*ship).into_active_model();
-        am.fuel = ActiveValue::Set(ship.fuel - cost.fuel);
-        am.ammo = ActiveValue::Set(ship.ammo - cost.ammo);
+        am.fuel = ActiveValue::Set((ship.fuel - cost.fuel).max(0));
+        am.ammo = ActiveValue::Set((ship.ammo - cost.ammo).max(0));
         am.update(c).await?;
     }
 
@@ -1034,6 +986,7 @@ where
     am.launch_flagship_level = ActiveValue::Set(0);
     am.launch_drum_ship_count = ActiveValue::Set(0);
     am.launch_total_drums = ActiveValue::Set(0);
+    am.launch_requirements_met = ActiveValue::Set(true);
 
     Ok(am.update(c).await?)
 }
