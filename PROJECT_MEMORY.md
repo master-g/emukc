@@ -143,7 +143,8 @@ Current verification baseline:
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
 
 - [2026-10-11] 対空カットイン（53 个种别全有，数值照来源模拟器，与 wiki 的 5 处差异列在文档里）：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
-- [2026-10-09] 任务 `api_voice_id` = 1000 + 任务编号，限 `kc9999` 有文件的 12 个任务（实机样本仅 198 → 1198）；`kc9999/1101` 属任务 190。
+- [2026-10-14] 任务 `api_voice_id` = 1000+任务号，领奖时播；名单以 KC3Kai `quotes.json` 的 `npc` 为准（含 1005→2005）。`kc9999/1101` 是客户端替 190 换的，不能按 `npc` 键反推。
+- [2026-10-14] 领奖文案 `api_message` 无结构化来源，`extra.rs` 手写，缺的等抓包（#122 #123）。TsunKitQuests 的 1033 缺出击列表，解析跳过。
   `api_c_list` 不发：改装系任务由服务器判持有。
 - [2026-10-12] 任务日以日本时间 05:00 换日；限定日任务 211/212 与 `_at` 入口见 `quest.md` 的 Quest lifecycle，测试陷阱见计划 2026-10-12-002 Risks。
   周常在周一 05:00 重置，只看传入时刻；建档的 `quest::init` 仍读时钟，固定时刻的测试用 `quest_add_at` 造记录。
@@ -152,8 +153,8 @@ Current verification baseline:
   能動分岐格离开时不转罗针盘是本项目定的，没有抓包：`sortie-compass-rashin-flag.md`。
 - [2026-10-12] 敌方空母的夜战：`carrier-night-air-attack.md` 的 Enemy carriers。取值 3 的轻空母看的是**玩家**的探照灯，#55 原文写反了。
 
-- [2026-10-14] 季常任务在 3/6/9/12 月 1 日 05:00 JST 重置；年常的 `label_type` 100+N 即第 N 月重置（KC3Kai `QuestManager.js` repeatableTypes）。代码现用 1/4/7/10 月与一律 1 月，见下次运行。
-- [2026-10-14] kcanotify 的 `total-fp` 是对空合计，27 是护卫空母（`cve_ids`），来源见 #116、#117 的 Agent Brief；改修、Bw1、远征列表的计数规则已入 `quest.md`。客户端把 `mission` 列表里没有的远征置 -1（`main.decoded.js:15821`）。
+- [2026-10-14] 季常任务在 3/6/9/12 月 1 日 05:00 JST 重置；年常的 `label_type` 100+N 即第 N 月重置（KC3Kai `QuestManager.js` repeatableTypes）。代码待改（#112）。
+- [2026-10-14] kcanotify 的 `total-fp` 是对空合计，27 是护卫空母（`cve_ids`），来源见 #116 #117；改修、Bw1、远征列表的计数规则已入 `quest.md`。客户端把 `mission` 列表里没有的远征置 -1（`main.decoded.js:15821`）。
 
 ## Failed Attempts / Pitfalls
 
@@ -188,12 +189,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] 分支 `fix/quest-progress-events`（未推送、无 PR）：计划 001 实施完（#110 #111 #115 #121），本地码典已重建，三道质量门全过、0 ignored。仍未提交：`docs/agents/issue-tracker.md`、`.out-of-scope/`、计划 002～004。
+- [2026-10-14] 分支 `fix/quest-progress-events` 推送并开 PR：计划 001 + 旧远征行拆分 + 1005 语音 + 码典换 2026-09-24 版 TsunKitQuests。质量门过，1433 测试、0 ignored。未提交：`docs/agents/issue-tracker.md`、`.out-of-scope/`、计划 002～004。
 
 ## Next Session
 
 - [2026-10-14] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  quest/mission：001 在分支上待推送/开 PR；未决：远征列表拆开前存的旧进度行仍按「任选」，Oneshot/Annual 的不会很快重置，是否加载时按 master 重解释。002～004 未实施，004 须在 001 合并后；#119 另写计划，放最后。
+  quest：001 的 PR 合并后做 002～004（004 依赖 001），#119 另写计划放最后；#122 #123 等抓包。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
