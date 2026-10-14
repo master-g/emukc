@@ -378,6 +378,36 @@ where
     Ok(())
 }
 
+pub(crate) async fn add_war_result_impl<C>(
+    c: &C,
+    profile_id: i64,
+    amount: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let profile = find_profile(c, profile_id).await?;
+    let war_result = profile.war_result + amount;
+    let mut am = profile.into_active_model();
+    am.war_result = ActiveValue::Set(war_result);
+    am.update(c).await?;
+    Ok(())
+}
+
+pub(crate) async fn unlock_expedition_supply_impl<C>(
+    c: &C,
+    profile_id: i64,
+) -> Result<(), GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let profile = find_profile(c, profile_id).await?;
+    let mut am = profile.into_active_model();
+    am.extra_supply_expedition = ActiveValue::Set(true);
+    am.update(c).await?;
+    Ok(())
+}
+
 pub(crate) async fn unlock_large_construction_impl<C>(
     c: &C,
     profile_id: i64,

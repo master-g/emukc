@@ -41,7 +41,7 @@ where
         periodic::Entity::find().filter(periodic::Column::ProfileId.eq(profile_id)).all(c).await?;
 
     for quest in periodic_quests {
-        if quest.should_reset(now) {
+        if quest.should_reset(now, yearly_month(codex, quest.quest_id)) {
             should_commit = true;
             quest.delete(c).await?;
         } else {
@@ -56,7 +56,7 @@ where
     let mut in_progress_quest_id: Vec<i64> = Vec::new();
 
     for quest in in_progress_quests.iter() {
-        if quest.should_reset(now) {
+        if quest.should_reset(now, yearly_month(codex, quest.quest_id)) {
             should_commit = true;
             progress::Entity::delete_by_id(quest.id).exec(c).await?;
         } else {
@@ -130,6 +130,17 @@ where
     let mut am = model.clone().into_active_model();
     am.requirements = ActiveValue::Set(serde_json::to_value(&conditions)?);
     Ok(Some(am.update(c).await?))
+}
+
+/// The month a yearly quest resets in: its `label_type` is 100 + month. A quest
+/// the codex no longer has, or any other label, resets in January.
+fn yearly_month(codex: &Codex, quest_id: i64) -> u32 {
+    codex
+        .quest
+        .get(&quest_id)
+        .and_then(|quest| u32::try_from(quest.label_type - 100).ok())
+        .filter(|month| (1..=12).contains(month))
+        .unwrap_or(1)
 }
 
 async fn recalculate_quest_progress<C>(

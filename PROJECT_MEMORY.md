@@ -153,7 +153,7 @@ Current verification baseline:
   能動分岐格离开时不转罗针盘是本项目定的，没有抓包：`sortie-compass-rashin-flag.md`。
 - [2026-10-12] 敌方空母的夜战：`carrier-night-air-attack.md` 的 Enemy carriers。取值 3 的轻空母看的是**玩家**的探照灯，#55 原文写反了。
 
-- [2026-10-14] 季常任务在 3/6/9/12 月 1 日 05:00 JST 重置；年常的 `label_type` 100+N 即第 N 月重置（KC3Kai `QuestManager.js` repeatableTypes）。代码待改（#112）。
+- [2026-10-14] 季常/年常重置月（`label_type` 100+N）与 928 以标签为准的取舍：`quest.md` 的 Quest lifecycle。
 - [2026-10-14] kcanotify 的 `total-fp` 是对空合计，27 是护卫空母（`cve_ids`），来源见 #116 #117；改修、Bw1、远征列表的计数规则已入 `quest.md`。客户端把 `mission` 列表里没有的远征置 -1（`main.decoded.js:15821`）。
 
 ## Failed Attempts / Pitfalls
@@ -165,7 +165,7 @@ Current verification baseline:
 | 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方在这些阶段仍打两支 deck，切片会连带砍掉敌方目标池。须按船过滤。 | session 2026-09-21 |
 | 全量测试用 `cargo test --workspace --no-fail-fast` 并看退出码：默认在第一个失败的 crate 停，通过数偏少；只 grep `test result:` 会漏掉 FAILED 行。 | plan 004 U5 (2026-06-22)、session 2026-10-11 |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
-| `clearing_1_1_unlocks_1_2` flakiness is compass routing plus damage carrying across retries, not damage RNG (~80% of 1-1 sorties dead-end before the boss). Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt. Leveling the fleet does not help. | session 2026-08-26 |
+| 1-1 sorties often dead-end before the boss (routing, not damage RNG). Retry tests restore HP/fuel/ammo via `update_ship` first; quest tests count boss battles (`event_id` 5). | session 2026-08-26, 2026-10-14 |
 | `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
 | [2026-09-18] `net::router::version::test::test_font` writes to `./target/tmp/`, which does not exist when `CARGO_TARGET_DIR` points outside the repo. `mkdir -p target/tmp` once per clone; `cargo clean` or a new machine breaks it again. | session 2026-09-18 |

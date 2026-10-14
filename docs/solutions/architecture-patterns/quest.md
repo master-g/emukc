@@ -60,6 +60,14 @@ via the quest operations on `Ctx`. Definitions come from the Codex
   started at Monday 05:00 sharp lasts to the next. `quest_add_at` stamps a record
   with a given time for tests. Profile creation (`quest::init`) still stamps its
   records with the clock: a test at fixed times makes its own.
+- Quarterlies and yearlies: a quarterly resets at the first 05:00 JST on 1 March,
+  June, September or December strictly after it started
+  (`KcTime::jst_next_quarter_day_one_0500`); a yearly at the first 05:00 JST on
+  the 1st of its own month (`jst_next_day_one_0500_of_month`). The month is the
+  quest's `label_type` - 100 (101 to 112), looked up in the codex by
+  `update.rs::yearly_month`; a quest the codex no longer has resets in January.
+  928 is `label_type` 107 (July) while KC3Kai lists it under `yearlySep`: the
+  label is what the official server sends, so it wins.
 - Activation (`quest_start`) on an idle quest: status → Activated; if the quest
   has Exercise conditions, activation headroom may be applied (sets `times=1`
   if inactive had `times<=0`); if already at Completed progress, it is reset to
@@ -157,8 +165,10 @@ is now internal to the quest module and is reached only from `observe`; see
 ### Quest rewards
 
 Rewards SHALL be defined in the Codex (`Kc3rdQuest`) and can include
-materials, slot items, ships, use items, fleet unlocks, and large construction
-unlocks.
+materials, slot items, ships, use items, furniture, war result, fleet unlocks,
+large construction unlocks and the expedition supply unlock. The dispatcher
+(`apply_single_reward`) matches every `Kc3rdQuestRewardCategory`, with no
+wildcard, so a new category does not compile until it is handled.
 
 - Basic material rewards (fuel/ammo/steel/bauxite) are added via
   `add_material_impl`, capped at the profile maximum.
@@ -169,6 +179,16 @@ unlocks.
 - Ship rewards are added via `add_ship_impl`.
 - Fleet unlock rewards call `unlock_fleet_impl` for the specified fleet index.
 - Large construction unlock rewards call `unlock_large_construction_impl`.
+- Furniture rewards call `add_furniture_impl`; furniture already owned is left
+  as it is and the claim succeeds.
+- War result (戦果) rewards add their amount to the profile's `war_result`
+  (`api_war_result`) through `add_war_result_impl`.
+- The expedition supply unlock (427) sets `extra_supply_expedition`
+  (`api_extra_supply[0]`) through `unlock_expedition_supply_impl`. Saves that
+  claimed 427 before this keep it `false`.
+- The improvement factory unlock (146) and air base unlocks (647, 966) do
+  nothing at the claim: the factory is not gated server-side, and air corps
+  open per area through `ensure_airbases_impl`.
 - `choice_rewards`: the player selects one option from each choice group via
   `reward_choices`; only selected rewards are granted.
 

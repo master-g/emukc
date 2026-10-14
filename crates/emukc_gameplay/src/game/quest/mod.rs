@@ -494,8 +494,14 @@ where
     C: ConnectionTrait,
 {
     use crate::game::{
-        basic::unlock_large_construction_impl, fleet::unlock_fleet_impl,
-        material::add_material_impl, ship::add_ship_impl, slot_item::add_slot_item_impl,
+        basic::{
+            add_war_result_impl, unlock_expedition_supply_impl, unlock_large_construction_impl,
+        },
+        fleet::unlock_fleet_impl,
+        furniture::add_furniture_impl,
+        material::add_material_impl,
+        ship::add_ship_impl,
+        slot_item::add_slot_item_impl,
         use_item::add_use_item_impl,
     };
     use emukc_model::{kc2::MaterialCategory, thirdparty::Kc3rdQuestRewardCategory};
@@ -522,7 +528,20 @@ where
         Kc3rdQuestRewardCategory::LargeShipConstructionUnlock => {
             unlock_large_construction_impl(c, profile_id).await?;
         }
-        _ => {}
+        // Furniture already owned is left as it is.
+        Kc3rdQuestRewardCategory::Furniture => {
+            add_furniture_impl(c, profile_id, reward.api_id).await?;
+        }
+        Kc3rdQuestRewardCategory::WarResult => {
+            add_war_result_impl(c, profile_id, reward.amount).await?;
+        }
+        Kc3rdQuestRewardCategory::ExpeditionSupplyUnlock => {
+            unlock_expedition_supply_impl(c, profile_id).await?;
+        }
+        // The improvement factory is not gated server-side, and air corps
+        // open per area through `ensure_airbases_impl`.
+        Kc3rdQuestRewardCategory::FactoryImprovementUnlock
+        | Kc3rdQuestRewardCategory::AirbaseUnlock => {}
     }
 
     Ok(())

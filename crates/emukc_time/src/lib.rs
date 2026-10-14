@@ -282,7 +282,8 @@ impl KcTime {
         jst_next_nth_day_of_the_month(NthDay::Day2_8, ts)
     }
 
-    /// Get the next 5 AM JST (UTC+9) of the first day of the quarter from the given time.
+    /// Get the first 5 AM JST (UTC+9) on 1 March, June, September or December
+    /// strictly after the given time: when quarterly quests reset.
     ///
     /// # Arguments
     ///
@@ -290,55 +291,44 @@ impl KcTime {
     ///
     /// # Returns
     ///
-    /// A `DateTime<Utc>` representing the next 5 AM JST of the first day of the quarter.
+    /// A `DateTime<Utc>` representing the next quarterly reset.
     pub fn jst_next_quarter_day_one_0500(ts: &DateTime<Utc>) -> DateTime<Utc> {
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-
-        let tokyo_time = ts.with_timezone(&tokyo_tz);
-
-        let current_year = tokyo_time.year();
-        let current_month = tokyo_time.month();
-
-        let next_quarter_first_month = match current_month {
-            1..=3 => 4,
-            4..=6 => 7,
-            7..=9 => 10,
-            _ => 1,
-        };
-
-        let next_quarter_year = if next_quarter_first_month == 1 {
-            current_year + 1
-        } else {
-            current_year
-        };
-
-        let target_time_jst = tokyo_tz
-            .with_ymd_and_hms(next_quarter_year, next_quarter_first_month, 1, 5, 0, 0)
-            .unwrap();
-
-        target_time_jst.with_timezone(&Utc)
+        jst_next_day_one_0500_in(&[3, 6, 9, 12], ts)
     }
 
-    /// Get the next 5 AM JST (UTC+9) of the first day of the year from the given time.
+    /// Get the first 5 AM JST (UTC+9) on the 1st of `month` strictly after the
+    /// given time: when a yearly quest of that month resets.
     ///
     /// # Arguments
     ///
     /// * `ts` - The time to calculate from.
+    /// * `month` - The reset month, 1 to 12.
     ///
     /// # Returns
     ///
-    /// A `DateTime<Utc>` representing the next 5 AM JST of the first day of the year.
-    pub fn jst_next_year_day_one_0500(ts: &DateTime<Utc>) -> DateTime<Utc> {
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-
-        let tokyo_time = ts.with_timezone(&tokyo_tz);
-
-        let current_year = tokyo_time.year();
-
-        let target_time_jst = tokyo_tz.with_ymd_and_hms(current_year + 1, 1, 1, 5, 0, 0).unwrap();
-
-        target_time_jst.with_timezone(&Utc)
+    /// A `DateTime<Utc>` representing the next yearly reset.
+    ///
+    /// # Panics
+    ///
+    /// If `month` is not 1 to 12.
+    pub fn jst_next_day_one_0500_of_month(ts: &DateTime<Utc>, month: u32) -> DateTime<Utc> {
+        jst_next_day_one_0500_in(&[month], ts)
     }
+}
+
+/// The first 1st-of-the-month 05:00 JST in one of `months` (ascending)
+/// strictly after `ts`.
+fn jst_next_day_one_0500_in(months: &[u32], ts: &DateTime<Utc>) -> DateTime<Utc> {
+    let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
+    let year = ts.with_timezone(&tokyo_tz).year();
+
+    [year, year + 1]
+        .into_iter()
+        .flat_map(|year| months.iter().map(move |&month| (year, month)))
+        .map(|(year, month)| tokyo_tz.with_ymd_and_hms(year, month, 1, 5, 0, 0).unwrap())
+        .find(|reset| reset.with_timezone(&Utc) > *ts)
+        .expect("every year has one of the months")
+        .with_timezone(&Utc)
 }
 
 enum NthDay {
