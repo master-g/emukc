@@ -594,6 +594,9 @@ fn compose_map_id(maparea_id: i64, mapinfo_no: i64) -> i64 {
 /// on something other than the previous map in the same area would still pass
 /// unnoticed if that gate happened to be satisfied in the sample.
 ///
+/// 6-5 is one: it also waits on quest 647. That gate lives in gameplay
+/// (`QUEST_GATED_MAPS` in `emukc_gameplay`'s `game/map.rs`), not in this table.
+///
 /// One quirk worth knowing: the table is generated for map numbers `2..=9` in
 /// every area, so roughly half of its entries name maps that do not exist —
 /// harmless, because `check_and_unlock_dependencies_impl` joins against the

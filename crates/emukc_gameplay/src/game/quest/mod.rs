@@ -4,7 +4,7 @@ use emukc_db::{
 };
 use emukc_model::{
     codex::{Codex, query::FoundInCodex},
-    kc2::KcApiQuestClearItemGet,
+    kc2::{KcApiQuestClearItemBonusType, KcApiQuestClearItemGet},
     thirdparty::{
         Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestRequirement, Kc3rdQuestRewardCategory,
         reward::get_quest_rewards,
@@ -15,6 +15,7 @@ use update::update_quests_impl;
 
 use crate::{
     err::GameplayError,
+    game::map::{quest_gates_maps, unlock_quest_gated_maps_impl},
     game::quest::{
         consume::handle_consumption,
         holding::{Holding, Taken},
@@ -391,9 +392,19 @@ impl Ctx {
         // claim rewards
         claim_rewards(&tx, codex, profile_id, quest_mst, reward_choices.as_deref(), converted)
             .await?;
+        let opened_maps = unlock_quest_gated_maps_impl(&tx, codex, profile_id, quest_id).await?;
 
         // get rewards for kcs API response
         let mut resp = get_quest_rewards(codex, quest_id, reward_choices.as_deref())?;
+        // The client follows 647's air base with a 6-5 notice when this is 1.
+        for bonus in resp.api_bounus.iter_mut().filter(|bonus| {
+            quest_gates_maps(quest_id)
+                && bonus.api_type == KcApiQuestClearItemBonusType::AirUnitBase as i64
+        }) {
+            if let Some(item) = bonus.api_item.as_mut() {
+                item.api_c_flag = Some(i64::from(!opened_maps.is_empty()));
+            }
+        }
         if let Some(stars) = kept_stars.filter(|stars| *stars > 0) {
             let rewards = &quest_mst.additional_rewards;
             for item in resp.api_bounus.iter_mut().filter_map(|bonus| bonus.api_item.as_mut()) {

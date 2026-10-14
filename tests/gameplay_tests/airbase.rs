@@ -380,9 +380,7 @@ mod tests {
             .unwrap()
             .profile
             .id;
-        let mut scenario = Scenario::air_corps_6_4();
-        scenario.clear_maps.push(64);
-        apply_scenario(context, pid, &scenario).await.unwrap();
+        apply_scenario(context, pid, &Scenario::air_raid_6_5()).await.unwrap();
         context.get_airbases(pid).await.unwrap();
         let attacker = context
             .get_unset_slot_items(pid)
