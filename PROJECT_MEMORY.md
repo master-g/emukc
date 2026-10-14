@@ -189,7 +189,7 @@ Current verification baseline:
 ## Next Session
 
 - [2026-10-13] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  远征：判定时机与 kcanotify 字段语义见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。#119 另写计划。三个 PR 合并时 `PROJECT_MEMORY.md` 的两节改写会冲突，以最后合的为准。
+  远征：判定时机与 kcanotify 字段语义见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。#119 计划见 `2026-10-14-005`（分支 `feat/expedition-landing-craft`，待实施）。#124/#125/#127 合并时 `PROJECT_MEMORY.md` 的两节改写会冲突，以最后合的为准。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
