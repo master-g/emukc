@@ -94,6 +94,8 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
         debug!("Parsing KCanotify expedition data from {:?}", path);
         kcanotify::expedition::parse(&path)?
     };
+    let escort_carriers =
+        kcanotify::expedition::parse_escort_carriers(dir.join("kcanotify_ships_filter.json"))?;
 
     let music_list = music::get()?;
 
@@ -128,6 +130,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
         enemy_ship_extra: kcwiki.enemy_ship_map,
         quest,
         expedition_conditions,
+        escort_carriers,
         picturebook_extra: Kc3rdPicturebookExtra::default(),
         navy: KcNavy::default(),
         game_cfg: GameConfig::default(),

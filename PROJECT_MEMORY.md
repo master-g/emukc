@@ -184,11 +184,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] `main`：#101 已合并（PR #108），`init` 仍读时钟（有意未改，见 `quest.md`）；#102 已分拣为 ready-for-agent（方案见 issue 里的 Agent Brief），演习经验公式拆到 #109。
+- [2026-10-14] 分支 `fix/expedition-requirements`（PR #126）：远征条件改为返回时判定，出发只存 `launch_fully_supplied`（wikiwiki 实证途中可换补強増設）。质量门过，0 ignored；make_list 的 CDN 测试全量跑时偶发网络失败，单跑过。worktree 用自己的 `.data` 副本重建码典。
 
 ## Next Session
 
 - [2026-10-13] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+  远征：判定时机与 kcanotify 字段语义见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。#119 另写计划。三个 PR 合并时 `PROJECT_MEMORY.md` 的两节改写会冲突，以最后合的为准。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
