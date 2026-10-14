@@ -54,7 +54,7 @@ pub struct KCanotifyExpedition {
     #[serde(rename = "total-firepower")]
     pub total_firepower: Option<i64>,
 
-    /// Fleet firepower requirement alias (optional)
+    /// Fleet anti-air requirement (optional): kcanotify sums `taiku` for it
     #[serde(rename = "total-fp")]
     pub total_fp: Option<i64>,
 

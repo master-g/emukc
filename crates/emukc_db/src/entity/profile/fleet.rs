@@ -67,6 +67,10 @@ pub struct Model {
     /// Launch-time total drum count snapshot for expedition GS calculation
     pub launch_total_drums: i64,
 
+    /// Whether every ship was fully supplied when the fleet left. One that was
+    /// not still sails and fails on return.
+    pub launch_fully_supplied: bool,
+
     /// Ship 1
     pub ship_1: i64,
 
@@ -127,6 +131,7 @@ impl From<Fleet> for ActiveModel {
             launch_flagship_level: ActiveValue::Set(0),
             launch_drum_ship_count: ActiveValue::Set(0),
             launch_total_drums: ActiveValue::Set(0),
+            launch_fully_supplied: ActiveValue::Set(true),
             ship_1: ActiveValue::Set(value.ships[0]),
             ship_2: ActiveValue::Set(value.ships[1]),
             ship_3: ActiveValue::Set(value.ships[2]),
@@ -167,6 +172,17 @@ impl From<Model> for Fleet {
 /// Bootstrap the fleet table.
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
     create_table(db, Entity).await?;
+    // `launch_fully_supplied` came after the table shipped; the statement
+    // fails harmlessly once it exists. A fleet away on a database made before
+    // it passed the old check, which refused an unsupplied fleet, so `TRUE`.
+    {
+        use sea_orm::ConnectionTrait;
+        let _ = db
+            .execute_unprepared(
+                "ALTER TABLE fleet ADD COLUMN launch_fully_supplied BOOLEAN NOT NULL DEFAULT TRUE",
+            )
+            .await;
+    }
 
     Ok(())
 }

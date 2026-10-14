@@ -77,6 +77,9 @@ enum GreatSuccessType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ExpeditionFailureKind {
     Recall,
+    /// The fleet left short of supply, or did not meet the expedition's
+    /// requirements when it came back.
+    RequirementsNotMet,
     Fatigue,
 }
 
@@ -142,10 +145,12 @@ impl Ctx {
 
         let mission_mst = find_mission_mst(codex, mission_id)
             .ok_or(GameplayError::ManifestNotFound(mission_id))?;
-        let expedition_condition =
-            codex.expedition_conditions.get(&mission_id).ok_or_else(|| {
-                GameplayError::BadManifest(format!("expedition condition {mission_id} not found"))
-            })?;
+        // Judged on return, but a fleet must not leave on one it cannot return from.
+        if !codex.expedition_conditions.contains_key(&mission_id) {
+            return Err(GameplayError::BadManifest(format!(
+                "expedition condition {mission_id} not found"
+            )));
+        }
 
         let fleet_model = find_fleet(&tx, profile_id, fleet_id).await?;
         if fleet_model.mission_status != fleet::MissionStatus::Idle {
@@ -156,7 +161,12 @@ impl Ctx {
         }
 
         let fleet_ships = get_fleet_ships_impl(&tx, profile_id, fleet_id).await?;
-        validate_expedition_start(&tx, codex, &fleet_ships, expedition_condition).await?;
+        if fleet_ships.is_empty() {
+            return Err(GameplayError::WrongType("fleet is empty".to_string()));
+        }
+        // A fleet short of supply or of the requirements still sails; it fails
+        // on return. Supply is judged now, before the launch cost takes it.
+        let fully_supplied = is_fully_supplied(codex, &fleet_ships)?;
         let launch_snapshot = collect_expedition_launch_snapshot(&tx, &fleet_ships).await?;
         let supply_costs = calculate_expedition_supply_costs(codex, mission_mst, &fleet_ships)?;
         apply_expedition_supply_costs(&tx, &fleet_ships, &supply_costs).await?;
@@ -173,6 +183,7 @@ impl Ctx {
             am.launch_flagship_level = ActiveValue::Set(launch_snapshot.flagship_level);
             am.launch_drum_ship_count = ActiveValue::Set(launch_snapshot.drum_ship_count);
             am.launch_total_drums = ActiveValue::Set(launch_snapshot.total_drums);
+            am.launch_fully_supplied = ActiveValue::Set(fully_supplied);
             am.update(&tx).await?;
         }
 
@@ -252,23 +263,24 @@ impl Ctx {
                 return Err(idle_fleet_err(fleet_id, "not on an expedition"));
             }
         };
-        let result = match fleet_model.mission_status {
-            fleet::MissionStatus::ForceReturning => ExpeditionResult::Failure,
-            fleet::MissionStatus::Returning | fleet::MissionStatus::InMission => {
-                if mission_ships.iter().any(|ship| ship.condition <= 39) {
-                    ExpeditionResult::Failure
-                } else {
-                    determine_expedition_success_result(expedition_condition, launch_snapshot)
-                }
-            }
-            fleet::MissionStatus::Idle => {
-                return Err(idle_fleet_err(fleet_id, "cannot determine expedition result"));
-            }
+        // Recall, then short of supply at launch or of the requirements now,
+        // then fatigue. The requirements are read on return: a reinforcement
+        // slot can be re-equipped while the fleet is away.
+        let failure_kind = if is_recall {
+            Some(ExpeditionFailureKind::Recall)
+        } else if !fleet_model.launch_fully_supplied
+            || !evaluate_expedition_requirements(&tx, codex, &mission_ships, expedition_condition)
+                .await?
+        {
+            Some(ExpeditionFailureKind::RequirementsNotMet)
+        } else if mission_ships.iter().any(|ship| ship.condition <= 39) {
+            Some(ExpeditionFailureKind::Fatigue)
+        } else {
+            None
         };
-        let failure_kind = match result {
-            ExpeditionResult::Failure if is_recall => Some(ExpeditionFailureKind::Recall),
-            ExpeditionResult::Failure => Some(ExpeditionFailureKind::Fatigue),
-            _ => None,
+        let result = match failure_kind {
+            Some(_) => ExpeditionResult::Failure,
+            None => determine_expedition_success_result(expedition_condition, launch_snapshot),
         };
 
         let mut outcomes: Vec<GameplayOutcome> = Vec::new();
@@ -276,8 +288,10 @@ impl Ctx {
         let (profile, ship_exp, ship_exp_after, resource_reward, item_rewards) =
             if result == ExpeditionResult::Success || result == ExpeditionResult::GreatSuccess {
                 let admiral_exp = calculate_expedition_admiral_exp(expedition_condition, result);
+                // Read on return, like the requirements.
+                let bonus = fleet_landing_craft_bonus(&tx, &mission_ships).await?;
                 let resource_reward =
-                    calculate_expedition_resource_reward(expedition_condition, result);
+                    calculate_expedition_resource_reward(expedition_condition, result, &bonus);
                 let item_rewards = grant_expedition_rewards(
                     &tx,
                     codex,
@@ -327,7 +341,7 @@ impl Ctx {
                             .collect();
                         (profile, ship_exp, ship_exp_after, None, [None, None])
                     }
-                    ExpeditionFailureKind::Fatigue => {
+                    ExpeditionFailureKind::Fatigue | ExpeditionFailureKind::RequirementsNotMet => {
                         let admiral_exp =
                             calculate_failed_expedition_admiral_exp(expedition_condition);
                         let profile =
@@ -366,9 +380,9 @@ impl Ctx {
             result,
             ship_ids,
             admiral_exp: match failure_kind {
-                Some(ExpeditionFailureKind::Fatigue) => {
-                    calculate_failed_expedition_admiral_exp(expedition_condition)
-                }
+                Some(
+                    ExpeditionFailureKind::Fatigue | ExpeditionFailureKind::RequirementsNotMet,
+                ) => calculate_failed_expedition_admiral_exp(expedition_condition),
                 _ if result == ExpeditionResult::Success
                     || result == ExpeditionResult::GreatSuccess =>
                 {
@@ -425,27 +439,25 @@ impl Ctx {
     }
 }
 
-async fn validate_expedition_start<C>(
+/// Whether the fleet meets the expedition's requirements, supply aside (that
+/// is judged at launch). The reason it does not is logged, not returned.
+async fn evaluate_expedition_requirements<C>(
     c: &C,
     codex: &Codex,
     fleet_ships: &[ship::Model],
     expedition_condition: &Kc3rdExpeditionCondition,
-) -> Result<(), GameplayError>
+) -> Result<bool, GameplayError>
 where
     C: ConnectionTrait,
 {
-    if fleet_ships.is_empty() {
-        return Err(GameplayError::WrongType("fleet is empty".to_string()));
-    }
-
-    validate_expedition_full_supply(codex, fleet_ships)?;
+    let unmet = |reason: String| {
+        debug!("expedition {} requirement not met: {reason}", expedition_condition.api_id);
+        Ok(false)
+    };
 
     let requirements = &expedition_condition.requirements;
     if fleet_ships.len() < requirements.ship_count as usize {
-        return Err(GameplayError::WrongType(format!(
-            "fleet requires at least {} ships for expedition {}",
-            requirements.ship_count, expedition_condition.api_id,
-        )));
+        return unmet(format!("needs at least {} ships", requirements.ship_count));
     }
 
     let flagship = fleet_ships.first().unwrap();
@@ -455,66 +467,57 @@ where
         .ok_or(GameplayError::ManifestNotFound(flagship.mst_id))?;
 
     if requirements.flagship_level.is_some_and(|min| flagship.level < min) {
-        return Err(GameplayError::WrongType(format!(
-            "flagship level {} is lower than required {}",
-            flagship.level,
-            requirements.flagship_level.unwrap_or_default(),
-        )));
+        return unmet(format!("flagship level {}", flagship.level));
     }
 
-    if requirements.flagship_type.is_some_and(|stype| flagship_mst.api_stype != stype) {
-        return Err(GameplayError::WrongType(format!(
-            "flagship type {} does not satisfy required {}",
-            flagship_mst.api_stype,
-            requirements.flagship_type.unwrap_or_default(),
-        )));
+    // An escort carrier leads as 27 only (kcanotify's flagship check).
+    let flagship_type = if codex.escort_carriers.contains(&flagship.mst_id) {
+        ESCORT_CARRIER_STYPE
+    } else {
+        flagship_mst.api_stype
+    };
+    if !requirements.flagship_types.is_empty()
+        && !requirements.flagship_types.contains(&flagship_type)
+    {
+        return unmet(format!("flagship type {flagship_type}"));
     }
 
     if requirements
         .fleet_level
         .is_some_and(|min_total| fleet_ships.iter().map(|ship| ship.level).sum::<i64>() < min_total)
     {
-        return Err(GameplayError::WrongType(format!(
-            "fleet total level is lower than required {}",
-            requirements.fleet_level.unwrap_or_default(),
-        )));
+        return unmet("fleet total level".to_string());
     }
 
     if requirements.total_firepower.is_some_and(|min_total| {
         fleet_ships.iter().map(|ship| ship.firepower_now).sum::<i64>() < min_total
     }) {
-        return Err(GameplayError::WrongType(format!(
-            "fleet total firepower is lower than required {}",
-            requirements.total_firepower.unwrap_or_default(),
-        )));
+        return unmet("fleet total firepower".to_string());
+    }
+
+    if requirements.total_aa.is_some_and(|min_total| {
+        fleet_ships.iter().map(|ship| ship.aa_now).sum::<i64>() < min_total
+    }) {
+        return unmet("fleet total AA".to_string());
     }
 
     if requirements.total_asw.is_some_and(|min_total| {
         fleet_ships.iter().map(|ship| ship.asw_now).sum::<i64>() < min_total
     }) {
-        return Err(GameplayError::WrongType(format!(
-            "fleet total ASW is lower than required {}",
-            requirements.total_asw.unwrap_or_default(),
-        )));
+        return unmet("fleet total ASW".to_string());
     }
 
     if requirements.total_los.is_some_and(|min_total| {
         fleet_ships.iter().map(|ship| ship.los_now).sum::<i64>() < min_total
     }) {
-        return Err(GameplayError::WrongType(format!(
-            "fleet total LOS is lower than required {}",
-            requirements.total_los.unwrap_or_default(),
-        )));
+        return unmet("fleet total LOS".to_string());
     }
 
     if let Some(drum) = &requirements.drum_requirements {
         let (ships_with_drums, total_drums) = count_drum_canisters(c, fleet_ships).await?;
         let ship_count_ok = drum.optional || ships_with_drums >= drum.ship_count;
         if !ship_count_ok || total_drums < drum.total_count {
-            return Err(GameplayError::WrongType(format!(
-                "fleet drum canister requirement not met: ships={}, total={}",
-                ships_with_drums, total_drums,
-            )));
+            return unmet(format!("drums: ships={ships_with_drums}, total={total_drums}"));
         }
     }
 
@@ -524,13 +527,10 @@ where
             .iter()
             .any(|alt| expedition_alternative_matches(codex, fleet_ships, alt))
     {
-        return Err(GameplayError::WrongType(format!(
-            "fleet composition does not satisfy expedition {}",
-            expedition_condition.api_id,
-        )));
+        return unmet("fleet composition".to_string());
     }
 
-    Ok(())
+    Ok(true)
 }
 
 fn expedition_alternative_matches(
@@ -551,15 +551,22 @@ fn expedition_ship_type_requirement_matches(
 ) -> bool {
     let count = fleet_ships
         .iter()
-        .filter(|ship| {
-            codex
-                .manifest
-                .find_ship(ship.mst_id)
-                .is_some_and(|mst| condition.ship_types.contains(&mst.api_stype))
-        })
+        .filter(|ship| condition.ship_types.iter().any(|&stype| counts_as(codex, ship, stype)))
         .count() as i64;
 
     count >= condition.count
+}
+
+/// kcanotify's pseudo ship type for escort carriers.
+const ESCORT_CARRIER_STYPE: i64 = 27;
+
+/// Whether the ship counts as ship type `stype` in a composition requirement: its
+/// own type, or 27 for an escort carrier, which is also still its own type.
+fn counts_as(codex: &Codex, ship: &ship::Model, stype: i64) -> bool {
+    if stype == ESCORT_CARRIER_STYPE {
+        return codex.escort_carriers.contains(&ship.mst_id);
+    }
+    codex.manifest.find_ship(ship.mst_id).is_some_and(|mst| mst.api_stype == stype)
 }
 
 async fn count_drum_canisters<C>(
@@ -655,10 +662,7 @@ fn find_mission_mst(codex: &Codex, mission_id: i64) -> Option<&ApiMstMission> {
     codex.manifest.api_mst_mission.iter().find(|mission| mission.api_id == mission_id)
 }
 
-fn validate_expedition_full_supply(
-    codex: &Codex,
-    fleet_ships: &[ship::Model],
-) -> Result<(), GameplayError> {
+fn is_fully_supplied(codex: &Codex, fleet_ships: &[ship::Model]) -> Result<bool, GameplayError> {
     for ship in fleet_ships {
         let mst = codex.find::<ApiMstShip>(&ship.mst_id)?;
         let max_fuel = mst.api_fuel_max.ok_or_else(|| {
@@ -674,21 +678,12 @@ fn validate_expedition_full_supply(
             ))
         })?;
 
-        if ship.fuel < max_fuel {
-            return Err(GameplayError::Insufficient(format!(
-                "ship {} is not fully fueled: has {}, needs {}",
-                ship.id, ship.fuel, max_fuel
-            )));
-        }
-        if ship.ammo < max_ammo {
-            return Err(GameplayError::Insufficient(format!(
-                "ship {} is not fully supplied with ammo: has {}, needs {}",
-                ship.id, ship.ammo, max_ammo
-            )));
+        if ship.fuel < max_fuel || ship.ammo < max_ammo {
+            return Ok(false);
         }
     }
 
-    Ok(())
+    Ok(true)
 }
 
 fn calculate_expedition_supply_costs(
@@ -886,19 +881,125 @@ fn calculate_failed_expedition_admiral_exp(expedition_condition: &Kc3rdExpeditio
     ((expedition_condition.admiral_exp as f64) * 0.3).floor() as i64
 }
 
-fn calculate_expedition_resource_reward(
-    expedition_condition: &Kc3rdExpeditionCondition,
-    result: ExpeditionResult,
-) -> [i64; 4] {
-    match result {
-        ExpeditionResult::GreatSuccess => expedition_condition
-            .resource_reward
-            .map(|amount| ((amount as f64) * 1.5).floor() as i64),
-        ExpeditionResult::Success => expedition_condition.resource_reward,
-        ExpeditionResult::Failure => [0; 4],
+/// Landing craft and their resource bonus in basis points (wikiwiki 大発動艇,
+/// `KC3Kai` `calcLandingCraftInfo`). Listed by id: equipment type 24 also holds
+/// craft that give nothing. New craft have to be added by hand.
+const LANDING_CRAFT_RATES: [(i64, i64); 11] = [
+    (68, 500),
+    (193, 500),
+    (526, 500),
+    (525, 400),
+    (409, 300),
+    (576, 300),
+    (166, 200),
+    (449, 200),
+    (436, 200),
+    (408, 200),
+    (167, 100),
+];
+const DAIHATSU_MST_ID: i64 = 68;
+const TOKU_DAIHATSU_MST_ID: i64 = 193;
+const KINU_KAI_NI_MST_ID: i64 = 487;
+/// Cap on the 特大発 bonus in basis points, by 特大発 count (up to 3, 4 or
+/// more) and 大発動艇 count (0 to 4 or more).
+const TOKU_CAPS: [[i64; 5]; 2] = [[500, 500, 520, 540, 540], [540, 560, 580, 590, 600]];
+
+/// The fleet's landing craft bonus to resource rewards, in basis points.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct LandingCraftBonus {
+    /// Base bonus: each craft's rate plus Kinu Kai Ni, capped at 20%.
+    b1_bp: i64,
+    /// Improvement levels of the craft counted in `b1_bp`.
+    star_sum: i64,
+    star_count: i64,
+    /// 特大発動艇 bonus, rounded separately.
+    b2_bp: i64,
+}
+
+/// The bonus from the fleet's equipment, given as (`mst_id`, improvement level).
+fn landing_craft_bonus(
+    slots: impl IntoIterator<Item = (i64, i64)>,
+    has_kinu_kai_ni: bool,
+) -> LandingCraftBonus {
+    let mut rate_sum = if has_kinu_kai_ni {
+        500
+    } else {
+        0
+    };
+    let (mut star_sum, mut star_count, mut toku, mut daihatsu) = (0, 0, 0, 0);
+    for (mst_id, level) in slots {
+        let Some(&(_, rate)) = LANDING_CRAFT_RATES.iter().find(|(id, _)| *id == mst_id) else {
+            continue;
+        };
+        rate_sum += rate;
+        star_sum += level;
+        star_count += 1;
+        toku += i64::from(mst_id == TOKU_DAIHATSU_MST_ID);
+        daihatsu += i64::from(mst_id == DAIHATSU_MST_ID);
+    }
+    let cap = TOKU_CAPS[usize::from(toku >= 4)][daihatsu.min(4) as usize];
+    LandingCraftBonus {
+        b1_bp: rate_sum.min(2000),
+        star_sum,
+        star_count,
+        b2_bp: (200 * toku).min(cap),
     }
 }
 
+async fn fleet_landing_craft_bonus<C>(
+    c: &C,
+    fleet_ships: &[ship::Model],
+) -> Result<LandingCraftBonus, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let slot_ids: Vec<i64> = fleet_ships
+        .iter()
+        .flat_map(|ship| {
+            [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
+        })
+        .filter(|slot_id| *slot_id > 0)
+        .collect();
+    let slot_items = if slot_ids.is_empty() {
+        Vec::new()
+    } else {
+        slot_item::Entity::find().filter(slot_item::Column::Id.is_in(slot_ids)).all(c).await?
+    };
+    let has_kinu_kai_ni = fleet_ships.iter().any(|ship| ship.mst_id == KINU_KAI_NI_MST_ID);
+
+    Ok(landing_craft_bonus(
+        slot_items.iter().map(|item| (item.mst_id, item.level)),
+        has_kinu_kai_ni,
+    ))
+}
+
+fn calculate_expedition_resource_reward(
+    expedition_condition: &Kc3rdExpeditionCondition,
+    result: ExpeditionResult,
+    bonus: &LandingCraftBonus,
+) -> [i64; 4] {
+    // ⌊R·S⌋ + ⌊R·S·(B1 + B★)⌋ + ⌊R·S·B2⌋ with B★ = B1 × average stars / 100,
+    // in integers so a rate like 0.29 cannot land just under a whole number.
+    let (s_num, s_den) = match result {
+        ExpeditionResult::GreatSuccess => (3, 2),
+        ExpeditionResult::Success => (1, 1),
+        ExpeditionResult::Failure => return [0; 4],
+    };
+    let (star_num, star_den) = if bonus.star_count > 0 {
+        (100 * bonus.star_count + bonus.star_sum, 100 * bonus.star_count)
+    } else {
+        (1, 1)
+    };
+    expedition_condition.resource_reward.map(|amount| {
+        let rs = amount * s_num;
+        rs / s_den
+            + rs * bonus.b1_bp * star_num / (s_den * 10_000 * star_den)
+            + rs * bonus.b2_bp / (s_den * 10_000)
+    })
+}
+
+/// Take each ship's launch cost from its fuel and ammo, down to 0 at most: a
+/// ship short of the cost still sails.
 async fn apply_expedition_supply_costs<C>(
     c: &C,
     fleet_ships: &[ship::Model],
@@ -912,28 +1013,9 @@ where
             GameplayError::EntryNotFound(format!("supply cost for ship {}", ship.id))
         })?;
 
-        if ship.fuel < cost.fuel {
-            return Err(GameplayError::Insufficient(format!(
-                "ship {} fuel: has {}, needs {}",
-                ship.id, ship.fuel, cost.fuel
-            )));
-        }
-        if ship.ammo < cost.ammo {
-            return Err(GameplayError::Insufficient(format!(
-                "ship {} ammo: has {}, needs {}",
-                ship.id, ship.ammo, cost.ammo
-            )));
-        }
-    }
-
-    for ship in fleet_ships {
-        let cost = supply_costs.iter().find(|cost| cost.ship_id == ship.id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!("supply cost for ship {}", ship.id))
-        })?;
-
         let mut am = (*ship).into_active_model();
-        am.fuel = ActiveValue::Set(ship.fuel - cost.fuel);
-        am.ammo = ActiveValue::Set(ship.ammo - cost.ammo);
+        am.fuel = ActiveValue::Set((ship.fuel - cost.fuel).max(0));
+        am.ammo = ActiveValue::Set((ship.ammo - cost.ammo).max(0));
         am.update(c).await?;
     }
 
@@ -1034,6 +1116,7 @@ where
     am.launch_flagship_level = ActiveValue::Set(0);
     am.launch_drum_ship_count = ActiveValue::Set(0);
     am.launch_total_drums = ActiveValue::Set(0);
+    am.launch_fully_supplied = ActiveValue::Set(true);
 
     Ok(am.update(c).await?)
 }
@@ -1370,9 +1453,8 @@ mod tests {
         assert_eq!(great_success_type("8"), GreatSuccessType::Type1);
     }
 
-    #[test]
-    fn great_success_reward_multipliers_are_applied() {
-        let expedition_condition = Kc3rdExpeditionCondition {
+    fn condition_with_reward(resource_reward: [i64; 4]) -> Kc3rdExpeditionCondition {
+        Kc3rdExpeditionCondition {
             api_id: 8,
             code: "8".to_string(),
             area: 1,
@@ -1384,7 +1466,7 @@ mod tests {
                 zh_tw: "test".to_string(),
             },
             time_minutes: 180,
-            resource_reward: [50, 100, 50, 50],
+            resource_reward,
             item_rewards: vec![],
             admiral_exp: 120,
             fleet_exp: 140,
@@ -1392,19 +1474,26 @@ mod tests {
                 ship_count: 6,
                 flagship_level: Some(6),
                 fleet_level: None,
-                flagship_type: None,
+                flagship_types: vec![],
                 composition: vec![],
                 total_firepower: None,
+                total_aa: None,
                 total_asw: None,
                 total_los: None,
                 drum_requirements: None,
             },
-        };
+        }
+    }
+
+    #[test]
+    fn great_success_reward_multipliers_are_applied() {
+        let expedition_condition = condition_with_reward([50, 100, 50, 50]);
 
         assert_eq!(
             calculate_expedition_resource_reward(
                 &expedition_condition,
-                ExpeditionResult::GreatSuccess
+                ExpeditionResult::GreatSuccess,
+                &LandingCraftBonus::default(),
             ),
             [75, 150, 75, 75]
         );
@@ -1412,6 +1501,56 @@ mod tests {
             calculate_expedition_admiral_exp(&expedition_condition, ExpeditionResult::GreatSuccess),
             240
         );
+    }
+
+    /// Success and great-success rewards for base amount `r` with `slots`
+    /// (`mst_id`, improvement level) aboard.
+    fn rewards_with(r: i64, slots: &[(i64, i64)], has_kinu_kai_ni: bool) -> (i64, i64) {
+        let condition = condition_with_reward([r; 4]);
+        let bonus = landing_craft_bonus(slots.iter().copied(), has_kinu_kai_ni);
+        let reward = |result| calculate_expedition_resource_reward(&condition, result, &bonus)[0];
+        (reward(ExpeditionResult::Success), reward(ExpeditionResult::GreatSuccess))
+    }
+
+    #[test]
+    fn no_landing_craft_gives_the_base_reward() {
+        assert_eq!(rewards_with(35, &[], false), (35, 52));
+    }
+
+    #[test]
+    fn the_landing_craft_bonus_is_floored_apart_from_the_base() {
+        // 52.5 + 10.5: three floors give 62, one floor over the sum would give 63.
+        assert_eq!(rewards_with(35, &[(68, 0); 4], false), (42, 62));
+    }
+
+    #[test]
+    fn toku_daihatsu_adds_a_separate_bonus() {
+        let slots = [(193, 4), (193, 4), (68, 10), (68, 10)];
+        assert_eq!(rewards_with(100, &slots, false), (125, 188));
+    }
+
+    #[test]
+    fn the_base_bonus_caps_at_twenty_percent_and_the_toku_bonus_by_daihatsu_count() {
+        let slots = [(193, 10), (193, 10), (193, 10), (193, 10), (68, 10), (68, 10)];
+        assert_eq!(rewards_with(100, &slots, true), (127, 191));
+    }
+
+    #[test]
+    fn the_improvement_bonus_scales_with_the_base_bonus() {
+        // kcanotify's flat 0.2% per average star would give 1030.
+        assert_eq!(rewards_with(1000, &[(167, 10)], false), (1011, 1516));
+    }
+
+    #[test]
+    fn the_toku_cap_counts_only_daihatsu() {
+        // kcanotify also counts 166 and 167 toward the cap and would give 1242.
+        let slots = [(193, 0), (193, 0), (193, 0), (166, 0), (166, 0)];
+        assert_eq!(rewards_with(1000, &slots, false), (1240, 1860));
+    }
+
+    #[test]
+    fn craft_without_a_rate_stay_out_of_the_star_average() {
+        assert_eq!(rewards_with(100, &[(68, 0), (230, 10)], false), (105, 157));
     }
 
     #[test]

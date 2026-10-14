@@ -101,6 +101,11 @@ pub static RES_LIST: LazyLock<Vec<Resource<'static>>> = LazyLock::new(|| {
             save_as: "kcanotify_expedition.json",
             unzip_to: None,
         },
+        Resource {
+            url: "https://antest1.github.io/kcanotify-gamedata/files/ships_filter_data.json",
+            save_as: "kcanotify_ships_filter.json",
+            unzip_to: None,
+        },
     ]
 });
 
