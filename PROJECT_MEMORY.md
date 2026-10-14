@@ -174,19 +174,14 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] #123 已合并（PR #134）。分支 `fix/quest-model-change-messages`（#122）：1160、1163 进 `extra.rs`（文案取自玩家截图，带 `api_id_from`/`api_id_to`）。fmt、clippy 过，全量 1486 过、0 ignored；code-review 后给取不到装备 id 的情况补了 `error!`。
+- [2026-10-14] #122、#123 已合并（PR #135、#134），open issue 清零后把各文档与计划里的未定项转成 #136～#147（用户确认的分组）。本分支只改记忆与 `map-unlock.md`（补 6-5 需 647）。
 
 ## Next Session
 
-- [2026-10-14] #122 开 PR（`Closes #122`），PR 里写明：1154/1155/1158 客户端自播空文案，653 的动画分支属于 2017 年节分旧任务，均无需服务器改动。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-14] 从 #136～#147 里挑下一项（先 triage `needs-triage` 的 10 条；#143、#145 缺数据）。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
-  未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
-  #100 留下的见 `reconnaissance-and-escort-cells.md`。
-  #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
-  #55 留下的：5-6 四阶段的带要员敌舰、6-4 取值 2 的炮击演出没在客户端演过。演习对手的夜间触接也没有。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
-  #52 与航空队留下的见 `carrier-night-air-attack.md`、`air-corps.md` 的 Known gaps。
   验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
   查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
