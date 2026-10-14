@@ -71,9 +71,10 @@ fn convert_to_internal_model(
             ship_count: src.total_num,
             flagship_level: src.flagship_level,
             fleet_level: src.total_level,
-            flagship_type: parse_flagship_type(&src.flagship_type),
+            flagship_types: parse_flagship_types(&src.flagship_type),
             composition: parse_composition(&src.total_condition)?,
-            total_firepower: src.total_firepower.or(src.total_fp),
+            total_firepower: src.total_firepower,
+            total_aa: src.total_fp,
             total_asw: src.total_asw,
             total_los: src.total_los,
             drum_requirements: parse_drum_requirements(
@@ -108,9 +109,25 @@ fn convert_rewards(rewards: &[[i64; 2]]) -> Vec<Kc3rdExpeditionItemReward> {
         .collect()
 }
 
-/// Parse flagship type
-fn parse_flagship_type(cond: &Option<String>) -> Option<i64> {
-    cond.as_ref().and_then(|s| s.parse().ok())
+/// Parse kcanotify's `ships_filter_data.json` for its escort carriers
+/// (`cve_ids`), which its expedition conditions call ship type 27.
+pub fn parse_escort_carriers(
+    path: impl AsRef<Path>,
+) -> Result<std::collections::BTreeSet<i64>, ParseError> {
+    #[derive(serde::Deserialize)]
+    struct ShipsFilter {
+        cve_ids: std::collections::BTreeSet<i64>,
+    }
+    let path = path.as_ref();
+    let raw = std::fs::read_to_string(path).map_err(|source| ParseError::io_at(path, source))?;
+    let filter: ShipsFilter =
+        serde_json::from_str(&raw).map_err(|source| ParseError::json_at(path, source))?;
+    Ok(filter.cve_ids)
+}
+
+/// Parse the flagship types: "7/27" is a light carrier or an escort carrier.
+fn parse_flagship_types(cond: &Option<String>) -> Vec<i64> {
+    cond.iter().flat_map(|s| s.split('/')).filter_map(|s| s.parse().ok()).collect()
 }
 
 /// Parse composition condition expression
@@ -309,10 +326,32 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_flagship_type() {
-        assert_eq!(parse_flagship_type(&Some("3".to_string())), Some(3));
-        assert_eq!(parse_flagship_type(&Some("invalid".to_string())), None);
-        assert_eq!(parse_flagship_type(&None), None);
+    fn test_parse_flagship_types() {
+        assert_eq!(parse_flagship_types(&Some("3".to_string())), vec![3]);
+        assert_eq!(parse_flagship_types(&Some("7/27".to_string())), vec![7, 27]);
+        assert_eq!(parse_flagship_types(&Some("invalid".to_string())), Vec::<i64>::new());
+        assert_eq!(parse_flagship_types(&None), Vec::<i64>::new());
+    }
+
+    /// A kcanotify entry with the given `total-firepower` and `total-fp`.
+    fn entry(firepower: Option<i64>, fp: Option<i64>) -> KCanotifyExpedition {
+        serde_json::from_value(serde_json::json!({
+            "no": "101", "code": "A2", "area": 1,
+            "name": {"jp": "", "en": "", "scn": "", "tcn": "", "ko": ""},
+            "time": 55, "resource": [0, 0, 0, 0], "reward": [], "exp": [0, 0],
+            "total-num": 4, "total-firepower": firepower, "total-fp": fp,
+        }))
+        .unwrap()
+    }
+
+    /// kcanotify's `total-fp` is the fleet's anti-air total, not firepower.
+    #[test]
+    fn total_fp_is_anti_air() {
+        let both = convert_to_internal_model(&entry(Some(50), Some(70))).unwrap().requirements;
+        assert_eq!((both.total_firepower, both.total_aa), (Some(50), Some(70)));
+
+        let fp_only = convert_to_internal_model(&entry(None, Some(200))).unwrap().requirements;
+        assert_eq!((fp_only.total_firepower, fp_only.total_aa), (None, Some(200)));
     }
 
     #[test]
