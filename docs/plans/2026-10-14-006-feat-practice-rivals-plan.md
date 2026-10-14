@@ -20,8 +20,8 @@ Issue #102。现在每次生成五个固定模板对手：司令部等级 119～
 - **现状** `generate_practice_rivals`（`crates/emukc_gameplay/src/game/practice.rs`）：参数 `_select_type: RivalType` 未用；
   舰船池是 `api_mst_ship` 里 `api_aftershipid.is_some()` 的；`(1..6)` 生成五个，`level: 120 - i`，一艘 `level: 180, star: 10`；
   先删旧的 `rival_ship`/`detail`/`rival` 三张表再插入。唯一调用方是 `get_practice_rivals_impl`（无对手或跨过 3 点/15 点时）。
-- **玩家等级**：`profile::Model::hq_level`。**组别**：`RivalType::{FirstGroup = 0, SecondaryGroup = 1, All = 2}`
-  （`emukc_model/src/profile/practice.rs`），由 `change_practice_matching_kind` 写进 `practice::config.selected_type`。
+- **玩家等级**：`profile::Model::hq_level`。**组别**：`RivalType::{FirstGroup, SecondGroup, All}`（0/1/2，
+  `emukc_db/src/entity/profile/practice/config.rs`），由 `change_practice_matching_kind` 写进 `practice::config.selected_type`。
 - **舰船池**：码典 `ship_extra` 正好是 865 艘玩家舰（id 全部 ≤ 1500，与 `api_mst_ship` 里 ≤ 1500 的条目一一对应），不含深海舰。
   `codex.new_ship` 本来就要求舰在 `ship_extra` 里，战斗时 `build_practice_enemy_ships` 用它取初期装备，所以池子取 `ship_extra` 的键。
 - **改造等级**：`ship_extra[id].remodel.level` 是「改造成这个形态需要的等级」，没有 `remodel` 的是初始形态（`new_ship` 同样把它当最低等级）。
@@ -43,7 +43,7 @@ Issue #102。现在每次生成五个固定模板对手：司令部等级 119～
 2. **先抽等级再抽舰**：每艘舰先从 `[max(1, H/2), min(H, 99)]` 均匀抽等级 L（整数除法），再从「池中 `remodel.level ≤ L`、
    且改造链与本舰队已有舰不重叠」的形态里均匀抽一个。初始形态最低等级都是 1，候选永远非空。不结婚由 L ≤ 99 保证。
 3. **纯函数 + 薄的写库层**：抽签做成不碰数据库的纯函数，形如
-   `draw_practice_rivals(codex, hq_level, group, rng: &GameRng) -> Vec<Rival>`；`generate_practice_rivals` 读 `hq_level`，
+   `draw_practice_rivals(codex, hq_level, group, rival_id_base, ship_id_base, rng: &GameRng) -> Vec<Rival>`；`generate_practice_rivals` 读 `hq_level`，
    用 `GameRng::seeded(rng::u64(..))` 调它，然后照旧删表、插表。这样单元测试可以固定种子大量抽样，生产仍走线程局部随机流，
    `practice_battle.rs` 里 `rng::seed` 的做法继续有效。对手和舰船 id 的分配方式不变。
 4. **改造链去重**：抽中候选后用 `ships_before_and_after` 取链，与本舰队已用的链求交，相交就从候选里剔除重抽。
