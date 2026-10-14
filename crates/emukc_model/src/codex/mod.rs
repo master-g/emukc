@@ -78,6 +78,10 @@ pub struct Codex {
     /// thirdparty expedition condition info map.
     pub expedition_conditions: thirdparty::Kc3rdExpeditionConditionMap,
 
+    /// Escort carriers (kcanotify `cve_ids`): expedition conditions count them
+    /// as ship type 27 as well as their own type.
+    pub escort_carriers: std::collections::BTreeSet<i64>,
+
     /// game config
     pub game_cfg: GameConfig,
 
@@ -105,6 +109,7 @@ const PATH_PICTUREBOOK_EXTRA_INFO: &str = "picturebook_extra_info.json";
 const PATH_NAVY: &str = "navy.json";
 const PATH_QUEST: &str = "quest.json";
 const PATH_EXPEDITION_CONDITION: &str = "expedition_condition.json";
+const PATH_ESCORT_CARRIERS: &str = "escort_carriers.json";
 const PATH_MUSIC_LIST: &str = "music_list.json";
 const PATH_MAP_CATALOG: &str = "map_catalog.json";
 const PATH_GAME_CFG: &str = "game_config.json";
@@ -230,6 +235,18 @@ impl Codex {
             serde_json::from_str(&raw)?
         };
 
+        // A codex built before this file existed fails here, by name.
+        let escort_carriers = {
+            let path = path.join(PATH_ESCORT_CARRIERS);
+            let raw = std::fs::read_to_string(&path).map_err(|source| {
+                CodexError::NotFound(format!(
+                    "{} ({source}); rebuild the codex with `bootstrap --codex-only`",
+                    path.display()
+                ))
+            })?;
+            serde_json::from_str(&raw)?
+        };
+
         let music_list = {
             let path = path.join(PATH_MUSIC_LIST);
             let raw = std::fs::read_to_string(&path)?;
@@ -276,6 +293,7 @@ impl Codex {
             navy: Self::load_single_item(path.join(PATH_NAVY))?,
             quest,
             expedition_conditions,
+            escort_carriers,
             music_list,
             maps,
             gear_bonus: Self::load_single_item(path.join(PATH_GEAR_BONUS))?,
@@ -351,6 +369,7 @@ impl Codex {
             overwrite,
             &self.expedition_conditions,
         )?;
+        Self::save_item(dst.join(PATH_ESCORT_CARRIERS), overwrite, &self.escort_carriers)?;
         Self::save_item(dst.join(PATH_GAME_CFG), overwrite, &self.game_cfg)?;
         Self::save_item(dst.join(PATH_MUSIC_LIST), overwrite, &self.music_list)?;
         Self::save_item(dst.join(PATH_MAP_CATALOG), overwrite, &self.maps)?;

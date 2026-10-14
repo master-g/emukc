@@ -671,3 +671,68 @@ async fn changes_while_away_do_not_change_the_result() {
     let result = context.complete_expedition(pid, 1).await.unwrap();
     assert_ne!(result.result, ExpeditionResult::Failure, "met at launch");
 }
+
+/// A fleet of these masters with every total and level requirement met, so
+/// only the flagship and composition checks can fail it.
+async fn qualified_fleet(context: &Ctx, profile_id: i64, mst_ids: &[i64]) {
+    let mut ids = Vec::new();
+    for &mst_id in mst_ids {
+        let id = context.add_ship(profile_id, mst_id).await.unwrap().api_id;
+        let row = ship::Entity::find_by_id(id).one(context.db()).await.unwrap().unwrap();
+        let mut am = row.into_active_model();
+        am.level = ActiveValue::Set(60);
+        am.condition = ActiveValue::Set(43);
+        am.firepower_now = ActiveValue::Set(100);
+        am.aa_now = ActiveValue::Set(100);
+        am.asw_now = ActiveValue::Set(100);
+        am.los_now = ActiveValue::Set(100);
+        am.update(context.db()).await.unwrap();
+        ids.push(id);
+    }
+    set_fleet_ships(context, profile_id, 1, &ids).await;
+}
+
+/// Whether a qualified fleet of `mst_ids` comes back from `mission_id` with
+/// anything but failure.
+async fn succeeds(mission_id: i64, mst_ids: &[i64]) -> bool {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    qualified_fleet(&context, pid, mst_ids).await;
+    context.start_expedition(pid, 1, mission_id).await.unwrap();
+    make_fleet_ready_for_result(&context, pid, 1).await;
+    context.complete_expedition(pid, 1).await.unwrap().result != ExpeditionResult::Failure
+}
+
+/// 大鷹, an escort carrier (stype 7, and 27 in expedition rules).
+const TAIYOU: i64 = 526;
+/// 鳳翔, a light carrier that is not an escort carrier.
+const HOUSHOU: i64 = 89;
+const MUTSUKI: i64 = 1;
+const TENRYUU: i64 = 51;
+const ETOROFU: i64 = 524;
+
+/// 43's `flag-cond` is "7/27": a light or escort carrier, not a destroyer (#117).
+#[tokio::test]
+async fn expedition_43_needs_a_carrier_flagship() {
+    let escorts = [TENRYUU, MUTSUKI, MUTSUKI, MUTSUKI, MUTSUKI];
+    assert!(succeeds(43, &[[HOUSHOU].as_slice(), &escorts].concat()).await);
+    assert!(succeeds(43, &[[TAIYOU].as_slice(), &escorts].concat()).await);
+    // Four destroyers and a light cruiser still, but a destroyer leads.
+    assert!(!succeeds(43, &[MUTSUKI, TENRYUU, HOUSHOU, MUTSUKI, MUTSUKI, MUTSUKI]).await);
+}
+
+/// A4's "27-1|2-2" branch: an escort carrier and two destroyers (#117).
+#[tokio::test]
+async fn a4_takes_an_escort_carrier_with_two_destroyers() {
+    assert!(succeeds(103, &[TAIYOU, MUTSUKI, MUTSUKI, ETOROFU, ETOROFU]).await);
+    // 鳳翔 is no escort carrier, and nothing else here makes A4.
+    assert!(!succeeds(103, &[HOUSHOU, MUTSUKI, MUTSUKI, ETOROFU, ETOROFU]).await);
+}
+
+/// 45 takes an escort or a light carrier with four destroyers or escorts.
+#[tokio::test]
+async fn expedition_45_takes_an_escort_or_light_carrier() {
+    assert!(succeeds(45, &[TAIYOU, MUTSUKI, MUTSUKI, ETOROFU, ETOROFU]).await);
+    assert!(succeeds(45, &[HOUSHOU, MUTSUKI, MUTSUKI, ETOROFU, ETOROFU]).await);
+    assert!(!succeeds(45, &[MUTSUKI, HOUSHOU, MUTSUKI, ETOROFU, ETOROFU]).await);
+}

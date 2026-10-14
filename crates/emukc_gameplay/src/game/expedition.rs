@@ -465,7 +465,9 @@ where
         return unmet(format!("flagship level {}", flagship.level));
     }
 
-    if requirements.flagship_type.is_some_and(|stype| flagship_mst.api_stype != stype) {
+    if !requirements.flagship_types.is_empty()
+        && !requirements.flagship_types.iter().any(|&stype| counts_as(codex, flagship, stype))
+    {
         return unmet(format!("flagship type {}", flagship_mst.api_stype));
     }
 
@@ -538,15 +540,22 @@ fn expedition_ship_type_requirement_matches(
 ) -> bool {
     let count = fleet_ships
         .iter()
-        .filter(|ship| {
-            codex
-                .manifest
-                .find_ship(ship.mst_id)
-                .is_some_and(|mst| condition.ship_types.contains(&mst.api_stype))
-        })
+        .filter(|ship| condition.ship_types.iter().any(|&stype| counts_as(codex, ship, stype)))
         .count() as i64;
 
     count >= condition.count
+}
+
+/// kcanotify's pseudo ship type for escort carriers.
+const ESCORT_CARRIER_STYPE: i64 = 27;
+
+/// Whether the ship counts as ship type `stype` for expedition requirements: its
+/// own type, or 27 for an escort carrier, which is also still its own type.
+fn counts_as(codex: &Codex, ship: &ship::Model, stype: i64) -> bool {
+    if stype == ESCORT_CARRIER_STYPE {
+        return codex.escort_carriers.contains(&ship.mst_id);
+    }
+    codex.manifest.find_ship(ship.mst_id).is_some_and(|mst| mst.api_stype == stype)
 }
 
 async fn count_drum_canisters<C>(
@@ -1351,7 +1360,7 @@ mod tests {
                 ship_count: 6,
                 flagship_level: Some(6),
                 fleet_level: None,
-                flagship_type: None,
+                flagship_types: vec![],
                 composition: vec![],
                 total_firepower: None,
                 total_aa: None,
