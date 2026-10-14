@@ -10,6 +10,7 @@ use emukc_model::{
         map::{MapDefinition, MapStageDefinition, MapVariantDefinition},
     },
     kc2::{KcSortieResultRank, level},
+    thirdparty::FleetShipSnapshot,
 };
 use emukc_time::chrono::Utc;
 use serde::Serialize;
@@ -35,6 +36,8 @@ use super::{
 pub struct SortieBattleResultSnapshot {
     /// Both decks, 第1艦隊 first, when the sortie fleet was combined.
     pub friendly_ship_ids: Vec<i64>,
+    /// 第1艦隊 as it fought, for the quests that ask for a composition.
+    pub friendly_fleet_snapshot: Vec<FleetShipSnapshot>,
     pub enemy_ship_ids: Vec<i64>,
     /// Indexed like [`friendly_ship_ids`](Self::friendly_ship_ids).
     pub friendly_nowhps: Vec<i64>,
@@ -483,6 +486,7 @@ pub(super) fn build_sortie_battle_outcome(
             .is_some_and(|id| stage.boss_cell_nos().contains(&id)),
         win_rank: parse_sortie_result_rank(&snapshot.win_rank)?,
         fleet_id: active.deck_id,
+        fleet_ships: snapshot.friendly_fleet_snapshot.clone(),
     })
 }
 
@@ -1088,6 +1092,7 @@ mod tests {
     fn snapshot(win_rank: &str) -> SortieBattleResultSnapshot {
         SortieBattleResultSnapshot {
             friendly_ship_ids: vec![],
+            friendly_fleet_snapshot: vec![],
             enemy_ship_ids: vec![],
             friendly_nowhps: vec![],
             friendly_onslots: vec![],
@@ -1162,7 +1167,16 @@ mod tests {
             raided: false,
         };
 
-        let outcome = build_sortie_battle_outcome(&definition, &active, 2, &snapshot("A")).unwrap();
+        let fleet = vec![emukc_model::thirdparty::FleetShipSnapshot {
+            mst_id: 1,
+            level: 10,
+            position: 1,
+        }];
+        let snapshot = SortieBattleResultSnapshot {
+            friendly_fleet_snapshot: fleet.clone(),
+            ..snapshot("A")
+        };
+        let outcome = build_sortie_battle_outcome(&definition, &active, 2, &snapshot).unwrap();
 
         match outcome {
             GameplayOutcome::SortieBattleCompleted {
@@ -1172,6 +1186,7 @@ mod tests {
                 boss_cell,
                 win_rank,
                 fleet_id,
+                fleet_ships,
             } => {
                 assert_eq!(maparea_id, 1);
                 assert_eq!(mapinfo_no, 2);
@@ -1179,6 +1194,7 @@ mod tests {
                 assert!(boss_cell);
                 assert_eq!(win_rank, emukc_model::kc2::KcSortieResultRank::A);
                 assert_eq!(fleet_id, 3);
+                assert_eq!(fleet_ships, fleet, "the fleet as it fought is passed through");
             }
             other => panic!("unexpected outcome: {other:?}"),
         }

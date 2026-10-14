@@ -11,5 +11,6 @@ mod limited_day;
 mod periodic_reset;
 mod progress;
 mod reward;
+mod sortie_composition;
 mod sortie_count;
 mod weekly_reset;

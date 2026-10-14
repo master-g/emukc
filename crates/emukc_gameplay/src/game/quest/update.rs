@@ -10,7 +10,7 @@ use emukc_model::{
     codex::Codex,
     prelude::{Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestRequirement},
     profile::quest::QuestProgressStatus,
-    thirdparty::QuestActionEvent,
+    thirdparty::{QuestActionEvent, apply_event_to_conditions, composition_is_paired},
 };
 use emukc_time::{KcTime, chrono};
 
@@ -280,15 +280,7 @@ where
             continue;
         }
 
-        let mut updated = false;
-        for (idx, condition) in conditions.iter_mut().enumerate() {
-            let master_condition = master_conditions.and_then(|conditions| conditions.get(idx));
-            if condition.apply_event_with_context(event, master_condition, Some(codex)) {
-                updated = true;
-            }
-        }
-
-        if updated {
+        if apply_event_to_conditions(&mut conditions, master_conditions, event, Some(codex)) {
             let new_progress = progress_after_event(
                 quest.status,
                 &conditions,
@@ -403,8 +395,9 @@ fn calculate_exercise_progress(
 ///
 /// Composition conditions are special: they are not tracked via counters but
 /// evaluated in real-time against the current fleet state. This function checks
-/// all activated quests that contain Composition conditions, and updates their
-/// stored progress accordingly (both setting and rolling back).
+/// all activated quests that contain Composition conditions no sortie is fought
+/// in, and updates their stored progress accordingly (both setting and rolling
+/// back).
 pub(crate) async fn validate_composition_quests<C>(
     c: &C,
     codex: &Codex,
@@ -456,10 +449,13 @@ where
             stored_conditions.as_slice()
         };
 
-        // Only process quests that have at least one Composition condition
-        let has_composition =
-            master_conditions.iter().any(|c| matches!(c, Kc3rdQuestCondition::Composition(_)));
-        if !has_composition {
+        // Only process quests with a composition held at claim time. One a
+        // sortie is fought in was judged at each battle and counts with it.
+        let has_held_composition = master_conditions.iter().enumerate().any(|(idx, c)| {
+            matches!(c, Kc3rdQuestCondition::Composition(_))
+                && !composition_is_paired(master_conditions, idx)
+        });
+        if !has_held_composition {
             continue;
         }
 

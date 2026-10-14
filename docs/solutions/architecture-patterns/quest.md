@@ -36,7 +36,8 @@ via the quest operations on `Ctx`. Definitions come from the Codex
 
 - Availability: when quest records are retrieved (`get_quest_records`), the
   quest tree is updated via `update_quests_impl` (adds new quests, removes
-  expired); composition quests are validated against the current fleet state;
+  expired); composition quests with no sortie (A1, held at claim) are
+  validated against the current fleet state;
   quests are filtered by period (daily/weekly/monthly/etc.) and reset timers;
   prerequisite quest chains are respected (quest X may require quest Y to be
   completed first).
@@ -71,8 +72,8 @@ via the quest operations on `Ctx`. Definitions come from the Codex
 - Activation (`quest_start`) on an idle quest: status → Activated; if the quest
   has Exercise conditions, activation headroom may be applied (sets `times=1`
   if inactive had `times<=0`); if already at Completed progress, it is reset to
-  Eighty to require one real action; composition quests are re-validated after
-  activation.
+  Eighty to require one real action; composition quests with no sortie are
+  re-validated after activation.
 - Deactivation (`quest_stop`) on an activated quest: status → Idle; progress is
   preserved (not reset).
 - Calling start/stop on a quest already in the target status SHALL fail with a
@@ -115,14 +116,31 @@ transaction observes them once, before it commits. `update_quest_progress_for_ac
 is now internal to the quest module and is reached only from `observe`; see
 `quest-observation.md`.
 
-- When a qualifying gameplay action occurs (sortie win, composition change,
+- When a qualifying gameplay action occurs (sortie win,
   equipment improvement, construction complete, etc.), all activated quests
   matching the action type have their progress evaluated and updated.
 - Condition types: `And` requires all sub-conditions met; `OneOf` requires at
   least one met; `Sequential` requires sub-conditions met in order.
-- Composition validation (`validate_composition_quests`, typically after fleet
-  changes) checks composition conditions against current fleet state and
-  updates progress.
+- Compositions sailed in: each `Sortie` condition is fought in the nearest
+  `Composition` before it (`matcher.rs::paired_composition`). That covers every
+  quest with both: `And[Composition, Sortie…]` (one composition for all its
+  sorties), `OneOf[Composition, Sortie, Composition, Sortie…]` (237, 903, 997,
+  1014, 1019: each composition for the sortie after it) and 317's
+  `Sequential[Exercise, Composition, Sortie]`. `SortieBattleCompleted` carries
+  `fleet_ships`, 第1艦隊 as it fought (a combined fleet's main deck), and
+  `apply_event_to_conditions` counts a bound sortie only when
+  `validate_composition_snapshot` passes on it. A bound composition is met once
+  all its sorties are; changing the fleet afterwards neither completes nor
+  undoes the quest. This follows KC3Kai, which checks
+  `isPrerequisiteFulfilled` against `KC3SortieManager.fleetSent` at each battle
+  result (`Kcsapi.js` battleresult, `QuestManager.js`, commit `6b0534d2`).
+  Pairing is by index in the master list, so saved rows need no migration.
+  Known gap: a ship retreated mid-sortie (退避) is not in the next battle's
+  snapshot; the real server's handling is unsourced.
+- Compositions held at claim (pure `And[Composition]` such as A1 101, and
+  `And[Composition, Consumption, Scrap]`): `validate_composition_quests`, on
+  list read and activation, checks them against the current fleet and sets or
+  rolls back `Completed`. It skips quests whose every composition is sailed in.
 - Scrap specific items: when equipment is scrapped via `destroy_items`, the
   `SlotItemScrapped` event includes the item's star level; `Scrap::SpecificItems`
   conditions match on item `mst_id` (Equipment type), equip type via Codex

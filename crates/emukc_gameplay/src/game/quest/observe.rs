@@ -101,6 +101,8 @@ pub(crate) enum GameplayOutcome {
         win_rank: KcSortieResultRank,
         /// The fleet that fought.
         fleet_id: i64,
+        /// 第1艦隊 as it fought.
+        fleet_ships: Vec<FleetShipSnapshot>,
     },
     /// A modernization was applied.
     ModernizationCompleted {
@@ -195,6 +197,7 @@ impl GameplayOutcome {
                 boss_cell,
                 win_rank,
                 fleet_id,
+                fleet_ships,
             } => QuestActionEvent::SortieBattleCompleted {
                 maparea_id: *maparea_id,
                 mapinfo_no: *mapinfo_no,
@@ -202,6 +205,7 @@ impl GameplayOutcome {
                 boss_cell: *boss_cell,
                 win_rank: *win_rank,
                 fleet_id: *fleet_id,
+                fleet_ships: fleet_ships.clone(),
             },
             Self::ModernizationCompleted {
                 target_ship_mst_id,
