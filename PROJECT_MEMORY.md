@@ -179,17 +179,18 @@ Current verification baseline:
 失配，哪怕值恒为 `None`。不是模拟漂移：`EMUKC_BLESS_GOLDEN=1` 后确认每份 diff 只有那一行。
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
-| [2026-09-23] 在 git worktree 里跑 cargo 而 `CARGO_TARGET_DIR` 共用 `~/.cache/cargo-build`，会覆盖主检出的产物（同名 path 依赖指纹冲突），随后主检出报「方法不存在」。worktree 里要设独立的 `CARGO_TARGET_DIR`。 | session 2026-09-23 |
+| [2026-10-14] worktree 与主检出共用 `~/.cache/cargo-build` 会互相复用产物（同名 path 依赖指纹冲突）：主检出报「方法不存在」；也会让测试二进制沿用别的 checkout 固化的 `CARGO_MANIFEST_DIR`，读 `../../.data` 报 NotFound，单跑 `-p` 却能过。worktree 里设独立 `CARGO_TARGET_DIR`，中招就 `touch` 该 crate 源文件。 | session 2026-09-23、2026-10-14 |
+| [2026-10-14] 当前 `.data/temp/tsunkit_quests.json` 有一处 1-6 `"node": "n"`，不含 quest 分支解析修复的分支跑 `--codex-only` 会报 unknown variant `n`；worktree 里放一份改成 `"N"` 的副本即可（语义相同）。 | session 2026-10-14 |
 | [2026-10-11] 全量测试加 `--no-fail-fast`：`cargo test --workspace` 默认在第一个失败的 crate 就停，通过数会偏少。 | session 2026-10-11 |
 
 ## Last Session
 
-- [2026-10-14] 分支 `fix/expedition-requirements`（PR #126）：远征条件改为返回时判定，出发只存 `launch_fully_supplied`（wikiwiki 实证途中可换补強増設）。质量门过，0 ignored；make_list 的 CDN 测试全量跑时偶发网络失败，单跑过。worktree 用自己的 `.data` 副本重建码典。
+- [2026-10-14] 分支 `feat/expedition-landing-craft`（#119，worktree `../emukc-landing-craft`）：远征资源报酬加大発加成，按计划 005 实施，返回时读六槽，整数三段取整。fmt、clippy 过；`cargo test --workspace --no-fail-fast` 1429 过、0 失败、0 ignored；code-review 两路无实质问题。已推送，PR #129。
 
 ## Next Session
 
 - [2026-10-13] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  远征：判定时机与 kcanotify 字段语义见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。#119 计划见 `2026-10-14-005`（分支 `feat/expedition-landing-craft`，待实施）。#124/#125/#127 合并时 `PROJECT_MEMORY.md` 的两节改写会冲突，以最后合的为准。
+  远征：判定时机与 kcanotify 字段语义见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。#119 已在分支 `feat/expedition-landing-craft` 实施（计划 005），PR #129 待合并；取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。#124/#125/#127 合并时 `PROJECT_MEMORY.md` 的两节改写会冲突，以最后合的为准。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
