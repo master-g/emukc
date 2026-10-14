@@ -187,12 +187,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] #129（#119 大発加成）已合并。新 `main`（含 #126 #128 #129）逐级合进 #124、#125、#127 三个分支，`PROJECT_MEMORY.md` 冲突已解。在本分支重建码典（新版 tsunkit 小写节点可解析）后：fmt、clippy 过，`cargo test --workspace --no-fail-fast` 1471 过、0 失败、0 ignored。#124、#125 分支未单独重跑。
+- [2026-10-14] #124 #125 #127 #129 已依次合入 `main`（`3ce94d58`，与验证过的树一致：1471 测试过、0 ignored），分支已删，只用主检出。分支 `docs/triage-records`：提交 triage 遗留的 `issue-tracker.md` 模板刷新与 `.out-of-scope/expedition-unlock-table.md`（#120 关闭评论引用它）。
 
 ## Next Session
 
 - [2026-10-14] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  quest：#124 → #125 → #127 依次合并；#124 合并后把 #125 改指 `main`，#125 合并后再把 #127 改指 `main`，否则会合进旧分支。#122 #123 等抓包，#102 #109 未排期。
+  quest：#122 #123 等抓包，#102 #109 未排期。叠放 PR 合并前先把上层 PR 改指 `main`，否则会合进旧分支。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
