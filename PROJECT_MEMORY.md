@@ -153,7 +153,7 @@ Current verification baseline:
   能動分岐格离开时不转罗针盘是本项目定的，没有抓包：`sortie-compass-rashin-flag.md`。
 - [2026-10-12] 敌方空母的夜战：`carrier-night-air-attack.md` 的 Enemy carriers。取值 3 的轻空母看的是**玩家**的探照灯，#55 原文写反了。
 
-- [2026-10-14] 季常任务在 3/6/9/12 月 1 日 05:00 JST 重置；年常的 `label_type` 100+N 即第 N 月重置（KC3Kai `QuestManager.js` repeatableTypes）。代码待改（#112）。
+- [2026-10-14] 季常/年常重置月（`label_type` 100+N）与 928 以标签为准的取舍：`quest.md` 的 Quest lifecycle。
 - [2026-10-14] kcanotify 的 `total-fp` 是对空合计，27 是护卫空母（`cve_ids`），来源见 #116 #117；改修、Bw1、远征列表的计数规则已入 `quest.md`。客户端把 `mission` 列表里没有的远征置 -1（`main.decoded.js:15821`）。
 
 ## Failed Attempts / Pitfalls
@@ -165,7 +165,7 @@ Current verification baseline:
 | 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方在这些阶段仍打两支 deck，切片会连带砍掉敌方目标池。须按船过滤。 | session 2026-09-21 |
 | Grepping `test result:` to verify tests misses failures — a FAILED target prints its own line that is easy to lose among many suites. Check the cargo exit code instead. | plan 004 U5 (2026-06-22): reported "821 passed" while 3 `sortie_battle.rs` tests were failing |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
-| `clearing_1_1_unlocks_1_2` flakiness is compass routing plus damage carrying across retries, not damage RNG (~80% of 1-1 sorties dead-end before the boss). Fix: restore fleet HP/fuel/ammo via `find_ship`/`update_ship` before each attempt. Leveling the fleet does not help. | session 2026-08-26 |
+| 1-1 sorties often dead-end before the boss (routing, not damage RNG). Retry tests restore HP/fuel/ammo via `update_ship` first; quest tests count boss battles (`event_id` 5). | session 2026-08-26, 2026-10-14 |
 | `find_ship_impl` does not filter by `profile_id`, and the deduct+mutate template `open_ship_exslot_impl` lacks an ownership check — cross-profile mutation is one copy-paste away. New find-then-mutate ops must compare `profile_id` (see `expand_hangar_slot_impl`). | session 2026-08-26 |
 | SeaORM `update()` skips `NotSet` columns, so remodel's rebuild-via-`codex.new_ship` preserves columns `KcApiShip` cannot carry. Derived output-only fields (e.g. `api_onslot_max`) must never be written back into their source increment columns. | session 2026-08-26 |
 | [2026-09-18] `net::router::version::test::test_font` writes to `./target/tmp/`, which does not exist when `CARGO_TARGET_DIR` points outside the repo. `mkdir -p target/tmp` once per clone; `cargo clean` or a new machine breaks it again. | session 2026-09-18 |
@@ -189,12 +189,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] 分支 `fix/quest-progress-events` 推送并开 PR：计划 001 + 旧远征行拆分 + 1005 语音 + 码典换 2026-09-24 版 TsunKitQuests。质量门过，1433 测试、0 ignored。未提交：`docs/agents/issue-tracker.md`、`.out-of-scope/`、计划 002～004。
+- [2026-10-14] PR #124（`fix/quest-progress-events`）已推送；计划 002（#112 #113）在叠在其上的 `fix/quest-reset-and-rewards`，本地提交、未推送。质量门过，1443 测试、0 ignored。未提交：`docs/agents/issue-tracker.md`、`.out-of-scope/`、计划 003、004。
 
 ## Next Session
 
 - [2026-10-14] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  quest：001 的 PR 合并后做 002～004（004 依赖 001），#119 另写计划放最后；#122 #123 等抓包。
+  quest：#124 合并后把 002 的 PR 改指 `main`；接着 003、004（004 依赖 001），#119 另写计划放最后；#122 #123 等抓包。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
