@@ -174,7 +174,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] #123 已合并（PR #134）。分支 `fix/quest-model-change-messages`（#122）：1160、1163 进 `extra.rs`（文案取自玩家截图，带 `api_id_from`/`api_id_to`）。fmt、clippy 过，全量 1486 过、0 ignored；未跑 code-review。
+- [2026-10-14] #123 已合并（PR #134）。分支 `fix/quest-model-change-messages`（#122）：1160、1163 进 `extra.rs`（文案取自玩家截图，带 `api_id_from`/`api_id_to`）。fmt、clippy 过，全量 1486 过、0 ignored；code-review 后给取不到装备 id 的情况补了 `error!`。
 
 ## Next Session
 

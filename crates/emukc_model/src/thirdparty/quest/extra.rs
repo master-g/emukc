@@ -120,11 +120,13 @@ pub(super) fn add_extra_to_conversion_or_exchange_bonus(
             item.api_message = Some(msg);
             // These two draw their equipment from the entry, not from the
             // client's own table (`main.decoded.js:12688`, `:12689`).
-            if matches!(quest.api_no, 1160 | 1163)
-                && let Some((from_id, to_id)) = quest.extract_model_conversion_info()
-            {
-                item.api_id_from = Some(from_id);
-                item.api_id_to = Some(to_id);
+            if matches!(quest.api_no, 1160 | 1163) {
+                if let Some((from_id, to_id)) = quest.extract_model_conversion_info() {
+                    item.api_id_from = Some(from_id);
+                    item.api_id_to = Some(to_id);
+                } else {
+                    error!("no conversion info for quest {}", quest.api_no);
+                }
             }
             b.api_type = KcApiQuestClearItemBonusType::ModelChange as i64;
         } else {
