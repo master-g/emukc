@@ -12,14 +12,17 @@ impl Kc3rdQuestRequirement {
         match self {
             Kc3rdQuestRequirement::And(conditions) => {
                 // Each expedition an `Expedition` condition lists counts on its own.
-                let units = |c: &Kc3rdQuestCondition| match c {
-                    Kc3rdQuestCondition::Expedition(exps) => {
-                        (exps.len(), exps.iter().filter(|e| e.times == 0).count())
-                    }
-                    _ => (1, usize::from(c.is_satisfied())),
-                };
-                let (total, completed) =
-                    conditions.iter().map(units).fold((0, 0), |(t, d), (ct, cd)| (t + ct, d + cd));
+                let (total, completed) = conditions
+                    .iter()
+                    .map(|c| match c {
+                        Kc3rdQuestCondition::Expedition(exps) => {
+                            (exps.len(), exps.iter().filter(|e| e.times == 0).count())
+                        }
+                        _ => (1, usize::from(c.is_satisfied())),
+                    })
+                    .fold((0, 0), |(total, completed), (units, done)| {
+                        (total + units, completed + done)
+                    });
                 progress_from_ratio(completed, total)
             }
             Kc3rdQuestRequirement::OneOf(conditions) => {

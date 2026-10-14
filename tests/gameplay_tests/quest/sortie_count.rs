@@ -73,7 +73,10 @@ mod tests {
         let battles = sail_1_1(&context, pid).await;
 
         assert!(battles >= 2, "1-1 is fought twice on the way to its boss, got {battles}");
-        assert_eq!(remaining(&context, pid, 214).await[0], 35);
+        let remaining = remaining(&context, pid, 214).await;
+        assert_eq!(remaining[0], 35);
+        // "Reach the boss 24 times" still counts the boss battle, as before.
+        assert_eq!(remaining[1], 23);
     }
 
     #[tokio::test]

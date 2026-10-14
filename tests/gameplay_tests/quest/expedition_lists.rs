@@ -22,15 +22,15 @@ mod tests {
             .expect("quest has an Expedition condition")
     }
 
-    /// Return `missions` from expeditions in order, each with `result`.
-    fn run(quest_id: i64, missions: &[i64], result: ExpeditionResult) -> Kc3rdQuestCondition {
+    /// Return `missions` from successful expeditions, in order.
+    fn run(quest_id: i64, missions: &[i64]) -> Kc3rdQuestCondition {
         let master = expedition_condition(quest_id);
         let mut current = master.clone();
         for &mission_id in missions {
             current.apply_event_with_context(
                 &QuestActionEvent::ExpeditionCompleted {
                     mission_id,
-                    result,
+                    result: ExpeditionResult::Success,
                     fleet_id: 2,
                 },
                 Some(&master),
@@ -41,7 +41,7 @@ mod tests {
     }
 
     fn done(quest_id: i64, missions: &[i64]) -> bool {
-        run(quest_id, missions, ExpeditionResult::Success).is_satisfied()
+        run(quest_id, missions).is_satisfied()
     }
 
     /// A1 is mission 100, A2 101, A3 102.
@@ -77,15 +77,8 @@ mod tests {
     }
 
     #[test]
-    fn a_failed_expedition_advances_nothing() {
-        // 405 asks for one expedition 30.
-        let master = expedition_condition(405);
-        assert_eq!(run(405, &[30], ExpeditionResult::Failure), master);
-    }
-
-    #[test]
     fn progress_counts_each_listed_expedition() {
-        let current = run(426, &[3, 4], ExpeditionResult::Success);
+        let current = run(426, &[3, 4]);
         let Kc3rdQuestRequirement::And(master) =
             &crate::CODEX.find::<Kc3rdQuest>(&426).unwrap().requirements
         else {

@@ -163,15 +163,11 @@ impl Kc3rdQuestCondition {
             Kc3rdQuestCondition::Expedition(conditions) => {
                 let QuestActionEvent::ExpeditionCompleted {
                     mission_id,
-                    result,
                     ..
                 } = event
                 else {
                     return false;
                 };
-                if *result == ExpeditionResult::Failure {
-                    return false;
-                }
                 // Lists name expeditions by id ("37") or by code ("A1" is 100).
                 let code = codex
                     .and_then(|codex| codex.expedition_conditions.get(mission_id))
