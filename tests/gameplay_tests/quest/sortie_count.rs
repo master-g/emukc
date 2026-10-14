@@ -45,19 +45,22 @@ mod tests {
             .collect()
     }
 
-    /// Sail 1-1 to its end, fighting every battle cell; returns the battles fought.
-    async fn sail_1_1(context: &crate::TestContext, pid: i64) -> i64 {
+    /// Sail 1-1 to its end, fighting every battle cell; returns the battles
+    /// fought and how many of them were at the boss. The route is random: a
+    /// sortie can end on a dead end without reaching the boss.
+    async fn sail_1_1(context: &crate::TestContext, pid: i64) -> (i64, i64) {
         let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
         let (mut event_id, mut has_next) = (start.event_id, start.has_next);
-        let mut battles = 0;
+        let (mut battles, mut bosses) = (0, 0);
         loop {
             if matches!(event_id, 4 | 5) {
                 context.sortie_battle(pid, 1).await.unwrap();
                 context.sortie_battle_result(pid).await.unwrap();
                 battles += 1;
+                bosses += i64::from(event_id == 5);
             }
             if !has_next {
-                return battles;
+                return (battles, bosses);
             }
             let next = context.next_sortie(pid, None).await.unwrap();
             (event_id, has_next) = (next.event_id, next.has_next);
@@ -70,13 +73,13 @@ mod tests {
         let pid = new_profile(&context, "several").await;
         taken(&context, pid, 214).await;
 
-        let battles = sail_1_1(&context, pid).await;
+        let (battles, bosses) = sail_1_1(&context, pid).await;
 
-        assert!(battles >= 2, "1-1 is fought twice on the way to its boss, got {battles}");
+        assert!(battles >= 2, "1-1 is fought at least twice, got {battles}");
         let remaining = remaining(&context, pid, 214).await;
         assert_eq!(remaining[0], 35);
-        // "Reach the boss 24 times" still counts the boss battle, as before.
-        assert_eq!(remaining[1], 23);
+        // "Reach the boss 24 times" still counts boss battles, as before.
+        assert_eq!(remaining[1], 24 - bosses);
     }
 
     #[tokio::test]
@@ -119,7 +122,7 @@ mod tests {
         assert_eq!(remaining(&context, pid, 210).await, vec![10], "a start alone is no battle");
         context.sortie_goback_port(pid).await.unwrap();
 
-        let battles = sail_1_1(&context, pid).await;
+        let (battles, _) = sail_1_1(&context, pid).await;
         assert_eq!(remaining(&context, pid, 210).await, vec![10 - battles]);
 
         taken(&context, pid, 216).await;
