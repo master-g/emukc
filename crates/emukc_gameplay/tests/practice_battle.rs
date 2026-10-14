@@ -232,6 +232,9 @@ async fn practice_battle_and_result_flow_updates_rival_status() {
     let configured_ship =
         ship::Entity::find_by_id(ship.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
 
+    // Base exp can now be 0 (a lone level-1 flagship), which would not level the
+    // ship up; seeding pins the rivals.
+    emukc_crypto::rng::seed(WIN_RANK_SEED);
     let rivals = context.get_practice_rivals(pid).await.unwrap();
     let enemy_id = rivals.rivals[0].id;
 
@@ -244,6 +247,7 @@ async fn practice_battle_and_result_flow_updates_rival_status() {
     assert_eq!(battle.api_f_nowhps[0], (before_ship.hp_now - 3).max(1));
 
     let result = context.practice_battle_result(pid).await.unwrap();
+    emukc_crypto::rng::reseed_from_entropy();
     assert!(!result.api_win_rank.is_empty());
     assert_eq!(result.api_enemy_info.api_level, rivals.rivals[0].level);
 
@@ -583,6 +587,7 @@ async fn practice_base_exp_reads_the_rivals_first_two_ships() {
     emukc_crypto::rng::seed(WIN_RANK_SEED);
     let rivals = context.get_practice_rivals(pid).await.unwrap().rivals;
     let rival = rivals.iter().max_by_key(|rival| rival.details.ships.len()).unwrap().clone();
+    assert!(rival.details.ships.len() > 2);
     // Flagship and second ship at Lv60 (543 in the wiki table); later ships do not count.
     let rows = rival_ship::Entity::find()
         .filter(rival_ship::Column::RivalId.eq(rival.id))
@@ -610,6 +615,5 @@ async fn practice_base_exp_reads_the_rivals_first_two_ships() {
         "D" => 304,
         _ => 217,
     };
-    assert!(rival.details.ships.len() > 2);
     assert_eq!(result.api_get_base_exp, expected, "rank {}", result.api_win_rank);
 }

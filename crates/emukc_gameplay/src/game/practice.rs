@@ -323,6 +323,7 @@ where
             let ships = profile::practice::rival_ship::Entity::find()
                 .filter(profile::practice::rival_ship::Column::ProfileId.eq(profile_id))
                 .filter(profile::practice::rival_ship::Column::RivalId.eq(rival.id))
+                // Fleet order: the flagship has the lowest id.
                 .order_by_asc(profile::practice::rival_ship::Column::Id)
                 .all(c)
                 .await?;
