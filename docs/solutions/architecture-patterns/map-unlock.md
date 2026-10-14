@@ -39,6 +39,20 @@ prerequisite (always available).
 - First map always available: map 1-1 has no prerequisite and is always
   unlocked.
 
+### Maps that also wait on a quest
+
+6-5 needs 6-4 cleared **and** quest 647 (中部海域「基地航空隊」展開！) claimed.
+The prerequisite table above stays structural; `QUEST_GATED_MAPS` in
+`crates/emukc_gameplay/src/game/map.rs` holds the quest gate, and both unlock
+paths check it:
+
+- Clearing 6-4 before 647 is claimed unlocks 7-1 only; after it, 6-5 as well.
+- Claiming 647 with 6-4 already cleared unlocks 6-5 and sends `api_c_flag: 1`
+  on its air base bonus, which brings up the client's 6-5 notice; otherwise
+  the flag is `0`.
+
+Evidence and the inferred `c_flag` rule: `docs/map/data-dependencies.md` § 5.
+
 ### Per-player unlock state tracked in database
 
 The system SHALL track map unlock state per player via an `unlocked` boolean
