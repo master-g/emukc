@@ -1,5 +1,6 @@
 //! Quest system integration tests
 
+mod claim_rewards;
 mod composition;
 mod equipment;
 mod event_matching;
