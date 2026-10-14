@@ -537,3 +537,34 @@ async fn practice_battle_result_without_prior_battle_returns_entry_not_found() {
     let err = context.practice_battle_result(pid).await.unwrap_err();
     assert!(matches!(err, GameplayError::EntryNotFound(_)), "expected EntryNotFound, got {err:?}");
 }
+
+/// Rivals follow the player's HQ level and practice group, and a multi-ship
+/// rival still fights to a result (#102).
+#[tokio::test]
+async fn second_group_rivals_sit_near_the_player_and_fight_with_full_fleets() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+
+    let row = profile::Entity::find_by_id(pid).one(context.db.as_ref()).await.unwrap().unwrap();
+    let mut am = row.into_active_model();
+    am.hq_level = ActiveValue::Set(50);
+    am.update(context.db.as_ref()).await.unwrap();
+    context.change_practice_matching_kind(pid, 1).await.unwrap();
+
+    let ship = context.add_ship(pid, 951).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+
+    emukc_crypto::rng::seed(WIN_RANK_SEED);
+    let rivals = context.get_practice_rivals(pid).await.unwrap().rivals;
+    let rival = rivals.iter().max_by_key(|rival| rival.details.ships.len()).unwrap().clone();
+    context.practice_battle(pid, 1, 1, rival.id).await.unwrap();
+    let result = context.practice_battle_result(pid).await.unwrap();
+    emukc_crypto::rng::reseed_from_entropy();
+
+    for rival in &rivals {
+        assert!((40..=60).contains(&rival.level), "H={}", rival.level);
+    }
+    assert!(rival.details.ships.len() > 1);
+    assert!(!result.api_win_rank.is_empty());
+    assert_eq!(result.api_enemy_info.api_level, rival.level);
+}
