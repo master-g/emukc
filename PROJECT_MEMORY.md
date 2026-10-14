@@ -187,12 +187,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] 分支 `feat/practice-rivals`（#102，计划 006）：对手按玩家 HQ 与组别生成，按 balance 流程处理经验落差（用户选）。fmt、clippy 过，全量 1477 过、0 ignored；code-review 无实质问题。PR #131。
+- [2026-10-14] #102 已合并（PR #131）。分支 `feat/practice-exp`（#109，计划 007）：演习经验改读对手旗舰与二号舰（wikiwiki 表 361/362 格一致），补评价补正；用户接受低/高等级经验下降。fmt、clippy 过，全量 1481 过、0 ignored；code-review 无实质问题。PR #132。
 
 ## Next Session
 
 - [2026-10-14] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  quest：#122 #123 等抓包。#102 是 PR #131；之后 #109 用新对手等级核演习经验公式（规则见 `practice-rivals.md`）。叠放 PR 合并前先把上层 PR 改指 `main`。
+  quest：#122 #123 等抓包。#109 是 PR #132（规则见 `practice-rivals.md`）。演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。

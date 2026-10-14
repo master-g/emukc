@@ -236,6 +236,7 @@ impl Ctx {
             let (ship_exp, ship_lvup) = calculate_ship_exp(
                 &friend_ships,
                 base_exp,
+                existing.win_rank,
                 existing.mvp,
                 ct_flagship,
                 codex.game_cfg.exp.ct_exp_boost,
@@ -322,6 +323,8 @@ where
             let ships = profile::practice::rival_ship::Entity::find()
                 .filter(profile::practice::rival_ship::Column::ProfileId.eq(profile_id))
                 .filter(profile::practice::rival_ship::Column::RivalId.eq(rival.id))
+                // Fleet order: the flagship has the lowest id.
+                .order_by_asc(profile::practice::rival_ship::Column::Id)
                 .all(c)
                 .await?;
 
@@ -393,6 +396,8 @@ where
     let ships = profile::practice::rival_ship::Entity::find()
         .filter(profile::practice::rival_ship::Column::ProfileId.eq(profile_id))
         .filter(profile::practice::rival_ship::Column::RivalId.eq(rival_id))
+        // Fleet order: the flagship has the lowest id.
+        .order_by_asc(profile::practice::rival_ship::Column::Id)
         .all(c)
         .await?;
 
@@ -1006,17 +1011,18 @@ mod tests {
         }
     }
 
-    /// Balance regression: the five rivals used to sit at HQ 115-119, a base of
-    /// 1035-1071 whatever the player's level (plan 2026-10-14-006).
+    /// Balance regression: base exp reads the rivals' first two ships (plan
+    /// 2026-10-14-007). Before, it was the rival's HQ level × 9 clamped to
+    /// 100-1200: 100-270 at P=10, 540-720 (first) and 450-630 (second) at P=60.
     #[test]
     fn practice_base_exp_follows_the_player_level() {
         let base_exps = |hq_level, group| {
             batches(hq_level, group).flatten().map(|rival| calculate_base_exp(&rival))
         };
         for group in GROUPS {
-            assert!(base_exps(10, group).all(|exp| (100..=270).contains(&exp)));
+            assert!(base_exps(10, group).all(|exp| (0..=508).contains(&exp)));
         }
-        assert!(base_exps(60, RivalType::FirstGroup).all(|exp| (540..=720).contains(&exp)));
-        assert!(base_exps(60, RivalType::SecondGroup).all(|exp| (450..=630).contains(&exp)));
+        assert!(base_exps(60, RivalType::FirstGroup).all(|exp| (435..=567).contains(&exp)));
+        assert!(base_exps(60, RivalType::SecondGroup).all(|exp| (300..=555).contains(&exp)));
     }
 }

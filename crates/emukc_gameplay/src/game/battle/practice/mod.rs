@@ -40,6 +40,8 @@ pub struct PracticeBattleResultSnapshot {
     pub get_exp: i64,
     pub member_lv: i64,
     pub member_exp: i64,
+    /// Before the win-rank correction, so a night battle can rescore with its
+    /// own rank; `api_get_base_exp` is the corrected value.
     pub get_base_exp: i64,
     pub mvp: i64,
     pub get_ship_exp: Vec<i64>,
