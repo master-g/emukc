@@ -184,7 +184,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] `main`：#101 已合并（PR #108），`init` 仍读时钟（有意未改，见 `quest.md`）；#102 未分拣，等方案。
+- [2026-10-14] `main`：#101 已合并（PR #108），`init` 仍读时钟（有意未改，见 `quest.md`）；#102 已分拣为 ready-for-agent（方案见 issue 里的 Agent Brief），演习经验公式拆到 #109。
 
 ## Next Session
 
