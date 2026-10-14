@@ -931,6 +931,13 @@ mod tests {
         }
     }
 
+    /// Batches for P = 1, 60 and 120 in every group.
+    fn all_batches() -> impl Iterator<Item = Vec<Rival>> {
+        [1, 60, 120]
+            .into_iter()
+            .flat_map(|hq_level| GROUPS.into_iter().flat_map(move |group| batches(hq_level, group)))
+    }
+
     fn clamped(lo: i64, hi: i64) -> std::ops::RangeInclusive<i64> {
         lo.clamp(1, 120)..=hi.clamp(1, 120)
     }
@@ -953,7 +960,7 @@ mod tests {
                             let extra = CODEX.ship_extra.get(&ship.mst_id).unwrap_or_else(|| {
                                 panic!("{} is not a ship a player can own", ship.mst_id)
                             });
-                            let min_level = extra.remodel.as_ref().map_or(1, |r| r.level);
+                            let min_level = extra.remodel.as_ref().map_or(1, |r| r.level.max(1));
                             assert!(
                                 ship.level >= min_level,
                                 "{} at level {} is below its remodel level {min_level}",
@@ -969,7 +976,7 @@ mod tests {
 
     #[test]
     fn a_rival_fleet_never_holds_two_forms_of_one_ship() {
-        for rivals in batches(120, RivalType::All) {
+        for rivals in all_batches() {
             for rival in &rivals {
                 let ships = &rival.details.ships;
                 for (i, ship) in ships.iter().enumerate() {
@@ -989,7 +996,7 @@ mod tests {
 
     #[test]
     fn rivals_are_named_from_the_lists_and_their_flagship() {
-        for rivals in batches(60, RivalType::All) {
+        for rivals in all_batches() {
             for rival in &rivals {
                 assert!(RIVAL_NAMES.contains(&rival.name.as_str()), "{}", rival.name);
                 assert!(RIVAL_COMMENTS.contains(&rival.comment.as_str()), "{}", rival.comment);
