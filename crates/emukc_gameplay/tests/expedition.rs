@@ -498,6 +498,41 @@ async fn expedition_type1_great_success_applies_reward_multipliers() {
 }
 
 #[tokio::test]
+async fn landing_craft_aboard_on_return_raise_the_reward() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+
+    let mut ship_ids = Vec::new();
+    for idx in 0..6 {
+        let level_req = if idx == 0 {
+            6
+        } else {
+            1
+        };
+        let ship_id = add_ship_with_type(&context, pid, 2, level_req).await;
+        set_ship_condition(&context, ship_id, 50).await;
+        ship_ids.push(ship_id);
+    }
+    set_fleet_ships(&context, pid, 1, &ship_ids).await;
+
+    context.start_expedition(pid, 1, 8).await.unwrap();
+    // Loaded while the fleet is away: the bonus is read on return.
+    for ship_id in &ship_ids[..4] {
+        let daihatsu = context.add_slot_item(pid, 68, 0, 0).await.unwrap();
+        context.set_slot_item(*ship_id, 0, daihatsu.api_id).await.unwrap();
+    }
+    for ship_id in &ship_ids {
+        set_ship_condition(&context, *ship_id, 43).await;
+    }
+    make_fleet_ready_for_result(&context, pid, 1).await;
+
+    let result = context.complete_expedition(pid, 1).await.unwrap();
+    assert_eq!(result.result, ExpeditionResult::GreatSuccess);
+    // [50, 100, 50, 50] × 1.5 × 1.2 for four 大発動艇.
+    assert_eq!(result.resource_reward, Some([90, 180, 90, 90]));
+}
+
+#[tokio::test]
 async fn initial_ship_morale_does_not_jump_on_first_read() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;

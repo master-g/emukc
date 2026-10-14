@@ -288,8 +288,10 @@ impl Ctx {
         let (profile, ship_exp, ship_exp_after, resource_reward, item_rewards) =
             if result == ExpeditionResult::Success || result == ExpeditionResult::GreatSuccess {
                 let admiral_exp = calculate_expedition_admiral_exp(expedition_condition, result);
+                // Read on return, like the requirements.
+                let bonus = fleet_landing_craft_bonus(&tx, &mission_ships).await?;
                 let resource_reward =
-                    calculate_expedition_resource_reward(expedition_condition, result);
+                    calculate_expedition_resource_reward(expedition_condition, result, &bonus);
                 let item_rewards = grant_expedition_rewards(
                     &tx,
                     codex,
@@ -879,17 +881,121 @@ fn calculate_failed_expedition_admiral_exp(expedition_condition: &Kc3rdExpeditio
     ((expedition_condition.admiral_exp as f64) * 0.3).floor() as i64
 }
 
+/// Landing craft and their resource bonus in basis points (wikiwiki 大発動艇,
+/// `KC3Kai` `calcLandingCraftInfo`). Listed by id: equipment type 24 also holds
+/// craft that give nothing. New craft have to be added by hand.
+const LANDING_CRAFT_RATES: [(i64, i64); 11] = [
+    (68, 500),
+    (193, 500),
+    (526, 500),
+    (525, 400),
+    (409, 300),
+    (576, 300),
+    (166, 200),
+    (449, 200),
+    (436, 200),
+    (408, 200),
+    (167, 100),
+];
+const DAIHATSU_MST_ID: i64 = 68;
+const TOKU_DAIHATSU_MST_ID: i64 = 193;
+const KINU_KAI_NI_MST_ID: i64 = 487;
+/// Cap on the 特大発 bonus in basis points, by 特大発 count (up to 3, 4 or
+/// more) and 大発動艇 count (0 to 4 or more).
+const TOKU_CAPS: [[i64; 5]; 2] = [[500, 500, 520, 540, 540], [540, 560, 580, 590, 600]];
+
+/// The fleet's landing craft bonus to resource rewards, in basis points.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+struct LandingCraftBonus {
+    /// Base bonus: each craft's rate plus Kinu Kai Ni, capped at 20%.
+    b1_bp: i64,
+    /// Improvement levels of the craft counted in `b1_bp`.
+    star_sum: i64,
+    star_count: i64,
+    /// 特大発動艇 bonus, rounded separately.
+    b2_bp: i64,
+}
+
+/// The bonus from the fleet's equipment, given as (`mst_id`, improvement level).
+fn landing_craft_bonus(
+    slots: impl IntoIterator<Item = (i64, i64)>,
+    has_kinu_kai_ni: bool,
+) -> LandingCraftBonus {
+    let mut rate_sum = if has_kinu_kai_ni {
+        500
+    } else {
+        0
+    };
+    let (mut star_sum, mut star_count, mut toku, mut daihatsu) = (0, 0, 0, 0);
+    for (mst_id, level) in slots {
+        let Some(&(_, rate)) = LANDING_CRAFT_RATES.iter().find(|(id, _)| *id == mst_id) else {
+            continue;
+        };
+        rate_sum += rate;
+        star_sum += level;
+        star_count += 1;
+        toku += i64::from(mst_id == TOKU_DAIHATSU_MST_ID);
+        daihatsu += i64::from(mst_id == DAIHATSU_MST_ID);
+    }
+    let cap = TOKU_CAPS[usize::from(toku >= 4)][daihatsu.min(4) as usize];
+    LandingCraftBonus {
+        b1_bp: rate_sum.min(2000),
+        star_sum,
+        star_count,
+        b2_bp: (200 * toku).min(cap),
+    }
+}
+
+async fn fleet_landing_craft_bonus<C>(
+    c: &C,
+    fleet_ships: &[ship::Model],
+) -> Result<LandingCraftBonus, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    let slot_ids: Vec<i64> = fleet_ships
+        .iter()
+        .flat_map(|ship| {
+            [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
+        })
+        .filter(|slot_id| *slot_id > 0)
+        .collect();
+    let slot_items = if slot_ids.is_empty() {
+        Vec::new()
+    } else {
+        slot_item::Entity::find().filter(slot_item::Column::Id.is_in(slot_ids)).all(c).await?
+    };
+    let has_kinu_kai_ni = fleet_ships.iter().any(|ship| ship.mst_id == KINU_KAI_NI_MST_ID);
+
+    Ok(landing_craft_bonus(
+        slot_items.iter().map(|item| (item.mst_id, item.level)),
+        has_kinu_kai_ni,
+    ))
+}
+
 fn calculate_expedition_resource_reward(
     expedition_condition: &Kc3rdExpeditionCondition,
     result: ExpeditionResult,
+    bonus: &LandingCraftBonus,
 ) -> [i64; 4] {
-    match result {
-        ExpeditionResult::GreatSuccess => expedition_condition
-            .resource_reward
-            .map(|amount| ((amount as f64) * 1.5).floor() as i64),
-        ExpeditionResult::Success => expedition_condition.resource_reward,
-        ExpeditionResult::Failure => [0; 4],
-    }
+    // ⌊R·S⌋ + ⌊R·S·(B1 + B★)⌋ + ⌊R·S·B2⌋ with B★ = B1 × average stars / 100,
+    // in integers so a rate like 0.29 cannot land just under a whole number.
+    let (s_num, s_den) = match result {
+        ExpeditionResult::GreatSuccess => (3, 2),
+        ExpeditionResult::Success => (1, 1),
+        ExpeditionResult::Failure => return [0; 4],
+    };
+    let (star_num, star_den) = if bonus.star_count > 0 {
+        (100 * bonus.star_count + bonus.star_sum, 100 * bonus.star_count)
+    } else {
+        (1, 1)
+    };
+    expedition_condition.resource_reward.map(|amount| {
+        let rs = amount * s_num;
+        rs / s_den
+            + rs * bonus.b1_bp * star_num / (s_den * 10_000 * star_den)
+            + rs * bonus.b2_bp / (s_den * 10_000)
+    })
 }
 
 /// Take each ship's launch cost from its fuel and ammo, down to 0 at most: a
@@ -1347,9 +1453,8 @@ mod tests {
         assert_eq!(great_success_type("8"), GreatSuccessType::Type1);
     }
 
-    #[test]
-    fn great_success_reward_multipliers_are_applied() {
-        let expedition_condition = Kc3rdExpeditionCondition {
+    fn condition_with_reward(resource_reward: [i64; 4]) -> Kc3rdExpeditionCondition {
+        Kc3rdExpeditionCondition {
             api_id: 8,
             code: "8".to_string(),
             area: 1,
@@ -1361,7 +1466,7 @@ mod tests {
                 zh_tw: "test".to_string(),
             },
             time_minutes: 180,
-            resource_reward: [50, 100, 50, 50],
+            resource_reward,
             item_rewards: vec![],
             admiral_exp: 120,
             fleet_exp: 140,
@@ -1377,12 +1482,18 @@ mod tests {
                 total_los: None,
                 drum_requirements: None,
             },
-        };
+        }
+    }
+
+    #[test]
+    fn great_success_reward_multipliers_are_applied() {
+        let expedition_condition = condition_with_reward([50, 100, 50, 50]);
 
         assert_eq!(
             calculate_expedition_resource_reward(
                 &expedition_condition,
-                ExpeditionResult::GreatSuccess
+                ExpeditionResult::GreatSuccess,
+                &LandingCraftBonus::default(),
             ),
             [75, 150, 75, 75]
         );
@@ -1390,6 +1501,56 @@ mod tests {
             calculate_expedition_admiral_exp(&expedition_condition, ExpeditionResult::GreatSuccess),
             240
         );
+    }
+
+    /// Success and great-success rewards for base amount `r` with `slots`
+    /// (`mst_id`, improvement level) aboard.
+    fn rewards_with(r: i64, slots: &[(i64, i64)], has_kinu_kai_ni: bool) -> (i64, i64) {
+        let condition = condition_with_reward([r; 4]);
+        let bonus = landing_craft_bonus(slots.iter().copied(), has_kinu_kai_ni);
+        let reward = |result| calculate_expedition_resource_reward(&condition, result, &bonus)[0];
+        (reward(ExpeditionResult::Success), reward(ExpeditionResult::GreatSuccess))
+    }
+
+    #[test]
+    fn no_landing_craft_gives_the_base_reward() {
+        assert_eq!(rewards_with(35, &[], false), (35, 52));
+    }
+
+    #[test]
+    fn the_landing_craft_bonus_is_floored_apart_from_the_base() {
+        // 52.5 + 10.5: three floors give 62, one floor over the sum would give 63.
+        assert_eq!(rewards_with(35, &[(68, 0); 4], false), (42, 62));
+    }
+
+    #[test]
+    fn toku_daihatsu_adds_a_separate_bonus() {
+        let slots = [(193, 4), (193, 4), (68, 10), (68, 10)];
+        assert_eq!(rewards_with(100, &slots, false), (125, 188));
+    }
+
+    #[test]
+    fn the_base_bonus_caps_at_twenty_percent_and_the_toku_bonus_by_daihatsu_count() {
+        let slots = [(193, 10), (193, 10), (193, 10), (193, 10), (68, 10), (68, 10)];
+        assert_eq!(rewards_with(100, &slots, true), (127, 191));
+    }
+
+    #[test]
+    fn the_improvement_bonus_scales_with_the_base_bonus() {
+        // kcanotify's flat 0.2% per average star would give 1030.
+        assert_eq!(rewards_with(1000, &[(167, 10)], false), (1011, 1516));
+    }
+
+    #[test]
+    fn the_toku_cap_counts_only_daihatsu() {
+        // kcanotify also counts 166 and 167 toward the cap and would give 1242.
+        let slots = [(193, 0), (193, 0), (193, 0), (166, 0), (166, 0)];
+        assert_eq!(rewards_with(1000, &slots, false), (1240, 1860));
+    }
+
+    #[test]
+    fn craft_without_a_rate_stay_out_of_the_star_average() {
+        assert_eq!(rewards_with(100, &[(68, 0), (230, 10)], false), (105, 157));
     }
 
     #[test]
