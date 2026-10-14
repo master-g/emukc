@@ -111,4 +111,26 @@ mod tests {
             assert_eq!((item.api_id_from, item.api_id_to), (Some(9999), Some(9999)));
         }
     }
+
+    /// The 震電 conversions play the client's model-change animation, which
+    /// takes its second line and its equipment from this entry (#122). The
+    /// lines are read off players' screenshots.
+    #[test]
+    fn shinden_conversions_answer_with_a_model_change_entry() {
+        let codex = load_codex();
+        for (quest_id, from, to, message) in [
+            (1160, 546, 547, "「震電改二(艦戦型改二)」実戦配備、完了せり！"),
+            (1163, 547, 548, "「震電改三(試製 噴式震電)」開発成功！"),
+        ] {
+            let rewards = get_quest_rewards(&codex, quest_id, None).unwrap();
+            let entry = rewards
+                .api_bounus
+                .iter()
+                .find(|b| b.api_type == 15)
+                .unwrap_or_else(|| panic!("quest {quest_id}: {rewards:?}"));
+            let item = entry.api_item.as_ref().unwrap();
+            assert_eq!((item.api_id_from, item.api_id_to), (Some(from), Some(to)), "{quest_id}");
+            assert_eq!(item.api_message.as_deref(), Some(message), "{quest_id}");
+        }
+    }
 }

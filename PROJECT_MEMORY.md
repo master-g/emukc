@@ -174,11 +174,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] 分支 `fix/6-5-unlock`（#123，计划 008）：6-5 要 6-4 通关且 647 已领，领 647 时开了 6-5 才发 `api_c_flag: 1`。fmt、clippy 过，全量 1485 过、0 ignored；code-review 后把 `c_flag` 收窄到 647（不再发给 966）；未跑 `make headless-check SCENARIO=air_raid_6_5`。
+- [2026-10-14] #123 已合并（PR #134）。分支 `fix/quest-model-change-messages`（#122）：1160、1163 进 `extra.rs`（文案取自玩家截图，带 `api_id_from`/`api_id_to`）。fmt、clippy 过，全量 1486 过、0 ignored；未跑 code-review。
 
 ## Next Session
 
-- [2026-10-14] #123 的 PR 合并后修 #122（新分支）：只需 1160、1163 进 `extra.rs`，文案与核对结果写进 issue；1154/1155/1158 客户端自播空文案，653 的动画分支属于 2017 年节分旧任务。随后改掉两个 issue 下「拿不到」的评论。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-14] #122 开 PR（`Closes #122`），PR 里写明：1154/1155/1158 客户端自播空文案，653 的动画分支属于 2017 年节分旧任务，均无需服务器改动。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。

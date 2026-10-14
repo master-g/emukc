@@ -16,7 +16,7 @@ pub(super) fn add_extra_to_conversion_or_exchange_bonus(
     } else if [
         620, 621, 639, 641, 642, 643, 644, 645, 649, 650, 654, 656, 658, 666, 668, 669, 670, 671,
         672, 678, 683, 684, 685, 686, 687, 695, 696, 698, 1103, 1104, 1106, 1108, 1109, 1111, 1113,
-        1118, 1123, 1127, 1128, 1129, 1132, 1133, 1134, 1137, 1142, 1143, 1145, 1153,
+        1118, 1123, 1127, 1128, 1129, 1132, 1133, 1134, 1137, 1142, 1143, 1145, 1153, 1160, 1163,
     ]
     .contains(&quest.api_no)
     {
@@ -109,6 +109,8 @@ pub(super) fn add_extra_to_conversion_or_exchange_bonus(
             1143 => format!("金剛型改装丙型主砲「{}」開発完了！", to_mst.api_name),
             1145 => format!("潜水艦搭載用水機「{}」増加配備！", to_mst.api_name),
             1153 => format!("「{}」増備完了！", to_mst.api_name),
+            1160 => format!("「{}」実戦配備、完了せり！", to_mst.api_name),
+            1163 => format!("「{}」開発成功！", to_mst.api_name),
             _ => {
                 error!("missing extra quest reward info for quest {}", quest.api_no);
                 return;
@@ -116,6 +118,14 @@ pub(super) fn add_extra_to_conversion_or_exchange_bonus(
         };
         if let Some(item) = b.api_item.as_mut() {
             item.api_message = Some(msg);
+            // These two draw their equipment from the entry, not from the
+            // client's own table (`main.decoded.js:12688`, `:12689`).
+            if matches!(quest.api_no, 1160 | 1163)
+                && let Some((from_id, to_id)) = quest.extract_model_conversion_info()
+            {
+                item.api_id_from = Some(from_id);
+                item.api_id_to = Some(to_id);
+            }
             b.api_type = KcApiQuestClearItemBonusType::ModelChange as i64;
         } else {
             error!("no bonus item for quest {}", quest.api_no);
