@@ -8,4 +8,5 @@ mod improvement;
 mod limited_day;
 mod progress;
 mod reward;
+mod sortie_count;
 mod weekly_reset;

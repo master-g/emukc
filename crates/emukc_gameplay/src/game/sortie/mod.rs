@@ -56,7 +56,7 @@ use super::{
     },
     map_progress::resolve_record_stage_id,
     map_route::cell_has_routing_outgoing,
-    quest::observe::observe,
+    quest::observe::{GameplayOutcome, observe},
     ship::exp::calculate_admiral_exp,
     sortie_result::{
         advance_stage_on_reach, calculate_sortie_deck_rewards, settle_sortie_battle_impl,
@@ -298,6 +298,12 @@ impl Ctx {
             &fleet_ships,
         )
         .await?;
+        let outcome = GameplayOutcome::SortieStarted {
+            maparea_id,
+            mapinfo_no,
+            fleet_id: deck_id,
+        };
+        observe(&tx, codex, profile_id, &[outcome]).await?;
         tx.commit().await?;
         self.sortie_store
             .as_ref()

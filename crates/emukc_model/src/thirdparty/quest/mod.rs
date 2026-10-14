@@ -497,6 +497,12 @@ pub struct Kc3rdQuestConditionSortie {
 
     /// how many times to sortie
     pub times: i64,
+
+    /// Counted once when a sortie starts instead of per battle. Only Bw1's
+    /// first requirement has it; tsunkit's data cannot tell it apart from
+    /// Bd2's, so the parser sets it by quest id.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub count_at_sortie_start: bool,
 }
 
 impl Kc3rdQuestRequirement {

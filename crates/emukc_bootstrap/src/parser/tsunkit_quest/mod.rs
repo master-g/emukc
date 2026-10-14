@@ -431,7 +431,7 @@ impl TsunkitQuestValue {
         mst: &ApiManifest,
         quest_info: &BTreeMap<i64, KccpQuestInfo>,
     ) -> Result<Option<Kc3rdQuest>, ParseError> {
-        let requirements = match self.requirements.to_requirements(mst) {
+        let mut requirements = match self.requirements.to_requirements(mst) {
             Ok(req) => req,
             Err(ParseError::UnknownCategory) => {
                 warn!(
@@ -460,6 +460,7 @@ impl TsunkitQuestValue {
         } else {
             self.game_id
         };
+        apply_quest_overrides(game_id, &mut requirements);
 
         let default_quest_info = KccpQuestInfo::default();
         let info = quest_info.get(&game_id).unwrap_or_else(|| {
@@ -517,6 +518,23 @@ impl TsunkitQuestValue {
         }
 
         Kc3rdQuestConversionMode::None
+    }
+}
+
+/// Semantics tsunkit's data cannot express, keyed by quest id.
+fn apply_quest_overrides(game_id: i64, requirements: &mut Kc3rdQuestRequirement) {
+    let (Kc3rdQuestRequirement::And(conditions)
+    | Kc3rdQuestRequirement::OneOf(conditions)
+    | Kc3rdQuestRequirement::Sequential(conditions)) = requirements;
+
+    // Bw1's "sortie 36 times" counts sorties: KC3Kai increments 214's first
+    // requirement on `api_req_map/start`. Bd2 (216) has the same raw shape and
+    // counts battles, so this cannot be read from the data.
+    if game_id == 214
+        && let Some(Kc3rdQuestCondition::Sortie(sortie)) =
+            conditions.iter_mut().find(|c| matches!(c, Kc3rdQuestCondition::Sortie(_)))
+    {
+        sortie.count_at_sortie_start = true;
     }
 }
 

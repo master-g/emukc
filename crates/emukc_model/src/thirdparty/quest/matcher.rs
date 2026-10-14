@@ -42,6 +42,11 @@ pub enum QuestActionEvent {
         win_rank: KcSortieResultRank,
         fleet_ships: Vec<FleetShipSnapshot>,
     },
+    SortieStarted {
+        maparea_id: i64,
+        mapinfo_no: i64,
+        fleet_id: i64,
+    },
     SortieBattleCompleted {
         maparea_id: i64,
         mapinfo_no: i64,
@@ -111,6 +116,8 @@ impl Kc3rdQuestCondition {
                     QuestActionEvent::ExpeditionCompleted { .. },
                 )
                 | (Kc3rdQuestCondition::Sortie(_), QuestActionEvent::SortieBattleCompleted { .. },)
+                // Which of the two a sortie condition counts is decided by its master.
+                | (Kc3rdQuestCondition::Sortie(_), QuestActionEvent::SortieStarted { .. },)
         )
     }
 
@@ -286,6 +293,10 @@ fn apply_sortie_event(
     event: &QuestActionEvent,
     master_condition: Option<&Kc3rdQuestConditionSortie>,
 ) -> bool {
+    // The master decides, so progress rows saved before the flag existed follow it.
+    if master_condition.unwrap_or(condition).count_at_sortie_start {
+        return apply_sortie_start_event(condition, event);
+    }
     let &QuestActionEvent::SortieBattleCompleted {
         maparea_id,
         mapinfo_no,
@@ -331,6 +342,27 @@ fn apply_sortie_event(
             true
         }
     }
+}
+
+/// A sortie condition counted when the sortie starts, whatever its battles.
+fn apply_sortie_start_event(
+    condition: &mut Kc3rdQuestConditionSortie,
+    event: &QuestActionEvent,
+) -> bool {
+    // ponytail: only Bw1's first requirement is counted at start, and it names
+    // no map, so the map is not checked here; add it if a mapped one appears.
+    let &QuestActionEvent::SortieStarted {
+        fleet_id,
+        ..
+    } = event
+    else {
+        return false;
+    };
+    if condition.times <= 0 || (condition.fleet_id > 0 && condition.fleet_id != fleet_id) {
+        return false;
+    }
+    condition.times -= 1;
+    true
 }
 
 fn sortie_result_matches(
@@ -549,6 +581,7 @@ mod tests {
             map: Some(Kc3rdQuestConditionSortieMap::One(map(1, 1))),
             result: Some(KcSortieResult::Ranked(KcSortieResultRank::B)),
             times: 1,
+            count_at_sortie_start: false,
         });
 
         assert!(!condition.apply_event_with_reference(
@@ -600,6 +633,7 @@ mod tests {
             map: Some(Kc3rdQuestConditionSortieMap::One(map(1, 6))),
             result: Some(KcSortieResult::Clear),
             times: 1,
+            count_at_sortie_start: false,
         });
 
         assert!(!condition.apply_event_with_reference(
@@ -646,6 +680,7 @@ mod tests {
             map: Some(Kc3rdQuestConditionSortieMap::All(vec![map(1, 1), map(1, 2)])),
             result: Some(KcSortieResult::Ranked(KcSortieResultRank::B)),
             times: 2,
+            count_at_sortie_start: false,
         });
         let mut current = master.clone();
 
@@ -718,6 +753,7 @@ mod tests {
             ])),
             result: Some(KcSortieResult::Ranked(KcSortieResultRank::S)),
             times: 3,
+            count_at_sortie_start: false,
         })
     }
 
@@ -781,6 +817,37 @@ mod tests {
             panic!("expected sortie condition");
         };
         assert_eq!(sortie.times, 0);
+    }
+
+    #[test]
+    fn a_sortie_start_counts_only_conditions_flagged_for_it() {
+        let flagged = Kc3rdQuestCondition::Sortie(Kc3rdQuestConditionSortie {
+            times: 2,
+            count_at_sortie_start: true,
+            ..Default::default()
+        });
+        let plain = Kc3rdQuestCondition::Sortie(Kc3rdQuestConditionSortie {
+            times: 2,
+            ..Default::default()
+        });
+        let start = QuestActionEvent::SortieStarted {
+            maparea_id: 1,
+            mapinfo_no: 1,
+            fleet_id: 1,
+        };
+        let battle = boss_s(1, 1, 1);
+
+        let mut current = flagged.clone();
+        assert!(current.apply_event_with_reference(&start, Some(&flagged)));
+        assert!(!current.apply_event_with_reference(&battle, Some(&flagged)));
+
+        // A row saved without the flag still follows its master.
+        let mut old_row = plain.clone();
+        assert!(old_row.apply_event_with_reference(&start, Some(&flagged)));
+
+        let mut current = plain.clone();
+        assert!(!current.apply_event_with_reference(&start, Some(&plain)));
+        assert!(current.apply_event_with_reference(&battle, Some(&plain)));
     }
 
     #[test]

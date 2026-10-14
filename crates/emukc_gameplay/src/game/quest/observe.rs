@@ -78,6 +78,15 @@ pub(crate) enum GameplayOutcome {
         /// The fleet composition at the time of the battle.
         fleet_ships: Vec<FleetShipSnapshot>,
     },
+    /// A fleet set out on a sortie.
+    SortieStarted {
+        /// The map area ID.
+        maparea_id: i64,
+        /// The map number within the area.
+        mapinfo_no: i64,
+        /// The fleet that set out.
+        fleet_id: i64,
+    },
     /// A sortie battle was settled.
     SortieBattleCompleted {
         /// The map area ID.
@@ -169,6 +178,15 @@ impl GameplayOutcome {
                 fleet_id: *fleet_id,
                 win_rank: *win_rank,
                 fleet_ships: fleet_ships.clone(),
+            },
+            Self::SortieStarted {
+                maparea_id,
+                mapinfo_no,
+                fleet_id,
+            } => QuestActionEvent::SortieStarted {
+                maparea_id: *maparea_id,
+                mapinfo_no: *mapinfo_no,
+                fleet_id: *fleet_id,
             },
             Self::SortieBattleCompleted {
                 maparea_id,
