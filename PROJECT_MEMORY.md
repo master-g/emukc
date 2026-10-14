@@ -19,9 +19,8 @@ CLAUDE.md § Architecture；这里只记从中推不出来的：
 
 Current verification baseline:
 
-- [2026-07-30] CLI 战斗模拟测试加载真实 Codex 但强制 `god_mode=false`、`one_hit_kill=false`，所以本地
-  `.data/codex/game_config.json` 影响不到种子搜索的可重现性。见
-  `src/bin/cli/battle.rs::load_codex_without_debug_policy`。
+- [2026-07-30] CLI 战斗模拟强制关掉 `god_mode`、`one_hit_kill`，本地 `game_config.json` 不影响种子可重现性
+  （`src/bin/cli/battle.rs::load_codex_without_debug_policy`）。
 - [2026-09-19] `make update` = `bootstrap --overwrite --force-update` → decode `--sync-assets
   --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`；实测 6.3.2.1、6.3.5.0。
   `make-list` 默认策略会吸收 `cache_rules.json` 的新显式路径，不需要 `--manifest`。
@@ -42,14 +41,8 @@ Current verification baseline:
 - [2026-09-19] `SortieStore::with_profile_lock` 的五个持有者（`start_sortie`、`next_sortie`、
   `sortie_battle_result`、`sortie_sp_midnight_battle`、`sortie_battle_impl`）互不嵌套，新入口可安全取用；
   `sortie_midnight_battle` 故意不加锁（改的是 pending session 不是 `active`）。
-- [2026-09-22] 真实账号调查一轮（只读 + 两次 `set_plane`）：会话随游戏页面存亡；`api_result:100` 两种成因
-  （会话死 / 缺端点必需参数）；另有 `api_port` 签名、中隊撤下两阶段、`api_plane_info` 缺省、questlist 按 tab
-  过滤且空 tab 发 `null`、官方发 min 值、`base_air_corps` 已 404。方法与全部陷阱见
-  `docs/solutions/best-practices/live-api-investigation.md`；脚本 `scripts/fetch_live_api.py`，快照
-  `z/snapshot/2026-09-22/`，签名 `emukc_crypto::PortApiKey`。
-- [2026-09-22] 伤害值的 `.1` 是かばう（旗艦援護）标记而非击沉标记，客户端方法就叫 `isShield`；
-  逐次与按舰累计两条路径都读，官方把标记放在累计侧。かばう 转移伤害不减伤，护卫替旗舰被击沉是正常
-  结果。细节见 `docs/solutions/best-practices/live-api-investigation.md`。
+- [2026-09-22] 真实账号调查（会话随页面存亡、`api_result:100` 两种成因、questlist 按 tab 过滤等）与伤害值 `.1`
+  是かばう标记（`isShield`）：`live-api-investigation.md`；脚本 `scripts/fetch_live_api.py`，快照 `z/snapshot/2026-09-22/`。
 - [2026-10-09] 基地航空隊（全貌、数值出处、可配属机种与機数、疲劳、基地空袭、「不带航空队的战斗不多抽随机数」）：`docs/solutions/architecture-patterns/air-corps.md`。
 - [2026-09-22] `apilist.md` 是唯一端点清单：implemented 是 router 的机械投影（`kcsapi/mod.rs` 的
   `nest` + 子模块 `.route` 双向 diff 重推，不要手工审），missing 是「`docs/apilist.txt` 的 136 减 router」，
@@ -71,22 +64,16 @@ Current verification baseline:
   graph id 6299/6301/6303 同理。不要再找规则。
 - [2026-09-21] `KC3Kai/kancolle-replay` 的 `js/kcsim.js` 是第二条独立数据链（`COMBINEDCF1-4`
   与 `COMBINEDCONSTS` 复现 wikiwiki 的联合舰队表）。其精度/回避補正对本项目无用。
-- [2026-09-22] 地图数据源的三条结论，证据与数字都在 `docs/map/data-dependencies.md`：自编的地图开放
-  前置表用真实 `mapinfo` 的 33 条逐个 id 复现（测试 `prerequisites_reproduce_the_live_mapinfo_sample`）；
-  `KC3Kai/edges.json`（kcwiki `map/edge.json` 是其纯键名镜像）**不接**——675 条边 674 条只是确认我们，
-  唯一分歧 7-4 edge 3 是上游错；`real_map_start_data/` 36 份只有 34 份有效，7-4/7-5 是错误页（已跳过）。
+- [2026-09-22] 地图数据源：开放前置表对真实 `mapinfo` 逐 id 复现；`KC3Kai/edges.json` **不接**（唯一分歧是上游错）；
+  `real_map_start_data/` 的 7-4/7-5 是错误页。证据见 `docs/map/data-dependencies.md`。
 
 - [2026-09-21] `emukc_network` 下载先读完 body 再开目标文件，失败的传输不写半截文件；真正的数据丢失来自
   `bootstrap --force-update` 在下载前就删文件。
 - [2026-09-21] kccp 源里 11 条任务缺 name（256/615/616/622/627/628/630/632/633/648/652），游戏内显示
   `n/a`。上游数据缺失，不是解析器问题，补标题需要另一个数据源。
-- [2026-09-21] `extract_label_type` 的周期字母 `s`（Cs1/2/3/5/6）在 `match` 里没有分支，落到 label_type 1，
-  这是对的：`Frequency::Seasonal` 映射成 `Oneshot`，1 正是客户端的一次性标签页（已有测试）。
 
-- [2026-09-21] `serde` 的 `visit_map` 按文档顺序交付条目，所以「保序地读一个 JSON 对象」不必开
-  `serde_json/preserve_order`——该 feature 在 feature unification 下全工作区生效，会改掉 27 处
-  `serde_json::Map` 的顺序。自定义 `Visitor` 收 `Vec<(K, V)>` 即可，见 `parser/kccp/quest.rs`
-  的 `OrderedEntries`。
+- [2026-09-21] 保序读 JSON 对象不要开 `serde_json/preserve_order`（feature unification 会改全工作区 `Map` 的顺序）；
+  `visit_map` 本就按文档顺序交付，用自定义 `Visitor`，见 `parser/kccp/quest.rs` 的 `OrderedEntries`。
 - [2026-09-21] `make_list` 的 "holes" 有两义：已删的 holes **report**（`HOLES_COLLECTOR` /
   `holes_report.rs`，无写入方）与活着的 `ShipPathHoles` 跳过表（manifest 规则在用）。按词清理会误删后者。
 - [2026-09-21] `.html` 缓存无法内容嗅探：真实 `kcs2/hc.html` 仅 54 字节且与错误页同形，
@@ -187,12 +174,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] #102 已合并（PR #131）。分支 `feat/practice-exp`（#109，计划 007）：演习经验改读对手旗舰与二号舰（wikiwiki 表 361/362 格一致），补评价补正；用户接受低/高等级经验下降。fmt、clippy 过，全量 1481 过、0 ignored；code-review 无实质问题。PR #132。
+- [2026-10-14] #102、#109 已合并（PR #131、#132），`main` 干净。issue 队列只剩 #122 #123（`needs-info`，等抓包），没有计划中的工作。本次只压缩本文件。
 
 ## Next Session
 
-- [2026-10-14] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  quest：#122 #123 等抓包。#109 是 PR #132（规则见 `practice-rivals.md`）。演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
+- [2026-10-14] 先定方向：#122 #123 抓包还是挂起；或把下面的未定项转成 issue。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+  演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
