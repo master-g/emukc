@@ -25,6 +25,9 @@ on a map that allows it sends the corps ordered to sortie against cells. A battl
 cell opens with the corps' attacks.
 
 On the regular maps only 6-4 (one corps may sortie) and 6-5 (two) have them.
+6-5 itself opens only once 6-4 is cleared and quest 647 (中部海域「基地航空隊」展開！) is
+claimed; that gate, and the `api_c_flag` on 647's air base bonus that brings up the client's
+6-5 notice, are in `docs/map/data-dependencies.md` § 5.
 
 ## Where the rules come from
 
