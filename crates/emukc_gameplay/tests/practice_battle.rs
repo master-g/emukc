@@ -5,10 +5,11 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicI64, Ordering};
 
 use emukc_db::{
-    entity::profile::{self, quest, ship},
+    entity::profile::{self, practice::rival_ship, quest, ship},
     prelude::new_mem_db,
     sea_orm::{
         ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter,
+        QueryOrder,
     },
 };
 use emukc_gameplay::prelude::*;
@@ -567,4 +568,48 @@ async fn second_group_rivals_sit_near_the_player_and_fight_with_full_fleets() {
     assert!(rival.details.ships.len() > 1);
     assert!(!result.api_win_rank.is_empty());
     assert_eq!(result.api_enemy_info.api_level, rival.level);
+}
+
+/// The result's base exp reads the rival's flagship and second ship and is
+/// scaled by the win rank (#109, wikiwiki 演習).
+#[tokio::test]
+async fn practice_base_exp_reads_the_rivals_first_two_ships() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+
+    let ship = context.add_ship(pid, 951).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+
+    emukc_crypto::rng::seed(WIN_RANK_SEED);
+    let rivals = context.get_practice_rivals(pid).await.unwrap().rivals;
+    let rival = rivals.iter().max_by_key(|rival| rival.details.ships.len()).unwrap().clone();
+    // Flagship and second ship at Lv60 (543 in the wiki table); later ships do not count.
+    let rows = rival_ship::Entity::find()
+        .filter(rival_ship::Column::RivalId.eq(rival.id))
+        .order_by_asc(rival_ship::Column::Id)
+        .all(context.db.as_ref())
+        .await
+        .unwrap();
+    for (position, row) in rows.into_iter().enumerate() {
+        let mut am = row.into_active_model();
+        am.level = ActiveValue::Set(if position < 2 {
+            60
+        } else {
+            99
+        });
+        am.update(context.db.as_ref()).await.unwrap();
+    }
+    context.practice_battle(pid, 1, 1, rival.id).await.unwrap();
+    let result = context.practice_battle_result(pid).await.unwrap();
+    emukc_crypto::rng::reseed_from_entropy();
+
+    let expected = match result.api_win_rank.as_str() {
+        "S" => 651,
+        "A" | "B" => 543,
+        "C" => 347,
+        "D" => 304,
+        _ => 217,
+    };
+    assert!(rival.details.ships.len() > 2);
+    assert_eq!(result.api_get_base_exp, expected, "rank {}", result.api_win_rank);
 }

@@ -4,11 +4,11 @@ use emukc_battle::{
     AirState, BattleContext, BattleOutcome, BattleRng, BattleType, EngagementType,
     NightBattleInput, execute_day, execute_night,
 };
-use emukc_model::codex::Codex;
+use emukc_model::{codex::Codex, kc2::KcSortieResultRank};
 
 use crate::err::GameplayError;
 
-use super::response::calculate_base_exp;
+use super::response::{calculate_base_exp, rank_corrected_base_exp};
 use super::{PracticeBattleInput, PracticeBattleResultSnapshot, PracticeBattleSession};
 use crate::game::PracticeStore;
 use crate::game::battle::engagement::{carries_saiun, roll_engagement};
@@ -21,6 +21,7 @@ use crate::game::ship::exp::{build_exp_lvup_vector, calculate_admiral_exp};
 pub(crate) fn calculate_ship_exp(
     friendly: &[emukc_battle::BattleRuntimeShip],
     base_exp: i64,
+    win_rank: KcSortieResultRank,
     mvp_idx: i64,
     ct_flagship: bool,
     ct_exp_boost: f64,
@@ -28,6 +29,7 @@ pub(crate) fn calculate_ship_exp(
 ) -> (Vec<i64>, Vec<Vec<i64>>) {
     use emukc_model::kc2::level;
 
+    let base_exp = rank_corrected_base_exp(base_exp, win_rank);
     let mut exp = vec![-1];
     let mut lvup = Vec::with_capacity(friendly.len());
     let ct_mult = if ct_flagship {
@@ -100,6 +102,7 @@ pub fn run_day_battle(
     let (ship_exp, ship_lvup) = calculate_ship_exp(
         &simulation.friendly,
         base_exp,
+        simulation.outcome.win_rank,
         simulation.outcome.mvp,
         ct_flagship,
         codex.game_cfg.exp.ct_exp_boost,
