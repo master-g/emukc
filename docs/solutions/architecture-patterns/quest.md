@@ -63,7 +63,7 @@ via the quest operations on `Ctx`. Definitions come from the Codex
 - Quarterlies and yearlies: a quarterly resets at the first 05:00 JST on 1 March,
   June, September or December strictly after it started
   (`KcTime::jst_next_quarter_day_one_0500`); a yearly at the first 05:00 JST on
-  the 1st of its own month (`jst_next_year_day_one_0500`). The month is the
+  the 1st of its own month (`jst_next_day_one_0500_of_month`). The month is the
   quest's `label_type` - 100 (101 to 112), looked up in the codex by
   `update.rs::yearly_month`; a quest the codex no longer has resets in January.
   928 is `label_type` 107 (July) while KC3Kai lists it under `yearlySep`: the

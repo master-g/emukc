@@ -118,7 +118,7 @@ impl Period {
             Period::Weekly => KcTime::jst_next_monday_0500(start_time),
             Period::Monthly => KcTime::jst_next_1st_day_of_the_month(start_time),
             Period::Quarterly => KcTime::jst_next_quarter_day_one_0500(start_time),
-            Period::Annually => KcTime::jst_next_year_day_one_0500(start_time, yearly_month),
+            Period::Annually => KcTime::jst_next_day_one_0500_of_month(start_time, yearly_month),
         })
     }
 }

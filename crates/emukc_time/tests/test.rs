@@ -217,7 +217,7 @@ mod test {
 
     #[test]
     fn yearly_quests_reset_on_the_first_of_their_own_month() {
-        let next = |start, month| KcTime::jst_next_year_day_one_0500(&start, month);
+        let next = |start, month| KcTime::jst_next_day_one_0500_of_month(&start, month);
 
         assert_eq!(next(jst(2026, 6, 1, 12, 0), 5), jst(2027, 5, 1, 5, 0));
         assert_eq!(next(jst(2026, 4, 30, 12, 0), 5), jst(2026, 5, 1, 5, 0));

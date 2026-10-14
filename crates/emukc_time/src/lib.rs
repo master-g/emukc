@@ -307,7 +307,11 @@ impl KcTime {
     /// # Returns
     ///
     /// A `DateTime<Utc>` representing the next yearly reset.
-    pub fn jst_next_year_day_one_0500(ts: &DateTime<Utc>, month: u32) -> DateTime<Utc> {
+    ///
+    /// # Panics
+    ///
+    /// If `month` is not 1 to 12.
+    pub fn jst_next_day_one_0500_of_month(ts: &DateTime<Utc>, month: u32) -> DateTime<Utc> {
         jst_next_day_one_0500_in(&[month], ts)
     }
 }
