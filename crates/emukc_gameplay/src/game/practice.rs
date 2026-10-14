@@ -1,4 +1,4 @@
-use emukc_crypto::rng;
+use emukc_crypto::rng::{self, GameRng};
 use emukc_db::{
     entity::profile::{
         self,
@@ -423,35 +423,18 @@ where
     Ok(rival)
 }
 
-/// Generate practice rivals.
-///
-/// # Parameters
-///
-/// - `c`: The database connection.
-/// - `codex`: The codex.
-/// - `profile_id`: The profile ID.
-/// - `select_type`: The rival type.
-///
-/// ## TODO
-/// 1. using normal distribution to generate 5 rivals
-/// 2. using player's level as the mean of the distribution
-///
-/// there are a few types of rivals' deck:
-///
-/// a. best formation, tier S ships, since they are farming event or boss.
-/// b. carefully hand picked ships to irradiate you, very difficult to beat.
-/// c. 1 or 2 high level ships, they want to help you to level up.
+/// Generate practice rivals for the player's HQ level and practice group,
+/// replacing the stored ones.
 async fn generate_practice_rivals<C>(
     c: &C,
     codex: &Codex,
     profile_id: i64,
-    _select_type: RivalType,
+    select_type: RivalType,
 ) -> Result<Vec<Rival>, GameplayError>
 where
     C: ConnectionTrait,
 {
-    let mut api_mst_ship = codex.manifest.api_mst_ship.clone();
-    api_mst_ship.retain(|f| f.api_aftershipid.is_some());
+    let hq_level = find_profile(c, profile_id).await?.hq_level;
 
     let last_profile = profile::Entity::find().order_by_desc(profile::Column::Id).one(c).await?;
     let current_uid = last_profile.map(|p| p.id).unwrap_or(0) + 1;
@@ -462,46 +445,14 @@ where
     let rival_uid_starts_from = current_uid + 10000;
     let rival_ship_id_starts_from = current_ship_id + 10000;
 
-    let rivals: Vec<Rival> = {
-        (1..6)
-            .map(|i| {
-                let name = format!("Practice Rival {i}");
-                let comment = format!("I am your {i}th rival");
-                let rank = rng::i64_inclusive(1..=10);
-                let flag = rng::i64_inclusive(1..=3);
-                let ship_mst = rng::choose(&api_mst_ship).unwrap();
-
-                Rival {
-                    id: rival_uid_starts_from + i,
-                    index: i,
-                    name,
-                    comment,
-                    level: 120 - i,
-                    rank: UserHQRank::n(rank).unwrap_or(UserHQRank::Admiral),
-                    flag: RivalFlag::n(flag).unwrap_or_default(),
-                    status: RivalStatus::Untouched,
-                    medals: 10 + i,
-                    details: RivalDetail {
-                        exp_now: 0,
-                        exp_next: 1000,
-                        friend: 0,
-                        current_ship_count: 299,
-                        ship_capacity: 300,
-                        current_slot_item_count: 999,
-                        slot_item_capacity: 1000,
-                        furniture: 123,
-                        deck_name: format!("Deck {i}"),
-                        ships: vec![RivalShip {
-                            id: rival_ship_id_starts_from + i,
-                            mst_id: ship_mst.api_id,
-                            level: 180,
-                            star: 10,
-                        }],
-                    },
-                }
-            })
-            .collect()
-    };
+    let rivals = draw_practice_rivals(
+        codex,
+        hq_level,
+        select_type,
+        rival_uid_starts_from,
+        rival_ship_id_starts_from,
+        &GameRng::seeded(rng::u64(0..u64::MAX)),
+    );
 
     // remove old records
 
@@ -575,6 +526,135 @@ where
     }
 
     Ok(rivals)
+}
+
+/// Names and comments for generated practice rivals; display only.
+const RIVAL_NAMES: [&str; 12] = [
+    "横須賀の提督",
+    "呉の古参提督",
+    "佐世保の司令官",
+    "舞鶴の新米提督",
+    "大湊の常連",
+    "トラック泊地",
+    "ブイン基地",
+    "ショートランド泊地",
+    "リンガ泊地",
+    "パラオ泊地",
+    "単冠湾の提督",
+    "幌筵の司令官",
+];
+const RIVAL_COMMENTS: [&str; 12] = [
+    "よろしくお願いします",
+    "演習お手柔らかに",
+    "毎日演習しています",
+    "遠征中心でのんびり",
+    "イベント準備中",
+    "改修資材が足りない",
+    "練度上げ中です",
+    "資源を貯めています",
+    "S勝利目指して",
+    "新艦娘を育成中",
+    "夜戦が好きです",
+    "艦隊これくしょん楽しい",
+];
+
+/// Draw five practice rivals for a player at `hq_level` from `group`.
+///
+/// The first group sits at [P, P+20], the second at [P-10, P+10], clamped to
+/// 1-120; "all" picks one of the two per rival. Each rival has 1-6 ships, each
+/// at a level in [max(1, H/2), min(H, 99)], in a form it can have reached by
+/// then, and no two forms of one ship in a fleet.
+fn draw_practice_rivals(
+    codex: &Codex,
+    hq_level: i64,
+    group: RivalType,
+    rival_id_base: i64,
+    ship_id_base: i64,
+    rng: &GameRng,
+) -> Vec<Rival> {
+    // Ships a player can own, with the level each form is remodelled at.
+    let pool: Vec<(i64, i64)> = codex
+        .ship_extra
+        .iter()
+        .map(|(id, extra)| (*id, extra.remodel.as_ref().map_or(1, |r| r.level.max(1))))
+        .collect();
+    let mut ship_id = ship_id_base;
+
+    (1..=5)
+        .map(|index| {
+            let first_group = match group {
+                RivalType::FirstGroup => true,
+                RivalType::SecondGroup => false,
+                RivalType::All => rng.i64_inclusive(0..=1) == 0,
+            };
+            let (lo, hi) = if first_group {
+                (hq_level, hq_level + 20)
+            } else {
+                (hq_level - 10, hq_level + 10)
+            };
+            let level = rng.i64_inclusive(lo.clamp(1, 120)..=hi.clamp(1, 120));
+
+            // Every form of the ships already in this fleet.
+            let mut taken: Vec<i64> = Vec::new();
+            let mut ships = Vec::new();
+            for _ in 0..rng.i64_inclusive(1..=6) {
+                let ship_level = rng.i64_inclusive((level / 2).max(1)..=level.min(99));
+                let mut candidates: Vec<i64> = pool
+                    .iter()
+                    .filter(|(id, min_level)| *min_level <= ship_level && !taken.contains(id))
+                    .map(|(id, _)| *id)
+                    .collect();
+                while !candidates.is_empty() {
+                    let mst_id = candidates.swap_remove(rng.usize(0..candidates.len()));
+                    let chain =
+                        codex.ships_before_and_after(mst_id).unwrap_or_else(|_| vec![mst_id]);
+                    if chain.iter().any(|form| taken.contains(form)) {
+                        continue;
+                    }
+                    taken.extend(chain);
+                    ship_id += 1;
+                    ships.push(RivalShip {
+                        id: ship_id,
+                        mst_id,
+                        level: ship_level,
+                        star: 10,
+                    });
+                    break;
+                }
+            }
+
+            let flagship_name = ships
+                .first()
+                .and_then(|ship| codex.manifest.find_ship(ship.mst_id))
+                .map_or("", |mst| mst.api_name.as_str());
+            let rank = rng.i64_inclusive(1..=10);
+            let flag = rng.i64_inclusive(1..=3);
+
+            Rival {
+                id: rival_id_base + index,
+                index,
+                name: String::from(*rng.choose(&RIVAL_NAMES).unwrap()),
+                comment: String::from(*rng.choose(&RIVAL_COMMENTS).unwrap()),
+                level,
+                rank: UserHQRank::n(rank).unwrap_or(UserHQRank::Admiral),
+                flag: RivalFlag::n(flag).unwrap_or_default(),
+                status: RivalStatus::Untouched,
+                medals: 10 + index,
+                details: RivalDetail {
+                    exp_now: 0,
+                    exp_next: 1000,
+                    friend: 0,
+                    current_ship_count: 299,
+                    ship_capacity: 300,
+                    current_slot_item_count: 999,
+                    slot_item_capacity: 1000,
+                    furniture: 123,
+                    deck_name: format!("{flagship_name}艦隊"),
+                    ships,
+                },
+            }
+        })
+        .collect()
 }
 
 fn cal_practice_entry_limit() -> Option<i64> {
@@ -806,4 +886,137 @@ where
         .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::LazyLock;
+
+    use super::*;
+    use crate::game::battle::practice::response::calculate_base_exp;
+
+    static CODEX: LazyLock<Codex> =
+        LazyLock::new(|| Codex::load_without_cache_source("../../.data/codex").unwrap());
+
+    const GROUPS: [RivalType; 3] = [RivalType::FirstGroup, RivalType::SecondGroup, RivalType::All];
+
+    /// Every batch of rivals drawn for `hq_level` and `group` over a range of seeds.
+    fn batches(hq_level: i64, group: RivalType) -> impl Iterator<Item = Vec<Rival>> {
+        (0..20).map(move |seed| {
+            let rivals =
+                draw_practice_rivals(&CODEX, hq_level, group, 0, 0, &GameRng::seeded(seed));
+            assert_eq!(rivals.len(), 5);
+            rivals
+        })
+    }
+
+    #[test]
+    fn rival_hq_levels_follow_the_group() {
+        for hq_level in [1, 60, 120] {
+            let first = clamped(hq_level, hq_level + 20);
+            let second = clamped(hq_level - 10, hq_level + 10);
+            for group in GROUPS {
+                for rivals in batches(hq_level, group) {
+                    for rival in &rivals {
+                        let h = rival.level;
+                        let ok = match group {
+                            RivalType::FirstGroup => first.contains(&h),
+                            RivalType::SecondGroup => second.contains(&h),
+                            RivalType::All => first.contains(&h) || second.contains(&h),
+                        };
+                        assert!(ok, "P={hq_level} {group:?}: H={h}");
+                    }
+                }
+            }
+        }
+    }
+
+    /// Batches for P = 1, 60 and 120 in every group.
+    fn all_batches() -> impl Iterator<Item = Vec<Rival>> {
+        [1, 60, 120]
+            .into_iter()
+            .flat_map(|hq_level| GROUPS.into_iter().flat_map(move |group| batches(hq_level, group)))
+    }
+
+    fn clamped(lo: i64, hi: i64) -> std::ops::RangeInclusive<i64> {
+        lo.clamp(1, 120)..=hi.clamp(1, 120)
+    }
+
+    #[test]
+    fn rival_fleets_hold_one_to_six_ships_at_reachable_levels() {
+        for hq_level in [1, 60, 120] {
+            for group in GROUPS {
+                for rivals in batches(hq_level, group) {
+                    for rival in &rivals {
+                        let h = rival.level;
+                        let ships = &rival.details.ships;
+                        assert!((1..=6).contains(&ships.len()), "{} ships", ships.len());
+                        for ship in ships {
+                            assert!(
+                                ((h / 2).max(1)..=h.min(99)).contains(&ship.level),
+                                "H={h}: ship level {}",
+                                ship.level
+                            );
+                            let extra = CODEX.ship_extra.get(&ship.mst_id).unwrap_or_else(|| {
+                                panic!("{} is not a ship a player can own", ship.mst_id)
+                            });
+                            let min_level = extra.remodel.as_ref().map_or(1, |r| r.level.max(1));
+                            assert!(
+                                ship.level >= min_level,
+                                "{} at level {} is below its remodel level {min_level}",
+                                ship.mst_id,
+                                ship.level
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn a_rival_fleet_never_holds_two_forms_of_one_ship() {
+        for rivals in all_batches() {
+            for rival in &rivals {
+                let ships = &rival.details.ships;
+                for (i, ship) in ships.iter().enumerate() {
+                    let chain = CODEX.ships_before_and_after(ship.mst_id).unwrap();
+                    for other in &ships[i + 1..] {
+                        assert!(
+                            !chain.contains(&other.mst_id),
+                            "{} and {} are forms of one ship",
+                            ship.mst_id,
+                            other.mst_id
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn rivals_are_named_from_the_lists_and_their_flagship() {
+        for rivals in all_batches() {
+            for rival in &rivals {
+                assert!(RIVAL_NAMES.contains(&rival.name.as_str()), "{}", rival.name);
+                assert!(RIVAL_COMMENTS.contains(&rival.comment.as_str()), "{}", rival.comment);
+                let flagship = CODEX.manifest.find_ship(rival.details.ships[0].mst_id).unwrap();
+                assert_eq!(rival.details.deck_name, format!("{}艦隊", flagship.api_name));
+            }
+        }
+    }
+
+    /// Balance regression: the five rivals used to sit at HQ 115-119, a base of
+    /// 1035-1071 whatever the player's level (plan 2026-10-14-006).
+    #[test]
+    fn practice_base_exp_follows_the_player_level() {
+        let base_exps = |hq_level, group| {
+            batches(hq_level, group).flatten().map(|rival| calculate_base_exp(&rival))
+        };
+        for group in GROUPS {
+            assert!(base_exps(10, group).all(|exp| (100..=270).contains(&exp)));
+        }
+        assert!(base_exps(60, RivalType::FirstGroup).all(|exp| (540..=720).contains(&exp)));
+        assert!(base_exps(60, RivalType::SecondGroup).all(|exp| (450..=630).contains(&exp)));
+    }
 }
