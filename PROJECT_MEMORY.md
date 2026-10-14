@@ -189,13 +189,13 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] 分支 `fix/sortie-quest-composition`（叠在 #125 的 `fix/quest-reset-and-rewards` 上）：计划 004（#114）本地提交、未推送。质量门过，1455 测试、0 ignored。
+- [2026-10-14] 分支 `fix/sortie-quest-composition`：计划 004（#114）即 PR #127（base 为 #125 的分支）。质量门过，1455 测试 0 ignored。
   `.data/temp/tsunkit_quests.json` 已换最新版并重建码典（含 1050/1051/1052/1170）；`main` 与 #126 分支的解析器不认它，回去时换成同目录的 `tsunkit_quests.0921.json` 再重建。
 
 ## Next Session
 
 - [2026-10-14] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  quest：#124 合并后把 002 的 PR 改指 `main`，004 的分支随之 rebase 后开 PR；#119 另写计划放最后；#122 #123 等抓包。
+  quest：#124 合并后把 #125 改指 `main`，#125 合并后再把 #127 改指 `main`；#119 另写计划放最后；#122 #123 等抓包。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
