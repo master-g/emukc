@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-13 · branch `fix/weekly-quest-clock`
+Last updated: 2026-10-14 · branch `main`
 
 ## Verified Facts
 
@@ -157,7 +157,7 @@ Current verification baseline:
 | Pitfall | Source |
 | --- | --- |
 | populate 基准三坑：`head -200` 清单全是 mp3（带宽受限，收益被掩成 10%，全量实为 49% mp3 + 49% png，要随机抽样）；`Kache::build()` 要求 `cache_root` 已存在，否则 exit 1 且无输出；配置里的相对路径按 config 文件所在目录解析。 | 计划 003 (2026-09-21) |
-| `emukc_bootstrap` 的 `make_list` 两个测试打真实 CDN（`make_kache()` 用 `socks5://127.0.0.1:1086`），网络一抖就 `FailedOnAllCdn`，fail-fast 会让整轮 workspace 测试在该 crate 中断。已加 `skip_if_offline`：只吞这一种错。 | session 2026-09-21 |
+| `emukc_bootstrap` 的 `make_list` 两个测试打真实 CDN（`make_kache()` 用 `socks5://127.0.0.1:1086`），网络一抖就 `FailedOnAllCdn`，fail-fast 会让整轮 workspace 测试在该 crate 中断。已加 `skip_if_offline`：只吞这一种错；服务器回空文件（`EOF while parsing`）不吞，单独重跑即过（2026-10-14）。 | session 2026-09-21 |
 | 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方在这些阶段仍打两支 deck，切片会连带砍掉敌方目标池。须按船过滤。 | session 2026-09-21 |
 | Grepping `test result:` to verify tests misses failures — a FAILED target prints its own line that is easy to lose among many suites. Check the cargo exit code instead. | plan 004 U5 (2026-06-22): reported "821 passed" while 3 `sortie_battle.rs` tests were failing |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
@@ -184,7 +184,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-13] 分支 `fix/weekly-quest-clock`：#101 做完未合并，质量门全过；#102 未分拣，等方案。
+- [2026-10-14] `main`：#101 已合并（PR #108），`init` 仍读时钟（有意未改，见 `quest.md`）；#102 未分拣，等方案。
 
 ## Next Session
 
