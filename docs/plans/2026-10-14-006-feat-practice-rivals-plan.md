@@ -63,6 +63,8 @@ Issue #102。现在每次生成五个固定模板对手：司令部等级 119～
   - 同一舰队里任意两艘的改造链不相交；
   - `deck_name == 旗舰 api_name + "艦隊"`，名字和签名都来自常量表；
   - 组别确实生效：第一群在 P=60 时没有 H < 60 的对手，第二群没有 H > 70 的。
+  - **经验回归**（Balance Defaults Policy 规则 5）：用 `calculate_base_exp` 读生成的对手，P=10 时每个对手的基础经验在 100～270；
+    P=60 时第一群在 540～720、第二群在 450～630。旧值是固定 H 115～119 的 1035～1071，若有人改回模板或改动区间，这组断言会失败。
 - **U2 接线**：`generate_practice_rivals` 读 `profile.hq_level`、用上 `select_type`，调 U1；删除过时的 TODO 注释。
 - **U3 集成测试**（`crates/emukc_gameplay/tests/practice_battle.rs`）：把档案的 `hq_level` 设成中间值、组别切到第二群，
   `rng::seed` 后 `get_practice_rivals`，断言五个对手的 H 都在区间内；再挑一个多艘舰的对手打完 `practice_battle` →
@@ -75,7 +77,7 @@ U1 → U2 → U3 → U4。
 ## Risks
 
 - **经验会大幅变化**：经验仍是 `H × 9`（100～1200）。新档案 HQ 1 时对手 H 在 1～21，基础经验从约 1050 掉到 100～189；
-  第一群比第二群多给。这是 Brief 有意的结果，#109 再改公式。
+  HQ 10 时 100～270；第一群比第二群多给。用户选择接受这个落差（方案 A），按 balance 流程记录，#109 再改公式。
 - **胜利等级测试的种子**：对手抽签消耗的随机数变了，`WIN_RANK_SEED = 2` 可能跑输，需要换种子（见 U3）。
 - **補 形态**是否真能入手没有一手来源；若确认只是友军形态，在池子上排除这 5 个 id 即可。
 - **名单是手写的**：只影响显示，不影响数值。
@@ -84,5 +86,9 @@ U1 → U2 → U3 → U4。
 
 - `cargo test -p emukc_gameplay practice` 随开发跑；`cargo fmt --all --check`、`cargo clippy --workspace --all-targets -- -D warnings`；
   最后 `cargo test --workspace --no-fail-fast`，报告 ignored 数。
-- 不改 `Default` impl、不动码典与资产，不触发 Balance Defaults Policy；经验变化来自对手等级，在 PR 里写明。
+- **按 Balance Defaults Policy 处理**（用户 2026-10-14 选定）：不改 `Default` impl，但演习经验随对手等级大幅变化，规则 1～5 照做。
+  计划本身单独 `docs(plans):` 提交；实现（含 U1～U3 的代码与测试）单独一个
+  `feat(balance): draw practice rivals from the player's HQ level` 提交，正文写明旧值「五个对手 H 固定 115～119，各一艘 Lv180；
+  基础经验 `H × 9` 约 1035～1071，与玩家等级无关」并引用本计划；回归测试见 U1 的经验回归；PR 单列经验变化。U4 文档另起 `docs:` 提交。
+- 不动码典与资产。
 - 可选：`make headless-check` 没有演习场景，不跑；起服务器打开演习画面看五个对手的等级、舰数与舰队名。
