@@ -8,7 +8,7 @@ component: service_object
 severity: medium
 applies_when:
   - "Changing how practice rivals are generated or what they carry"
-  - "Changing the practice exp formula (#109), which reads the rival's HQ level"
+  - "Changing the practice exp formula, which reads the rival's first two ships"
   - "Touching generate_practice_rivals, draw_practice_rivals or the practice group setting"
 tags: [practice, rivals, practice-group, balance]
 related_components: [emukc_model, emukc_db]
@@ -56,12 +56,31 @@ rivals) and stores the result, replacing the previous batch.
 
 ## Why This Matters
 
-Practice exp is still `calculate_base_exp`: the rival's H × 9, clamped to
-100–1200. With the templates every practice gave about 1050 whatever the
-player's level; now it follows P and the first group pays more (a new HQ 10
-account gets 100–270). This was accepted as a balance change and is pinned by
-`practice_base_exp_follows_the_player_level`. The formula itself is #109's to
-change, now that rivals have realistic levels to read.
+Practice exp reads these ships (#109, plan
+`docs/plans/2026-10-14-007-feat-practice-exp-plan.md`), so how rivals are drawn
+decides what practice pays. `calculate_base_exp`
+(`battle/practice/response.rs`) follows wikiwiki 演習:
+
+- raw = the flagship's total exp / 100 + the second ship's / 300 (each
+  integer-divided, from `level::ship_level_required_exp`); a lone flagship
+  counts a level-1 second ship; later ships do not count;
+- base = raw up to 500, then 500 + ⌊√(raw − 500)⌋; no floor and no cap;
+- the win rank scales it (`rank_corrected_base_exp`: S 1.2, A/B 1.0, C 0.64,
+  D 0.56, E 0.4). `api_get_base_exp` and the ship exp, on top of which the
+  MVP ×2 / flagship ×1.5 / training cruiser / `practice_exp_boost` multipliers
+  apply, both use the scaled value. The snapshot keeps the unscaled base, so
+  the night battle can rescore with its own rank, and admiral exp still reads
+  the unscaled base (`calculate_admiral_exp`; the wiki gives no formula).
+
+Checked against the wiki's 基本経験値表: 361 of 362 cells match. The odd one
+(flagship 150, second 140: wiki 727, formula 728) sits among matching cells and
+is taken as a wiki typo. The wiki's "0–3 extra" is not reproduced.
+
+Practice pays less than it did. The rival's HQ × 9 gave 1035–1071 with the old
+templates; two level-99 ships now give 613 (735 on S). Rival ships never
+outlevel the rival's HQ, so a new account's rivals give tens to about two
+hundred, and a lone level-1 flagship gives 0. Both drops were accepted;
+`practice_base_exp_follows_the_player_level` pins the ranges.
 
 ## Known gaps
 
