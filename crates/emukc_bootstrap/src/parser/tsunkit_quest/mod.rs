@@ -536,6 +536,33 @@ fn apply_quest_overrides(game_id: i64, requirements: &mut Kc3rdQuestRequirement)
     {
         sortie.count_at_sortie_start = true;
     }
+
+    // An expedition list means each listed expedition `times` times, so it
+    // becomes one single-expedition entry per id. 410 and 411 (東京急行) are the
+    // exception: either of 37 and 38 counts toward one shared counter.
+    if !matches!(game_id, 410 | 411) {
+        for condition in conditions.iter_mut() {
+            if let Kc3rdQuestCondition::Expedition(entries) = condition {
+                *entries = entries.drain(..).flat_map(split_expedition_list).collect();
+            }
+        }
+    }
+}
+
+fn split_expedition_list(
+    entry: Kc3rdQuestConditionExpedition,
+) -> Vec<Kc3rdQuestConditionExpedition> {
+    let times = entry.times;
+    match entry.list {
+        Some(list) if list.len() > 1 => list
+            .into_iter()
+            .map(|id| Kc3rdQuestConditionExpedition {
+                list: Some(vec![id]),
+                times,
+            })
+            .collect(),
+        _ => vec![entry],
+    }
 }
 
 /// Parse the tsunkit quests from the given path.

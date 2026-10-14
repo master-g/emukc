@@ -163,11 +163,19 @@ impl Kc3rdQuestCondition {
             Kc3rdQuestCondition::Expedition(conditions) => {
                 let QuestActionEvent::ExpeditionCompleted {
                     mission_id,
+                    result,
                     ..
                 } = event
                 else {
                     return false;
                 };
+                if *result == ExpeditionResult::Failure {
+                    return false;
+                }
+                // Lists name expeditions by id ("37") or by code ("A1" is 100).
+                let code = codex
+                    .and_then(|codex| codex.expedition_conditions.get(mission_id))
+                    .map(|expedition| expedition.code.as_str());
 
                 for condition in conditions.iter_mut() {
                     let matches = condition.list.as_ref().is_none_or(|allowed_ids| {
@@ -175,6 +183,7 @@ impl Kc3rdQuestCondition {
                         allowed_ids.iter().any(|id| {
                             id == &mission_id_str
                                 || id.parse::<i64>().ok().is_some_and(|v| v == *mission_id)
+                                || code == Some(id.as_str())
                         })
                     });
 
