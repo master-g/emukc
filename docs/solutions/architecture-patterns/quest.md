@@ -133,10 +133,9 @@ is now internal to the quest module and is reached only from `observe`; see
   is fired with each sunk enemy's `stype` (`api_stype`); `Sink` conditions
   check `Kc3rdQuestConditionShip` (ShipType matching) and decrement the count
   on match.
-- Slot item improvement (改修工廠, future feature): the `SlotItemImproved`
-  outcome and its `Factory::SlotItemImprovement` matching exist, but there is no
-  producer yet because `api_req_kousyou/remodel_slot*` is unimplemented. The
-  variant is kept deliberately (quests 618, 619, 1166, 1167 need it).
+- Slot item improvement (改修工廠): every `remodel_slot` attempt, failed or
+  not, produces `SlotItemImproved` and decrements `Factory::SlotItemImprovement`
+  (618, 619, 1166, 1167). The ★ reset (`remodel_slot_recover`) does not count.
 
 ### Quest rewards
 

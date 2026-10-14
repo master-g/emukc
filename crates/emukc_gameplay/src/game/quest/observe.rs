@@ -8,12 +8,6 @@
 //!
 //! Adding a `GameplayOutcome` variant without mapping it here does not compile:
 //! the `match` below is exhaustive.
-//!
-//! [`GameplayOutcome::SlotItemImproved`] has no producer yet. Four quests
-//! (618, 619, 1166, 1167) require slot item improvement and the matcher already
-//! handles them, but `api_req_kousyou/remodel_slot*` is unimplemented (P1 in
-//! `docs/api_coverage.md`). The variant stays so that the day that handler
-//! lands, the mapping is already here.
 
 use emukc_db::sea_orm::ConnectionTrait;
 use emukc_model::{
@@ -109,12 +103,11 @@ pub(crate) enum GameplayOutcome {
         /// The sunk enemy's ship type.
         ship_stype: i64,
     },
-    /// A slot item was improved. See the module docs: no producer yet.
-    #[allow(dead_code, reason = "no producer until remodel_slot is implemented")]
+    /// An improvement was attempted, whether or not it succeeded.
     SlotItemImproved {
-        /// The improved item's manifest ID.
+        /// The item's manifest ID after the attempt.
         item_mst_id: i64,
-        /// The item's improvement stars after the upgrade.
+        /// The item's improvement stars after the attempt.
         stars: i64,
     },
 }
