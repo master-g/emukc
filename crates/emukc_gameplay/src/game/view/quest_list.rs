@@ -63,16 +63,17 @@ pub struct QuestListItem {
     /// The quest cannot be handed in: equipment it takes is locked.
     pub invalid: bool,
 
-    /// The line spoken when the quest is taken, 0 for none.
+    /// The line played when the reward is claimed, 0 for none.
     pub voice_id: i64,
 }
 
-/// Quests a ship girl answers when they are taken. The line is file
-/// `kc9999/{1000 + quest no}`: one live `questlist` gave 198 -> 1198, and
-/// these are the quests such a file exists for.
+/// Quests whose reward claim plays a line (`main.decoded.js:103979`). The line
+/// is file `kc9999/{1000 + quest no}`: one live `questlist` gave 198 -> 1198,
+/// and these are the quests such a file exists for (`KC3Kai` `quotes.json`,
+/// `npc`). `kc9999/1101` is not quest 101's: the client swaps it in for 190.
 // ponytail: a fixed list, read off the cached `kc9999` files; add a quest
 // here when a new line shows up there.
-const VOICED_QUESTS: [i64; 12] = [158, 186, 187, 188, 189, 190, 191, 193, 195, 198, 871, 877];
+const VOICED_QUESTS: [i64; 13] = [158, 186, 187, 188, 189, 190, 191, 193, 195, 198, 871, 877, 1005];
 
 fn voice_id(quest_no: i64) -> i64 {
     if VOICED_QUESTS.contains(&quest_no) {
