@@ -84,6 +84,8 @@ pub(crate) enum GameplayOutcome {
         maparea_id: i64,
         /// The map number within the area.
         mapinfo_no: i64,
+        /// The map's gauge (1-based) when the battle was fought.
+        gauge_phase: i64,
         /// Whether the battle happened on a boss cell.
         boss_cell: bool,
         /// The battle result rank.
@@ -171,12 +173,14 @@ impl GameplayOutcome {
             Self::SortieBattleCompleted {
                 maparea_id,
                 mapinfo_no,
+                gauge_phase,
                 boss_cell,
                 win_rank,
                 fleet_id,
             } => QuestActionEvent::SortieBattleCompleted {
                 maparea_id: *maparea_id,
                 mapinfo_no: *mapinfo_no,
+                gauge_phase: *gauge_phase,
                 boss_cell: *boss_cell,
                 win_rank: *win_rank,
                 fleet_id: *fleet_id,

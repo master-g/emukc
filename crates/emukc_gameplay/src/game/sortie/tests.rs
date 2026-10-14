@@ -1215,6 +1215,14 @@ async fn hp_gauge_clear_advances_to_next_gauge_before_marking_map_cleared() {
     let settlement = settle_boss_win(&context, profile_id, &definition, "").await;
     assert_eq!(settlement.first_clear, 0);
     assert!(settlement.next_map_ids.is_none());
+    // The battle that empties gauge 1 is reported as fought in phase 1.
+    assert!(matches!(
+        settlement.outcomes.first(),
+        Some(crate::game::quest::observe::GameplayOutcome::SortieBattleCompleted {
+            gauge_phase: 1,
+            ..
+        })
+    ));
 
     let record = map_record::Entity::find()
         .filter(map_record::Column::ProfileId.eq(profile_id))

@@ -174,6 +174,10 @@ where
         .cell(pending_cell_id)
         .ok_or_else(|| GameplayError::EntryNotFound(format!("cell {pending_cell_id} not found")))?;
 
+    // Read before anything below moves the gauge (`record_stage_unlock`,
+    // `land_transport`, `apply_sortie_map_result`): the battle that empties a
+    // gauge was fought in that gauge's phase.
+    let gauge_phase = find_map_record_impl(c, profile_id, definition.map_id).await?.gauge_index;
     let snapshot = update_sortie_result_stats(c, codex, profile_id, snapshot).await?;
     let is_boss_cell = stage.boss_cell_nos().contains(&current_cell.cell_no);
     let flagship_sunk = final_enemy_nowhps.first().is_some_and(|hp| *hp <= 0);
@@ -231,7 +235,8 @@ where
         &snapshot.win_rank,
     )
     .await?;
-    let mut outcomes = vec![build_sortie_battle_outcome(definition, active, &snapshot)?];
+    let mut outcomes =
+        vec![build_sortie_battle_outcome(definition, active, gauge_phase, &snapshot)?];
 
     // Report every sunk enemy ship
     for (i, &hp) in final_enemy_nowhps.iter().enumerate() {
@@ -460,6 +465,7 @@ pub(super) fn calculate_sortie_ship_exp(
 pub(super) fn build_sortie_battle_outcome(
     definition: &MapDefinition,
     active: &ActiveSortieState,
+    gauge_phase: i64,
     snapshot: &SortieBattleResultSnapshot,
 ) -> Result<GameplayOutcome, GameplayError> {
     let stage = definition.stage(&active.stage_id).ok_or_else(|| {
@@ -471,6 +477,7 @@ pub(super) fn build_sortie_battle_outcome(
     Ok(GameplayOutcome::SortieBattleCompleted {
         maparea_id: definition.maparea_id,
         mapinfo_no: definition.mapinfo_no,
+        gauge_phase,
         boss_cell: active
             .pending_battle_cell_id
             .is_some_and(|id| stage.boss_cell_nos().contains(&id)),
@@ -1155,18 +1162,20 @@ mod tests {
             raided: false,
         };
 
-        let outcome = build_sortie_battle_outcome(&definition, &active, &snapshot("A")).unwrap();
+        let outcome = build_sortie_battle_outcome(&definition, &active, 2, &snapshot("A")).unwrap();
 
         match outcome {
             GameplayOutcome::SortieBattleCompleted {
                 maparea_id,
                 mapinfo_no,
+                gauge_phase,
                 boss_cell,
                 win_rank,
                 fleet_id,
             } => {
                 assert_eq!(maparea_id, 1);
                 assert_eq!(mapinfo_no, 2);
+                assert_eq!(gauge_phase, 2, "the phase is passed through as given");
                 assert!(boss_cell);
                 assert_eq!(win_rank, emukc_model::kc2::KcSortieResultRank::A);
                 assert_eq!(fleet_id, 3);
@@ -1230,7 +1239,7 @@ mod tests {
             raided: false,
         };
 
-        let outcome = build_sortie_battle_outcome(&definition, &active, &snapshot("S")).unwrap();
+        let outcome = build_sortie_battle_outcome(&definition, &active, 1, &snapshot("S")).unwrap();
         match outcome {
             GameplayOutcome::SortieBattleCompleted {
                 boss_cell,
