@@ -184,7 +184,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-14] 分支 `fix/expedition-requirements`（从 `main`，与 PR #124、#125 并行）：计划 003（#116 #117 #118）本地提交、未推送。质量门过，0 ignored。`.data/temp/tsunkit_quests.json` 暂为 09-21 版（`main` 解析器不认 1051 的小写节点），回 #124/#125 分支前换回最新版并重建码典。
+- [2026-10-14] 分支 `fix/expedition-requirements`（PR #126）：远征条件改为返回时判定，出发只存 `launch_fully_supplied`（wikiwiki 实证途中可换补強増設）。质量门过，0 ignored；make_list 的 CDN 测试全量跑时偶发网络失败，单跑过。worktree 用自己的 `.data` 副本重建码典。
 
 ## Next Session
 

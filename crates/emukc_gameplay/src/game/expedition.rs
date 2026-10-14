@@ -77,7 +77,8 @@ enum GreatSuccessType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ExpeditionFailureKind {
     Recall,
-    /// The fleet did not meet the expedition's requirements when it left.
+    /// The fleet left short of supply, or did not meet the expedition's
+    /// requirements when it came back.
     RequirementsNotMet,
     Fatigue,
 }
@@ -144,10 +145,12 @@ impl Ctx {
 
         let mission_mst = find_mission_mst(codex, mission_id)
             .ok_or(GameplayError::ManifestNotFound(mission_id))?;
-        let expedition_condition =
-            codex.expedition_conditions.get(&mission_id).ok_or_else(|| {
-                GameplayError::BadManifest(format!("expedition condition {mission_id} not found"))
-            })?;
+        // Judged on return, but a fleet must not leave on one it cannot return from.
+        if !codex.expedition_conditions.contains_key(&mission_id) {
+            return Err(GameplayError::BadManifest(format!(
+                "expedition condition {mission_id} not found"
+            )));
+        }
 
         let fleet_model = find_fleet(&tx, profile_id, fleet_id).await?;
         if fleet_model.mission_status != fleet::MissionStatus::Idle {
@@ -161,10 +164,9 @@ impl Ctx {
         if fleet_ships.is_empty() {
             return Err(GameplayError::WrongType("fleet is empty".to_string()));
         }
-        // A fleet short of the requirements still sails; it fails on return.
-        let requirements_met =
-            evaluate_expedition_requirements(&tx, codex, &fleet_ships, expedition_condition)
-                .await?;
+        // A fleet short of supply or of the requirements still sails; it fails
+        // on return. Supply is judged now, before the launch cost takes it.
+        let fully_supplied = is_fully_supplied(codex, &fleet_ships)?;
         let launch_snapshot = collect_expedition_launch_snapshot(&tx, &fleet_ships).await?;
         let supply_costs = calculate_expedition_supply_costs(codex, mission_mst, &fleet_ships)?;
         apply_expedition_supply_costs(&tx, &fleet_ships, &supply_costs).await?;
@@ -181,7 +183,7 @@ impl Ctx {
             am.launch_flagship_level = ActiveValue::Set(launch_snapshot.flagship_level);
             am.launch_drum_ship_count = ActiveValue::Set(launch_snapshot.drum_ship_count);
             am.launch_total_drums = ActiveValue::Set(launch_snapshot.total_drums);
-            am.launch_requirements_met = ActiveValue::Set(requirements_met);
+            am.launch_fully_supplied = ActiveValue::Set(fully_supplied);
             am.update(&tx).await?;
         }
 
@@ -261,10 +263,15 @@ impl Ctx {
                 return Err(idle_fleet_err(fleet_id, "not on an expedition"));
             }
         };
-        // Recall, then requirements unmet at launch, then fatigue.
+        // Recall, then short of supply at launch or of the requirements now,
+        // then fatigue. The requirements are read on return: a reinforcement
+        // slot can be re-equipped while the fleet is away.
         let failure_kind = if is_recall {
             Some(ExpeditionFailureKind::Recall)
-        } else if !fleet_model.launch_requirements_met {
+        } else if !fleet_model.launch_fully_supplied
+            || !evaluate_expedition_requirements(&tx, codex, &mission_ships, expedition_condition)
+                .await?
+        {
             Some(ExpeditionFailureKind::RequirementsNotMet)
         } else if mission_ships.iter().any(|ship| ship.condition <= 39) {
             Some(ExpeditionFailureKind::Fatigue)
@@ -430,8 +437,8 @@ impl Ctx {
     }
 }
 
-/// Whether the fleet meets the expedition's requirements. The reason it does
-/// not is logged, not returned: a fleet short of them still sails.
+/// Whether the fleet meets the expedition's requirements, supply aside (that
+/// is judged at launch). The reason it does not is logged, not returned.
 async fn evaluate_expedition_requirements<C>(
     c: &C,
     codex: &Codex,
@@ -445,10 +452,6 @@ where
         debug!("expedition {} requirement not met: {reason}", expedition_condition.api_id);
         Ok(false)
     };
-
-    if !is_fully_supplied(codex, fleet_ships)? {
-        return unmet("a ship is not fully supplied".to_string());
-    }
 
     let requirements = &expedition_condition.requirements;
     if fleet_ships.len() < requirements.ship_count as usize {
@@ -1007,7 +1010,7 @@ where
     am.launch_flagship_level = ActiveValue::Set(0);
     am.launch_drum_ship_count = ActiveValue::Set(0);
     am.launch_total_drums = ActiveValue::Set(0);
-    am.launch_requirements_met = ActiveValue::Set(true);
+    am.launch_fully_supplied = ActiveValue::Set(true);
 
     Ok(am.update(c).await?)
 }

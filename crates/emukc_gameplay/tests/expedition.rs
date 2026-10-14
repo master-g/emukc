@@ -649,10 +649,10 @@ async fn a2_short_of_asw_sails_and_fails_without_quest_progress() {
     assert_eq!(record.requirements, serde_json::json!([{"Expedition": [{"times": 3}]}]));
 }
 
-/// The verdict is taken when the fleet leaves: what changes while it is away
-/// does not move it either way (#118).
+/// The requirements are judged on return, from the ships as they are then: a
+/// reinforcement slot can be re-equipped while the fleet is away (#118).
 #[tokio::test]
-async fn changes_while_away_do_not_change_the_result() {
+async fn requirements_are_judged_on_return() {
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;
     let ships = a2_fleet(&context, pid, [52, 72, 176]).await;
@@ -660,7 +660,7 @@ async fn changes_while_away_do_not_change_the_result() {
     set_stats(&context, ships[0], [13, 18, 60]).await;
     make_fleet_ready_for_result(&context, pid, 1).await;
     let result = context.complete_expedition(pid, 1).await.unwrap();
-    assert_eq!(result.result, ExpeditionResult::Failure, "short at launch");
+    assert_ne!(result.result, ExpeditionResult::Failure, "met by the return");
 
     let (context, session) = new_game_session().await;
     let pid = session.profile.id;
@@ -669,7 +669,7 @@ async fn changes_while_away_do_not_change_the_result() {
     set_stats(&context, ships[0], [13, 18, 0]).await;
     make_fleet_ready_for_result(&context, pid, 1).await;
     let result = context.complete_expedition(pid, 1).await.unwrap();
-    assert_ne!(result.result, ExpeditionResult::Failure, "met at launch");
+    assert_eq!(result.result, ExpeditionResult::Failure, "short by the return");
 }
 
 /// A fleet of these masters with every total and level requirement met, so

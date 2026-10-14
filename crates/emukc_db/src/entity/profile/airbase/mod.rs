@@ -15,7 +15,7 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
     // moment its rows still hold the wire's `api_cond` (always 1) where the
     // inner value now lives, so they are reset to a fresh deployment's 40.
     // Still no migration table: this, `preset_deck.locked` and
-    // `fleet.launch_requirements_met` are the only such columns. Write one
+    // `fleet.launch_fully_supplied` are the only such columns. Write one
     // when a change cannot be told from "add failed".
     // One transaction, so a start cut short cannot keep the column and lose
     // the reset.

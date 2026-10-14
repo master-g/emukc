@@ -25,27 +25,32 @@ Issues #116, #117 and #118 fixed what the fields mean and when they are checked.
 
 ## Guidance
 
-### When: at launch, failing on return
+### When: supply at launch, the rest on return
 
 A fleet that does not meet the requirements still sails, as in the official
 game, and fails on return.
 
 - `start_expedition` errors only when the fleet cannot leave at all: it is
-  empty, or already away. Otherwise it calls `evaluate_expedition_requirements`
-  (a `bool`; the unmet reason goes to the debug log) and stores the verdict in
-  `fleet.launch_requirements_met`.
-- The verdict is final. The fleet cannot be reorganised while away, so nothing
-  is re-read on return; a test that changes stats mid-trip pins this.
-- `complete_expedition` picks the failure in this order: recall, then
-  requirements unmet at launch (`ExpeditionFailureKind::RequirementsNotMet`),
-  then fatigue (a ship at morale 39 or less after the return drop). An unmet
-  trip fails like a fatigued one: no resources or items, failure experience,
-  and no `ExpeditionCompleted` outcome, so no quest progress.
+  empty, or already away. Otherwise it stores whether every ship is fully
+  supplied in `fleet.launch_fully_supplied`; it has to be read before the
+  launch cost takes fuel and ammo.
+- Every other requirement is judged in `complete_expedition` by
+  `evaluate_expedition_requirements` (a `bool`; the unmet reason goes to the
+  debug log), on the ships as they are then. The official game lets a
+  reinforcement slot be re-equipped while the fleet is away, and a fleet short
+  at launch that is made good that way succeeds (wikiwiki 「遠征」, verified
+  there). A test that changes stats mid-trip pins this both ways.
+- `complete_expedition` picks the failure in this order: recall, then short of
+  supply at launch or of the requirements on return
+  (`ExpeditionFailureKind::RequirementsNotMet`), then fatigue (a ship at morale
+  39 or less after the return drop). An unmet trip fails like a fatigued one:
+  no resources or items, failure experience, and no `ExpeditionCompleted`
+  outcome, so no quest progress.
 - Full supply is one of the requirements, not a start error. The launch cost is
   taken down to 0 at most: a ship short of it still sails.
-- `launch_requirements_met` was added with `ALTER TABLE ... DEFAULT TRUE`
+- `launch_fully_supplied` was added with `ALTER TABLE ... DEFAULT TRUE`
   (`entity/profile/fleet.rs`): a fleet already away on an older database passed
-  the old start check, which refused unmet requirements.
+  the old start check, which refused an unsupplied fleet.
 
 ### What: kcanotify's fields
 

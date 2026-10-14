@@ -14,7 +14,7 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
     create_table(db, preset_deck::Entity).await?;
     // ponytail: the one column added after the table shipped, so a database made
     // before it gets it here; the statement fails harmlessly once it exists.
-    // `plane_info.since` and `fleet.launch_requirements_met` do the same, see there.
+    // `plane_info.since` and `fleet.launch_fully_supplied` do the same, see there.
     {
         use sea_orm::ConnectionTrait;
         let _ = db

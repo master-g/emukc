@@ -56,6 +56,8 @@ Issues #116、#117、#118。远征条件的内容读错了（`total-fp` 当火�
    - `start_expedition` 照常算判定，把结论存进 fleet 行新列 `launch_requirements_met BOOLEAN NOT NULL DEFAULT TRUE`。
      旧存档里在途的远征按「已满足」处理：它们当时已通过旧的出发检查。远征期间舰队不能改编成和装备，
      所以出发时的结论就是返回时的结论，不必快照全部属性。
+     **后改**：实机远征中可以换补強増設的装备（wikiwiki「遠征」），所以只在出发时存补给是否满额
+     （列改名 `launch_fully_supplied`），其余条件在返回时判定。见 `expedition.md`。
    - 补给不满的船也能出发：`apply_expedition_supply_costs` 改为扣到 0 为止，不报错；补给是否满额计入判定。
    - `ExpeditionFailureKind::RequirementsNotMet`，返回时 `launch_requirements_met == false` 即走它；效果同
      `Fatigue`（无资源、无道具、失败的提督经验与舰船经验、不产出 `ExpeditionCompleted`）。两个 `match` 补分支。
