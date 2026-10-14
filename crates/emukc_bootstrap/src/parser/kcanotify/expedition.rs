@@ -73,7 +73,8 @@ fn convert_to_internal_model(
             fleet_level: src.total_level,
             flagship_type: parse_flagship_type(&src.flagship_type),
             composition: parse_composition(&src.total_condition)?,
-            total_firepower: src.total_firepower.or(src.total_fp),
+            total_firepower: src.total_firepower,
+            total_aa: src.total_fp,
             total_asw: src.total_asw,
             total_los: src.total_los,
             drum_requirements: parse_drum_requirements(
@@ -313,6 +314,27 @@ mod tests {
         assert_eq!(parse_flagship_type(&Some("3".to_string())), Some(3));
         assert_eq!(parse_flagship_type(&Some("invalid".to_string())), None);
         assert_eq!(parse_flagship_type(&None), None);
+    }
+
+    /// A kcanotify entry with the given `total-firepower` and `total-fp`.
+    fn entry(firepower: Option<i64>, fp: Option<i64>) -> KCanotifyExpedition {
+        serde_json::from_value(serde_json::json!({
+            "no": "101", "code": "A2", "area": 1,
+            "name": {"jp": "", "en": "", "scn": "", "tcn": "", "ko": ""},
+            "time": 55, "resource": [0, 0, 0, 0], "reward": [], "exp": [0, 0],
+            "total-num": 4, "total-firepower": firepower, "total-fp": fp,
+        }))
+        .unwrap()
+    }
+
+    /// kcanotify's `total-fp` is the fleet's anti-air total, not firepower.
+    #[test]
+    fn total_fp_is_anti_air() {
+        let both = convert_to_internal_model(&entry(Some(50), Some(70))).unwrap().requirements;
+        assert_eq!((both.total_firepower, both.total_aa), (Some(50), Some(70)));
+
+        let fp_only = convert_to_internal_model(&entry(None, Some(200))).unwrap().requirements;
+        assert_eq!((fp_only.total_firepower, fp_only.total_aa), (None, Some(200)));
     }
 
     #[test]

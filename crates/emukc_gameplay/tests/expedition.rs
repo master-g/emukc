@@ -564,3 +564,110 @@ async fn expedition_launch_snapshot_is_persisted_on_fleet_and_cleared_after_resu
     assert_eq!(fleet_row.launch_drum_ship_count, 0);
     assert_eq!(fleet_row.launch_total_drums, 0);
 }
+
+/// A2 (mission 101): four destroyers, flagship Lv20, firepower 50, AA 70 and
+/// ASW 180 in total. Each ship gets a quarter of `[firepower, aa, asw]` (rounded
+/// up) and morale that survives the return.
+async fn a2_fleet(context: &Ctx, profile_id: i64, totals: [i64; 3]) -> Vec<i64> {
+    let mut ids = Vec::new();
+    for idx in 0..4 {
+        let id = add_ship_with_type(
+            context,
+            profile_id,
+            2,
+            if idx == 0 {
+                20
+            } else {
+                1
+            },
+        )
+        .await;
+        set_stats(context, id, totals.map(|total| (total + 3) / 4)).await;
+        ids.push(id);
+    }
+    set_fleet_ships(context, profile_id, 1, &ids).await;
+    ids
+}
+
+/// Set a ship's current firepower, AA and ASW, and morale that survives a
+/// return, straight in the row: `update_ship` rebuilds stats from the master,
+/// its level and its equipment.
+async fn set_stats(context: &Ctx, ship_id: i64, [firepower, aa, asw]: [i64; 3]) {
+    let row = ship::Entity::find_by_id(ship_id).one(context.db()).await.unwrap().unwrap();
+    let mut am = row.into_active_model();
+    am.condition = ActiveValue::Set(43);
+    am.firepower_now = ActiveValue::Set(firepower);
+    am.aa_now = ActiveValue::Set(aa);
+    am.asw_now = ActiveValue::Set(asw);
+    am.update(context.db()).await.unwrap();
+}
+
+async fn a2_result(context: &Ctx, profile_id: i64) -> ExpeditionResult {
+    context.start_expedition(profile_id, 1, 101).await.unwrap();
+    make_fleet_ready_for_result(context, profile_id, 1).await;
+    context.complete_expedition(profile_id, 1).await.unwrap().result
+}
+
+/// kcanotify's `total-fp` is anti-air: A2 asks for 70 of it (#116).
+#[tokio::test]
+async fn a2_needs_seventy_anti_air() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    a2_fleet(&context, pid, [52, 68, 180]).await;
+    assert_eq!(a2_result(&context, pid).await, ExpeditionResult::Failure);
+
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    a2_fleet(&context, pid, [52, 72, 180]).await;
+    assert_ne!(a2_result(&context, pid).await, ExpeditionResult::Failure);
+}
+
+/// Short of A2's ASW, the fleet sails, fails on return, earns nothing and does
+/// not advance 402 (#118).
+#[tokio::test]
+async fn a2_short_of_asw_sails_and_fails_without_quest_progress() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    context.quest_add(pid, 402).await.unwrap();
+    context.quest_start(pid, 402).await.unwrap();
+    a2_fleet(&context, pid, [52, 72, 176]).await;
+
+    context.start_expedition(pid, 1, 101).await.unwrap();
+    let held = rewards_held(&context, pid).await;
+    make_fleet_ready_for_result(&context, pid, 1).await;
+    let result = context.complete_expedition(pid, 1).await.unwrap();
+
+    assert_eq!(result.result, ExpeditionResult::Failure);
+    assert_eq!(rewards_held(&context, pid).await, held);
+    let record = context
+        .get_quest_records(pid)
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|record| record.quest_id == 402)
+        .unwrap();
+    assert_eq!(record.requirements, serde_json::json!([{"Expedition": [{"times": 3}]}]));
+}
+
+/// The verdict is taken when the fleet leaves: what changes while it is away
+/// does not move it either way (#118).
+#[tokio::test]
+async fn changes_while_away_do_not_change_the_result() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    let ships = a2_fleet(&context, pid, [52, 72, 176]).await;
+    context.start_expedition(pid, 1, 101).await.unwrap();
+    set_stats(&context, ships[0], [13, 18, 60]).await;
+    make_fleet_ready_for_result(&context, pid, 1).await;
+    let result = context.complete_expedition(pid, 1).await.unwrap();
+    assert_eq!(result.result, ExpeditionResult::Failure, "short at launch");
+
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    let ships = a2_fleet(&context, pid, [52, 72, 180]).await;
+    context.start_expedition(pid, 1, 101).await.unwrap();
+    set_stats(&context, ships[0], [13, 18, 0]).await;
+    make_fleet_ready_for_result(&context, pid, 1).await;
+    let result = context.complete_expedition(pid, 1).await.unwrap();
+    assert_ne!(result.result, ExpeditionResult::Failure, "met at launch");
+}

@@ -482,6 +482,12 @@ where
         return unmet("fleet total firepower".to_string());
     }
 
+    if requirements.total_aa.is_some_and(|min_total| {
+        fleet_ships.iter().map(|ship| ship.aa_now).sum::<i64>() < min_total
+    }) {
+        return unmet("fleet total AA".to_string());
+    }
+
     if requirements.total_asw.is_some_and(|min_total| {
         fleet_ships.iter().map(|ship| ship.asw_now).sum::<i64>() < min_total
     }) {
@@ -1348,6 +1354,7 @@ mod tests {
                 flagship_type: None,
                 composition: vec![],
                 total_firepower: None,
+                total_aa: None,
                 total_asw: None,
                 total_los: None,
                 drum_requirements: None,
