@@ -195,23 +195,35 @@ mod test {
         assert_eq!(KcTime::jst_quest_day(&at(3, 1, 2, 0)), day(2, 28));
     }
 
-    #[test]
-    fn test_jst_next_first_day_of_quarter() {
-        let now = Utc::now();
-        println!("Current time in UTC: {}", now);
-        println!(
-            "Next first day of the quarter at 5 AM JST in UTC: {:?}",
-            KcTime::jst_next_quarter_day_one_0500(&now)
-        );
+    fn jst(year: i32, month: u32, day: u32, hour: u32, minute: u32) -> DateTime<Utc> {
+        FixedOffset::east_opt(9 * 3600)
+            .unwrap()
+            .with_ymd_and_hms(year, month, day, hour, minute, 0)
+            .unwrap()
+            .with_timezone(&Utc)
     }
 
     #[test]
-    fn test_jst_next_day_one_of_year() {
-        let now = Utc::now();
-        println!("Current time in UTC: {}", now);
-        println!(
-            "Next first day of the year at 5 AM JST in UTC: {:?}",
-            KcTime::jst_next_year_day_one_0500(&now)
-        );
+    fn quarterly_quests_reset_on_the_first_of_march_june_september_and_december() {
+        let next = |start| KcTime::jst_next_quarter_day_one_0500(&start);
+
+        assert_eq!(next(jst(2026, 2, 10, 12, 0)), jst(2026, 3, 1, 5, 0));
+        assert_eq!(next(jst(2026, 3, 1, 4, 59)), jst(2026, 3, 1, 5, 0));
+        assert_eq!(next(jst(2026, 3, 1, 5, 0)), jst(2026, 6, 1, 5, 0));
+        assert_eq!(next(jst(2026, 8, 31, 23, 0)), jst(2026, 9, 1, 5, 0));
+        assert_eq!(next(jst(2026, 12, 1, 5, 0)), jst(2027, 3, 1, 5, 0));
+        assert_eq!(next(jst(2027, 1, 1, 3, 0)), jst(2027, 3, 1, 5, 0));
+    }
+
+    #[test]
+    fn yearly_quests_reset_on_the_first_of_their_own_month() {
+        let next = |start, month| KcTime::jst_next_year_day_one_0500(&start, month);
+
+        assert_eq!(next(jst(2026, 6, 1, 12, 0), 5), jst(2027, 5, 1, 5, 0));
+        assert_eq!(next(jst(2026, 4, 30, 12, 0), 5), jst(2026, 5, 1, 5, 0));
+        assert_eq!(next(jst(2026, 5, 1, 4, 59), 5), jst(2026, 5, 1, 5, 0));
+        assert_eq!(next(jst(2026, 5, 1, 5, 0), 5), jst(2027, 5, 1, 5, 0));
+        assert_eq!(next(jst(2026, 6, 1, 12, 0), 1), jst(2027, 1, 1, 5, 0));
+        assert_eq!(next(jst(2027, 1, 1, 3, 0), 1), jst(2027, 1, 1, 5, 0));
     }
 }

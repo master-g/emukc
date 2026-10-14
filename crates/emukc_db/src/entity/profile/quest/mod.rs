@@ -102,10 +102,12 @@ impl Period {
     }
 
     /// When a record of this period that started at `start_time` resets.
-    /// `None` for one-shot quests, which never do.
+    /// `None` for one-shot quests, which never do. `yearly_month` (1 to 12) is
+    /// the month a yearly quest resets in; other periods ignore it.
     pub fn reset_time(
         self,
         start_time: &chrono::DateTime<chrono::Utc>,
+        yearly_month: u32,
     ) -> Option<chrono::DateTime<chrono::Utc>> {
         Some(match self {
             Period::Oneshot => return None,
@@ -116,20 +118,23 @@ impl Period {
             Period::Weekly => KcTime::jst_next_monday_0500(start_time),
             Period::Monthly => KcTime::jst_next_1st_day_of_the_month(start_time),
             Period::Quarterly => KcTime::jst_next_quarter_day_one_0500(start_time),
-            Period::Annually => KcTime::jst_next_year_day_one_0500(start_time),
+            Period::Annually => KcTime::jst_next_year_day_one_0500(start_time, yearly_month),
         })
     }
 }
 
 /// Trait for entities that can be reset
 pub trait ShouldReset {
-    /// Check if the quest should be reset at the given time.
-    fn should_reset(&self, now: chrono::DateTime<chrono::Utc>) -> bool;
+    /// Check if the quest should be reset at the given time. `yearly_month` is
+    /// as in [`Period::reset_time`].
+    fn should_reset(&self, now: chrono::DateTime<chrono::Utc>, yearly_month: u32) -> bool;
 }
 
 impl<T: HasTimestampAndPeriod> ShouldReset for T {
-    fn should_reset(&self, now: chrono::DateTime<chrono::Utc>) -> bool {
-        self.period().reset_time(&self.timestamp()).is_some_and(|reset_time| now >= reset_time)
+    fn should_reset(&self, now: chrono::DateTime<chrono::Utc>, yearly_month: u32) -> bool {
+        self.period()
+            .reset_time(&self.timestamp(), yearly_month)
+            .is_some_and(|reset_time| now >= reset_time)
     }
 }
 
@@ -220,10 +225,26 @@ mod tests {
         };
 
         for period in [Period::Daily, Period::Daily3rd7th0th, Period::Daily2nd8th] {
-            assert_eq!(period.reset_time(&at(3, 23, 0)), Some(at(4, 5, 0)));
-            assert_eq!(period.reset_time(&at(4, 4, 59)), Some(at(4, 5, 0)));
-            assert_eq!(period.reset_time(&at(4, 5, 0)), Some(at(5, 5, 0)));
+            assert_eq!(period.reset_time(&at(3, 23, 0), 1), Some(at(4, 5, 0)));
+            assert_eq!(period.reset_time(&at(4, 4, 59), 1), Some(at(4, 5, 0)));
+            assert_eq!(period.reset_time(&at(4, 5, 0), 1), Some(at(5, 5, 0)));
         }
-        assert_eq!(Period::Oneshot.reset_time(&at(3, 23, 0)), None);
+        assert_eq!(Period::Oneshot.reset_time(&at(3, 23, 0), 1), None);
+    }
+
+    #[test]
+    fn quarterly_and_yearly_periods_reset_on_the_first_of_their_month() {
+        use chrono::TimeZone;
+
+        let jst = chrono::FixedOffset::east_opt(9 * 3600).unwrap();
+        let at = |year, month, day, hour| {
+            jst.with_ymd_and_hms(year, month, day, hour, 0, 0).unwrap().with_timezone(&chrono::Utc)
+        };
+
+        assert_eq!(Period::Quarterly.reset_time(&at(2026, 2, 10, 12), 1), Some(at(2026, 3, 1, 5)));
+        // The yearly month only moves yearly quests.
+        assert_eq!(Period::Quarterly.reset_time(&at(2026, 2, 10, 12), 5), Some(at(2026, 3, 1, 5)));
+        assert_eq!(Period::Annually.reset_time(&at(2026, 4, 30, 12), 5), Some(at(2026, 5, 1, 5)));
+        assert_eq!(Period::Annually.reset_time(&at(2026, 4, 30, 12), 1), Some(at(2027, 1, 1, 5)));
     }
 }
