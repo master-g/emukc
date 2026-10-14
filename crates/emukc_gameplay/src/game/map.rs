@@ -386,6 +386,11 @@ fn parse_map_select_rank(rank: i64) -> Result<MapSelectRank, GameplayError> {
 /// that lock itself (`main.decoded.js:88686`). See plan 2026-10-14-008.
 const QUEST_GATED_MAPS: &[(i64, i64)] = &[(65, 647)];
 
+/// Whether claiming `quest_id` can open a map.
+pub(crate) fn quest_gates_maps(quest_id: i64) -> bool {
+    QUEST_GATED_MAPS.iter().any(|(_, quest)| *quest == quest_id)
+}
+
 /// Whether the quest `map_id` waits on, if any, is done.
 async fn quest_gate_met<C>(c: &C, profile_id: i64, map_id: i64) -> Result<bool, GameplayError>
 where

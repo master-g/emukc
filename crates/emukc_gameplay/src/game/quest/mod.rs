@@ -15,7 +15,7 @@ use update::update_quests_impl;
 
 use crate::{
     err::GameplayError,
-    game::map::unlock_quest_gated_maps_impl,
+    game::map::{quest_gates_maps, unlock_quest_gated_maps_impl},
     game::quest::{
         consume::handle_consumption,
         holding::{Holding, Taken},
@@ -397,11 +397,10 @@ impl Ctx {
         // get rewards for kcs API response
         let mut resp = get_quest_rewards(codex, quest_id, reward_choices.as_deref())?;
         // The client follows 647's air base with a 6-5 notice when this is 1.
-        for bonus in resp
-            .api_bounus
-            .iter_mut()
-            .filter(|bonus| bonus.api_type == KcApiQuestClearItemBonusType::AirUnitBase as i64)
-        {
+        for bonus in resp.api_bounus.iter_mut().filter(|bonus| {
+            quest_gates_maps(quest_id)
+                && bonus.api_type == KcApiQuestClearItemBonusType::AirUnitBase as i64
+        }) {
             if let Some(item) = bonus.api_item.as_mut() {
                 item.api_c_flag = Some(i64::from(!opened_maps.is_empty()));
             }
