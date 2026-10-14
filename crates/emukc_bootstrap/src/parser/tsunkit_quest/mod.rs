@@ -315,6 +315,8 @@ pub struct Sortie {
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum Node {
+    // Upstream writes quest 1051's 1-6 goal as "n".
+    #[serde(alias = "n")]
     N,
     O,
     P,
