@@ -736,3 +736,21 @@ async fn expedition_45_takes_an_escort_or_light_carrier() {
     assert!(succeeds(45, &[HOUSHOU, MUTSUKI, MUTSUKI, ETOROFU, ETOROFU]).await);
     assert!(!succeeds(45, &[MUTSUKI, HOUSHOU, MUTSUKI, ETOROFU, ETOROFU]).await);
 }
+
+/// The rebuilt codex reads kcanotify as #116 and #117 say: `total-fp` is AA,
+/// "7/27" is two flagship types, and the escort carriers are listed.
+#[tokio::test]
+async fn the_codex_reads_kcanotify_requirements() {
+    let context = mock_context().await;
+    let codex = context.codex();
+    let requirements = |mission_id: i64| &codex.expedition_conditions[&mission_id].requirements;
+
+    let b1 = requirements(110);
+    assert_eq!((b1.total_firepower, b1.total_aa), (None, Some(200)));
+    let a2 = requirements(101);
+    assert_eq!((a2.total_firepower, a2.total_aa), (Some(50), Some(70)));
+    assert_eq!(requirements(43).flagship_types, vec![7, 27]);
+    assert_eq!(requirements(45).flagship_types, vec![7, 27]);
+    assert!(codex.escort_carriers.contains(&TAIYOU));
+    assert!(!codex.escort_carriers.contains(&HOUSHOU));
+}

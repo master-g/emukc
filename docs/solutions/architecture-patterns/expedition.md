@@ -65,8 +65,9 @@ subtracted: the totals are the ships' current stats.
 27 is not in `api_mst_stype`; only kcanotify's expedition rules use it. The
 codex's `escort_carriers.json` is kcanotify's `ships_filter_data.json`
 `cve_ids` (downloaded as `kcanotify_ships_filter.json`). An escort carrier
-counts as 27 and as its own type (all are 7 today) for the flagship and for
-each composition requirement, each requirement counted on its own.
+counts as 27 and as its own type (all are 7 today) in each composition
+requirement, each requirement counted on its own. As flagship it is 27 only, as
+in kcanotify: `"7/27"` lets it lead, a bare `"7"` would not.
 
 The list goes stale when a new escort carrier ships, until kcanotify adds it
 and the codex is rebuilt.

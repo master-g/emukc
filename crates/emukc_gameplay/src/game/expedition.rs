@@ -465,10 +465,16 @@ where
         return unmet(format!("flagship level {}", flagship.level));
     }
 
+    // An escort carrier leads as 27 only (kcanotify's flagship check).
+    let flagship_type = if codex.escort_carriers.contains(&flagship.mst_id) {
+        ESCORT_CARRIER_STYPE
+    } else {
+        flagship_mst.api_stype
+    };
     if !requirements.flagship_types.is_empty()
-        && !requirements.flagship_types.iter().any(|&stype| counts_as(codex, flagship, stype))
+        && !requirements.flagship_types.contains(&flagship_type)
     {
-        return unmet(format!("flagship type {}", flagship_mst.api_stype));
+        return unmet(format!("flagship type {flagship_type}"));
     }
 
     if requirements
@@ -549,7 +555,7 @@ fn expedition_ship_type_requirement_matches(
 /// kcanotify's pseudo ship type for escort carriers.
 const ESCORT_CARRIER_STYPE: i64 = 27;
 
-/// Whether the ship counts as ship type `stype` for expedition requirements: its
+/// Whether the ship counts as ship type `stype` in a composition requirement: its
 /// own type, or 27 for an escort carrier, which is also still its own type.
 fn counts_as(codex: &Codex, ship: &ship::Model, stype: i64) -> bool {
     if stype == ESCORT_CARRIER_STYPE {

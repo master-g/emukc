@@ -84,7 +84,6 @@ pub struct Kc3rdExpeditionRequirements {
     pub total_firepower: Option<i64>,
 
     /// Fleet anti-air requirement (optional)
-    #[serde(default)]
     pub total_aa: Option<i64>,
 
     /// Fleet ASW requirement (optional)
