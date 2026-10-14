@@ -152,6 +152,9 @@ Current verification baseline:
   能動分岐格离开时不转罗针盘是本项目定的，没有抓包：`sortie-compass-rashin-flag.md`。
 - [2026-10-12] 敌方空母的夜战：`carrier-night-air-attack.md` 的 Enemy carriers。取值 3 的轻空母看的是**玩家**的探照灯，#55 原文写反了。
 
+- [2026-10-14] 季常任务在 3/6/9/12 月 1 日 05:00 JST 重置；年常的 `label_type` 100+N 即第 N 月重置（KC3Kai `QuestManager.js` repeatableTypes）。代码现用 1/4/7/10 月与一律 1 月，见下次运行。
+- [2026-10-14] kcanotify 的 `total-fp` 是对空合计，27 是护卫空母（`cve_ids`），来源见 #116、#117 的 Agent Brief；改修、Bw1、远征列表的计数规则已入 `quest.md`。客户端把 `mission` 列表里没有的远征置 -1（`main.decoded.js:15821`）。
+
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -180,15 +183,17 @@ Current verification baseline:
 `battle_golden.rs` 渲染 transcript，加字段不动它——Stop condition 只针对后者。 | session 2026-09-21 |
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 | [2026-09-23] 在 git worktree 里跑 cargo 而 `CARGO_TARGET_DIR` 共用 `~/.cache/cargo-build`，会覆盖主检出的产物（同名 path 依赖指纹冲突），随后主检出报「方法不存在」。worktree 里要设独立的 `CARGO_TARGET_DIR`。 | session 2026-09-23 |
+| [2026-10-14] 调试用 `quest_add_at` 把新行 `progress` 写成 `Completed`：测未接取任务要读条件里的剩余计数，不能看 `progress`。 | session 2026-10-14 |
 | [2026-10-11] 全量测试加 `--no-fail-fast`：`cargo test --workspace` 默认在第一个失败的 crate 就停，通过数会偏少。 | session 2026-10-11 |
 
 ## Last Session
 
-- [2026-10-14] `main`：#101 已合并（PR #108），`init` 仍读时钟（有意未改，见 `quest.md`）；#102 已分拣为 ready-for-agent（方案见 issue 里的 Agent Brief），演习经验公式拆到 #109。
+- [2026-10-14] 分支 `fix/quest-progress-events`（未推送、无 PR）：计划 001 实施完（#110 #111 #115 #121），本地码典已重建，三道质量门全过、0 ignored。仍未提交：`docs/agents/issue-tracker.md`、`.out-of-scope/`、计划 002～004。
 
 ## Next Session
 
-- [2026-10-13] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-14] 暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+  quest/mission：001 在分支上待推送/开 PR；未决：远征列表拆开前存的旧进度行仍按「任选」，Oneshot/Annual 的不会很快重置，是否加载时按 master 重解释。002～004 未实施，004 须在 001 合并后；#119 另写计划，放最后。
   未定的见 `day-shelling-order.md` 的 Unsettled、计划 2026-10-12-010、2026-10-13-001 到 004。
   #100 留下的见 `reconnaissance-and-escort-cells.md`。
   #64 留下的见计划 2026-10-12-005 的 Scope、Risks。#53 留下的见 `night-attack-types.md` Known gaps。
