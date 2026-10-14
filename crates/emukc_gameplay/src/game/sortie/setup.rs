@@ -12,7 +12,7 @@ use emukc_battle::{
 };
 use emukc_db::entity::profile;
 use emukc_db::sea_orm::ConnectionTrait;
-use emukc_model::{codex::Codex, kc2::start2::ApiMstShip};
+use emukc_model::{codex::Codex, kc2::start2::ApiMstShip, thirdparty::FleetShipSnapshot};
 
 use crate::{
     err::GameplayError,
@@ -352,6 +352,17 @@ impl SortieBattleSetup {
         } = rewards;
         SortieBattleResultSnapshot {
             friendly_ship_ids: session.friendly_ship_ids.clone(),
+            friendly_fleet_snapshot: session
+                .friendly
+                .iter()
+                .take(self.friend_ships.len())
+                .enumerate()
+                .map(|(idx, ship)| FleetShipSnapshot {
+                    mst_id: ship.ship.api_ship_id,
+                    level: ship.ship.api_lv,
+                    position: idx as i64 + 1,
+                })
+                .collect(),
             enemy_ship_ids: session.enemy_ship_ids.clone(),
             friendly_nowhps,
             friendly_onslots: session.friendly.iter().map(|f| f.ship.api_onslot).collect(),

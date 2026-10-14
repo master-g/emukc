@@ -55,6 +55,8 @@ pub enum QuestActionEvent {
         boss_cell: bool,
         win_rank: KcSortieResultRank,
         fleet_id: i64,
+        /// 第1艦隊 as it fought.
+        fleet_ships: Vec<FleetShipSnapshot>,
     },
     ModernizationCompleted {
         target_ship_mst_id: i64,
@@ -254,6 +256,67 @@ impl Kc3rdQuestCondition {
     }
 }
 
+/// Apply `event` to each of a quest's conditions, read against the master's
+/// at the same index. A sortie condition bound to a composition only counts
+/// battles fought in that composition.
+pub fn apply_event_to_conditions(
+    conditions: &mut [Kc3rdQuestCondition],
+    master: Option<&[Kc3rdQuestCondition]>,
+    event: &QuestActionEvent,
+    codex: Option<&Codex>,
+) -> bool {
+    let mut updated = false;
+    for (idx, condition) in conditions.iter_mut().enumerate() {
+        if let QuestActionEvent::SortieBattleCompleted {
+            fleet_id,
+            fleet_ships,
+            ..
+        } = event
+            && let Some(composition) = master.and_then(|master| paired_composition(master, idx))
+            && !codex.is_some_and(|codex| {
+                validate_composition_snapshot(*fleet_id, fleet_ships, composition, codex)
+            })
+        {
+            continue;
+        }
+        let reference = master.and_then(|master| master.get(idx));
+        updated |= condition.apply_event_with_context(event, reference, codex);
+    }
+    updated
+}
+
+/// The composition the sortie condition at `idx` is fought in: the nearest
+/// `Composition` before it. `KC3Kai` judges it at each battle result against the
+/// fleet sent (`Kcsapi.js` battleresult, `QuestManager.isPrerequisiteFulfilled`).
+pub fn paired_composition(
+    conditions: &[Kc3rdQuestCondition],
+    idx: usize,
+) -> Option<&Kc3rdQuestConditionComposition> {
+    match &conditions[paired_composition_index(conditions, idx)?] {
+        Kc3rdQuestCondition::Composition(composition) => Some(composition),
+        _ => None,
+    }
+}
+
+/// Where [`paired_composition`] sits in `conditions`.
+pub(super) fn paired_composition_index(
+    conditions: &[Kc3rdQuestCondition],
+    idx: usize,
+) -> Option<usize> {
+    if !matches!(conditions.get(idx), Some(Kc3rdQuestCondition::Sortie(_))) {
+        return None;
+    }
+    conditions[..idx]
+        .iter()
+        .rposition(|condition| matches!(condition, Kc3rdQuestCondition::Composition(_)))
+}
+
+/// Whether the condition at `idx` is a composition some sortie is fought in,
+/// rather than one held when the quest is claimed.
+pub fn composition_is_paired(conditions: &[Kc3rdQuestCondition], idx: usize) -> bool {
+    (0..conditions.len()).any(|sortie| paired_composition_index(conditions, sortie) == Some(idx))
+}
+
 fn apply_exercise_event(
     condition: &mut Kc3rdQuestConditionExercise,
     fleet_id: i64,
@@ -309,6 +372,7 @@ fn apply_sortie_event(
         boss_cell,
         win_rank,
         fleet_id,
+        ..
     } = event
     else {
         return false;
@@ -597,6 +661,7 @@ mod tests {
                 boss_cell: false,
                 win_rank: KcSortieResultRank::S,
                 fleet_id: 1,
+                fleet_ships: vec![],
             },
             None,
         ));
@@ -608,6 +673,7 @@ mod tests {
                 boss_cell: true,
                 win_rank: KcSortieResultRank::C,
                 fleet_id: 1,
+                fleet_ships: vec![],
             },
             None,
         ));
@@ -619,6 +685,7 @@ mod tests {
                 boss_cell: true,
                 win_rank: KcSortieResultRank::A,
                 fleet_id: 1,
+                fleet_ships: vec![],
             },
             None,
         ));
@@ -649,6 +716,7 @@ mod tests {
                 boss_cell: false,
                 win_rank: KcSortieResultRank::A,
                 fleet_id: 1,
+                fleet_ships: vec![],
             },
             None,
         ));
@@ -660,6 +728,7 @@ mod tests {
                 boss_cell: true,
                 win_rank: KcSortieResultRank::C,
                 fleet_id: 1,
+                fleet_ships: vec![],
             },
             None,
         ));
@@ -671,6 +740,7 @@ mod tests {
                 boss_cell: true,
                 win_rank: KcSortieResultRank::B,
                 fleet_id: 1,
+                fleet_ships: vec![],
             },
             None,
         ));
@@ -697,6 +767,7 @@ mod tests {
                 boss_cell: true,
                 win_rank: KcSortieResultRank::A,
                 fleet_id: 1,
+                fleet_ships: vec![],
             },
             Some(&master),
         ));
@@ -714,6 +785,7 @@ mod tests {
                 boss_cell: true,
                 win_rank: KcSortieResultRank::A,
                 fleet_id: 1,
+                fleet_ships: vec![],
             },
             Some(&master),
         ));
@@ -741,6 +813,7 @@ mod tests {
             boss_cell: true,
             win_rank: KcSortieResultRank::S,
             fleet_id: 1,
+            fleet_ships: vec![],
         }
     }
 
@@ -931,6 +1004,87 @@ mod tests {
             None,
             Some(&codex),
         ));
+    }
+
+    fn composition(fleet_id: i64) -> Kc3rdQuestCondition {
+        Kc3rdQuestCondition::Composition(Kc3rdQuestConditionComposition {
+            groups: vec![],
+            disallowed: None,
+            fleet_id,
+        })
+    }
+
+    fn sortie(times: i64) -> Kc3rdQuestCondition {
+        Kc3rdQuestCondition::Sortie(Kc3rdQuestConditionSortie {
+            times,
+            ..Default::default()
+        })
+    }
+
+    fn exercise() -> Kc3rdQuestCondition {
+        Kc3rdQuestCondition::Exercise(Kc3rdQuestConditionExercise {
+            times: 1,
+            expect_result: KcSortieResult::Any,
+            expire_next_day: false,
+            groups: None,
+        })
+    }
+
+    fn fleet_of(condition: Option<&Kc3rdQuestConditionComposition>) -> Option<i64> {
+        condition.map(|c| c.fleet_id)
+    }
+
+    #[test]
+    fn one_composition_binds_every_sortie_after_it() {
+        let conditions = [composition(1), sortie(1), sortie(2)];
+        assert_eq!(fleet_of(paired_composition(&conditions, 1)), Some(1));
+        assert_eq!(fleet_of(paired_composition(&conditions, 2)), Some(1));
+        assert_eq!(fleet_of(paired_composition(&conditions, 0)), None, "not a sortie");
+    }
+
+    #[test]
+    fn each_composition_binds_the_sortie_that_follows_it() {
+        let conditions = [composition(1), sortie(1), composition(2), sortie(1)];
+        assert_eq!(fleet_of(paired_composition(&conditions, 1)), Some(1));
+        assert_eq!(fleet_of(paired_composition(&conditions, 3)), Some(2));
+    }
+
+    #[test]
+    fn an_exercise_before_the_composition_is_not_bound() {
+        let conditions = [exercise(), composition(1), sortie(1)];
+        assert_eq!(fleet_of(paired_composition(&conditions, 2)), Some(1));
+        assert!(!composition_is_paired(&conditions, 0));
+        assert!(composition_is_paired(&conditions, 1));
+    }
+
+    #[test]
+    fn a_sortie_without_a_composition_is_not_bound() {
+        let conditions = [sortie(1), composition(1)];
+        assert_eq!(fleet_of(paired_composition(&conditions, 0)), None);
+        assert!(!composition_is_paired(&conditions, 1), "a composition held, not sailed");
+    }
+
+    #[test]
+    fn a_bound_sortie_counts_only_battles_fought_in_its_composition() {
+        let master = [composition(2), sortie(2), sortie(2)];
+        let mut current = master.clone();
+        let battle = |fleet_id| QuestActionEvent::SortieBattleCompleted {
+            maparea_id: 1,
+            mapinfo_no: 1,
+            gauge_phase: 1,
+            boss_cell: true,
+            win_rank: KcSortieResultRank::S,
+            fleet_id,
+            fleet_ships: vec![],
+        };
+
+        let codex = Some(&Codex::default());
+
+        assert!(!apply_event_to_conditions(&mut current, Some(&master), &battle(1), codex));
+        assert_eq!(current, master, "fleet 1 is not the composition's fleet 2");
+        assert!(apply_event_to_conditions(&mut current, Some(&master), &battle(2), codex));
+        assert_eq!(current[1], sortie(1));
+        assert_eq!(current[2], sortie(1));
     }
 
     // --- SpecificItems tests ---

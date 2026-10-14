@@ -5,20 +5,27 @@ use crate::profile::quest::QuestProgressStatus;
 use super::{
     Kc3rdQuestCondition, Kc3rdQuestConditionFactory, Kc3rdQuestConditionScrap,
     Kc3rdQuestRequirement,
+    matcher::{composition_is_paired, paired_composition_index},
 };
 
 impl Kc3rdQuestRequirement {
-    pub fn calculate_progress(&self, _mst: &Kc3rdQuestRequirement) -> QuestProgressStatus {
+    pub fn calculate_progress(&self, mst: &Kc3rdQuestRequirement) -> QuestProgressStatus {
+        let (Kc3rdQuestRequirement::And(master)
+        | Kc3rdQuestRequirement::OneOf(master)
+        | Kc3rdQuestRequirement::Sequential(master)) = mst;
+        let satisfied_at =
+            |conditions: &[Kc3rdQuestCondition], idx| satisfied_at(conditions, master, idx);
         match self {
             Kc3rdQuestRequirement::And(conditions) => {
                 // Each expedition an `Expedition` condition lists counts on its own.
                 let (total, completed) = conditions
                     .iter()
-                    .map(|c| match c {
+                    .enumerate()
+                    .map(|(idx, c)| match c {
                         Kc3rdQuestCondition::Expedition(exps) => {
                             (exps.len(), exps.iter().filter(|e| e.times == 0).count())
                         }
-                        _ => (1, usize::from(c.is_satisfied())),
+                        _ => (1, usize::from(satisfied_at(conditions, idx))),
                     })
                     .fold((0, 0), |(total, completed), (units, done)| {
                         (total + units, completed + done)
@@ -26,14 +33,15 @@ impl Kc3rdQuestRequirement {
                 progress_from_ratio(completed, total)
             }
             Kc3rdQuestRequirement::OneOf(conditions) => {
-                if conditions.iter().any(Kc3rdQuestCondition::is_satisfied) {
+                if (0..conditions.len()).any(|idx| satisfied_at(conditions, idx)) {
                     QuestProgressStatus::Completed
                 } else {
                     QuestProgressStatus::Empty
                 }
             }
             Kc3rdQuestRequirement::Sequential(conditions) => {
-                let first_incomplete = conditions.iter().position(|c| !c.is_satisfied());
+                let first_incomplete =
+                    (0..conditions.len()).position(|idx| !satisfied_at(conditions, idx));
                 match first_incomplete {
                     None => QuestProgressStatus::Completed,
                     Some(idx) => progress_from_ratio(idx, conditions.len()),
@@ -71,6 +79,22 @@ impl Kc3rdQuestCondition {
             Kc3rdQuestCondition::Consumption(_) | Kc3rdQuestCondition::ModelConversion(_) => true,
         }
     }
+}
+
+/// Whether the condition at `idx` is met. A composition a sortie is fought in
+/// was judged at each battle, so it is met once all its sorties are. Pairing is
+/// read off the master, as the matcher reads it.
+fn satisfied_at(
+    conditions: &[Kc3rdQuestCondition],
+    master: &[Kc3rdQuestCondition],
+    idx: usize,
+) -> bool {
+    if composition_is_paired(master, idx) {
+        return (0..master.len())
+            .filter(|&sortie| paired_composition_index(master, sortie) == Some(idx))
+            .all(|sortie| conditions.get(sortie).is_some_and(Kc3rdQuestCondition::is_satisfied));
+    }
+    conditions[idx].is_satisfied()
 }
 
 fn progress_from_ratio(completed: usize, total: usize) -> QuestProgressStatus {

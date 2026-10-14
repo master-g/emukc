@@ -669,4 +669,6 @@ pub type Kc3rdQuestMap = std::collections::BTreeMap<i64, Kc3rdQuest>;
 pub use composition::{
     FleetShipSnapshot, ShipInstance, validate_composition, validate_composition_snapshot,
 };
-pub use matcher::{ExpeditionResult, QuestActionEvent};
+pub use matcher::{
+    ExpeditionResult, QuestActionEvent, apply_event_to_conditions, composition_is_paired,
+};
