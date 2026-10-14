@@ -151,8 +151,8 @@ is now internal to the quest module and is reached only from `observe`; see
   except for 410 and 411 (東京急行), which keep one shared any-of counter. The
   `And` progress ratio counts each listed expedition. Rows saved before that
   split are split the next time the quest list is read
-  (`split_expedition_lists`); each listed expedition takes over what the
-  shared counter had left.
+  (`split_expedition_lists`); the shared count cannot say which expedition
+  was run, so each listed expedition starts again from the master's count.
 
 ### Quest rewards
 

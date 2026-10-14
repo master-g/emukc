@@ -8,9 +8,7 @@ use emukc_db::{
 };
 use emukc_model::{
     codex::Codex,
-    prelude::{
-        Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestConditionExpedition, Kc3rdQuestRequirement,
-    },
+    prelude::{Kc3rdQuest, Kc3rdQuestCondition, Kc3rdQuestRequirement},
     profile::quest::QuestProgressStatus,
     thirdparty::QuestActionEvent,
 };
@@ -91,9 +89,10 @@ where
 }
 
 /// Rows saved before expedition lists meant "each of" hold one shared counter
-/// where the master now lists each expedition on its own. Each listed
-/// expedition takes over what the shared counter had left. Returns the
-/// rewritten row, `None` when there was nothing to split.
+/// where the master now lists each expedition on its own. The shared count
+/// cannot say which expedition was run, so each listed expedition starts from
+/// the master's count. Returns the rewritten row, `None` when there was
+/// nothing to split.
 async fn split_expedition_lists<C>(
     c: &C,
     codex: &Codex,
@@ -121,20 +120,7 @@ where
         if saved.len() == split.len() {
             continue;
         }
-        let split = split
-            .iter()
-            .map(|item| {
-                let shared = saved.iter().find(|saved| match (&saved.list, &item.list) {
-                    (Some(saved), Some(listed)) => listed.iter().all(|id| saved.contains(id)),
-                    _ => false,
-                });
-                Kc3rdQuestConditionExpedition {
-                    list: item.list.clone(),
-                    times: shared.map_or(item.times, |shared| shared.times.min(item.times)),
-                }
-            })
-            .collect();
-        *condition = Kc3rdQuestCondition::Expedition(split);
+        *condition = Kc3rdQuestCondition::Expedition(split.clone());
         changed = true;
     }
     if !changed {

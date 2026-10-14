@@ -100,7 +100,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_row_saved_with_a_shared_counter_is_split_on_load() {
+    async fn a_row_saved_with_a_shared_counter_restarts_each_expedition() {
         let context = crate::TestContext::new().await;
         let account = context.sign_up("test-exp-split", "1234567").await.unwrap();
         let profile = context.new_profile(&account.access_token.token, "exp-split").await.unwrap();
@@ -112,7 +112,8 @@ mod tests {
             .id;
         context.quest_add(pid, 426).await.unwrap();
 
-        // How 426 was saved before the parser split its list.
+        // How 426 was saved before the parser split its list, after one of
+        // its expeditions: the shared counter cannot say which.
         let row = progress::Entity::find()
             .filter(progress::Column::ProfileId.eq(pid))
             .filter(progress::Column::QuestId.eq(426))
@@ -122,7 +123,7 @@ mod tests {
             .unwrap();
         let mut am = row.into_active_model();
         am.requirements = ActiveValue::Set(serde_json::json!([
-            {"Expedition": [{"list": ["3", "4", "5", "10"], "times": 1}]}
+            {"Expedition": [{"list": ["3", "4", "5", "10"], "times": 0}]}
         ]));
         am.update(context.db()).await.unwrap();
 
