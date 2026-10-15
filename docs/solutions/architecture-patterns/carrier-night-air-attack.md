@@ -153,6 +153,25 @@ secondary guns makes one. That is her gunfire only: a carrier flying with a nigh
 the carrier cut-ins and no other attack type (`CV.NBtypes`), so with the same two guns and a
 night air group she flies a plain night air attack, flag 1.
 
+## The carrier cut-ins
+
+`carrier_night_cut_ins` lists every one of the source's four (`NBATTACKDATA` 61 to 64,
+`CV.NBtypes`) that her air group makes, in this order, and `resolve_night_attack` rolls them in
+turn as it rolls a destroyer's: one roll each until one comes up, a plain flown attack if none
+does. The counts are of slots with aircraft left: night fighters F, night attackers A, night
+bombers B (icons 45, 46, 58), 光電管彗星, and Swordfish and 岩井.
+
+| | Makes it | Damage | Accuracy | Chance divided by |
+| --- | --- | --- | --- | --- |
+| 61 | F ≥ 2, A ≥ 1 | 1.25 | 1.25 | 1.05 |
+| 62 | F ≥ 1, A ≥ 1 | 1.2 | 1.2 | 1.2 |
+| 63 | 光電管彗星 or B, and F + A + B + 光電管彗星 ≥ 2 | 1.2 | 1.2 | 1.2 |
+| 64 | F ≥ 1, and F + A + B + 光電管彗星 + Swordfish + 岩井 ≥ 3 | 1.18 | 1.2 | 1.3 |
+
+So two night fighters and a night attacker roll 61, then 62, then 64. One night fighter with one
+Swordfish makes none; wikiwiki's 戦他他 had been read as two aircraft before the source was
+followed. All four go out as `api_sp_list` 6 and name the same aircraft in `api_si_list`.
+
 ## What the client is told
 
 `api_n_mother_list` is 1 for an attack by air. The client keeps it as `yasen_kubo` and, when
@@ -185,5 +204,4 @@ and `damage.rs` do not ask `simulation::night` themselves.
 - The torpedo fit bonus in a carrier's day shelling and airstrike (the day formulas are not the
   source's to begin with). Bombing bonuses (`DBCrew`): the 装備ボーナス table carries no bombing.
 - Smoke on the attack on a submarine, and the 夜間瑞雲 cut-in's exception for one.
-- The source lets a carrier roll for several of her cut-ins in turn; here she has the one her
-  air group makes. The types of the other ships are in `night-attack-types.md`.
+- The types of the other ships are in `night-attack-types.md`.
