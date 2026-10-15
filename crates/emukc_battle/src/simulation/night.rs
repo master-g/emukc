@@ -1190,17 +1190,8 @@ fn kongou_night_assault(
         multiplier: kongou_assault_multiplier(&friendly[at], at == 0, params.engagement),
         accuracy: 1.4,
     });
-    special_attack_row(
-        codex,
-        rng,
-        friendly,
-        enemy,
-        forms,
-        params,
-        hougeki,
-        KONGOU_ASSAULT_SP,
-        &hits,
-    );
+    let row = SpecialRow::flagship(codex, friendly, params, KONGOU_ASSAULT_SP);
+    special_attack_row(codex, rng, friendly, enemy, forms, params, hougeki, row, &hits);
     true
 }
 
@@ -1227,8 +1218,153 @@ fn special_gunnery_at_night(
         return false;
     };
     let hits = resolved.hits(codex, friendly, params.engagement);
-    let sp = resolved.api_value();
-    special_attack_row(codex, rng, friendly, enemy, forms, params, hougeki, sp, &hits);
+    let row = SpecialRow::flagship(codex, friendly, params, resolved.api_value());
+    special_attack_row(codex, rng, friendly, enemy, forms, params, hougeki, row, &hits);
+    true
+}
+
+/// 試製 夜間瑞雲(攻撃装備), the one aircraft the night 瑞雲 cut-in counts.
+const NIGHT_ZUIUN_ID: i64 = 490;
+/// The night 瑞雲 cut-in's `api_sp_list`, which the client plays as `PhaseZuiunNightAttack`.
+const ZUIUN_NIGHT_SP: i64 = 200;
+
+/// The night 瑞雲 cut-ins (`NBATTACKDATA` 2001 to 2004), in the order the source rolls them. All
+/// take 1.07 to accuracy and divide the chance by 1.35.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ZuiunNightCutIn {
+    /// Two 夜間瑞雲 and a surface radar: 1.36.
+    TwoAndRadar,
+    /// Two 夜間瑞雲: 1.32.
+    Two,
+    /// One 夜間瑞雲 and a surface radar: 1.28.
+    OneAndRadar,
+    /// One 夜間瑞雲: 1.24.
+    One,
+}
+
+impl ZuiunNightCutIn {
+    const ACCURACY: f64 = 1.07;
+    const CHANCE: f64 = 1.35;
+
+    fn damage_multiplier(self) -> f64 {
+        match self {
+            Self::TwoAndRadar => 1.36,
+            Self::Two => 1.32,
+            Self::OneAndRadar => 1.28,
+            Self::One => 1.24,
+        }
+    }
+}
+
+/// The night 瑞雲 cut-ins a ship may roll for (`Ship.NBtypes`): a light or torpedo cruiser, an
+/// aviation cruiser or battleship or a seaplane tender with two main guns, and 夜間瑞雲 with
+/// aircraft left. Every one she makes, in order.
+fn zuiun_night_cut_ins(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<ZuiunNightCutIn> {
+    use ZuiunNightCutIn::*;
+    let hull = matches!(
+        ship_type(codex, ship),
+        Some(KcShipType::CL | KcShipType::CLT | KcShipType::CAV | KcShipType::BBV | KcShipType::AV)
+    );
+    let gear = NightGear::of(codex, ship);
+    if !hull || gear.main_guns < 2 {
+        return Vec::new();
+    }
+    let zuiun = count_slotitems_with_onslot(ship, |id| id == NIGHT_ZUIUN_ID);
+    let radar = gear.surface_radar;
+    [
+        (zuiun >= 2 && radar, TwoAndRadar),
+        (zuiun >= 2, Two),
+        (zuiun >= 1 && radar, OneAndRadar),
+        (zuiun >= 1, One),
+    ]
+    .into_iter()
+    .filter_map(|(makes, kind)| makes.then_some(kind))
+    .collect()
+}
+
+/// The chance in percent the night 瑞雲 cut-in is rolled against, before it is divided
+/// (`canSpecialAttack`): the night cut-in chance, less 14 for her own fleet's star shell and 17
+/// for its searchlight, 3 more for 熟練見張員, 8 less for a destroyer or light or torpedo cruiser
+/// with 水雷戦隊 熟練見張員.
+fn zuiun_night_chance(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    is_flagship: bool,
+    lights: (NightLights, NightLights),
+) -> f64 {
+    let own = lights.0;
+    let mut chance = night_cut_in_chance(codex, ship, is_flagship, lights);
+    if own.star_shell {
+        chance -= 14.0;
+    }
+    if own.searchlight > 0 {
+        chance -= 17.0;
+    }
+    if has_slotitem_id(ship, LOOKOUT_ID) {
+        chance += 3.0;
+    }
+    if matches!(ship_type(codex, ship), Some(KcShipType::DD | KcShipType::CL | KcShipType::CLT))
+        && has_slotitem_id(ship, SKILLED_LOOKOUT_ID)
+    {
+        chance -= 8.0;
+    }
+    chance
+}
+
+/// A friendly ship's night 瑞雲 cut-in in her turn, if it comes up (`nightPhase`'s special attack
+/// with `attackSpecial` 200): two hits of her own on surface ships, in one row. She must attack
+/// at night with more than half her hull, and a surface ship must be afloat. One roll per cut-in
+/// she makes, in order. Once it is made, her fleet counts as having fired a star shell for the
+/// rest of the night (the source's `star1 = true`), the cut-in's two hits included.
+#[expect(clippy::too_many_arguments)]
+fn zuiun_night_attack(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    friendly: &mut [BattleRuntimeShip],
+    idx: usize,
+    enemy: &mut [BattleRuntimeShip],
+    forms: (i64, i64),
+    params: &NightBattleParams,
+    lights: &mut (NightLights, NightLights),
+    hougeki: &mut BattleNightHougeki,
+) -> bool {
+    let ship = &friendly[idx];
+    if !can_attack_night_ship(codex, ship)
+        || ship.hp() * 2 <= ship.ship.api_maxhp
+        || !enemy.iter().any(|ship| ship.is_alive() && !target_class(codex, ship).is_submarine())
+    {
+        return false;
+    }
+    let kinds = zuiun_night_cut_ins(codex, ship);
+    if kinds.is_empty() {
+        return false;
+    }
+    let rate = zuiun_night_chance(codex, ship, idx == 0, *lights) * 0.01 / ZuiunNightCutIn::CHANCE;
+    let Some(kind) = kinds.into_iter().find(|_| rng.random_f64_range(0.0, 1.0) < rate) else {
+        return false;
+    };
+    lights.0.star_shell = true;
+    let hit = || SpecialHit {
+        fleet_index: idx,
+        multiplier: kind.damage_multiplier(),
+        accuracy: ZuiunNightCutIn::ACCURACY,
+    };
+    // The client draws the first slot's aircraft, unchecked: a 夜間瑞雲 goes first.
+    let zuiun = usize::from(matches!(kind, ZuiunNightCutIn::TwoAndRadar | ZuiunNightCutIn::Two));
+    let mut shown = vec![NIGHT_ZUIUN_ID; zuiun + 1];
+    if matches!(kind, ZuiunNightCutIn::TwoAndRadar | ZuiunNightCutIn::OneAndRadar) {
+        let radars = collect_matching_slot_ids(codex, &friendly[idx], |slot_type, mst| {
+            is_radar_type(slot_type) && mst.api_saku >= 5
+        });
+        shown.extend(radars.first());
+    }
+    let row = SpecialRow {
+        sp: ZUIUN_NIGHT_SP,
+        at: idx,
+        shown,
+        star_shell: true,
+    };
+    special_attack_row(codex, rng, friendly, enemy, forms, params, hougeki, row, &[hit(), hit()]);
     true
 }
 
@@ -1238,8 +1374,46 @@ fn has_special_attack_target(codex: &Codex, enemy: &[BattleRuntimeShip]) -> bool
         && enemy.iter().any(|ship| ship.is_alive() && !target_class(codex, ship).is_submarine())
 }
 
-/// The one row of a fleet special attack at night: each hit on a surface ship of its own, its
-/// multiplier applied before the cap. The row is the flagship's.
+/// Who a special attack's row at night is written for, and what it shows.
+struct SpecialRow {
+    /// `api_sp_list`.
+    sp: i64,
+    /// `api_at_list`.
+    at: usize,
+    /// `api_si_list`.
+    shown: Vec<i64>,
+    /// Whether her fleet's star shell counts for the hits.
+    star_shell: bool,
+}
+
+impl SpecialRow {
+    /// A fleet special attack's: the flagship's row, which shows her main guns; the client draws
+    /// the ships from their places in the fleet and reads no equipment.
+    fn flagship(
+        codex: &Codex,
+        friendly: &[BattleRuntimeShip],
+        params: &NightBattleParams,
+        sp: i64,
+    ) -> Self {
+        let guns = collect_matching_slot_ids(codex, &friendly[0], |slot_type, _| {
+            is_main_gun_type(slot_type)
+        });
+        let mut shown = Vec::new();
+        extend_limit(&mut shown, &guns, 3);
+        if shown.is_empty() {
+            shown.push(-1);
+        }
+        Self {
+            sp,
+            at: 0,
+            shown,
+            star_shell: params.flare_pos[0] >= 0,
+        }
+    }
+}
+
+/// The one row of a special attack at night: each hit on a surface ship of its own, its
+/// multiplier applied before the cap.
 #[expect(clippy::too_many_arguments)]
 fn special_attack_row(
     codex: &Codex,
@@ -1249,7 +1423,7 @@ fn special_attack_row(
     (friendly_formation, enemy_formation): (i64, i64),
     params: &NightBattleParams,
     hougeki: &mut BattleNightHougeki,
-    sp: i64,
+    row: SpecialRow,
     hits: &[SpecialHit],
 ) {
     let (mut targets, mut cls, mut damages) = (Vec::new(), Vec::new(), Vec::new());
@@ -1280,7 +1454,7 @@ fn special_attack_row(
         let aim = Aim::new(AttackKind::Night, friendly_formation, enemy_formation)
             .with_modifier(hit.accuracy)
             .under_contact(params.contact[0])
-            .lit_by_star_shell(params.flare_pos[0] >= 0);
+            .lit_by_star_shell(row.star_shell);
         let outcome = roll_attack(codex, rng, ship, &enemy[target_idx], aim);
         let raw = calculate_night_damage(
             codex,
@@ -1307,22 +1481,13 @@ fn special_attack_row(
     if targets.is_empty() {
         return;
     }
-
-    // The client draws the ships from their places in the fleet and reads no equipment.
-    let shown =
-        collect_matching_slot_ids(codex, &friendly[0], |slot_type, _| is_main_gun_type(slot_type));
-    let mut ids = Vec::new();
-    extend_limit(&mut ids, &shown, 3);
-    if ids.is_empty() {
-        ids.push(-1);
-    }
     hougeki.api_at_eflag.push(0);
-    hougeki.api_at_list.push(0);
+    hougeki.api_at_list.push(row.at as i64);
     hougeki.api_n_mother_list.push(0);
     hougeki.api_df_list.push(targets);
-    hougeki.api_si_list.push(SiListId::text_from_i64(&ids));
+    hougeki.api_si_list.push(SiListId::text_from_i64(&row.shown));
     hougeki.api_cl_list.push(cls);
-    hougeki.api_sp_list.push(sp);
+    hougeki.api_sp_list.push(row.sp);
     hougeki.api_damage.push(damages);
 }
 
@@ -1352,15 +1517,16 @@ pub(crate) fn simulate_night_hougeki(
         star_shell: flare >= 0,
         searchlight: fleet_searchlight(codex, fleet),
     };
-    let friendly_lights = lights(friendly, params.flare_pos[0]);
+    let mut friendly_lights = lights(friendly, params.flare_pos[0]);
     let enemy_lights = lights(enemy, params.flare_pos[1]);
 
     for idx in 0..friendly.len().max(enemy.len()) {
         if idx < friendly.len() {
             let forms = (friendly_form, enemy_form);
             // A special attack takes the flagship's turn; the ships that join it keep theirs.
-            if idx != 0
-                || !(kongou_night_assault(codex, rng, friendly, enemy, forms, params, &mut hougeki)
+            // Any ship's night 瑞雲 cut-in takes hers.
+            let special = idx == 0
+                && (kongou_night_assault(codex, rng, friendly, enemy, forms, params, &mut hougeki)
                     || special_gunnery_at_night(
                         codex,
                         rng,
@@ -1369,8 +1535,22 @@ pub(crate) fn simulate_night_hougeki(
                         forms,
                         params,
                         &mut hougeki,
-                    ))
-            {
+                    ));
+            let mut lights = (friendly_lights, enemy_lights);
+            let zuiun = !special
+                && zuiun_night_attack(
+                    codex,
+                    rng,
+                    friendly,
+                    idx,
+                    enemy,
+                    forms,
+                    params,
+                    &mut lights,
+                    &mut hougeki,
+                );
+            friendly_lights = lights.0;
+            if !special && !zuiun {
                 night_turn(
                     codex,
                     rng,
@@ -3876,6 +4056,184 @@ mod attack_type_tests {
 
     fn types(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<i64> {
         night_attack_types(codex, ship).into_iter().map(NightAttackType::api_sp_list).collect()
+    }
+
+    const ZUIUN: i64 = 490; // 試製 夜間瑞雲(攻撃装備)
+
+    /// An aviation cruiser with 30 luck and this equipment, aircraft in every slot.
+    fn zuiun_cruiser(codex: &Codex, kind: KcShipType, equipment: &[i64]) -> BattleRuntimeShip {
+        let mut ship = ship(codex, kind, 50, equipment);
+        ship.ship.api_onslot = [4; 5];
+        ship
+    }
+
+    #[test]
+    fn the_night_zuiun_cut_ins_follow_the_source() {
+        use ZuiunNightCutIn::*;
+        let codex = codex();
+        let cut_ins = |kind, equipment: &[i64]| {
+            zuiun_night_cut_ins(&codex, &zuiun_cruiser(&codex, kind, equipment))
+        };
+        let cav = KcShipType::CAV;
+        assert_eq!(
+            cut_ins(cav, &[MAIN, MAIN, ZUIUN, ZUIUN, SURFACE_RADAR]),
+            [TwoAndRadar, Two, OneAndRadar, One]
+        );
+        assert_eq!(cut_ins(cav, &[MAIN, MAIN, ZUIUN, SURFACE_RADAR]), [OneAndRadar, One]);
+        assert_eq!(cut_ins(cav, &[MAIN, MAIN, ZUIUN, AIR_RADAR]), [One]);
+        assert_eq!(cut_ins(KcShipType::CL, &[MAIN, MAIN, ZUIUN]), [One]);
+        // Two main guns, on a cruiser, battleship or tender of these types.
+        assert_eq!(cut_ins(cav, &[MAIN, ZUIUN, SURFACE_RADAR]), []);
+        assert_eq!(cut_ins(KcShipType::DD, &[MAIN, MAIN, ZUIUN]), []);
+        // A slot with no aircraft left does not count.
+        let mut shot_down = zuiun_cruiser(&codex, cav, &[MAIN, MAIN, ZUIUN]);
+        shot_down.ship.api_onslot[2] = 0;
+        assert_eq!(zuiun_night_cut_ins(&codex, &shot_down), []);
+        assert_eq!(ZuiunNightCutIn::TwoAndRadar.damage_multiplier(), 1.36);
+        assert_eq!(ZuiunNightCutIn::One.damage_multiplier(), 1.24);
+    }
+
+    #[test]
+    fn the_night_zuiun_chance_loses_what_her_own_lights_give() {
+        let codex = codex();
+        let cruiser = zuiun_cruiser(&codex, KcShipType::CAV, &[MAIN, MAIN, ZUIUN]);
+        assert_eq!(
+            zuiun_night_chance(&codex, &cruiser, false, DARK),
+            night_cut_in_chance(&codex, &cruiser, false, DARK)
+        );
+        // Her own star shell and searchlight give 4 and 7 and take 14 and 17.
+        let lit = NightLights {
+            star_shell: true,
+            searchlight: 1,
+        };
+        let lights = (lit, NightLights::default());
+        assert_eq!(
+            zuiun_night_chance(&codex, &cruiser, false, lights),
+            night_cut_in_chance(&codex, &cruiser, false, DARK) + 4.0 + 7.0 - 14.0 - 17.0
+        );
+        // 熟練見張員 gives 3 more than the 5 it gives every cut-in.
+        let lookout = zuiun_cruiser(&codex, KcShipType::CAV, &[MAIN, MAIN, ZUIUN, LOOKOUT_ID]);
+        assert_eq!(
+            zuiun_night_chance(&codex, &lookout, false, DARK),
+            night_cut_in_chance(&codex, &cruiser, false, DARK) + 5.0 + 3.0
+        );
+    }
+
+    fn zuiun_params() -> NightBattleParams {
+        NightBattleParams {
+            special_attacks_made: Default::default(),
+            friendly_formation_id: 1,
+            enemy_formation_id: 1,
+            engagement: EngagementType::SameCourse,
+            contact: [None, None],
+            night_start: false,
+            flare_pos: [-1, -1],
+        }
+    }
+
+    fn empty_hougeki() -> BattleNightHougeki {
+        BattleNightHougeki {
+            api_at_eflag: Vec::new(),
+            api_at_list: Vec::new(),
+            api_n_mother_list: Vec::new(),
+            api_df_list: Vec::new(),
+            api_si_list: Vec::new(),
+            api_cl_list: Vec::new(),
+            api_sp_list: Vec::new(),
+            api_damage: Vec::new(),
+        }
+    }
+
+    fn zuiun_targets(codex: &Codex) -> Vec<BattleRuntimeShip> {
+        let mut target = ship(codex, KcShipType::DD, 50, &[]);
+        target.ship.api_nowhp = 999;
+        target.ship.api_maxhp = 999;
+        vec![target.clone(), target]
+    }
+
+    #[test]
+    fn a_failed_night_zuiun_cut_in_rolls_once_for_each_she_makes() {
+        let codex = codex();
+        let mut friendly =
+            vec![zuiun_cruiser(&codex, KcShipType::CAV, &[MAIN, MAIN, ZUIUN, SURFACE_RADAR])];
+        let mut enemy = zuiun_targets(&codex);
+        let mut hougeki = empty_hougeki();
+        let mut lights = DARK;
+        let mut rng = Rolls([0.999, 0.999].into_iter().collect());
+        let params = zuiun_params();
+        let made = zuiun_night_attack(
+            &codex,
+            &mut rng,
+            &mut friendly,
+            0,
+            &mut enemy,
+            (1, 1),
+            &params,
+            &mut lights,
+            &mut hougeki,
+        );
+        assert!(!made);
+        assert!(rng.0.is_empty(), "rolls left over");
+        assert!(!lights.0.star_shell);
+        // Half her hull or less, and she does not try.
+        friendly[0].current_hp = friendly[0].ship.api_maxhp / 2;
+        let mut rng = Rolls(VecDeque::new());
+        let params = zuiun_params();
+        let tried = zuiun_night_attack(
+            &codex,
+            &mut rng,
+            &mut friendly,
+            0,
+            &mut enemy,
+            (1, 1),
+            &params,
+            &mut lights,
+            &mut hougeki,
+        );
+        assert!(!tried);
+    }
+
+    #[test]
+    fn a_night_zuiun_cut_in_hits_twice_in_one_row_and_lights_her_fleet() {
+        let codex = codex();
+        let cruiser = zuiun_cruiser(&codex, KcShipType::CAV, &[MAIN, MAIN, ZUIUN, SURFACE_RADAR]);
+        let rows: Vec<_> = (0..100)
+            .filter_map(|seed| {
+                let mut friendly = vec![ship(&codex, KcShipType::DD, 50, &[]), cruiser.clone()];
+                let mut enemy = zuiun_targets(&codex);
+                let mut hougeki = empty_hougeki();
+                let mut lights = DARK;
+                let params = zuiun_params();
+                zuiun_night_attack(
+                    &codex,
+                    &mut crate::random::SeededRng::new(seed),
+                    &mut friendly,
+                    1,
+                    &mut enemy,
+                    (1, 1),
+                    &params,
+                    &mut lights,
+                    &mut hougeki,
+                )
+                .then_some((hougeki, lights))
+            })
+            .collect();
+        assert!(!rows.is_empty(), "it comes up on some seed");
+        for (hougeki, lights) in &rows {
+            assert!(lights.0.star_shell, "her fleet counts as lit for the rest of the night");
+            assert_eq!(hougeki.api_sp_list, [200]);
+            assert_eq!(hougeki.api_at_list, [1]);
+            assert_eq!(hougeki.api_at_eflag, [0]);
+            assert_eq!(hougeki.api_n_mother_list, [0]);
+            assert_eq!(hougeki.api_df_list[0].len(), 2);
+            assert_eq!(hougeki.api_damage[0].len(), 2);
+        }
+        // The 夜間瑞雲 first, then the radar of the cut-in that has one.
+        let shown: std::collections::BTreeSet<_> =
+            rows.iter().map(|(hougeki, _)| format!("{:?}", hougeki.api_si_list[0])).collect();
+        let expected = [vec![ZUIUN, SURFACE_RADAR], vec![ZUIUN]]
+            .map(|ids| format!("{:?}", SiListId::text_from_i64(&ids)));
+        assert_eq!(shown, expected.into_iter().collect());
     }
 
     #[test]

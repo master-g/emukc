@@ -203,5 +203,5 @@ and `damage.rs` do not ask `simulation::night` themselves.
 - Enemy carriers' cut-ins, their equipment bonuses and aircraft proficiency.
 - The torpedo fit bonus in a carrier's day shelling and airstrike (the day formulas are not the
   source's to begin with). Bombing bonuses (`DBCrew`): the 装備ボーナス table carries no bombing.
-- Smoke on the attack on a submarine, and the 夜間瑞雲 cut-in's exception for one.
+- Smoke is not modelled at all (`night-attack-types.md`). The 夜間瑞雲 cut-in is there too.
 - The types of the other ships are in `night-attack-types.md`.

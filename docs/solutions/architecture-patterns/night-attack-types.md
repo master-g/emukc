@@ -78,6 +78,31 @@ A searchlight draws fire and costs its ship her evasion (`kcsim.js` `nightPhase`
   with a radar and a lookout, added after the evasion curve. The flat evasion is counted without
   a searchlight too. Whether hers is the lit one does not matter.
 
+## The night 瑞雲 cut-in
+
+A friendly light or torpedo cruiser, aviation cruiser or battleship or seaplane tender with two
+main guns and 試製 夜間瑞雲(攻撃装備) (490) in a slot with aircraft left may make it in her turn
+instead of her attack (`zuiun_night_attack`, the source's `canSpecialAttack` and
+`NBATTACKDATA` 2001 to 2004). The enemy never does.
+
+- She must attack at night with more than half her hull, and a surface ship must be afloat; a
+  fleet of PT boats alone is no bar here.
+- Her types, in order: two 瑞雲 and a surface radar (1.36), two 瑞雲 (1.32), one and a radar
+  (1.28), one (1.24). One roll each until one comes up, against the night cut-in chance less 14
+  for her own fleet's star shell and 17 for its searchlight, 3 more for 熟練見張員, 8 less for a
+  destroyer or light or torpedo cruiser with 水雷戦隊 熟練見張員, divided by 1.35. Accuracy 1.07.
+- It is two hits of her own on surface ships, chosen as night targets are (searchlight
+  redraws, かばう), in one row: `api_sp_list` 200, her place in `api_at_list`, `api_si_list` the
+  瑞雲 first (the client draws its first slot's aircraft without checking), a second 瑞雲 and the
+  radar where the type has them. The multiplier goes in before the cap; a miss scratches.
+- Once it is made, her fleet counts as having fired a star shell for the rest of the night,
+  the cut-in's own hits included (the source's `star1 = true`): +4 to the chance and +5 to the
+  accuracy of every later friendly attack, 10 off the enemy's chance. That is the source's
+  behaviour; nothing read says whether the game does it. `api_flare_pos` is not changed.
+- The flagship tries the fleet special attacks first; the 瑞雲 cut-in only if none comes up.
+- The client's `PhaseZuiunNightAttack` for `api_sp_list` 200 has not been watched in a headless
+  run (client checks are #144).
+
 ## The order of the rolls
 
 Seeded battles depend on it, and the tests in `attack_type_tests` pin it with an RNG that
@@ -173,9 +198,13 @@ double attack, a cut-in or a special attack that misses still scratches and is w
 
 ## Known gaps
 
-- The night Zuiun cut-in is another path in the source. The flagship's special gunnery
-  attacks of the day are rolled for at night too (`special_gunnery_at_night`), in the same
-  one row as the night assault (`special_attack_row`); `day-shelling-order.md` has their rules.
+- The flagship's special gunnery attacks of the day are rolled for at night too
+  (`special_gunnery_at_night`), in the same one row as the night assault
+  (`special_attack_row`); `day-shelling-order.md` has their rules.
+- A fleet's own searchlight adds 7 to the accuracy of its night attacks after the multipliers
+  (`NBattack`: `if (searchlights[0]) acc += .07`); not modelled, and #140 did not list it.
+- Smoke (`smokeType`) is not modelled at all, by day or at night, so neither is its effect on
+  the attack on a submarine.
 - A night attack on an installation leaves the torpedo out; its equipment multipliers are in
   `anti-installation.md`, with what of them is still missing.
 - The destroyer cut-ins with a lookout show any lookout and any drum-type equipment.
