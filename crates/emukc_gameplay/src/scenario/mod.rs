@@ -509,6 +509,23 @@ impl Scenario {
         scenario.clear_maps.extend([61, 62]);
         scenario
     }
+
+    /// `recon_6_3` with two 零式水上観測機 on 阿武隈 and nothing that flies on 秋津洲: a score
+    /// of 12 by seaplane, a success at G (12) and a failure at H (16).
+    pub fn recon_6_3_seaplane() -> Self {
+        let mut scenario = Self::recon_6_3();
+        scenario.fleet[0] = ShipSpec::new(AKITSUSHIMA_MST_ID, 99);
+        scenario.fleet[1] = ShipSpec::new(ABUKUMA_MST_ID, 99).with_slots([59, 59]);
+        scenario
+    }
+
+    /// `recon_6_3` with nothing that flies: the reconnaissance is called off at G and H.
+    pub fn recon_6_3_called_off() -> Self {
+        let mut scenario = Self::recon_6_3();
+        scenario.fleet[0] = ShipSpec::new(AKITSUSHIMA_MST_ID, 99);
+        scenario.fleet[1] = ShipSpec::new(ABUKUMA_MST_ID, 99);
+        scenario
+    }
 }
 
 /// 阿武隈.
@@ -764,6 +781,21 @@ pub const PRESETS: &[Preset] = &[
     Preset {
         name: "recon_6_3",
         build: Scenario::recon_6_3,
+        maparea: 1,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
+    },
+    // The same with a weaker or no reconnaissance; the battle target is only 1-1.
+    Preset {
+        name: "recon_6_3_seaplane",
+        build: Scenario::recon_6_3_seaplane,
+        maparea: 1,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
+    },
+    Preset {
+        name: "recon_6_3_called_off",
+        build: Scenario::recon_6_3_called_off,
         maparea: 1,
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,

@@ -50,7 +50,8 @@ cache from the origin, so only the comparison with the list shows a gap. The fir
 found `ship/full_animation` missing from the list and eight libraries loaded from other
 sites; both are fixed (`decoder-first-cachelist-pipeline.md`, `kcs2.rs`).
 
-A scenario is a preset plus a line of steps in `SCENARIOS`. To find the way through a new
+A scenario is a preset plus a line of steps in `SCENARIOS`; one named in `PRESET_OF` borrows
+another scenario's preset and differs in its steps. To find the way through a new
 screen, pass steps on the command line and read the screenshots:
 `python tests/headless/run.py <preset> "… c:600,400 w:3 s:look"`.
 
@@ -77,7 +78,9 @@ screen, pass steps on the command line and read the screenshots:
   `_skipBattle`) and its `_debug` arguments are left in the release build as empty shells.
 - What only time or many repetitions would produce is written into the workspace database
   mid-run: `tire:<n>` sets every squadron's condition, which is how `air_corps_6_4` gets to
-  see the orange fatigue icon after one sortie.
+  see the orange fatigue icon after one sortie. Likewise `sunk:<map>:<n>` (a gauge's count),
+  `cleared:<map>` (a gauge emptied this month), `stage:<map>:<variant>:<gauge index>` (a later
+  phase of a map with several) and `rival:<mst id>,…` (every practice rival's ships, at level 99).
 - A preset need not be about one battle. `air_corps_6_4` opens 中部海域 as far as 6-4 and
   leaves bombers and 設営隊 in the inventory; its steps deploy a squadron, order a sortie, buy
   a second air corps, sortie 6-4 with the air corps pointed at D, fight there and resupply at
@@ -173,7 +176,7 @@ screen, pass steps on the command line and read the screenshots:
   a page error. In a sortie the enemy's scout (`api_touch_plane[1]`) cannot be played: no
   abyssal equipment in `api_mst_slotitem` has the night scout's icon (`api_type[3]` 50). An
   exercise can: the opponent's ships carry what they are built with, 川内改二 a 九八式夜偵.
-  That has not been played.
+  `practice_night_contact` plays it (below).
 - `nagato_broadside` is the same sortie in 梯形陣 (the fourth button of the formation screen)
   led by 長門改二 and 陸奥改二. The check wants one row of type 101 by the flagship with up
   to three hits, by day or, if the day did not make it, at night, and never a second; it
@@ -214,12 +217,40 @@ screen, pass steps on the command line and read the screenshots:
   6-3: C, E, the reconnaissance cells G and H, the boss J. The check wants a great success by
   flying boat with one thing found at each, and headquarters to gain in port exactly what
   was found. `h4` has the client's balloon: 航空偵察 大成功!, the item ×3, 作戦完遂時にGet!
-  The shots at G (`g1`–`g8`) held a frame from the first step instead; nothing was drawn
-  between. A is a choice of route (#106): the start offers B and C, the client shows
+  The call for G is made by 進撃, before the compass is spun; the compass then waits for a
+  tap of its own, and until the steps gave it one the shots at G all held the compass.
+  A is a choice of route (#106): the start offers B and C, the client shows
   「艦隊針路選択可能!」 and 「艦隊の針路を選択できます。」 (`choice`), and the scenario taps
   C where `kcs2/resources/map/006/03_info.json` puts cell 3. The check wants the offer and
   `api_cell_id=3` in what the client sent (every request is saved beside its response, as
-  `.request`). `leaving` has the ship under way to C with no compass.
+  `.request`). `leaving` has the ship under way to C with no compass. On 2026-10-15 G had
+  「航空偵察 大成功!」 with ボーキサイト ×150 (`g6`) after 「大型飛行艇による航空偵察を実施します。」 (`g5`).
+- `recon_6_3_seaplane` is the same with two 零観 on 阿武隈 and nothing on 秋津洲: a score of 12, a
+  success at G and a failure at H, both shown with the seaplane's picture and
+  「水上偵察機による航空偵察を実施します。」. Two runs of two on 2026-10-15, without a page error:
+  「航空偵察 成功!」 with 弾薬 ×50 and 作戦完遂時にGet! (`g7`), 「航空偵察 偵察失敗!」 (`h4`).
+  `recon_6_3_called_off` has nothing that flies: both cells say
+  「航空偵察予定地点に到着しましたが、稼働偵察機がないため、偵察を中止します。」 (`g4`). One run.
+- `escort_1_6_standing` and `escort_1_6_cleared` take 1-6's preset to the goal with the gauge
+  untouched and with it emptied this month (`sunk:16:7 cleared:16`). On 2026-10-15, without a
+  page error, four runs of the first (three passing, one stopped at its last screenshot, below)
+  and two of the second: ×100 弾薬 over the fleet and the gauge one notch down (`goal4`); ×60 弾薬
+  and the gauge drawn empty (`goal1`).
+- `enemy_night_crew_5_6` takes 5-6's preset into its fourth phase (`stage:56:phase4:4`): from
+  the second start to I, where O is tapped, and O, where Q is (`map/005/06_info20.json`), battles
+  at Q and U, and X with `god_mode` on and `one_hit_kill` off. X is led by 南太平洋空母棲姫,
+  who has a night crew of her own: the check wants her night attack flown. Three runs of three
+  on 2026-10-15, the same cells each time, without a page error; the client plays her attack
+  as abyssal aircraft (`night2`). The run found 5-6's later map parts (`06_info18`, `20`, `36`
+  and their images) missing from the cache list (#161).
+- `practice_night_contact` opens 演習 (670, 450 on the sortie screen), writes every rival over
+  with 川内改二 and three 赤城 at level 99 once the list has drawn them, and challenges the first
+  (340, 300; 演習を挑む 357, 610; 演習開始!! 683, 643) with six destroyers who carry no aircraft.
+  The carriers take the air, so her 九八式水上偵察機(夜偵) may fly: the check wants
+  `api_touch_plane` `[-1, 102]`, which misses 8 in 25. Three runs on 2026-10-15, contact in two,
+  without a page error: the rival's scout on our radar (bottom left) with 触接中! under it,
+  and her searchlight's beam (`night1`, `night2`). A destroyer the day left at 0
+  (`api_f_nowhps`) is drawn at 1/35 by the client itself, without a page error.
 
 ## Limits
 
@@ -240,7 +271,8 @@ screen, pass steps on the command line and read the screenshots:
   is a few seconds when nothing changed. A check that takes minutes is not being slow, it is
   stuck: one run sat on the world-select page for 47 minutes, past every step deadline, in a
   browser call that never returned. `run.py` now stops a run with no result after `LIMIT`
-  (300 s), names the step it stood at and the last KCSAPI call, and stops its server. It could
-  not be made to happen again; start from that step if it does.
+  (300 s), names the step it stood at and the last KCSAPI call, and stops its server. It came
+  back once since, on `escort_1_6_standing`'s last screenshot (`s:home`), and not on the next
+  two runs; run the scenario again.
 - The entry module id (32875) changes with a client build; `run.py` and
   `client-runtime.ts` say so when their patch no longer matches.

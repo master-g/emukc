@@ -191,7 +191,8 @@ power before the cap, 1.1, 1.15 or 1.2 on the base accuracy of 69, and a critica
 1.57, 1.64 or 1.7 in place of 1.5 (`NightContact`). The client shows the scout on the other
 fleet's radar; the headless scenario `night_contact` plays ours. In a sortie the enemy's
 stays -1: no abyssal equipment has the night scout's icon (`api_type[3]` 50). An exercise's
-opponent can carry one.
+opponent can carry one: `practice_night_contact` plays a rival's 九八式夜偵 on our radar, with
+触接中! under it (three runs on 2026-10-15, contact in two, without a page error).
 
 ## A hit that misses
 

@@ -175,15 +175,16 @@ Current verification baseline:
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 | [2026-10-14] 产物过期会假报错（`pub` fn 「not found」、读 `../../.data` 报 NotFound 而单跑 `-p` 能过）：多个检出共用 `~/.cache/cargo-build` 时指纹冲突、`CARGO_MANIFEST_DIR` 沿用别的检出。`touch` 该 crate 源文件或 `cargo clean -p`；worktree 设独立 `CARGO_TARGET_DIR`。 | session 2026-09-18、09-23、10-14 |
 | [2026-10-14] 调试用 `quest_add_at` 把新行 `progress` 写成 `Completed`：测未接取任务要读条件里的剩余计数，不能看 `progress`。 | session 2026-10-14 |
+| [2026-10-15] 无头检查里到点的请求在点「進撃」时就发出，罗盘还要再点一下才转；不补点击，之后截图全停在罗盘上。新场景截图全相同时先查是否卡在等点击的界面。 | session 2026-10-15、`run.py` RECON_6_3 |
 | [2026-10-15] 照计划「没有做」节建 issue 会漏掉后来已修的（#137、#139 建时已修）：建前先 `git log -S`/读当前代码核对。 | triage 2026-10-15 |
 
 ## Last Session
 
-- [2026-10-15] 分支 `feat/war-result-month-end` 按计划 `2026-10-15-006` 做完 #147 的月末截止：戦果月以 22:00 JST 为界、22:00 后破 1-6 不记 75、月度地图改在 1 日 00:00 重置、跨月到达 1-6 终点不发箱。fmt、严格 clippy、`cargo test --workspace` 1531 全过、0 ignored；未做无头核对（规则只靠时钟）。经 PR #160 合并，分支已删，#147 已关闭。
+- [2026-10-15] 分支 `test/headless-remaining-144` 做完 #144 剩余项：六个新场景（侦察两种、1-6 两种、5-6 第四阶段、演习触接，见 `headless-client-check.md`）均无头跑过、截图读过、无页面错误；6-4 取值 2 无法达成（只在空袭格）。缓存清单缺 5-6 后期分片另开 #161。fmt、严格 clippy、`cargo test --workspace` 1531 全过、0 ignored。
 
 ## Next Session
 
-- [2026-10-15] #144 剩 #55 遗留、演习夜间触接、侦察/护卫格；瑞雲 CI 第三件之后显示什么、发动后是否算照明弹都没有游戏证据。可选跟进（用户定）：己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施。#150、#138、#143、#145 缺实机数据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-15] 合并 #144 的 PR 后关 issue；#161（5-6 后期地图分片补进缓存清单）待做。瑞雲 CI 第三件之后显示什么、发动后是否算照明弹都没有游戏证据。可选跟进（用户定）：己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施。#150、#138、#143、#145 缺实机数据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。

@@ -54,6 +54,8 @@ TO_MAPS = (
 START = "c:1015,668 w:4 u:830,668:api_req_map/start"
 # 6-3's cell 3 (C), where `kcs2/resources/map/006/03_info.json` puts it.
 SPOT_C = "436,444"
+# 5-6's O and Q (cells 28 and 30), from `map/005/06_info20.json`.
+SPOT_5_6_O, SPOT_5_6_Q = "672,259", "782,244"
 
 
 def responses(work: Path, path: str) -> list[dict]:
@@ -297,6 +299,24 @@ def check_enemy_night_crew(work: Path) -> list[str]:
     return [f"ヒ船団棲姫 flies her night attacks; api_n_mother_list said {flown}" for flown, _ in hers if flown != 1]
 
 
+def check_enemy_night_crew_5_6(work: Path) -> list[str]:
+    cells = [step["api_no"] for step in responses(work, "api_req_map/start") + responses(work, "api_req_map/next")]
+    nights = responses(work, "api_req_battle_midnight/battle")
+    print("cells", cells, "night battles", len(nights))
+    if not nights or cells != [20, 28, 30, 38, 41]:
+        return [f"the fleet was to go by I, O, Q and U to X (cell 41) and fight there at night; it went by {cells}"]
+    if nights[-1]["api_ship_ke"][0] not in (1971, 1974):
+        return [f"X was led by {nights[-1]['api_ship_ke'][0]}, not 南太平洋空母棲姫"]
+    shelling = nights[-1]["api_hougeki"]
+    rows = zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_n_mother_list"], shelling["api_sp_list"], shelling["api_si_list"])
+    # She has a night crew of her own and night aircraft: her attack is flown.
+    hers = [(flown, kind, shown) for by_enemy, at, flown, kind, shown in rows if by_enemy and at == 0]
+    print("her attacks (flown, kind, shown):", hers)
+    if not hers:
+        return ["南太平洋空母棲姫 did not attack at night"]
+    return [f"南太平洋空母棲姫 flies her night attacks; api_n_mother_list said {flown}" for flown, _, _ in hers if flown != 1]
+
+
 def check_night_cut_in(work: Path) -> list[str]:
     problems = check_fair_battle(work)
     nights = responses(work, "api_req_battle_midnight/battle")
@@ -390,6 +410,21 @@ def check_night_contact(work: Path) -> list[str]:
     return problems
 
 
+def check_practice_night_contact(work: Path) -> list[str]:
+    seiku = responses(work, "api_req_practice/battle")[0]["api_kouku"]["api_stage1"]["api_disp_seiku"]
+    nights = responses(work, "api_req_practice/midnight_battle")
+    print("api_disp_seiku", seiku, "api_touch_plane", nights[0]["api_touch_plane"] if nights else None)
+    # The fleet has no aircraft, so the rival's carriers take the air (ours lost: 3 or 4).
+    if seiku not in (3, 4):
+        return [f"the rival's carriers take the air from a fleet without aircraft; api_disp_seiku said {seiku}"]
+    if not nights:
+        return ["one side was beaten by day this time, so there was no night: run it again"]
+    # 川内改二's 九八式水上偵察機(夜偵) comes into contact 17 times in 25 at level 99.
+    if nights[0]["api_touch_plane"] != [-1, 102]:
+        return [f"the rival's night scout (102) should be in contact; api_touch_plane said {nights[0]['api_touch_plane']} (it misses 8 in 25): run it again"]
+    return []
+
+
 def check_kongou_night_assault(work: Path) -> list[str]:
     problems = check_fair_battle(work)
     nights = responses(work, "api_req_battle_midnight/battle")
@@ -443,34 +478,85 @@ def check_nagato_broadside(work: Path) -> list[str]:
     return problems
 
 
-def check_recon_6_3(work: Path) -> list[str]:
-    problems = []
-    steps = responses(work, "api_req_map/next")
-    visited = [cell["api_no"] for cell in steps]
-    if visited != [3, 5, 7, 12, 10]:
-        return [f"the fleet went {visited}, not C, E, the reconnaissance cells G and H and the boss J"]
-    # A is a choice of route: the start offers B and C, and the client sends the one tapped.
-    offered = responses(work, "api_req_map/start")[0].get("api_select_route")
-    asked = sorted((work / "api").glob("*_api_req_map.next.request"))[0].read_text()
-    print("A offered:", offered, "and the client asked:", asked)
-    if offered != {"api_select_cells": [2, 3]} or "api_cell_id=3" not in asked.split("&"):
-        problems.append(f"A offered {offered} and the client asked {asked!r}, not for C of B and C")
-    found = {}
-    for label, cell in zip("GH", steps[2:4]):
-        items = cell.get("api_itemget") or []
-        print(f"{label} answered:", cell.get("api_airsearch"), items)
-        if cell.get("api_airsearch") != {"api_plane_type": 1, "api_result": 2} or len(items) != 1:
-            problems.append(f"{label} was no great success by flying boat with one thing found")
-        for item in items:
-            found[item["api_id"]] = found.get(item["api_id"], 0) + item["api_getcount"]
-    before, after = (
-        {m["api_id"]: m["api_value"] for m in port["api_material"]} for port in responses(work, "api_port/port")[:2]
-    )
-    gained = {kind: after[kind] - before[kind] for kind in after if after[kind] != before[kind]}
-    print("found:", found, "gained in port:", gained)
-    if gained != found:
-        problems.append(f"the fleet found {found} and headquarters gained {gained}")
-    return problems
+# 中部海域, 6-3: the choice of route at A, where C is tapped, a battle at C and at E, the
+# reconnaissance cells G and H, the boss J, home. Photographed through G and H.
+RECON_6_3 = (
+    f"{TO_MAPS} c:800,680 w:4 c:280,525 w:3 {START} w:8 s:choice u:{TAPS};{SPOT_C}:api_req_map/next w:1 s:leaving {BATTLE} "
+    # The call for G is made by 進撃; the compass then waits for a tap of its own.
+    f"u:{TAPS}:api_req_map/next {BATTLE} u:{TAPS}:api_req_map/next c:600,400 "
+    + " ".join(f"w:1.5 s:g{n}" for n in range(1, 9))
+    + f" u:{TAPS}:api_req_map/next "
+    + " ".join(f"w:1.5 s:h{n}" for n in range(1, 9))
+    + f" u:{TAPS}:api_req_map/next {BATTLE} w:14 s:result u:{TAPS}:api_port/port w:5 s:home"
+)
+
+
+def check_recon(searched: list[dict]):
+    """6-3's route through G and H, with what each reconnaissance should answer."""
+
+    def check(work: Path) -> list[str]:
+        problems = []
+        steps = responses(work, "api_req_map/next")
+        visited = [cell["api_no"] for cell in steps]
+        if visited != [3, 5, 7, 12, 10]:
+            return [f"the fleet went {visited}, not C, E, the reconnaissance cells G and H and the boss J"]
+        # A is a choice of route: the start offers B and C, and the client sends the one tapped.
+        offered = responses(work, "api_req_map/start")[0].get("api_select_route")
+        asked = sorted((work / "api").glob("*_api_req_map.next.request"))[0].read_text()
+        print("A offered:", offered, "and the client asked:", asked)
+        if offered != {"api_select_cells": [2, 3]} or "api_cell_id=3" not in asked.split("&"):
+            problems.append(f"A offered {offered} and the client asked {asked!r}, not for C of B and C")
+        found = {}
+        for label, cell, wanted in zip("GH", steps[2:4], searched):
+            items = cell.get("api_itemget") or []
+            print(f"{label} answered:", cell.get("api_airsearch"), items)
+            # Something is found by a success (1) or a great one (2), nothing otherwise.
+            if cell.get("api_airsearch") != wanted or len(items) != (1 if wanted["api_result"] else 0):
+                problems.append(f"{label} should answer {wanted} with {'one thing' if wanted['api_result'] else 'nothing'} found")
+            for item in items:
+                found[item["api_id"]] = found.get(item["api_id"], 0) + item["api_getcount"]
+        before, after = (
+            {m["api_id"]: m["api_value"] for m in port["api_material"]} for port in responses(work, "api_port/port")[:2]
+        )
+        gained = {kind: after[kind] - before[kind] for kind in after if after[kind] != before[kind]}
+        print("found:", found, "gained in port:", gained)
+        if gained != found:
+            problems.append(f"the fleet found {found} and headquarters gained {gained}")
+        return problems
+
+    return check
+
+
+# 鎮守府海域's extra operations, 1-6: A, a battle at E, the resource cell G, the air battle F, a
+# battle at B, and the step onto the goal N.
+ESCORT_1_6 = (
+    f"{TO_MAPS} c:1105,415 w:4 c:660,420 w:3 {START} u:{TAPS}:api_req_map/next {BATTLE} "
+    f"u:{TAPS}:api_req_map/next w:3 s:resource u:{TAPS}:api_req_map/next {BATTLE} "
+    f"u:{TAPS}:api_req_map/next {BATTLE} u:{TAPS}:api_req_map/next "
+)
+# The goal photographed, and home: for an arrival that brings no bonus.
+ESCORT_GOAL = " ".join(f"w:2 s:goal{n}" for n in range(1, 11)) + f" u:{TAPS}:api_port/port w:5 s:home"
+
+
+def check_escort_arrival(unit: int):
+    """An arrival at N that does not empty the gauge: one resource, `unit` to ten times it."""
+
+    def check(work: Path) -> list[str]:
+        steps = responses(work, "api_req_map/next")
+        visited = [cell["api_no"] for cell in steps]
+        if visited != [3, 4, 12, 13, 17]:
+            return [f"the fleet went {visited}, not E, G, F, B and the goal N"]
+        goal = steps[-1]
+        print("the goal answered:", {key: goal.get(key) for key in ("api_event_id", "api_itemget_eo_comment", "api_itemget_eo_result", "api_get_eo_rate")})
+        gain = goal.get("api_itemget_eo_comment") or {}
+        problems = []
+        if gain.get("api_usemst") != 4 or gain.get("api_id") not in (1, 2, 3, 4) or gain.get("api_getcount") not in range(unit, unit * 10 + 1, unit):
+            problems.append(f"the goal gave {gain}, not one resource in {unit} to {unit * 10}")
+        if "api_itemget_eo_result" in goal or "api_get_eo_rate" in goal:
+            problems.append("only the arrival that empties the gauge brings the bonus")
+        return problems
+
+    return check
 
 
 def check_escort_1_6(work: Path) -> list[str]:
@@ -509,25 +595,22 @@ def check_escort_1_6(work: Path) -> list[str]:
 
 
 SCENARIOS = {
-    # 中部海域, 6-3: the choice of route at A, where C is tapped, a battle at C and at E, the reconnaissance cells G and H, the boss J, home.
-    # Two 二式大艇 and two 零観 make a great success of both. Photographed through each.
-    "recon_6_3": (
-        f"{TO_MAPS} c:800,680 w:4 c:280,525 w:3 {START} w:8 s:choice u:{TAPS};{SPOT_C}:api_req_map/next w:1 s:leaving {BATTLE} "
-        f"u:{TAPS}:api_req_map/next {BATTLE} u:{TAPS}:api_req_map/next "
-        + " ".join(f"w:1.5 s:g{n}" for n in range(1, 9))
-        + f" u:{TAPS}:api_req_map/next "
-        + " ".join(f"w:1.5 s:h{n}" for n in range(1, 9))
-        + f" u:{TAPS}:api_req_map/next {BATTLE} w:14 s:result u:{TAPS}:api_port/port w:5 s:home",
-        check_recon_6_3,
+    # 6-3 with two 二式大艇 and two 零観, who make a great success of both reconnaissances.
+    "recon_6_3": (RECON_6_3, check_recon([{"api_plane_type": 1, "api_result": 2}] * 2)),
+    # The same with two 零観 alone, a score of 12: a success at G and a failure at H, shown with
+    # the seaplane's picture.
+    "recon_6_3_seaplane": (
+        RECON_6_3,
+        check_recon([{"api_plane_type": 2, "api_result": 1}, {"api_plane_type": 2, "api_result": 0}]),
     ),
+    # The same with nothing that flies: both reconnaissances are called off.
+    "recon_6_3_called_off": (RECON_6_3, check_recon([{"api_plane_type": 0, "api_result": 0}] * 2)),
     # 鎮守府海域's extra operations, 1-6, with its gauge one arrival short of empty: A, a battle at
     # E, the resource cell G, the air battle F, a battle at B and the goal N, which empties the
     # gauge and hands over the bonus; then home, and the ranking that keeps its 戦果.
     # Photographed through the goal and the ranking.
     "escort_1_6": (
-        f"sunk:16:6 {TO_MAPS} c:1105,415 w:4 c:660,420 w:3 {START} u:{TAPS}:api_req_map/next {BATTLE} "
-        f"u:{TAPS}:api_req_map/next w:3 s:resource u:{TAPS}:api_req_map/next {BATTLE} "
-        f"u:{TAPS}:api_req_map/next {BATTLE} u:{TAPS}:api_req_map/next "
+        f"sunk:16:6 {ESCORT_1_6}"
         + " ".join(f"w:2 s:goal{n}" for n in range(1, 11))
         # 戦果, then the プレゼント箱, each closed by a tap anywhere.
         + " c:600,400 " + " ".join(f"w:2 s:bonus{n}" for n in range(1, 7))
@@ -535,6 +618,30 @@ SCENARIOS = {
         # 戦績表示, then its ランキング tab.
         + " u:240,75:api_get_member/record w:4 u:80,282:api_req_ranking/mxltvkpyuklh w:4 s:ranking",
         check_escort_1_6,
+    ),
+    # 1-6 again with its gauge untouched: the goal gives one resource, and the gauge loses a notch.
+    "escort_1_6_standing": (
+        ESCORT_1_6 + ESCORT_GOAL,
+        check_escort_arrival(100),
+    ),
+    # 1-6 again after its gauge was emptied: the goal gives a tenth as much.
+    "escort_1_6_cleared": (
+        f"sunk:16:7 cleared:16 {ESCORT_1_6}{ESCORT_GOAL}",
+        check_escort_arrival(10),
+    ),
+    # 演習 against a rival whose ships are written over with 川内改二 and three 赤城 at level 99:
+    # their fighters take the air from six destroyers, and her 九八式夜偵 comes into contact in the
+    # night battle. Photographed through the night.
+    "practice_night_contact": (
+        "api:api_world/get_worldinfo u:310,85:api_start2/get_option_setting u:910,605:api_port/port w:5 "
+        # 出撃, then 演習; the rivals are drawn by the first list, and written over after it.
+        "u:295,400:api_get_member/chart_additional_info w:3 u:670,450:api_get_member/practice rival:158,83,83,83 w:4 "
+        # The first rival, 演習を挑む, 演習開始!!
+        "u:340,300:api_req_member/get_practice_enemyinfo w:4 c:357,610 w:4 c:683,643 w:4 "
+        "u:600,400;670,278:api_req_practice/battle u:600,400;770,365:api_req_practice/midnight_battle w:4 "
+        + " ".join(f"w:2 s:night{n}" for n in range(1, 7))
+        + " u:600,400;770,365:api_req_practice/battle_result w:14 s:result",
+        check_practice_night_contact,
     ),
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),
@@ -629,6 +736,18 @@ SCENARIOS = {
         + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
         check_enemy_night_crew,
     ),
+    # 5-6 in its fourth phase: from its second start to I and O, where O and then Q are tapped,
+    # battles at Q and U, and X, whose flagship 南太平洋空母棲姫 has a night crew of her own and
+    # flies her attack. Photographed through the night.
+    "enemy_night_crew_5_6": (
+        f"stage:56:phase4:4 {TO_MAPS} c:700,680 w:3 c:1105,415 w:4 c:660,420 w:3 {START} w:8 s:choice "
+        f"u:600,400;{SPOT_5_6_O}:api_req_map/next w:8 s:choice2 u:600,400;{SPOT_5_6_Q}:api_req_map/next "
+        + f"{BATTLE} u:{TAPS}:api_req_map/next " * 2
+        + "u:600,400;670,278:api_req_sortie/battle u:600,400;770,365:api_req_battle_midnight/battle w:8 "
+        + " ".join(f"w:2 s:night{n}" for n in range(1, 13))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_enemy_night_crew_5_6,
+    ),
     # 南方海域, its extra operations, 5-6; three battles, the landing point, the boss, home.
     "transport_5_6": (
         f"{TO_MAPS} c:700,680 w:3 c:1105,415 w:4 c:660,420 w:3 {START} {BATTLE} {BATTLE} {BATTLE} "
@@ -677,10 +796,17 @@ SCENARIOS = {
     ),
 }
 
+# Scenarios played with another scenario's preset.
+PRESET_OF = {
+    "escort_1_6_standing": "escort_1_6",
+    "escort_1_6_cleared": "escort_1_6",
+    "enemy_night_crew_5_6": "transport_5_6",
+    "practice_night_contact": "leveled_for_mid_boss",
+}
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "night_destroyer_cut_in", "night_zuiun", "enemy_night_carrier", "kongou_night_assault", "nagato_broadside", "night_contact"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "night_destroyer_cut_in", "night_zuiun", "enemy_night_carrier", "kongou_night_assault", "nagato_broadside", "night_contact", "practice_night_contact"}
 # Never hurt, but sinking nothing at a blow: for an enemy several battles in who has to live.
-UNHURT = {"enemy_night_crew"}
+UNHURT = {"enemy_night_crew", "enemy_night_crew_5_6"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:
@@ -751,7 +877,7 @@ def main() -> int:
     work, config = workspace(scenario)
     emukcd = [str(ROOT / "target/debug/emukcd"), "-c", str(config)]
     session = subprocess.run(
-        [*emukcd, "new-session", "--name", "headless", "--pass", "1234567", "--scenario", scenario, "--no-open", "--no-start"],
+        [*emukcd, "new-session", "--name", "headless", "--pass", "1234567", "--scenario", PRESET_OF.get(scenario, scenario), "--no-open", "--no-start"],
         capture_output=True,
         text=True,
         check=True,
@@ -867,6 +993,28 @@ def main() -> int:
                     map_id, times = value.split(":")
                     with sqlite3.connect(work / "emukc.db", timeout=30) as db:
                         db.execute("UPDATE map_record SET defeat_count = ? WHERE map_id = ?", (int(times), int(map_id)))
+                elif kind == "stage":
+                    # A later phase of a map with several: `stage:<map id>:<variant>:<gauge index>`.
+                    map_id, stage_id, index = value.split(":")
+                    with sqlite3.connect(work / "emukc.db", timeout=30) as db:
+                        db.execute(
+                            "UPDATE map_record SET stage_id = ?, gauge_index = ?, defeat_count = 0 WHERE map_id = ?",
+                            (stage_id, int(index), int(map_id)),
+                        )
+                elif kind == "rival":
+                    # Every practice rival fields these ships at level 99: `rival:<mst id>,<mst id>`.
+                    with sqlite3.connect(work / "emukc.db", timeout=30) as db:
+                        db.execute("DELETE FROM rival_ship")
+                        for rival, profile in db.execute("SELECT id, profile_id FROM rival").fetchall():
+                            for mst_id in value.split(","):
+                                db.execute(
+                                    "INSERT INTO rival_ship (profile_id, rival_id, mst_id, level, star) VALUES (?, ?, ?, 99, 0)",
+                                    (profile, rival, int(mst_id)),
+                                )
+                elif kind == "cleared":
+                    # A gauge already emptied this month: `cleared:<map id>`.
+                    with sqlite3.connect(work / "emukc.db", timeout=30) as db:
+                        db.execute("UPDATE map_record SET cleared = 1 WHERE map_id = ?", (int(value),))
                 elif kind == "order":
                     # Every air corps gets this order (2 is 防空); the client still shows its own.
                     with sqlite3.connect(work / "emukc.db", timeout=30) as db:

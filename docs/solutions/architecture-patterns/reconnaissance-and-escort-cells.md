@@ -107,10 +107,12 @@ fleet's equipment and no field of the response; the cargo is counted there
 
 - Played in the client on 2026-10-13 by `make headless-check SCENARIO=escort_1_6` (the
   arrival that empties the gauge) and `SCENARIO=recon_6_3` (a great success by flying boat
-  at G and H), without a page error: `headless-client-check.md`. Not played: an arrival
-  that leaves the gauge standing or comes after it, a plain success, a failure, a
-  reconnaissance called off, the seaplane's picture. The balloon was read for 開発資材
-  only; 弾薬 and ボーキサイト came up in later runs whose screenshots nobody read.
+  at G and H), without a page error: `headless-client-check.md`. Played on 2026-10-15, without a
+  page error, each with its screenshots read: `escort_1_6_standing` (an arrival that leaves the
+  gauge standing: ×100 弾薬, one notch down), `escort_1_6_cleared` (one after it is empty: ×60
+  弾薬, the gauge drawn empty), `recon_6_3_seaplane` (the seaplane's picture, a success at G with
+  the 弾薬 balloon, a failure at H), `recon_6_3_called_off` (called off at both) and `recon_6_3`
+  (the ボーキサイト balloon at G).
 - 6-3 A is a choice of route: the start offers B and C (`api_select_route`, #106), and
   `recon_6_3` taps C.
 - Event maps.
