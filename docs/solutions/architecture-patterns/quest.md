@@ -83,6 +83,9 @@ via the quest operations on `Ctx`. Definitions come from the Codex
   record); the progress record is deleted; the quest tree is reconstructed via
   `update_quests_impl`; consumption requirements are deducted (materials,
   items); rewards are granted per the definition.
+- A use-item consumption of 1 to 4 (buckets, torches, 開発資材, screws) is taken from
+  the material table, which holds those; the others from `use_item`. Equipment-exchange
+  quests carry their use items too (647's 設営隊, #142); the parser used to drop them.
 
 ### Equipment a quest takes
 

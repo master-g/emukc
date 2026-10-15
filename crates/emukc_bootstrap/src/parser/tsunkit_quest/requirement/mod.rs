@@ -355,7 +355,9 @@ impl Requirements {
 mod tests {
     use emukc_model::prelude::*;
 
-    use super::super::{Id, List, Requirements, RequirementsCategory, Sortie};
+    use super::super::{
+        Consume, ConsumeCategory, Id, List, Requirements, RequirementsCategory, Sortie,
+    };
     use super::ParseError;
 
     fn empty_manifest() -> ApiManifest {
@@ -536,6 +538,47 @@ mod tests {
 
         let result = req.to_requirements(&empty_manifest());
         assert!(matches!(result, Err(ParseError::EmptyRequirement { .. })));
+    }
+
+    /// The shape of `api_no` 647: an equipment exchange that also takes a
+    /// 設営隊 (use item 73) from the inventory (#142).
+    #[test]
+    fn equip_exchange_keeps_its_use_item_consumption() {
+        let mut mst = empty_manifest();
+        mst.api_mst_useitem.push(ApiMstUseitem {
+            api_id: 73,
+            api_category: 0,
+            api_description: vec![],
+            api_name: "設営隊".to_string(),
+            api_price: 0,
+            api_usetype: 0,
+        });
+        let req = Requirements {
+            category: RequirementsCategory::Equipexchange,
+            consume: Some(vec![Consume {
+                category: Some(ConsumeCategory::Inventory),
+                id: Some(73),
+                amount: 1,
+                conversion: None,
+                class_id: None,
+                stars: None,
+            }]),
+            ..empty_requirements()
+        };
+
+        let result = req.to_requirements(&mst);
+        let Ok(Kc3rdQuestRequirement::And(conditions)) = result else {
+            panic!("expected And conditions, got {result:?}");
+        };
+        assert_eq!(
+            conditions,
+            [Kc3rdQuestCondition::Consumption(Kc3rdQuestConditionConsumption::UseItemConsumption(
+                vec![Kc3rdQuestConditionUseItemConsumption {
+                    api_id: 73,
+                    amount: 1,
+                }]
+            ))]
+        );
     }
 
     /// Semantics flipped by plan 006: a `simple` requirement with no

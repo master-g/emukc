@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-14 · branch `main`
+Last updated: 2026-10-15 · branch `main`
 
 ## Verified Facts
 
@@ -171,14 +171,15 @@ Current verification baseline:
 | [2026-09-21] 改 `resource-categories.ts` 的 `defaultAbyssal` 是 no-op：`ship_semantic_targets_for_id` 先查 `targetSemantics`，命中就 `continue`，生成分组只是未覆盖 target 的兜底。加了 `banner_dmg` 后 `bun test` 62 pass、decode+sync 成功、清单一条不变。 | session 2026-09-21 |
 | [2026-10-14] 产物过期会假报错（`pub` fn 「not found」、读 `../../.data` 报 NotFound 而单跑 `-p` 能过）：多个检出共用 `~/.cache/cargo-build` 时指纹冲突、`CARGO_MANIFEST_DIR` 沿用别的检出。`touch` 该 crate 源文件或 `cargo clean -p`；worktree 设独立 `CARGO_TARGET_DIR`。 | session 2026-09-18、09-23、10-14 |
 | [2026-10-14] 调试用 `quest_add_at` 把新行 `progress` 写成 `Completed`：测未接取任务要读条件里的剩余计数，不能看 `progress`。 | session 2026-10-14 |
+| [2026-10-15] 照计划「没有做」节建 issue 会漏掉后来已修的（#137、#139 建时已修）：建前先 `git log -S`/读当前代码核对。 | triage 2026-10-15 |
 
 ## Last Session
 
-- [2026-10-14] #122、#123 已合并（PR #135、#134），open issue 清零后把各文档与计划里的未定项转成 #136～#147（用户确认的分组）。本分支只改记忆与 `map-unlock.md`（补 6-5 需 647）。
+- [2026-10-15] 分诊完 #136～#147（#137、#139 已修关闭，#147 拆出 #149）后修 #142，分支 `fix/equip-exchange-use-items`：解析器补上 `equipexchange` 的道具消耗（11 条任务），领奖把道具 1～4 改从 material 表扣（45 条任务原本领不了）。fmt、严格 clippy、`cargo test --workspace` 1489 过、0 ignored。
 
 ## Next Session
 
-- [2026-10-14] 从 #136～#147 里挑下一项（先 triage `needs-triage` 的 10 条；#143、#145 缺数据）。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-15] 先推 `fix/equip-exchange-use-items` 开 PR（`Closes #142`）。待定：任务列表把资源、道具消耗当作已满足（`progress.rs`），不足时显示可领、领奖报错，实机表现未查。再从 #146、#149 挑；#136/#140/#141 合一份计划、只冻结一次 golden。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。

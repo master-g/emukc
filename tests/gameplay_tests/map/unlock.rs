@@ -182,6 +182,7 @@ mod tests {
     async fn claim_647(context: &crate::TestContext, pid: i64) -> Option<i64> {
         let cost = [(MaterialCategory::Fuel, 1200), (MaterialCategory::Bauxite, 3000)];
         context.add_material(pid, &cost).await.unwrap();
+        context.add_use_item(pid, 73, 1).await.unwrap(); // 設営隊
         context.quest_add(pid, 647).await.unwrap();
         context.quest_start(pid, 647).await.unwrap();
         let resp = context.quest_clear_and_claim_reward(pid, 647, None).await.unwrap();
