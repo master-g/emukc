@@ -272,7 +272,8 @@ pub(crate) fn calculate_torpedo_damage(
 /// What a ship attacks with at night from her guns and torpedoes, before the night scout and
 /// the cap: firepower and torpedo, with none of the day's 5. The source's `NBPower`: against a
 /// land target the torpedoes are left out but for the northern princesses, a submarine has 30
-/// more firepower, and her equipment multiplies that and adds its flat power.
+/// more firepower, and her equipment multiplies that and adds its flat power. A ship with
+/// nothing equipped attacks one with her firepower and torpedo.
 fn night_gun_power(
     codex: &Codex,
     attacker: &BattleRuntimeShip,
@@ -282,6 +283,10 @@ fn night_gun_power(
     let improvement = improvement_bonus_night(codex, attacker);
     let torpedo = attacker.ship.api_raisou[0].max(0) as f64;
     match land_target(codex, defender) {
+        // wikiwiki 「戦闘について」 夜戦: 「対陸上でも、素手(装備を一切装備していない)の場合に限り
+        // 雷装値が有効になる」. The source has no such rule; this one follows wikiwiki (plan
+        // 2026-10-15-004), with no multiplier and no submarine's 30.
+        Some(_) if attacker.slot_items.is_empty() => firepower + torpedo,
         Some(kind) => {
             AntiInstallation::of(codex, attacker).power(
                 kind,
@@ -1023,28 +1028,35 @@ mod tests {
     }
 
     /// The source's `NBPower`: no torpedoes against an installation, and 30 more firepower
-    /// for a submarine there.
+    /// for a submarine there. Bare-handed, wikiwiki's rule instead: firepower and torpedo.
     #[test]
     fn a_night_attack_on_an_installation_leaves_the_torpedoes_out() {
+        const AIR_RADAR: i64 = 27; // 13号対空電探, nothing against a land target
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let ship = |stype, firepower, torpedo| {
+        let ship = |stype, firepower, torpedo, gear: &[i64]| {
             let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, stype), 50);
             ship.ship.api_karyoku[0] = firepower;
             ship.ship.api_raisou[0] = torpedo;
-            ship.slot_items.clear();
+            ship.slot_items = gear.iter().copied().map(slotitem_with_mst_id).collect();
             BattleRuntimeShip::from(ship)
         };
-        let surface = ship(KcShipType::DD, 0, 0);
+        let surface = ship(KcShipType::DD, 0, 0, &[]);
         let mut installation = surface.clone();
         installation.ship.api_ship_id = ship_mst_id_by_name(&codex, "飛行場姫");
         let power = |attacker, defender| night_gun_power(&codex, attacker, defender);
 
-        let destroyer = ship(KcShipType::DD, 50, 80);
+        let destroyer = ship(KcShipType::DD, 50, 80, &[AIR_RADAR]);
         assert_eq!(power(&destroyer, &surface), 130.0);
         assert_eq!(power(&destroyer, &installation), 50.0);
-        let submarine = ship(KcShipType::SS, 10, 60);
+        let submarine = ship(KcShipType::SS, 10, 60, &[AIR_RADAR]);
         assert_eq!(power(&submarine, &surface), 70.0);
         assert_eq!(power(&submarine, &installation), 40.0);
+
+        // With nothing equipped the torpedo counts, and the submarine's 30 does not.
+        let bare = ship(KcShipType::DD, 50, 80, &[]);
+        assert_eq!(power(&bare, &installation), 130.0);
+        let bare = ship(KcShipType::SS, 10, 60, &[]);
+        assert_eq!(power(&bare, &installation), 70.0);
     }
 
     /// `shellPower` and `NBPower`: the equipment's multiplier on the firepower, the flat power

@@ -71,6 +71,10 @@ Where it is read (`damage.rs`):
   plus the flat power. The light cruiser's gun fit is added after, as the source adds `FPfit`.
 - At night (`night_gun_power`, `NBPower`): firepower, 30 more for a submarine and the improvement
   bonus, times the multiplier, plus the flat power. No torpedo, but for the northern princesses.
+- At night, a ship with nothing equipped at all: firepower and torpedo, no multiplier and no
+  submarine's 30. This is wikiwiki's rule (「戦闘について」 夜戦: 「対陸上でも、素手…の場合に限り雷装値が
+  有効になる」), which the source does not have; the user chose it on 2026-10-15. Day shelling
+  counts no torpedo against any target, so the rule has nothing to change there.
 - After the cap and any cut-in's multiplier, before a critical (`post_cap_multiplier`): by day
   and at night all five; by torpedo the dock's and the summer ships' (the source's
   `anchorageTorpNerf` leaves the anchorage out, and a supply depot is not torpedoed).
