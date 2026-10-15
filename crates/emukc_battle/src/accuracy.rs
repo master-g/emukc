@@ -272,7 +272,6 @@ impl AttackKind {
             Self::Shelling => 90.0,
             Self::Torpedo => 85.0,
             Self::Asw => 80.0,
-            // ponytail: a star shell's +5 is not counted; add it where `NightLights` is read.
             Self::Night => 69.0,
         }
     }
@@ -478,6 +477,8 @@ pub(crate) struct Aim {
     pub night_air_attack: bool,
     /// The attacker's fleet's night scout in contact, if one is.
     pub contact: Option<NightContact>,
+    /// Whether the attacker's fleet fired a star shell as the night began.
+    pub star_shell: bool,
 }
 
 impl Aim {
@@ -492,7 +493,24 @@ impl Aim {
             opening: false,
             night_air_attack: false,
             contact: None,
+            star_shell: false,
         }
+    }
+
+    /// The base accuracy (`NBattack`): at night a fleet's own star shell adds 5, before its
+    /// scout multiplies the sum.
+    fn base(&self) -> f64 {
+        let flare = if self.star_shell && self.kind == AttackKind::Night {
+            5.0
+        } else {
+            0.0
+        };
+        (self.kind.base() + flare) * self.contact.map_or(1.0, |contact| contact.accuracy)
+    }
+
+    pub(crate) fn lit_by_star_shell(mut self, star_shell: bool) -> Self {
+        self.star_shell = star_shell;
+        self
     }
 
     pub(crate) fn under_contact(mut self, contact: Option<NightContact>) -> Self {
@@ -548,7 +566,7 @@ pub(crate) fn roll_attack(
 
     let level = attacker.ship.api_lv.max(0) as f64;
     let luck = attacker.ship.api_lucky[0].max(0) as f64;
-    let hit = (aim.kind.base() * aim.contact.map_or(1.0, |contact| contact.accuracy)
+    let hit = (aim.base()
         + 2.0 * level.sqrt()
         + 1.5 * luck.sqrt()
         + equipment_accuracy(codex, attacker, aim.kind)
@@ -778,6 +796,19 @@ mod tests {
             (0..200).all(|seed| roll(Some(7), aim.in_the_opening(), seed) == roll(None, aim, seed))
         );
         assert!((0..200).any(|seed| roll(Some(7), aim, seed) != roll(None, aim, seed)));
+    }
+
+    #[test]
+    fn a_star_shell_adds_five_before_the_scout_multiplies() {
+        let night = Aim::new(AttackKind::Night, 1, 1);
+        assert_eq!(night.base(), 69.0);
+        assert_eq!(night.lit_by_star_shell(true).base(), 74.0);
+        // (69 + 5) x 1.1 under a scout of accuracy 1, not 69 x 1.1 + 5.
+        let scout = Some(NightContact::of(102, 1));
+        assert_eq!(night.under_contact(scout).base(), 69.0 * 1.1);
+        assert_eq!(night.under_contact(scout).lit_by_star_shell(true).base(), 74.0 * 1.1);
+        // An attack on a submarine rolls as by day, with no star shell in it.
+        assert_eq!(Aim::new(AttackKind::Asw, 1, 1).lit_by_star_shell(true).base(), 80.0);
     }
 
     #[test]

@@ -60,6 +60,11 @@ destroyer, light cruiser or torpedo cruiser and 5 for the plain lookout on anyon
 has both; 18 at moderate damage; 4 and 7 for her own fleet's star shell and searchlight, minus
 10 and 5 for the enemy's. The attack type divides it (`chance_modifier`, 1.15 for 115).
 
+Her own fleet's star shell also adds 5 to the base accuracy of 69, before a night scout in
+contact multiplies it (`Aim::base`, the source's `NBattack`). It counts for every night attack on
+a surface ship, the special attacks' rows among them, and not for an attack on a submarine,
+which rolls as by day.
+
 ## The order of the rolls
 
 Seeded battles depend on it, and the tests in `attack_type_tests` pin it with an RNG that
@@ -155,7 +160,7 @@ double attack, a cut-in or a special attack that misses still scratches and is w
 
 ## Known gaps
 
-- A star shell's +5 to accuracy, and a searchlight's effects on who is fired at.
+- A searchlight's effects on who is fired at.
 - The night Zuiun cut-in is another path in the source. The flagship's special gunnery
   attacks of the day are rolled for at night too (`special_gunnery_at_night`), in the same
   one row as the night assault (`special_attack_row`); `day-shelling-order.md` has their rules.

@@ -1197,7 +1197,8 @@ fn special_attack_row(
         };
         let aim = Aim::new(AttackKind::Night, friendly_formation, enemy_formation)
             .with_modifier(hit.accuracy)
-            .under_contact(params.contact[0]);
+            .under_contact(params.contact[0])
+            .lit_by_star_shell(params.flare_pos[0] >= 0);
         let outcome = roll_attack(codex, rng, ship, &enemy[target_idx], aim);
         let raw = calculate_night_damage(
             codex,
@@ -1403,6 +1404,7 @@ fn night_turn(
                 .with_modifier(attack_type.accuracy_modifier())
                 .as_night_air_attack(air_power.is_some())
                 .under_contact(contact)
+                .lit_by_star_shell(own.star_shell)
         };
         let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
         let raw = if is_submarine && params.night_start {
