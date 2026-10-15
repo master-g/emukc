@@ -89,3 +89,6 @@ mod combined_sortie;
 
 #[path = "gameplay_tests/plane_proficiency.rs"]
 mod plane_proficiency;
+
+#[path = "gameplay_tests/ranking.rs"]
+mod ranking;

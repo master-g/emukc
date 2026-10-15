@@ -635,6 +635,11 @@ mod tests {
         assert_eq!((escort.bonus_use_item, escort.rank_points), (Some((PRESENT_BOX, 1)), 75));
         assert_eq!(convoy_route(&context, pid).await, (true, 7));
         assert_eq!(use_item_count(&context, pid, PRESENT_BOX).await, boxes + 1);
+        // The 75 is kept with the month's 戦果, beside what the experience gives.
+        let (record, user) = context.get_user_basic(pid).await.unwrap();
+        assert_eq!(record.war_result, 75);
+        let from_exp = (record.experience - record.war_result_base_exp) * 7 / 10_000;
+        assert_eq!(user.api_war_result, from_exp + 75);
 
         let arrival = arrive(&context, pid, 16, "N", async || {}).await;
         let escort = arrival.next.escort.as_ref().unwrap();

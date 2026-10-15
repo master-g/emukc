@@ -108,6 +108,13 @@ pub struct Model {
 
     /// War result
     pub war_result: i64,
+
+    /// The JST month (year × 100 + month) `war_result` and `war_result_base_exp` are of; 0
+    /// before the first.
+    pub war_result_month: i64,
+
+    /// Experience at the start of `war_result_month`: what came after counts towards 戦果.
+    pub war_result_base_exp: i64,
 }
 
 /// See <https://www.sea-ql.org/SeaORM/docs/generate-entity/entity-structure>
@@ -319,6 +326,8 @@ pub fn default_active_model(account_id: i64, nickname: &str) -> ActiveModel {
         extra_supply_sortie: ActiveValue::Set(false),
         combined_type: ActiveValue::Set(0),
         war_result: ActiveValue::Set(0),
+        war_result_month: ActiveValue::Set(0),
+        war_result_base_exp: ActiveValue::Set(0),
     }
 }
 
@@ -326,6 +335,18 @@ pub fn default_active_model(account_id: i64, nickname: &str) -> ActiveModel {
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
     // profile
     create_table(db, Entity).await?;
+    // The month of 戦果 came after the table shipped; the statements fail harmlessly once the
+    // columns exist. Month 0 starts at the next experience gained.
+    {
+        use sea_orm::ConnectionTrait;
+        for column in ["war_result_month", "war_result_base_exp"] {
+            let _ = db
+                .execute_unprepared(&format!(
+                    "ALTER TABLE profile ADD COLUMN {column} BIGINT NOT NULL DEFAULT 0"
+                ))
+                .await;
+        }
+    }
     // settings
     {
         settings::bootstrap(db).await?;
@@ -378,4 +399,47 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use sea_orm::{ActiveModelTrait, ConnectionTrait, EntityTrait};
+
+    use super::*;
+
+    /// A profile table made before the month of 戦果 gains both columns at 0, and a second
+    /// start leaves them alone.
+    #[tokio::test]
+    async fn an_older_profile_table_gains_the_war_result_month() {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        crate::entity::create_table(&db, Entity).await.unwrap();
+        for column in ["war_result_month", "war_result_base_exp"] {
+            db.execute_unprepared(&format!("ALTER TABLE profile DROP COLUMN {column}"))
+                .await
+                .unwrap();
+        }
+        // No account table here to point at.
+        db.execute_unprepared(
+            "PRAGMA foreign_keys = OFF; INSERT INTO profile (account_id, world_id, name, last_played, hq_level, hq_rank, \
+             experience, comment, max_ship_capacity, max_equipment_capacity, sortie_wins, \
+             sortie_loses, expeditions, expeditions_success, practice_battles, practice_battle_wins, \
+             practice_challenges, practice_challenge_wins, intro_completed, tutorial_progress, medals, \
+             large_dock_unlocked, max_quests, extra_supply_expedition, extra_supply_sortie, \
+             combined_type, war_result) VALUES (1, 0, 'admiral', '2026-10-01T00:00:00Z', 1, 10, \
+             500, '', 100, 497, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5, 0, 0, 0, 30)",
+        )
+        .await
+        .unwrap();
+
+        bootstrap(&db).await.unwrap();
+        let row = Entity::find_by_id(1).one(&db).await.unwrap().unwrap();
+        assert_eq!((row.war_result, row.war_result_month, row.war_result_base_exp), (30, 0, 0));
+
+        let mut am: ActiveModel = row.into();
+        am.war_result_month = ActiveValue::Set(202610);
+        am.update(&db).await.unwrap();
+        bootstrap(&db).await.unwrap();
+        let row = Entity::find_by_id(1).one(&db).await.unwrap().unwrap();
+        assert_eq!(row.war_result_month, 202610);
+    }
 }

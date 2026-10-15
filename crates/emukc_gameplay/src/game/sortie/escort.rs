@@ -13,6 +13,7 @@ use emukc_time::chrono::Utc;
 use crate::{
     err::GameplayError,
     game::{
+        basic::add_war_result_impl,
         map::{check_and_unlock_dependencies_impl, find_map_record_impl},
         use_item::add_use_item_impl,
     },
@@ -25,7 +26,7 @@ pub(super) const EVENT_ID: i64 = 8;
 
 /// プレゼント箱, given with the arrival that empties the gauge.
 const PRESENT_BOX: i64 = 60;
-/// The ranking points (戦果) of that arrival. Nothing keeps them; the client shows them.
+/// The ranking points (戦果) of that arrival, kept with the month's.
 const RANK_POINTS: i64 = 75;
 /// The fuel of that arrival.
 const LAST_ARRIVAL_FUEL: i64 = 1000;
@@ -78,6 +79,7 @@ where
     // As any map cleared for the first time: what waited on it opens.
     check_and_unlock_dependencies_impl(c, codex, profile_id, definition.map_id).await?;
     add_use_item_impl(c, profile_id, PRESENT_BOX, 1).await?;
+    add_war_result_impl(c, profile_id, RANK_POINTS).await?;
     Ok(SortieEscortSuccess {
         gain: SortieItemGet {
             item: CellItem::Fuel,
