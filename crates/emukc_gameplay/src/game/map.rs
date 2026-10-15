@@ -17,7 +17,7 @@ use emukc_model::{
     kc2::{KcApiEventmap, KcApiMapInfo},
     profile::map_record::MapSelectRank,
 };
-use emukc_time::{KcTime, chrono::Utc};
+use emukc_time::chrono::{DateTime, Datelike, FixedOffset, TimeZone, Utc};
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
@@ -247,7 +247,6 @@ where
     C: ConnectionTrait,
 {
     let now = Utc::now();
-    let refresh_boundary = KcTime::jst_0500_of_nth_day(1);
     let definitions = active_map_catalog(codex)
         .known_maps()
         .into_iter()
@@ -260,8 +259,7 @@ where
         };
         let selected_rank = record.selected_rank.clone() as i64;
         if definition.reset_policy == MapResetPolicy::Monthly
-            && now >= refresh_boundary
-            && record.last_reset_at.is_none_or(|ts| ts < refresh_boundary)
+            && monthly_reset_due(record.last_reset_at, now)
         {
             let mut am = record.into_active_model();
             am.cleared = ActiveValue::Set(false);
@@ -277,6 +275,17 @@ where
     }
 
     Ok(())
+}
+
+/// Whether a monthly map last reset at `last_reset_at` holds last month's gauge. EO gauges come
+/// back at 00:00 JST on the 1st: 「EO更新時間と勲章が貰えるのは「月末23:59:59」」
+/// (sakamoto-kouji.com 2019/08/04); 「0時を過ぎた時点で勲章などの報酬は貰えなくなります」
+/// (chiebukuro q10146468100).
+pub(crate) fn monthly_reset_due(last_reset_at: Option<DateTime<Utc>>, now: DateTime<Utc>) -> bool {
+    let jst = FixedOffset::east_opt(9 * 3600).unwrap();
+    let today = now.with_timezone(&jst);
+    let month_start = jst.with_ymd_and_hms(today.year(), today.month(), 1, 0, 0, 0).unwrap();
+    last_reset_at.is_none_or(|ts| ts < month_start)
 }
 
 pub(crate) fn find_map_definition(
@@ -569,6 +578,21 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_monthly_gauge_comes_back_at_00_00_jst_on_the_1st() {
+        // 2026-10-31 14:59 UTC is 23:59 JST; 15:00 UTC is 2026-11-01 00:00 JST.
+        let reset = Utc.with_ymd_and_hms(2026, 10, 1, 0, 0, 0).unwrap();
+        assert!(!monthly_reset_due(
+            Some(reset),
+            Utc.with_ymd_and_hms(2026, 10, 31, 14, 59, 0).unwrap()
+        ));
+        assert!(monthly_reset_due(
+            Some(reset),
+            Utc.with_ymd_and_hms(2026, 10, 31, 15, 0, 0).unwrap()
+        ));
+        assert!(monthly_reset_due(None, reset));
+    }
 
     fn sample_definition() -> MapDefinition {
         MapDefinition {

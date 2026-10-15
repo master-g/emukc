@@ -650,6 +650,48 @@ mod tests {
         assert_eq!(use_item_count(&context, pid, PRESENT_BOX).await, boxes + 1);
     }
 
+    /// A sortie that left before 00:00 JST on the 1st still holds last month's gauge when it
+    /// reaches N: no プレゼント箱, no 戦果, nothing off this month's gauge; the arrival that
+    /// would have emptied it brings its 燃料 1000 (sakamoto-kouji.com 2019/08/04, tried on
+    /// 2020-03-01).
+    #[tokio::test]
+    async fn the_goal_of_1_6_reached_after_the_month_turned_keeps_nothing() {
+        use emukc_internal::{
+            db::{
+                entity::profile::map_record,
+                sea_orm::{ColumnTrait, QueryFilter},
+            },
+            time::chrono::{Duration, Utc},
+        };
+
+        let context = crate::TestContext::new().await;
+        let pid = profile(&context, "escort-month-turned").await;
+        fleet(&context, pid, 6).await;
+        let boxes = use_item_count(&context, pid, PRESENT_BOX).await;
+        let last_month = async || {
+            let record = map_record::Entity::find()
+                .filter(map_record::Column::ProfileId.eq(pid))
+                .filter(map_record::Column::MapId.eq(16))
+                .one(&*context.db)
+                .await
+                .unwrap()
+                .unwrap();
+            let mut am = record.into_active_model();
+            am.defeat_count = ActiveValue::Set(Some(6));
+            am.last_reset_at = ActiveValue::Set(Some(Utc::now() - Duration::days(40)));
+            am.update(&*context.db).await.unwrap();
+        };
+
+        let arrival = arrive(&context, pid, 16, "N", last_month).await;
+        let escort = arrival.next.escort.as_ref().unwrap();
+        assert_eq!((escort.gain.item, escort.gain.amount), (CellItem::Fuel, 1000));
+        assert_eq!((escort.bonus_use_item, escort.rank_points), (None, 0));
+        assert_eq!(convoy_route(&context, pid).await, (false, 6));
+        assert_eq!(use_item_count(&context, pid, PRESENT_BOX).await, boxes);
+        let (record, _) = context.get_user_basic(pid).await.unwrap();
+        assert_eq!(record.war_result, 0);
+    }
+
     /// 807 「第三十一戦隊」出撃せよ！ counts reaching 1-6's goal N, which has no battle (#149).
     #[tokio::test]
     async fn reaching_the_goal_of_1_6_counts_for_the_quests_that_name_it() {

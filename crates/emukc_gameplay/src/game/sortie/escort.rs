@@ -14,7 +14,7 @@ use crate::{
     err::GameplayError,
     game::{
         basic::add_war_result_impl,
-        map::{check_and_unlock_dependencies_impl, find_map_record_impl},
+        map::{check_and_unlock_dependencies_impl, find_map_record_impl, monthly_reset_due},
         use_item::add_use_item_impl,
     },
 };
@@ -51,6 +51,7 @@ pub(super) async fn arrive<C>(
 where
     C: ConnectionTrait,
 {
+    let now = Utc::now();
     let gain = |unit| SortieItemGet {
         item: BASIC[rng::usize(0..BASIC.len())],
         amount: unit * rng::i64_inclusive(1..=10),
@@ -67,6 +68,20 @@ where
     };
 
     let arrivals = record.defeat_count.unwrap_or_default() + 1;
+    let last_fuel = SortieItemGet {
+        item: CellItem::Fuel,
+        amount: LAST_ARRIVAL_FUEL,
+    };
+    // Last month's gauge, the sortie having left before 00:00 JST on the 1st: nothing of it
+    // is kept, and the arrival that would empty it brings its fuel alone
+    // (sakamoto-kouji.com 2019/08/04, tried on 2020-03-01).
+    if monthly_reset_due(record.last_reset_at, now) {
+        return Ok(plain(if arrivals < required {
+            gain(100)
+        } else {
+            last_fuel
+        }));
+    }
     let mut am = record.into_active_model();
     am.defeat_count = ActiveValue::Set(Some(arrivals.min(required)));
     if arrivals < required {
@@ -74,17 +89,14 @@ where
         return Ok(plain(gain(100)));
     }
     am.cleared = ActiveValue::Set(true);
-    am.last_cleared_at = ActiveValue::Set(Some(Utc::now()));
+    am.last_cleared_at = ActiveValue::Set(Some(now));
     am.update(c).await?;
     // As any map cleared for the first time: what waited on it opens.
     check_and_unlock_dependencies_impl(c, codex, profile_id, definition.map_id).await?;
     add_use_item_impl(c, profile_id, PRESENT_BOX, 1).await?;
     add_war_result_impl(c, profile_id, RANK_POINTS).await?;
     Ok(SortieEscortSuccess {
-        gain: SortieItemGet {
-            item: CellItem::Fuel,
-            amount: LAST_ARRIVAL_FUEL,
-        },
+        gain: last_fuel,
         bonus_use_item: Some((PRESENT_BOX, 1)),
         rank_points: RANK_POINTS,
     })
