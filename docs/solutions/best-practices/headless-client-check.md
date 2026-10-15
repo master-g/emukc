@@ -110,8 +110,23 @@ screen, pass steps on the command line and read the screenshots:
   夜戦突入 sits where 撤退 does on the next choice (770, 365), so one spot serves both.
   `leveled_for_mid_boss` is the same sortie with six destroyers, who seldom finish by day: it
   is the one that reaches the night battle. `night_air_attack` is the same sortie again with
-  six night carriers, five of which cannot strike by day: every attack of theirs in the night
-  packet has to say it was flown (`api_n_mother_list`).
+  six night carriers, three short of ammunition and three that cannot strike by day: every
+  attack of theirs in the night packet has to say it was flown (`api_n_mother_list`), and a
+  空母カットイン (sp 6 whichever it is) has to show the aircraft of her place: 63 on the
+  flagship (night fighter, 光電管彗星), 62 on the second (night fighter, night attacker), 64 on
+  the third (night fighter, two Swordfish) and on the rest (one night fighter). It fails when
+  none of the first three cuts in or the day ends the battle (2 in 30 seeds). Seven runs with
+  this fleet on 2026-10-15, four of them passing: 63, 62 and 64 each played, with
+  their name plates (`night4` of one run: F6F-3N, 彗星一二型(三一号光電管爆弾搭載機)), without a
+  page error.
+- `night_zuiun` is the same sortie led by 最上改二特 (two 20.3cm(3号)連装砲, two 夜間瑞雲) and
+  三隈改二特 (the guns, one 瑞雲, a 22号対水上電探), both short of ammunition. The check wants
+  any 200 of theirs to hit once or twice (once when the first sinks the last enemy), not flown,
+  showing three pieces. Its first run found a page error: `CutinZuiunNightCanvas` reads the
+  name plate and picture of three pieces without a check, and the row showed one or two; main
+  guns now fill it (`night-attack-types.md`). Five runs of five after the fix played the three
+  shapes ([490, 490, 50], [490, 50, 50], [490, 28, 50]) without a page error; `night7` of the
+  fourth has 三隈's three plates.
 - `night_asw` is the same sortie with six submarines, 伊401改 below the level of the opening
   torpedo and five まるゆ, who sink next to nothing: the enemy lives into the night and attacks
   them there. Every such attack has to be one plain hit, not flown, a miss has to do nothing,
@@ -169,7 +184,10 @@ screen, pass steps on the command line and read the screenshots:
   night aircraft: the check wants an attack of hers there with `api_n_mother_list` 1. It fails
   when M is led by another (4 in 100). Three
   runs of three on 2026-10-13, the same cells each time, without a page error; the client
-  plays her attack as aircraft over the fleet (`night1`).
+  plays her attack as aircraft over the fleet (`night1`). Since enemies cut in (2026-10-15)
+  she makes 62 now and then (third run of three): sp 6, shown [1617, 1621, 1619], played as
+  three bands, 艦戦, 艦爆 and 艦攻 (`night5`). The 艦爆 is her 深海戦爆複座鷹改, which forms no
+  part of 62; the display takes a fighter, dive bombers and torpedo bombers whatever made it.
 - `anti_air_cut_in` is the same fleet with 秋月 in the sixth place, sent to 2-5 (the extra
   operation sits where 6-5 does on its page, 700, 275), whose first battle meets carriers. The
   check is the fair one plus the `api_air_fire` she should send; it fails about 7 times in a

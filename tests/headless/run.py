@@ -207,6 +207,18 @@ def check_night_air_attack(work: Path) -> list[str]:
     flown = [flag for by_enemy, flag in zip(shelling["api_at_eflag"], shelling["api_n_mother_list"]) if not by_enemy]
     if not flown or set(flown) != {1}:
         problems.append(f"every carrier should fly her night attack; api_n_mother_list said {flown}")
+    # A 空母カットイン is sp 6 whichever it is; what tells them apart is the aircraft shown,
+    # one night fighter, then dive bombers, then torpedo bombers, by her place.
+    shows = [[254, 320], [254, 257], [254, 242, 242], [254], [254], [254]]
+    ours = [(at, kind, [int(item) for item in shown]) for by_enemy, at, kind, shown in zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_sp_list"], shelling["api_si_list"]) if not by_enemy]
+    for at, kind, shown in ours:
+        if kind not in (0, 6):
+            problems.append(f"carrier {at} attacked with kind {kind}")
+        if kind == 6 and shown != shows[at]:
+            problems.append(f"carrier {at}'s cut-in shows {shows[at]}; it carried {shown}")
+    if not any(kind == 6 and at < 3 for at, kind, _ in ours):
+        problems.append("none of the 62, 63 and 64 carriers cut in this time: run it again")
+    print("night attacks (carrier, kind, shown):", ours)
     return problems
 
 
@@ -276,7 +288,9 @@ def check_enemy_night_crew(work: Path) -> list[str]:
     rows = zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_n_mother_list"], shelling["api_si_list"])
     # She has a night crew of her own and night aircraft: her attack is flown.
     hers = [(flown, shown) for by_enemy, at, flown, shown in rows if by_enemy and at == 0]
-    print("her attacks (flown, shown):", hers)
+    kinds = [kind for by_enemy, at, kind in zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_sp_list"]) if by_enemy and at == 0]
+    # Her night fighter and night attacker make the 空母カットイン 62, which shows both.
+    print("her attacks (flown, shown):", hers, "kinds", kinds)
     if not hers:
         return ["ヒ船団棲姫 did not attack at night"]
     return [f"ヒ船団棲姫 flies her night attacks; api_n_mother_list said {flown}" for flown, _ in hers if flown != 1]
@@ -306,6 +320,30 @@ def check_night_cut_in(work: Path) -> list[str]:
     if night["api_flare_pos"][0] not in (-1, 0) or night["api_flare_pos"][1] != -1:
         problems.append(f"only the flagship carries a star shell; api_flare_pos said {night['api_flare_pos']}")
     print("night attacks (ship, kind, shown):", [(at, kind, shown) for at, kind, _, shown in attacks], "api_flare_pos", night["api_flare_pos"])
+    return problems
+
+
+def check_night_zuiun(work: Path) -> list[str]:
+    problems = check_fair_battle(work)
+    nights = responses(work, "api_req_battle_midnight/battle")
+    if not nights:
+        return problems + ["the enemy was sunk by day this time, so nothing was rolled for at night: run it again"]
+    shelling = nights[0]["api_hougeki"]
+    rows = zip(shelling["api_at_eflag"], shelling["api_at_list"], shelling["api_sp_list"], shelling["api_df_list"], shelling["api_si_list"], shelling["api_n_mother_list"])
+    attacks = [row[1:] for row in rows if not row[0]]
+    # The two cruisers may cut in with their 夜間瑞雲 (200) or attack twice with their guns; the
+    # destroyers carry nothing. The cut-in hits twice, not flown, and shows three pieces (the
+    # client reads three unchecked): the 瑞雲 first, the radar of the cut-in that has one, guns.
+    shows = [([490, 490, 50], [490, 50, 50]), ([490, 28, 50], [490, 50, 50])]
+    for at, kind, targets, shown, flown in attacks:
+        if kind not in ({0, 1, 200} if at < 2 else {0}):
+            problems.append(f"ship {at} attacked with kind {kind}")
+        # One hit when the first sinks the last enemy.
+        if kind == 200 and (len(targets) not in (1, 2) or flown or [int(item) for item in shown] not in shows[at]):
+            problems.append(f"ship {at}'s 瑞雲 cut-in carried {len(targets)} hits, flown {flown}, shown {shown}")
+    if 200 not in [kind for _, kind, _, _, _ in attacks]:
+        problems.append("no 瑞雲 cut-in came up this time: run it again")
+    print("night attacks (ship, kind, shown):", [(at, kind, shown) for at, kind, _, shown, _ in attacks])
     return problems
 
 
@@ -458,9 +496,14 @@ SCENARIOS = {
     # sits where 撤退 does on the next choice), and home. What the packets say the fleet was
     # left with has to be what it comes home with.
     "gunnery_cutin": (FAIR_2_1, check_fair_battle),
-    # Six night carriers, five of them with nothing to strike with by day: the night battle is
-    # theirs, flown as aircraft, as a 空母カットイン when it forms.
-    "night_air_attack": (FAIR_2_1, check_night_air_attack),
+    # Six night carriers, three of them short of ammunition and three striking not at all: the night
+    # battle is theirs, flown as aircraft, as a 空母カットイン when it forms. Photographed through the night.
+    "night_air_attack": (
+        f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;670,278:api_req_sortie/battle "
+        + "u:600,400;770,365:api_req_battle_midnight/battle w:4 " + " ".join(f"w:2 s:night{n}" for n in range(1, 17))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_night_air_attack,
+    ),
     # The same with six destroyers, who seldom finish by day: this is the one that reaches the night.
     "leveled_for_mid_boss": (FAIR_2_1, check_fair_battle),
     # The same with six submarines, for the enemy to attack at night and to attack it.
@@ -480,6 +523,13 @@ SCENARIOS = {
         + "u:600,400;770,365:api_req_battle_midnight/battle w:4 " + " ".join(f"w:2 s:night{n}" for n in range(1, 17))
         + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
         check_night_cut_in,
+    ),
+    # 2-1 with 最上改二特 and 三隈改二特 leading: the night 瑞雲 cut-in. Photographed through the night.
+    "night_zuiun": (
+        f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;670,278:api_req_sortie/battle "
+        + "u:600,400;770,365:api_req_battle_midnight/battle w:4 " + " ".join(f"w:2 s:night{n}" for n in range(1, 17))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        check_night_zuiun,
     ),
     # 2-1 with 金剛改二丙 and 榛名改二乙 leading: the Kongou class's night assault in the
     # flagship's turn. Photographed through the night.
@@ -574,7 +624,7 @@ SCENARIOS = {
 }
 
 # Fought as the server would fight them for a player.
-FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "enemy_night_carrier", "kongou_night_assault", "nagato_broadside", "night_contact"}
+FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "night_zuiun", "enemy_night_carrier", "kongou_night_assault", "nagato_broadside", "night_contact"}
 # Never hurt, but sinking nothing at a blow: for an enemy several battles in who has to live.
 UNHURT = {"enemy_night_crew"}
 

@@ -1354,7 +1354,9 @@ fn zuiun_night_attack(
         multiplier: kind.damage_multiplier(),
         accuracy: ZuiunNightCutIn::ACCURACY,
     };
-    // The client draws the first slot's aircraft, unchecked: a 夜間瑞雲 goes first.
+    // The client draws the first slot's aircraft, unchecked: a 夜間瑞雲 goes first. It reads
+    // three pieces, also unchecked (`CutinZuiunNightCanvas`), so main guns fill the rest; she
+    // has two. Which pieces the game shows past the 瑞雲 has not been seen.
     let zuiun = usize::from(matches!(kind, ZuiunNightCutIn::TwoAndRadar | ZuiunNightCutIn::Two));
     let mut shown = vec![NIGHT_ZUIUN_ID; zuiun + 1];
     if matches!(kind, ZuiunNightCutIn::TwoAndRadar | ZuiunNightCutIn::OneAndRadar) {
@@ -1363,6 +1365,10 @@ fn zuiun_night_attack(
         });
         shown.extend(radars.first());
     }
+    let guns = collect_matching_slot_ids(codex, &friendly[idx], |slot_type, _| {
+        is_main_gun_type(slot_type)
+    });
+    extend_limit(&mut shown, &guns, 3);
     let row = SpecialRow {
         sp: ZUIUN_NIGHT_SP,
         at: idx,
@@ -4249,10 +4255,11 @@ mod attack_type_tests {
             assert_eq!(hougeki.api_df_list[0].len(), 2);
             assert_eq!(hougeki.api_damage[0].len(), 2);
         }
-        // The 夜間瑞雲 first, then the radar of the cut-in that has one.
+        // The 夜間瑞雲 first, then the radar of the cut-in that has one, then main guns: the
+        // client reads three pieces without a check.
         let shown: std::collections::BTreeSet<_> =
             rows.iter().map(|(hougeki, _)| format!("{:?}", hougeki.api_si_list[0])).collect();
-        let expected = [vec![ZUIUN, SURFACE_RADAR], vec![ZUIUN]]
+        let expected = [vec![ZUIUN, SURFACE_RADAR, MAIN], vec![ZUIUN, MAIN, MAIN]]
             .map(|ids| format!("{:?}", SiListId::text_from_i64(&ids)));
         assert_eq!(shown, expected.into_iter().collect());
     }

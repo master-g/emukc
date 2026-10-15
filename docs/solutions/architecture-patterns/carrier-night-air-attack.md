@@ -194,16 +194,18 @@ and `damage.rs` do not ask `simulation::night` themselves.
 
 - `night.rs` tests: who flies (crew, aircraft, empty slot, Ark Royal, the two hull limits),
   who shells, one power worked by hand, the proficiency on the damage and on the draw, the flag.
-- The `night_air_attack` preset (six 赤城改二戊 with night fighters, a night attacker on the
-  flagship) is in the sim→validate gate with `PhaseExpectation::NightAirAttack`: the night gate
+- The `night_air_attack` preset (six 赤城改二戊 with night fighters; the first three with a
+  光電管彗星, a night attacker and two Swordfish, for 63, 62 and 64) is in the sim→validate gate with `PhaseExpectation::NightAirAttack`: the night gate
   asserts that this preset flies and that no other does.
-- `make headless-check SCENARIO=night_air_attack` fights 2-1 with it in the real client. Five
-  of the six carry nothing that strikes by day, so the battle reaches the night.
+- `make headless-check SCENARIO=night_air_attack` fights 2-1 with it in the real client and
+  wants each cut-in to show the aircraft of her place; 63, 62 and 64 have played. The first
+  three are short of ammunition, so the battle reaches the night (28 seeds in 30).
 - `abyssal_carrier_tests` in `night.rs`: the tables against what the script prints, who
   attacks, the searchlight, one power worked by hand, Béarn. The `enemy_night_carrier` preset
   (2-5, cell C) is in the gate with `PhaseExpectation::EnemyCarrierNightAttack`, and in the
   headless check. A crewed enemy (flag 1) is met only in 5-6's fourth phase and in 7-4; the headless
-  scenario `enemy_night_crew` meets 7-4's ヒ船団棲姫 at M and the client flies her attack.
+  scenario `enemy_night_crew` meets 7-4's ヒ船団棲姫 at M and the client flies her attack, and
+  her 62 when it comes up.
 
 ## Known gaps
 
