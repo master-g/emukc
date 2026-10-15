@@ -51,8 +51,11 @@ async fn body_of(cache: &Kache, version: &str) -> Vec<u8> {
     buf
 }
 
+/// Downloads only: a newer version is first asked for its length with a HEAD (see
+/// `history.rs`), which is not a download.
 async fn request_count(server: &MockServer) -> usize {
-    server.received_requests().await.unwrap().len()
+    let requests = server.received_requests().await.unwrap();
+    requests.iter().filter(|request| request.method.as_str() == "GET").count()
 }
 
 #[tokio::test]

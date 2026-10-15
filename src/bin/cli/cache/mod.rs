@@ -1,4 +1,5 @@
 use anyhow::Result;
+use archive_import::ArchiveImportArguments;
 use clap::{Args, Subcommand};
 use dump::DumpArguments;
 use make_list::MakeListArguments;
@@ -6,6 +7,7 @@ use populate::PopulateArguments;
 
 use crate::cfg::AppConfig;
 
+mod archive_import;
 mod dump;
 mod foo;
 mod make_list;
@@ -19,6 +21,8 @@ enum Commands {
     Populate(PopulateArguments),
     #[command(about = "Dump cache list")]
     Dump(DumpArguments),
+    #[command(about = "Keep a resource snapshot in the cache history")]
+    ArchiveImport(ArchiveImportArguments),
     #[command(about = "foo")]
     Foo,
 }
@@ -41,6 +45,7 @@ pub(super) async fn exec(args: &CacheArgs, config: &AppConfig) -> Result<()> {
         Commands::Populate(args) => populate::exec(args, config).await?,
         Commands::MakeList(args) => make_list::exec(args, config).await?,
         Commands::Dump(args) => dump::exec(args, config).await?,
+        Commands::ArchiveImport(args) => archive_import::exec(args, config).await?,
         Commands::Foo => foo::exec(config).await?,
     }
 

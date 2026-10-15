@@ -2,7 +2,7 @@
 title: "Resource History and Cosmetic Seasons - Plan"
 type: feat
 date: 2026-10-15
-status: draft
+status: in-progress
 execution: code
 ---
 
@@ -95,6 +95,14 @@ execution: code
 - **U2（先写测试）**：按「版本不超过 v 的最新记录」取内容，替换 `kache.rs:268` 的「给更新的那份」规则。没有历史时行为不变。
 - **U3（先写测试，本地 HTTP 夹具）**：版本升了先 HEAD，按大小判断要不要下载；同时记录 `Last-Modified`。
 - **U4**：CLI `cache archive import <dir> --version-from <start2>`，导入 2026-10-15 的保护快照。另加一个可选的批量 HEAD 回填 `Last-Modified` 的命令（只取响应头）。
+- **L0 实施记录（2026-10-15，U1–U4 完成）**：
+  - 历史放在 `z/cache/.history`，不另设配置。
+  - `Last-Modified` 只在比大小的 HEAD 时记录，因为下载函数不返回响应头。
+  - 批量 HEAD 回填没做。
+  - U4 的命令改为 `cache archive-import <dir>`，不用 `--version-from`：版本号和 `last_modified` 直接取自快照的 `manifest.json`，无版本的条目跳过（09-20 有 1 条台词是 `"1"`）。
+  - 新下载的活文件不另存 blob，等它被替换时再收，免得缓存目录翻倍。
+  - 两份快照已导入：1,345 + 1,339 条记录，1,092 个 blob。
+  - 实测：经服务器请求吹雪 `full` v60 会下载祭典版，再请求 v59 从历史返回常规版。原样重传的母港台词 v1014 只发 HEAD、不下载。
 - **U5**：季节定义。
   - 从 kcwiki 指定提交取 start2，只存 `api_mst_shipgraph` 到 `.data/seasons/<id>.json`。
   - 季节清单 `assets/seasons.json`，先登记 `2026-09-20`、`2026-10-14` 两条。
