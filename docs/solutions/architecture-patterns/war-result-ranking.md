@@ -90,5 +90,9 @@ first with 75 (`ranking`, 2026-10-15).
   (zekamashi `senka-500`).
 - From 22:00 to 23:59 1-6's goal still sends `api_get_eo_rate` 75; what the game shows then
   is unknown.
+- Only 1-6's goal knows a sortie that crossed 00:00 on the 1st. On another monthly map, a boss
+  beaten after midnight by a sortie that left before it still counts on last month's record.
+- That arrival at 1-6's goal still counts for the quests that name it (807 and the like); the
+  quests' own month starts at 05:00, and what the game does there is unknown.
 - EO maps' clear bonuses (`api_get_exmap_rate`) are not sent or counted.
 - The game updates the ranking twice a day; this one is live.
