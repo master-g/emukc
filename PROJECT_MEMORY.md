@@ -175,11 +175,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-15] #142 已合并（PR #151）。修 #149（分支 `fix/goal-node-quests`，未推送）：码典里出击条目保留格子，到达不打仗的格子发 `SortieNodeReached`，55 条任务的条件有变化。修 #146（分支 `fix/relocating-plane`）：`set_plane` 拒绝配置转换中的装备。两个分支各跑 fmt、严格 clippy、`cargo test --workspace` 全过、0 ignored。
+- [2026-10-15] #142、#149、#146 已合并（PR #151～#153），合并后的 `main` 跑过 clippy 和完整测试，1497 个全过。分支 `docs/battle-fidelity-plan` 写了 #136、#140、#141 的合并计划 `2026-10-15-004`，来源按 `69097abc` 取；golden 只冻结 1-1 第一战，不进夜战，预计这三条都不会改动它。
 
 ## Next Session
 
-- [2026-10-15] 推两个分支、开 PR（#149、#146，互不依赖，记忆只在 #146 分支）。之后：#150 缺实机证据；#136/#140/#141 合一份计划、只冻结一次 golden。旧进度行里被丢掉的 7 海域条目补不回来。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-15] 按计划 `2026-10-15-004` 从 U1（照明弹命中）开始；改变随机数消耗的单元（U2、U11）要换种子。#150、#138、#143、#145 缺实机数据；#147 等你决定做不做排名；#144 要先确认无头客户端的运行环境。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
