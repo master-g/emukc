@@ -383,17 +383,31 @@ where
 /// (anastasiatetris.com kancolle-teitoku-exp-senka; kankore-sheep.blog.jp 82941742).
 const WAR_RESULT_PER_10000_EXP: i64 = 7;
 
-/// The JST month a moment falls in, as year × 100 + month.
-fn jst_month(now: DateTime<Utc>) -> i64 {
-    let jst = now.with_timezone(&FixedOffset::east_opt(9 * 3600).unwrap());
-    i64::from(jst.year()) * 100 + i64::from(jst.month())
+/// The month a moment falls in at `offset` hours east of UTC, as year × 100 + month.
+fn month_at(now: DateTime<Utc>, offset: i32) -> i64 {
+    let local = now.with_timezone(&FixedOffset::east_opt(offset * 3600).unwrap());
+    i64::from(local.year()) * 100 + i64::from(local.month())
+}
+
+/// The 戦果 month a moment falls in. It ends at 22:00 JST on its last day, midnight at UTC+11:
+/// 「先月末の22:00~戦果月の月末22:00迄に稼いだものが有効です」 (zekamashi.net senka-500);
+/// 「22:00以降に取得した戦果は翌日1日の更新分で集計されます」 (sftsyr.hatenablog.jp 2018/12/03).
+fn war_result_month_of(now: DateTime<Utc>) -> i64 {
+    month_at(now, 11)
+}
+
+/// Whether an EO gauge's bonus 戦果 counts. Not from 22:00 JST on the month's last day: it
+/// goes to neither month, though the medal or プレゼント箱 comes until 23:59 (zekamashi.net
+/// senka-500 「月末の23:59までは勲章をもらえますが、戦果消失します」; blog.makapy.com 8725).
+pub(crate) fn eo_war_result_counts(now: DateTime<Utc>) -> bool {
+    war_result_month_of(now) == month_at(now, 9)
 }
 
 /// Start this month's 戦果 if the profile's is another month's: experience from here on
 /// counts and the bonus starts at nothing. Call it before experience or bonus is added, so
 /// that `experience` still holds what came before.
 pub(crate) fn roll_war_result(am: &mut profile::ActiveModel, now: DateTime<Utc>) {
-    let month = jst_month(now);
+    let month = war_result_month_of(now);
     if *am.war_result_month.as_ref() == month {
         return;
     }
@@ -404,9 +418,8 @@ pub(crate) fn roll_war_result(am: &mut profile::ActiveModel, now: DateTime<Utc>)
 
 /// This month's 戦果: 7 for every 10000 experience since the month started, and the bonus
 /// (quests, 1-6's goal). Nothing while no experience or bonus has come this month.
-// ponytail: the month-end limits (21:59 for 戦果) are #147's.
 pub(crate) fn war_result(record: &profile::Model, now: DateTime<Utc>) -> i64 {
-    if record.war_result_month != jst_month(now) {
+    if record.war_result_month != war_result_month_of(now) {
         return 0;
     }
     (record.experience - record.war_result_base_exp) * WAR_RESULT_PER_10000_EXP / 10_000
@@ -465,9 +478,9 @@ mod war_result_tests {
     };
     use emukc_time::chrono::{DateTime, TimeZone, Utc};
 
-    use super::{roll_war_result, war_result};
+    use super::{eo_war_result_counts, roll_war_result, war_result};
 
-    /// 2026-10-31 15:30 UTC is 2026-11-01 00:30 JST.
+    /// 2026-10-31 13:30 UTC is 22:30 JST; 15:30 UTC is 2026-11-01 00:30 JST.
     fn utc(month: u32, day: u32, hour: u32) -> DateTime<Utc> {
         Utc.with_ymd_and_hms(2026, month, day, hour, 30, 0).unwrap()
     }
@@ -499,14 +512,25 @@ mod war_result_tests {
     }
 
     #[test]
-    fn a_new_month_in_japan_starts_from_nothing() {
+    fn a_month_ends_at_22_00_jst_on_its_last_day() {
         let r = gain(record(0), utc(10, 2, 0), 20_000, 75);
-        assert_eq!(war_result(&r, utc(10, 31, 14)), 14 + 75);
-        // Read in November (JST) before anything is gained: nothing yet.
-        assert_eq!(war_result(&r, utc(10, 31, 15)), 0);
-        // Gained in November: only November's.
-        let r = gain(r, utc(10, 31, 16), 10_000, 0);
-        assert_eq!(war_result(&r, utc(10, 31, 17)), 7);
+        // 2026-10-31 21:30 JST: still October's.
+        assert_eq!(war_result(&r, utc(10, 31, 12)), 14 + 75);
+        // 22:30 JST: November's, with nothing gained in it yet.
+        assert_eq!(war_result(&r, utc(10, 31, 13)), 0);
+        // Gained at 22:30 JST: November's only.
+        let r = gain(r, utc(10, 31, 13), 10_000, 0);
+        assert_eq!(war_result(&r, utc(10, 31, 16)), 7);
+    }
+
+    #[test]
+    fn an_eo_bonus_counts_until_22_00_jst_on_the_last_day() {
+        assert!(eo_war_result_counts(utc(10, 31, 12)));
+        // 22:30 and 23:30 JST: the medal or box still comes, the 戦果 does not.
+        assert!(!eo_war_result_counts(utc(10, 31, 13)));
+        assert!(!eo_war_result_counts(utc(10, 31, 14)));
+        // 2026-11-01 00:30 JST: the new month's.
+        assert!(eo_war_result_counts(utc(10, 31, 15)));
     }
 
     #[test]

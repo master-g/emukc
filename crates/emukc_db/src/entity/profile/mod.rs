@@ -109,8 +109,8 @@ pub struct Model {
     /// War result
     pub war_result: i64,
 
-    /// The JST month (year × 100 + month) `war_result` and `war_result_base_exp` are of; 0
-    /// before the first.
+    /// The 戦果 month (year × 100 + month, ending at 22:00 JST on its last day)
+    /// `war_result` and `war_result_base_exp` are of; 0 before the first.
     pub war_result_month: i64,
 
     /// Experience at the start of `war_result_month`: what came after counts towards 戦果.
