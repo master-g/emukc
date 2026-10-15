@@ -176,9 +176,8 @@ double attack, a cut-in or a special attack that misses still scratches and is w
 - The night Zuiun cut-in is another path in the source. The flagship's special gunnery
   attacks of the day are rolled for at night too (`special_gunnery_at_night`), in the same
   one row as the night assault (`special_attack_row`); `day-shelling-order.md` has their rules.
-- A night attack on an installation is firepower alone, 30 more for a submarine
-  (`night_gun_power`, the source's `NBPower`). The anti-installation equipment's multipliers
-  and flat bonuses are modelled neither by day nor at night.
+- A night attack on an installation leaves the torpedo out; its equipment multipliers are in
+  `anti-installation.md`, with what of them is still missing.
 - The destroyer cut-ins with a lookout show any lookout and any drum-type equipment.
 - Played in the client (`night_cut_in`): types 2, 3, 5 and 7 and the star shell; the
   submarine's torpedo cut-in with her radar and her plain attack (`night_asw`); the Kongou

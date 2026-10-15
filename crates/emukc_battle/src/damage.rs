@@ -19,11 +19,12 @@ use crate::combined::{
     CombinedAttackClass, combined_correction_vs_enemy_combined, combined_correction_vs_single,
     combined_formation_modifier,
 };
+use crate::installation::{AntiInstallation, land_target};
 use crate::random::BattleRng;
 use crate::targeting::{
     has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type, ship_type, target_class,
 };
-use crate::types::{BattlePhase, BattleRuntimeShip, EngagementType, TargetClass};
+use crate::types::{BattlePhase, BattleRuntimeShip, EngagementType};
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -166,22 +167,25 @@ pub(crate) fn calculate_shelling_damage(
 ) -> i64 {
     let basic_power = if is_cv_type(codex, attacker) {
         let bomber_count = bomber_plane_count(codex, attacker);
-        if bomber_count > 0 {
+        let planes = if bomber_count > 0 {
             1.5 * bomber_count as f64 + 55.0
         } else {
             attacker.ship.api_karyoku[0].max(0) as f64 + 5.0
-        }
+        };
+        // The reference spells the correction out only for the non-carrier formula,
+        // but states it sits "inside basic attack power" — so it applies to the
+        // carrier branch as well, not just the gun branch.
+        // ponytail: a carrier's power against a land target (`CV.prototype.shellPower`, its
+        // multipliers on her firepower alone) is not modelled.
+        planes
+            + improvement_bonus_day(codex, attacker)
+            + combined_correction(attacker, defender, CombinedAttackClass::Shelling) as f64
     } else {
-        attacker.ship.api_karyoku[0].max(0) as f64 + 5.0
+        day_gun_power(codex, attacker, defender)
     };
-    let bonus = improvement_bonus_day(codex, attacker) + light_gun_bonus(codex, attacker);
     let dmg_state =
         damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, BattlePhase::DayShelling);
-    // The reference spells the correction out only for the non-carrier formula,
-    // but states it sits "inside basic attack power" — so it applies to the
-    // carrier branch above as well, not just the gun branch.
-    let correction = combined_correction(attacker, defender, CombinedAttackClass::Shelling) as f64;
-    let pre_cap = (basic_power + bonus + correction)
+    let pre_cap = (basic_power + light_gun_bonus(codex, attacker))
         * day_formation_modifier(formation_id, CombinedAttackClass::Shelling)
         * engagement.modifier()
         * dmg_state;
@@ -193,6 +197,34 @@ pub(crate) fn calculate_shelling_damage(
         outcome.power_with(capped_power, shelling_proficiency(codex, attacker).critical_damage);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp(), ammo_modifier(codex, attacker))
+}
+
+/// What a ship's guns count for by day before the cap, less the light cruiser's gun fit
+/// (`shellPower`): firepower, 5, the combined fleet's correction and the improvement bonus.
+/// Against a land target her equipment multiplies that and adds its flat power, and a
+/// submarine has 30 more firepower.
+fn day_gun_power(codex: &Codex, attacker: &BattleRuntimeShip, defender: &BattleRuntimeShip) -> f64 {
+    let firepower = attacker.ship.api_karyoku[0].max(0) as f64;
+    let rest = 5.0
+        + combined_correction(attacker, defender, CombinedAttackClass::Shelling) as f64
+        + improvement_bonus_day(codex, attacker);
+    match land_target(codex, defender) {
+        Some(kind) => AntiInstallation::of(codex, attacker).power(
+            kind,
+            firepower + submarine_bonus(codex, attacker) + rest,
+            true,
+        ),
+        None => firepower + rest,
+    }
+}
+
+/// The 30 firepower a submarine has against a land target.
+fn submarine_bonus(codex: &Codex, attacker: &BattleRuntimeShip) -> f64 {
+    if target_class(codex, attacker).is_submarine() {
+        30.0
+    } else {
+        0.0
+    }
 }
 
 /// A torpedo's attack power after the cap, before ammunition and armour.
@@ -236,24 +268,24 @@ pub(crate) fn calculate_torpedo_damage(
 }
 
 /// What a ship attacks with at night from her guns and torpedoes, before the night scout and
-/// the cap: firepower and torpedo, with none of the day's 5. The source's `NBPower`: against an installation the torpedoes are left out, and
-/// a submarine has 30 more firepower.
-// ponytail: the anti-installation equipment's multipliers and flat bonuses are not modelled,
-// by day or at night; they go here and in the day's shelling power together.
+/// the cap: firepower and torpedo, with none of the day's 5. The source's `NBPower`: against a
+/// land target the torpedoes are left out, a submarine has 30 more firepower, and her equipment
+/// multiplies that and adds its flat power.
 fn night_gun_power(
     codex: &Codex,
     attacker: &BattleRuntimeShip,
     defender: &BattleRuntimeShip,
 ) -> f64 {
-    let firepower = attacker.ship.api_karyoku[0].max(0);
-    let rest = if target_class(codex, defender) != TargetClass::Installation {
-        attacker.ship.api_raisou[0].max(0)
-    } else if target_class(codex, attacker).is_submarine() {
-        30
-    } else {
-        0
-    };
-    (firepower + rest) as f64 + improvement_bonus_night(codex, attacker)
+    let firepower = attacker.ship.api_karyoku[0].max(0) as f64;
+    let improvement = improvement_bonus_night(codex, attacker);
+    match land_target(codex, defender) {
+        Some(kind) => AntiInstallation::of(codex, attacker).power(
+            kind,
+            firepower + submarine_bonus(codex, attacker) + improvement,
+            false,
+        ),
+        None => firepower + attacker.ship.api_raisou[0].max(0) as f64 + improvement,
+    }
 }
 
 /// Calculate night battle damage for a single attack.
@@ -1005,6 +1037,30 @@ mod tests {
         let submarine = ship(KcShipType::SS, 10, 60);
         assert_eq!(power(&submarine, &surface), 70.0);
         assert_eq!(power(&submarine, &installation), 40.0);
+    }
+
+    /// `shellPower` and `NBPower`: the equipment's multiplier on the firepower, the flat power
+    /// after it.
+    #[test]
+    fn anti_installation_gear_reaches_the_guns_by_day_and_at_night() {
+        const WG42: i64 = 126;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        ship.ship.api_karyoku[0] = 50;
+        ship.ship.api_raisou[0] = 80;
+        ship.slot_items = vec![slotitem_with_mst_id(WG42)];
+        let destroyer = BattleRuntimeShip::from(ship);
+        let mut target = destroyer.clone();
+        target.slot_items.clear();
+        let surface = target.clone();
+        target.ship.api_ship_id = ship_mst_id_by_name(&codex, "飛行場姫");
+        let installation = target;
+
+        // (50 + 5) x 1.3 + 75 by day; 50 x 1.3 + 75 at night.
+        assert_eq!(day_gun_power(&codex, &destroyer, &installation), 146.5);
+        assert_eq!(night_gun_power(&codex, &destroyer, &installation), 140.0);
+        assert_eq!(day_gun_power(&codex, &destroyer, &surface), 55.0);
+        assert_eq!(night_gun_power(&codex, &destroyer, &surface), 130.0);
     }
 
     #[test]

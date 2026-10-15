@@ -40,10 +40,35 @@ Before the table, installations were found by name markers (砲台, 飛行場, �
 Every abyssal ship in the codex is in the source, so the name markers are kept only for a ship newer
 than the source's last abyssal id (`LAST_SOURCE_ABYSSAL_ID`), with a warning to regenerate.
 
+## What equipment does against them
+
+`AntiInstallation::of` (`installation.rs`) ports `Ship.prototype.loadEquips` with the source's
+`installRevamp` and `panzerIIIBuff` on, as they are by default. It counts the pieces the source
+counts (`installeqs`): the landing craft by class (type 24 the first, 166/449/514 the second, the
+特型内火艇 of type 46 the third) and their stars, the shells, seaplane and dive bombers, WG42, the
+mortars and rockets, each named tank and the army units. From them:
+
+- `installModAll` and `installFlat`: each of the tanks and army units multiplies both and then adds
+  to the flat power, in the source's order; an AB boat or an armed daihatsu with the pieces they
+  pair with (`abSynergyMult`) does the same; WG42, the mortars and the rockets add flat power by
+  how many.
+- `softSkinMult` for a soft-skinned target or a supply depot, `installModAll` folded in, and its day
+  part `softSkinMultDay` (1.1 with an AB boat or armed daihatsu, 1.1 more with two of them or two
+  特四式内火艇; the source leaves it unset without the first, so the second does nothing alone).
+
+Where it is read (`damage.rs`):
+
+- By day (`day_gun_power`, the source's `shellPower`): firepower, 30 more for a submarine, 5, the
+  combined fleet's correction and the improvement bonus, times the multiplier and its day part,
+  plus the flat power. The light cruiser's gun fit is added after, as the source adds `FPfit`.
+- At night (`night_gun_power`, `NBPower`): firepower, 30 more for a submarine and the improvement
+  bonus, times the multiplier, plus the flat power. No torpedo.
+
 ## Known gaps
 
-- The anti-installation equipment's multipliers and flat bonuses are modelled neither by day nor at
-  night.
+- Only the soft-skinned multiplier is ported; the other kinds take it too.
+- A carrier's day shelling of a land target (`CV.prototype.shellPower`) keeps the carrier formula
+  without the multipliers.
 - The source never lets かばう touch a land target (`choiceWProtect` returns a targeted
   installation, and an installation does not shield its flagship); `select_escort_shield` does not
   know this.

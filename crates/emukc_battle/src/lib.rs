@@ -14,6 +14,7 @@ mod damage;
 /// Debug overlay: overrides simulation results for god mode / one hit kill.
 mod debug_overlay;
 mod execution;
+mod installation;
 /// Internal battle documentation.
 mod outcome;
 /// Random number generation trait and implementations for battle simulation.
