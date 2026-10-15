@@ -52,9 +52,17 @@ mortars and rockets, each named tank and the army units. From them:
   to the flat power, in the source's order; an AB boat or an armed daihatsu with the pieces they
   pair with (`abSynergyMult`) does the same; WG42, the mortars and the rockets add flat power by
   how many.
-- `softSkinMult` for a soft-skinned target or a supply depot, `installModAll` folded in, and its day
-  part `softSkinMultDay` (1.1 with an AB boat or armed daihatsu, 1.1 more with two of them or two
-  特四式内火艇; the source leaves it unset without the first, so the second does nothing alone).
+- A multiplier per kind of target, `installModAll` folded into all but the northern one:
+  `softSkinMult` for a soft-skinned target or a supply depot, `pillboxMult` (1.4 to start for a
+  destroyer or light cruiser), `isoMult`, `northernMult`, `harbourSummerMult`. The source multiplies
+  the harbour's by its rockets' 1.25 and 1.4 whatever their number; it is kept so.
+- Their day parts, `softSkinMultDay` and the like (1.1, 1.3, 1.3 and 1.5 with an AB boat or armed
+  daihatsu, a second step with two of them or two 特四式内火艇; the source leaves the part unset
+  without the first, so the second does nothing alone). The northern one has none.
+- The multipliers after the cap (`post_cap`): a supply depot's (`installtype` 3 or
+  `isSupplyDepot`), the anchorage's, the dock's and the summer battleship's and heavy cruiser's,
+  the last three with the source's lists of ship ids and classes that take more. The source's
+  switches for the dock and the summer ships are on by default, and so they are here.
 
 Where it is read (`damage.rs`):
 
@@ -62,11 +70,18 @@ Where it is read (`damage.rs`):
   combined fleet's correction and the improvement bonus, times the multiplier and its day part,
   plus the flat power. The light cruiser's gun fit is added after, as the source adds `FPfit`.
 - At night (`night_gun_power`, `NBPower`): firepower, 30 more for a submarine and the improvement
-  bonus, times the multiplier, plus the flat power. No torpedo.
+  bonus, times the multiplier, plus the flat power. No torpedo, but for the northern princesses.
+- After the cap and any cut-in's multiplier, before a critical (`post_cap_multiplier`): by day
+  and at night all five; by torpedo the dock's and the summer ships' (the source's
+  `anchorageTorpNerf` leaves the anchorage out, and a supply depot is not torpedoed).
 
 ## Known gaps
 
-- Only the soft-skinned multiplier is ported; the other kinds take it too.
+- The airstrike's own bonuses against land targets and special ships (`enableAirstrikeSpecialBonus`,
+  with a roll of its own) and its dock and summer multipliers.
+- The summer carrier, French battleship and European princess multipliers (`isSummerCV`,
+  `isFrenchBB`, `isEuroWP`, 19 ships in the source, switches on by default): plan 2026-10-15-004 did
+  not take them, and the generator does not list them.
 - A carrier's day shelling of a land target (`CV.prototype.shellPower`) keeps the carrier formula
   without the multipliers.
 - The source never lets かばう touch a land target (`choiceWProtect` returns a targeted

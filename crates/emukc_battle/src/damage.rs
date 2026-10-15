@@ -19,7 +19,7 @@ use crate::combined::{
     CombinedAttackClass, combined_correction_vs_enemy_combined, combined_correction_vs_single,
     combined_formation_modifier,
 };
-use crate::installation::{AntiInstallation, land_target};
+use crate::installation::{AntiInstallation, land_target, post_cap_multiplier};
 use crate::random::BattleRng;
 use crate::targeting::{
     has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type, ship_type, target_class,
@@ -193,6 +193,7 @@ pub(crate) fn calculate_shelling_damage(
     if let Some(m) = ci_multiplier {
         capped_power *= m;
     }
+    capped_power *= post_cap_multiplier(codex, attacker, defender, false);
     let capped_power =
         outcome.power_with(capped_power, shelling_proficiency(codex, attacker).critical_damage);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
@@ -261,7 +262,8 @@ pub(crate) fn calculate_torpedo_damage(
     outcome: HitOutcome,
 ) -> i64 {
     let capped_power =
-        torpedo_attack_power(codex, attacker, defender, formation_id, engagement, phase);
+        torpedo_attack_power(codex, attacker, defender, formation_id, engagement, phase)
+            * post_cap_multiplier(codex, attacker, defender, true);
     let capped_power = outcome.power(capped_power);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp(), ammo_modifier(codex, attacker))
@@ -269,8 +271,8 @@ pub(crate) fn calculate_torpedo_damage(
 
 /// What a ship attacks with at night from her guns and torpedoes, before the night scout and
 /// the cap: firepower and torpedo, with none of the day's 5. The source's `NBPower`: against a
-/// land target the torpedoes are left out, a submarine has 30 more firepower, and her equipment
-/// multiplies that and adds its flat power.
+/// land target the torpedoes are left out but for the northern princesses, a submarine has 30
+/// more firepower, and her equipment multiplies that and adds its flat power.
 fn night_gun_power(
     codex: &Codex,
     attacker: &BattleRuntimeShip,
@@ -278,13 +280,18 @@ fn night_gun_power(
 ) -> f64 {
     let firepower = attacker.ship.api_karyoku[0].max(0) as f64;
     let improvement = improvement_bonus_night(codex, attacker);
+    let torpedo = attacker.ship.api_raisou[0].max(0) as f64;
     match land_target(codex, defender) {
-        Some(kind) => AntiInstallation::of(codex, attacker).power(
-            kind,
-            firepower + submarine_bonus(codex, attacker) + improvement,
-            false,
-        ),
-        None => firepower + attacker.ship.api_raisou[0].max(0) as f64 + improvement,
+        Some(kind) => {
+            AntiInstallation::of(codex, attacker).power(
+                kind,
+                firepower + submarine_bonus(codex, attacker) + improvement,
+                false,
+            )
+            // The northern princesses take her torpedo too.
+            + if kind == 5 { torpedo } else { 0.0 }
+        }
+        None => firepower + torpedo + improvement,
     }
 }
 
@@ -312,7 +319,8 @@ pub(crate) fn calculate_night_damage(
         Some(m) => basic_power * m,
         None => basic_power,
     };
-    let capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64;
+    let capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64
+        * post_cap_multiplier(codex, attacker, defender, false);
     let capped_power = if air_power.is_some() {
         outcome.power_with(capped_power, plane_proficiency(codex, attacker).critical_damage)
     } else {
@@ -1061,6 +1069,37 @@ mod tests {
         assert_eq!(night_gun_power(&codex, &destroyer, &installation), 140.0);
         assert_eq!(day_gun_power(&codex, &destroyer, &surface), 55.0);
         assert_eq!(night_gun_power(&codex, &destroyer, &surface), 130.0);
+    }
+
+    /// A supply depot's multiplier comes after the cap (`NBattack`: `floor(softCap(..)) * postMod`).
+    #[test]
+    fn a_supply_depots_multiplier_comes_after_the_cap() {
+        const WG42: i64 = 126;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        ship.ship.api_karyoku[0] = 300;
+        ship.slot_items = vec![slotitem_with_mst_id(WG42)];
+        let attacker = BattleRuntimeShip::from(ship);
+        let mut depot = attacker.clone();
+        depot.slot_items.clear();
+        depot.ship.api_ship_id = ship_mst_id_by_name(&codex, "集積地棲姫");
+        depot.ship.api_soukou[0] = 0;
+        depot.ship.api_nowhp = 9999;
+        depot.ship.api_maxhp = 9999;
+
+        assert_eq!(night_gun_power(&codex, &attacker, &depot), 465.0);
+        let damage = calculate_night_damage(
+            &codex,
+            &mut crate::random::SeededRng::new(1),
+            &attacker,
+            &depot,
+            None,
+            None,
+            None,
+            HitOutcome::Hit,
+        );
+        // 300 x 1.3 + 75 = 465, capped to 370, then x 1.25; not 465 x 1.25 capped to 374.
+        assert_eq!(damage, 462);
     }
 
     #[test]
