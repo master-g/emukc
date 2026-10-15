@@ -9,6 +9,7 @@ use emukc_model::{
 };
 
 use crate::random::BattleRng;
+use crate::simulation::installation_types::{INSTALLATION_TYPES, LAST_SOURCE_ABYSSAL_ID};
 use crate::types::{AttackCapability, BattlePhase, BattleRuntimeShip, TargetClass};
 
 // ---------------------------------------------------------------------------
@@ -319,16 +320,37 @@ pub(crate) fn target_class(codex: &Codex, ship: &BattleRuntimeShip) -> TargetCla
         return TargetClass::Submarine;
     }
 
+    let id = ship.ship.api_ship_id;
+    if installation_type(id).is_some() {
+        return TargetClass::Installation;
+    }
     if let Some(name) = ship_mst(codex, ship).map(|mst| mst.api_name.as_str()) {
         if is_pt_target_name(name) {
             return TargetClass::PtBoat;
         }
-        if is_installation_target_name(name) {
+        // A ship newer than the source's table is still judged by her name.
+        if id > LAST_SOURCE_ABYSSAL_ID && is_installation_target_name(name) {
+            static WARNED: std::sync::Once = std::sync::Once::new();
+            WARNED.call_once(|| {
+                tracing::warn!(
+                    "abyssal ship {id} ({name}) is newer than the installation table; \
+                     judging her by name. Regenerate it with scripts/gen_installation_types.py."
+                );
+            });
             return TargetClass::Installation;
         }
     }
 
     TargetClass::SurfaceShip
+}
+
+/// The source's `installtype` of a land target (`kcSHIPDATA.js`): 1 soft-skinned, 2 pillbox,
+/// 3 supply depot, 4 isolated island, 5 northern, 6 harbour summer princess.
+pub(crate) fn installation_type(mst_id: i64) -> Option<u8> {
+    INSTALLATION_TYPES
+        .binary_search_by_key(&mst_id, |row| row.0)
+        .ok()
+        .map(|at| INSTALLATION_TYPES[at].1)
 }
 
 /// A fleet of PT boats and nothing else, sunk or not: no fleet special attack is made
@@ -971,6 +993,55 @@ mod tests {
         .unwrap();
 
         assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::SurfaceShip);
+    }
+
+    #[test]
+    fn the_installation_tables_follow_the_source() {
+        use crate::simulation::installation_types::*;
+        // What `scripts/gen_installation_types.py` prints: (installtype, ships, sum of their ids).
+        for (kind, ships, sum) in [
+            (1, 66, 120_844),
+            (2, 16, 33_857),
+            (3, 62, 124_795),
+            (4, 11, 18_469),
+            (5, 3, 5_178),
+            (6, 16, 31_340),
+        ] {
+            let ids = || INSTALLATION_TYPES.iter().filter(|row| row.1 == kind).map(|row| row.0);
+            assert_eq!((ids().count(), ids().sum::<i64>()), (ships, sum), "installtype {kind}");
+        }
+        assert!(INSTALLATION_TYPES.is_sorted_by_key(|row| row.0));
+        for (ids, ships, sum) in [
+            (SUPPLY_DEPOT_IDS, 8, 17_132),
+            (ANCHORAGE_IDS, 6, 10_905),
+            (DOCK_IDS, 6, 10_977),
+            (SUMMER_BATTLESHIP_IDS, 3, 5_091),
+            (SUMMER_CRUISER_IDS, 3, 5_118),
+        ] {
+            assert_eq!((ids.len(), ids.iter().sum::<i64>()), (ships, sum));
+        }
+        assert_eq!(LAST_SOURCE_ABYSSAL_ID, 2397);
+    }
+
+    #[test]
+    fn a_land_target_is_whatever_the_sources_table_says() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let class = |name: &str| {
+            let mut ship = sample_ship(&codex, dd, 50);
+            ship.ship.api_ship_id = ship_mst_id_by_name(&codex, name);
+            target_class(&codex, &BattleRuntimeShip::from(ship))
+        };
+        // Land targets whose names carry none of the old markers.
+        assert_eq!(class("北方棲姫"), TargetClass::Installation);
+        assert_eq!(class("中枢棲姫"), TargetClass::Installation);
+        assert_eq!(class("対空小鬼"), TargetClass::Installation);
+        // Ships whose names do, and which the source keeps at sea.
+        assert_eq!(class("浮遊要塞"), TargetClass::SurfaceShip);
+        assert_eq!(class("泊地棲姫"), TargetClass::SurfaceShip);
+        assert_eq!(class("集積地棲姫III バカンスmode"), TargetClass::SurfaceShip);
+        assert_eq!(class("砲台小鬼"), TargetClass::Installation);
+        assert_eq!(installation_type(ship_mst_id_by_name(&codex, "砲台小鬼")), Some(2));
     }
 
     #[test]

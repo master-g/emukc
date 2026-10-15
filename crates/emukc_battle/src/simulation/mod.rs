@@ -24,6 +24,9 @@ pub(crate) mod air_raid;
 pub(crate) mod asw;
 pub(crate) mod day_attack;
 pub(crate) mod day_cutin;
+// ponytail: the separate marks wait for the anti-installation multipliers that read them.
+#[allow(dead_code)]
+pub(crate) mod installation_types;
 pub(crate) mod kouku;
 pub(crate) mod night;
 pub(crate) mod night_attack_table;
