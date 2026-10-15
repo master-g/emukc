@@ -99,6 +99,16 @@ the cut-in's multiplier, the cap and the ammunition follow as for any night atta
   `0.45 x (火力 + 雷装 + 対潜 + 爆装) x sqrt(aircraft)`.
 - 光電管彗星, 岩井爆戦 and Swordfish: no count term, and 0.3 for 0.45.
 - Ark Royal without a night air group: her Swordfish' firepower, torpedo and `sqrt(改修)`.
+- The fit bonus on her torpedo (`carrier_torpedo_bonus`, the source's `getEquipBonusCVTorp` with
+  no slot): one plane's share of her 装備ボーナス torpedo, and the smallest share among her aviation
+  personnel. Each piece's share is what the bonus gains when it goes on after the pieces before it
+  (`loadEquips`). The plane is 522 and 523 together if she has either, else the first she carries
+  of `TORPEDO_BONUS_FIRST`, then of the other planes with a share, by id downwards.
+- Against a land target neither that bonus nor a 艦攻's torpedo counts; the hull's torpedo, the
+  Swordfish' on Ark Royal and the share term stay, as in the source.
+
+The source's special-aircraft multipliers (`getBonusSpecialPlane`, `bonusSpecialP`) are event
+bonuses its user enters for a map; nothing in its data sets them, so they are 1 here.
 
 ## Proficiency
 
@@ -172,8 +182,8 @@ and `damage.rs` do not ask `simulation::night` themselves.
 ## Known gaps
 
 - Enemy carriers' cut-ins, their equipment bonuses and aircraft proficiency.
-- The fit bonuses the source adds to a carrier's torpedo (`eqBonusCV`), no torpedo against a
-  land target, and the special-aircraft multipliers.
+- The torpedo fit bonus in a carrier's day shelling and airstrike (the day formulas are not the
+  source's to begin with). Bombing bonuses (`DBCrew`): the 装備ボーナス table carries no bombing.
 - Smoke on the attack on a submarine, and the 夜間瑞雲 cut-in's exception for one.
 - The source lets a carrier roll for several of her cut-ins in turn; here she has the one her
   air group makes. The types of the other ships are in `night-attack-types.md`.

@@ -365,8 +365,10 @@ pub(crate) fn can_night_air_attack(codex: &Codex, ship: &BattleRuntimeShip) -> b
 /// firepower, the root of its 改修, its torpedo (a 艦攻) or bombing (any other), three for
 /// each aircraft in the slot, and `0.45 x (火力 + 雷装 + 対潜 + 爆装) x sqrt(aircraft)`.
 /// 光電管彗星, 岩井爆戦 and Swordfish take no count term and 0.3 for 0.45. Ark Royal without a
-/// night air group adds only her Swordfish' firepower, torpedo and 改修.
-pub(crate) fn night_air_power(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+/// night air group adds only her Swordfish' firepower, torpedo and 改修. The fit bonus on her
+/// torpedo is added ([`carrier_torpedo_bonus`]); against a land target (`land`) it is not, nor
+/// is a 艦攻's torpedo, though the share term and the hull's torpedo still count.
+pub(crate) fn night_air_power(codex: &Codex, ship: &BattleRuntimeShip, land: bool) -> f64 {
     let fitted: Vec<_> = ship
         .slot_items
         .iter()
@@ -385,6 +387,9 @@ pub(crate) fn night_air_power(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
     let mut power = (own(hull.and_then(|mst| mst.api_houg), ship.ship.api_kyouka[0])
         + own(hull.and_then(|mst| mst.api_raig), ship.ship.api_kyouka[1]))
     .max(0) as f64;
+    if !land {
+        power += carrier_torpedo_bonus(codex, ship);
+    }
 
     let with_group = has_night_air_gear(codex, ship);
     for (item, mst, count) in &fitted {
@@ -406,10 +411,10 @@ pub(crate) fn night_air_power(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
         }
         let mut share = 0.3 * (firepower + torpedo + mst.api_tais as f64 + bombing);
         power += firepower + stars;
-        if mst.api_type[2] == KcSlotItemType3::CarrierBasedTorpedoBomber as i64 {
-            power += torpedo;
-        } else {
+        if mst.api_type[2] != KcSlotItemType3::CarrierBasedTorpedoBomber as i64 {
             power += bombing;
+        } else if !land {
+            power += torpedo;
         }
         if !auxiliary {
             power += count * 3.0;
@@ -418,6 +423,74 @@ pub(crate) fn night_air_power(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
         power += share * count.sqrt();
     }
     power.max(0.0)
+}
+
+/// The aircraft types the source counts as planes (`EQTDATA[..].isPlane`).
+const PLANE_TYPES: [i64; 17] = [6, 7, 8, 9, 10, 11, 25, 26, 41, 45, 47, 48, 49, 53, 56, 57, 94];
+/// The planes whose torpedo bonus is taken before any other's, in this order
+/// (`getEquipBonusCVTorp`); 522 and 523 count together ahead of them all.
+const TORPEDO_BONUS_FIRST: [i64; 11] = [238, 239, 521, 118, 369, 368, 372, 373, 374, 425, 424];
+const TORPEDO_BONUS_PAIR: [i64; 2] = [522, 523];
+
+/// The fit bonus on a carrier's torpedo in her night air attack (`getEquipBonusCVTorp` with no
+/// slot, `TPPlane + TPCrew`). Each piece's share of the ship's 装備ボーナス is what it adds when
+/// put on after those before it, as the source's `loadEquips` assigns them. The plane bonus is
+/// one plane's: 522 and 523 together if she has either, else the first she carries of a fixed
+/// list, then of the others with a bonus by id downwards. The crew bonus is the smallest of her
+/// aviation personnel's.
+fn carrier_torpedo_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+    use emukc_model::codex::gear_bonus::GearBonusGear;
+    use emukc_model::kc2::start2::ApiMstSlotitem;
+    let Some(hull) = crate::targeting::ship_mst(codex, ship) else {
+        return 0.0;
+    };
+    let carried: Vec<_> = ship
+        .slot_items
+        .iter()
+        .filter_map(|item| {
+            let mst = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok()?;
+            Some(GearBonusGear {
+                id: mst.api_id,
+                type2: mst.api_type[2],
+                type3: mst.api_type[3],
+                stars: item.api_level,
+                saku: mst.api_saku,
+                tyku: mst.api_tyku,
+                houm: mst.api_houm,
+            })
+        })
+        .collect();
+    let totals: Vec<i64> = (0..=carried.len())
+        .map(|n| codex.gear_bonus(hull, &carried[..n]).map_or(0, |bonus| bonus.raig))
+        .collect();
+    let shares: Vec<i64> = totals.windows(2).map(|pair| pair[1] - pair[0]).collect();
+
+    let mut planes: std::collections::BTreeMap<i64, i64> = Default::default();
+    for (gear, share) in carried.iter().zip(&shares) {
+        if PLANE_TYPES.contains(&gear.type2) {
+            *planes.entry(gear.id).or_default() += share;
+        }
+    }
+    let plane = if TORPEDO_BONUS_PAIR.iter().any(|id| planes.contains_key(id)) {
+        TORPEDO_BONUS_PAIR.iter().filter_map(|id| planes.get(id)).sum()
+    } else {
+        let others = planes.iter().rev().filter(|(_, bonus)| **bonus != 0).map(|(id, _)| *id);
+        TORPEDO_BONUS_FIRST
+            .into_iter()
+            .chain(others)
+            .find_map(|id| planes.get(&id).copied())
+            .unwrap_or(0)
+    };
+    let crew = carried
+        .iter()
+        .zip(&shares)
+        .filter(|(gear, share)| {
+            gear.type2 == KcSlotItemType3::AviationPersonnel as i64 && **share != 0
+        })
+        .map(|(_, share)| *share)
+        .min()
+        .unwrap_or(0);
+    (plane + crew) as f64
 }
 
 /// Carrier night CI sub-type (戦爆連合夜間CI, `sp_list=6`). Selected by night-plane composition
@@ -1404,8 +1477,8 @@ fn night_turn(
     let (attack_type, multiplier) =
         resolve_night_attack(codex, rng, ship, idx == 0, target, (own, theirs));
     // A submarine is not attacked from the air at night.
-    let air_power =
-        (!is_submarine && can_night_air_attack(codex, ship)).then(|| night_air_power(codex, ship));
+    let air_power = (!is_submarine && can_night_air_attack(codex, ship))
+        .then(|| night_air_power(codex, ship, target == TargetClass::Installation));
     let hits = attack_type.hit_count();
 
     let mut hit_damages = Vec::new();
@@ -2624,13 +2697,46 @@ mod tests {
             + (30.0 + 0.45 * 4.0 * 10.0_f64.sqrt())
             + (2.0 + 2.0 + 9.0 + 27.0 + 0.45 * 19.0 * 3.0)
             + (11.0 + 0.3 * 11.0 * 2.0);
-        assert!((night_air_power(&codex, &ship) - expected).abs() < 1e-9);
+        assert!((night_air_power(&codex, &ship, false) - expected).abs() < 1e-9);
 
         // Ark Royal without a night air group: her Swordfish' firepower, torpedo and 改修.
         // What `api_karyoku` holds does not come into it.
         let mut ark = night_carrier(&codex, ARK_ROYAL, &[(SF, 10, 9)], 100);
         ark.ship.api_karyoku[0] = 999;
-        assert!((night_air_power(&codex, &ark) - (hull_of(&ark) + 2.0 + 3.0 + 3.0)).abs() < 1e-9);
+        assert!(
+            (night_air_power(&codex, &ark, false) - (hull_of(&ark) + 2.0 + 3.0 + 3.0)).abs() < 1e-9
+        );
+    }
+
+    /// `CV.NBPower`: the fit bonus on her torpedo (`getEquipBonusCVTorp`), and against a land
+    /// target neither that nor a 艦攻's torpedo.
+    #[test]
+    fn a_night_air_attack_takes_the_torpedo_fit_bonus_and_no_torpedo_on_land() {
+        const BARRACUDA_MK2: i64 = 424; // 雷装 +3 on a British carrier
+        const DECK_CREW: i64 = 478; // 熟練甲板要員+航空整備員, 雷装 +1 from ★5
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+
+        let ark = night_carrier(&codex, ARK_ROYAL, &[(SF, 10, 0)], 100);
+        let barracuda =
+            night_carrier(&codex, ARK_ROYAL, &[(SF, 10, 0), (BARRACUDA_MK2, 10, 0)], 100);
+        assert_eq!(carrier_torpedo_bonus(&codex, &ark), 0.0);
+        assert_eq!(carrier_torpedo_bonus(&codex, &barracuda), 3.0);
+        let power = |ship, land| night_air_power(&codex, ship, land);
+        assert_eq!(power(&barracuda, false) - power(&ark, false), 3.0);
+        // Against land the bonus goes; the Swordfish' torpedo stays, as the source has it.
+        assert_eq!(power(&barracuda, true), power(&ark, true));
+        assert_eq!(power(&ark, true), power(&ark, false));
+
+        // The deck crew's bonus counts once, from ★5.
+        let crewed =
+            |stars| night_carrier(&codex, ARK_ROYAL, &[(SF, 10, 0), (DECK_CREW, 0, stars)], 100);
+        assert_eq!(carrier_torpedo_bonus(&codex, &crewed(5)), 1.0);
+        assert_eq!(carrier_torpedo_bonus(&codex, &crewed(4)), 0.0);
+
+        // With a night air group, a 艦攻's torpedo is not counted against land.
+        let cvl = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let group = night_carrier(&codex, cvl, &[CREW, (NF, 10, 0), (NA, 9, 0)], 100);
+        assert_eq!(power(&group, false) - power(&group, true), 9.0);
     }
 
     #[test]
@@ -2656,7 +2762,7 @@ mod tests {
                 &target,
                 None,
                 None,
-                Some(night_air_power(&codex, &carrier)),
+                Some(night_air_power(&codex, &carrier, false)),
                 outcome,
             )
         };
@@ -3643,7 +3749,7 @@ mod abyssal_carrier_tests {
         let princess = abyssal(&codex, SOUTH_PACIFIC, 100);
         // Her hull's 208, and by `CV.NBPower`: 夜猫深海艦戦 x36 2 + 108 + 0.9 x 6, 夜深海艦爆 x18
         // 3 + 16 + 9 x sqrt(18) without the count, 夜復讐深海艦攻 x15 4 + 15 + 45 + 13.95 x sqrt(15).
-        assert!((night_air_power(&codex, &princess) - 498.6119).abs() < 1e-3);
+        assert!((night_air_power(&codex, &princess, false) - 498.6119).abs() < 1e-3);
         assert_eq!(enemy_flags(&codex, princess), [1]);
         // And the packet's damage is that power's, capped: her gunfire would be 208 + 5
         // before armour.
