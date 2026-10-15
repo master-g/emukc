@@ -175,11 +175,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-15] 分诊完 #136～#147（#137、#139 已修关闭，#147 拆出 #149）后修 #142，分支 `fix/equip-exchange-use-items`：解析器补上 `equipexchange` 的道具消耗（11 条任务），领奖把道具 1～4 改从 material 表扣（45 条任务原本领不了）。fmt、严格 clippy、`cargo test --workspace` 1489 过、0 ignored。
+- [2026-10-15] #142 已合并（PR #151）。修 #149（分支 `fix/goal-node-quests`，未推送）：码典里出击条目保留格子，到达不打仗的格子发 `SortieNodeReached`，55 条任务的条件有变化。修 #146（分支 `fix/relocating-plane`）：`set_plane` 拒绝配置转换中的装备。两个分支各跑 fmt、严格 clippy、`cargo test --workspace` 全过、0 ignored。
 
 ## Next Session
 
-- [2026-10-15] 先推 `fix/equip-exchange-use-items` 开 PR（`Closes #142`）。待定：任务列表把资源、道具消耗当作已满足（`progress.rs`），不足时显示可领、领奖报错，实机表现未查。再从 #146、#149 挑；#136/#140/#141 合一份计划、只冻结一次 golden。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-15] 推两个分支、开 PR（#149、#146，互不依赖，记忆只在 #146 分支）。之后：#150 缺实机证据；#136/#140/#141 合一份计划、只冻结一次 golden。旧进度行里被丢掉的 7 海域条目补不回来。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。

@@ -209,10 +209,16 @@ impl Ctx {
                     }
                 }
             } else {
-                // A new deployment, which a squadron coming back from relocation
-                // is too. Whatever flew in the slot goes into relocation.
-                if let Some(relocating) = current {
-                    relocating.delete(&tx).await?;
+                // A new deployment. A squadron still relocating waits for the port
+                // to settle it, as for a deployment change; the client never offers
+                // it. Whatever flew in the slot goes into relocation.
+                if let Some(current) = current {
+                    if current.state == plane_db::Status::Reassigning {
+                        return Err(GameplayError::WrongType(format!(
+                            "slot item {item_id} is relocating"
+                        )));
+                    }
+                    current.delete(&tx).await?;
                 }
                 relocate_squadron(&tx, profile_id, area_id, base_id, squadron_id).await?;
 

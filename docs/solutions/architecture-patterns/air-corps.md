@@ -85,7 +85,9 @@ equipment type: the client dropped the item from its own list on deployment
 (`main.decoded.js:14684`) and learns of its return nowhere else. Until then a
 relocating row stays in its slot, so **a slot can hold two rows**: the squadron that
 replaced it flies, and readers by `squadron_id` must take the `Assigned` one
-(`squadrons_of`, `find_assigned_squadron`).
+(`squadrons_of`, `find_assigned_squadron`). Until the port settles it, the relocating
+equipment cannot be deployed again: `set_plane` refuses it as `change_deployment_base` does
+(#146), and the client never offers it.
 
 `since` was added to a table that had already shipped: after `create_table`, an
 `ALTER TABLE ... ADD COLUMN` whose failure is ignored, and on the one start where it
@@ -191,7 +193,6 @@ place in the area as a string.
   `battle-hit-and-critical-rolls.md`; a raid on the base lands 95 times in a hundred.
 - 休息 does not halve the bauxite regeneration (no figure upstream).
 - What a 航空特別増加食 restores has no source; it brings a squadron below 40 back to 40.
-- The server lets a relocating plane be deployed again; only the client stops it.
 - Jet assault (`api_air_base_injection`) and 超重爆迎撃 (`api_req_map/air_raid`), which only
   event maps have.
 - A friendly combined fleet does not get air corps attacks; 6-4 and 6-5 cannot be sortied
