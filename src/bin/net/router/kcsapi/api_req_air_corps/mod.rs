@@ -171,10 +171,10 @@ mod tests {
         assert!(context.state.find_slot_item(bomber.api_id).await.is_ok());
     }
 
-    /// A squadron still in relocation may be assigned again, including to
-    /// another airbase — it flies for nobody until it settles.
+    /// A squadron still in relocation cannot be deployed again, here or to another
+    /// airbase, until the port settles it (#146); the client never offers it.
     #[tokio::test]
-    async fn a_relocating_squadron_can_be_reassigned() {
+    async fn a_relocating_squadron_waits_for_the_port_to_deploy_again() {
         let context = new_test_context().await;
         let pid = context.session.profile.id;
         seed_airbase(&context.state, pid, 1).await;
@@ -196,16 +196,34 @@ mod tests {
 
         assign(1, bomber.api_id).await.unwrap();
         assign(1, -1).await.unwrap();
-        let resp = assign(2, bomber.api_id).await.unwrap();
+        let bauxite = context.state.get_materials(pid).await.unwrap().bauxite;
+        assert!(assign(2, bomber.api_id).await.is_err(), "not to another airbase");
+        assert!(assign(1, bomber.api_id).await.is_err(), "nor back where it was");
+        assert_eq!(context.state.get_materials(pid).await.unwrap().bauxite, bauxite);
+        assert_eq!(squadrons(&context.state, pid, 1).await[0].api_state, 2, "still relocating");
+        assert_eq!(squadrons(&context.state, pid, 2).await[0].api_state, 0);
 
-        let data = resp.api_data.unwrap();
+        // Twelve minutes, and the port lets it go.
+        {
+            use emukc_internal::db::{
+                entity::profile::airbase::plane,
+                sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait, IntoActiveModel},
+            };
+            use emukc_internal::time::chrono::{Duration, Utc};
+
+            let db = &*context.state.db;
+            let row = plane::Entity::find_by_id(bomber.api_id).one(db).await.unwrap().unwrap();
+            let mut am = row.into_active_model();
+            am.since = ActiveValue::Set(Some(Utc::now() - Duration::minutes(12)));
+            am.update(db).await.unwrap();
+        }
+        context.state.port_view(pid).await.unwrap();
+
+        let data = assign(2, bomber.api_id).await.unwrap().api_data.unwrap();
         let slot = &data["api_plane_info"].as_array().unwrap()[0];
         assert_eq!(slot["api_state"], 1, "the second airbase took it");
-        assert!(
-            data.get("api_after_bauxite").is_some(),
-            "landing from relocation is a deployment and is paid for"
-        );
         assert_eq!(slot["api_slotid"], bomber.api_id);
+        assert!(data.get("api_after_bauxite").is_some(), "a deployment is paid for");
     }
 
     #[tokio::test]
