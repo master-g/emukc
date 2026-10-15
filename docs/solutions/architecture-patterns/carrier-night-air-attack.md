@@ -29,6 +29,11 @@ A carrier attacks at night in one of two ways, and otherwise not at all
   shell as a surface ship does until heavily damaged, with the ordinary night formula. The
   abyssal carriers the source marks `nightattack` attack the same way (see "Enemy carriers").
 
+しまね丸改 (1008), a 補給艦, flies by air under the same rules as a carrier (the source's
+`canAirAttackNB`, `AO.prototype.loadEquips`): a night air group, more than half her hull, the
+carrier cut-ins and the carrier's power (`flies_at_night_as_carrier`). Without it, or below half
+her hull, she shells as any ship does. しまね丸 and the other oilers do not fly.
+
 光電管彗星, 岩井爆戦 and Swordfish fly with a night air group and count in its power and its
 cut-ins, but do not make one. So 要員 with ordinary bombers is not enough: such a carrier
 stays out of the night, where she used to attack.
@@ -71,7 +76,14 @@ carriers with a `nightattack` mark, and the 74 with `hasBuiltInNightCrew`.
   slot (the source does not ask an enemy). 夜深海艦爆, 夜深海艦爆II and 深海不屈艦爆 Mk.II count
   in the power as 光電管彗星 does. 22 light carriers have a crew and no mark: they attack only
   while they can fly.
-- An enemy carrier makes no cut-in: the tables are not in `is_cv_night_ci_eligible`.
+- A carrier with a crew of her own rolls the carrier cut-ins as the player's do (`CV.NBtypes`
+  has no side check): her crew stands in for the 要員, and her aircraft count by type whether or
+  not any are left in the slot. 夜猫深海艦戦 and the like are night fighters (icon 45), 夜復讐深海艦攻
+  and the like night attackers (46); 夜深海艦爆 and the like count as Swordfish do, towards 64.
+  The marked carriers without a crew shell, and make none.
+- Neither the source nor the codex gives an enemy's aircraft any proficiency (the source loads
+  enemy equipment with ranks of 0, the codex with `api_alv` none), and the 装備ボーナス table has
+  no abyssal equipment, so her torpedo fit bonus is 0: there is nothing more to port there.
 - The enemy fires by position, as the player does. The source's "enemy always skips to the
   next capable ship" is its NPC friend fleet's night only.
 - An enemy light carrier attacks a submarine at night by the rule above: anti-submarine of
@@ -79,8 +91,8 @@ carriers with a `nightattack` mark, and the 74 with `hasBuiltInNightCrew`.
   it from a third generated table, `ABYSSAL_CARRIER_ASW`: the 40 light carriers (30 marked 3,
   10 with a crew and no mark) whose `ASW` in the source is above zero. One marked 3 takes a
   submarine without the searchlight; a submarine is all she can take in the dark. After a day
-  battle such a hit is a scratch, as any; in a night-start battle its power is counted from
-  the codex's 0.
+  battle such a hit is a scratch, as any; in a night-start battle its power counts the same
+  table's figure as her own anti-submarine (`damage::base_asw`, the source's `statsBase.ASW`).
 
 ## The power
 
@@ -94,6 +106,16 @@ the cut-in's multiplier, the cap and the ammunition follow as for any night atta
   `0.45 x (火力 + 雷装 + 対潜 + 爆装) x sqrt(aircraft)`.
 - 光電管彗星, 岩井爆戦 and Swordfish: no count term, and 0.3 for 0.45.
 - Ark Royal without a night air group: her Swordfish' firepower, torpedo and `sqrt(改修)`.
+- The fit bonus on her torpedo (`carrier_torpedo_bonus`, the source's `getEquipBonusCVTorp` with
+  no slot): one plane's share of her 装備ボーナス torpedo, and the smallest share among her aviation
+  personnel. Each piece's share is what the bonus gains when it goes on after the pieces before it
+  (`loadEquips`). The plane is 522 and 523 together if she has either, else the first she carries
+  of `TORPEDO_BONUS_FIRST`, then of the other planes with a share, by id downwards.
+- Against a land target neither that bonus nor a 艦攻's torpedo counts; the hull's torpedo, the
+  Swordfish' on Ark Royal and the share term stay, as in the source.
+
+The source's special-aircraft multipliers (`getBonusSpecialPlane`, `bonusSpecialP`) are event
+bonuses its user enters for a map; nothing in its data sets them, so they are 1 here.
 
 ## Proficiency
 
@@ -123,7 +145,9 @@ Any ship's night attack on a submarine is the day one (`ASW`, called from the ni
   anti-submarine of each sonar, the formation's anti-submarine column, morale, and the
   proficiency of `asw_proficiency`. Not the night gunfire roll, so it can miss.
 - After a day battle the attack power counts as 0: a hit is scratch damage
-  (`calculate_scratch_damage`) and the submarine cannot be sunk.
+  (`calculate_scratch_damage`) and the submarine cannot be sunk. Not for a combined fleet's
+  escort, on either side (`is_escort_deck`): the source hands `ASW` `!NBonly && !isescort`, so its
+  attack does real damage as in a night-start battle.
 - In a night-start battle (開幕夜戦, `NightBattleInput::night_start`, set by
   `execute_sp_midnight` alone) the damage is `calculate_asw_damage` as by day, with formation,
   engagement and the attacker's damage state, and she can be sunk.
@@ -135,6 +159,25 @@ Two guns between main and secondary make a double attack (`NBtypes`), so Graf Ze
 secondary guns makes one. That is her gunfire only: a carrier flying with a night air group has
 the carrier cut-ins and no other attack type (`CV.NBtypes`), so with the same two guns and a
 night air group she flies a plain night air attack, flag 1.
+
+## The carrier cut-ins
+
+`carrier_night_cut_ins` lists every one of the source's four (`NBATTACKDATA` 61 to 64,
+`CV.NBtypes`) that her air group makes, in this order, and `resolve_night_attack` rolls them in
+turn as it rolls a destroyer's: one roll each until one comes up, a plain flown attack if none
+does. The counts are of slots with aircraft left: night fighters F, night attackers A, night
+bombers B (icons 45, 46, 58), 光電管彗星, and Swordfish and 岩井.
+
+| | Makes it | Damage | Accuracy | Chance divided by |
+| --- | --- | --- | --- | --- |
+| 61 | F ≥ 2, A ≥ 1 | 1.25 | 1.25 | 1.05 |
+| 62 | F ≥ 1, A ≥ 1 | 1.2 | 1.2 | 1.2 |
+| 63 | 光電管彗星 or B, and F + A + B + 光電管彗星 ≥ 2 | 1.2 | 1.2 | 1.2 |
+| 64 | F ≥ 1, and F + A + B + 光電管彗星 + Swordfish + 岩井 ≥ 3 | 1.18 | 1.2 | 1.3 |
+
+So two night fighters and a night attacker roll 61, then 62, then 64. One night fighter with one
+Swordfish makes none; wikiwiki's 戦他他 had been read as two aircraft before the source was
+followed. All four go out as `api_sp_list` 6 and name the same aircraft in `api_si_list`.
 
 ## What the client is told
 
@@ -164,16 +207,7 @@ and `damage.rs` do not ask `simulation::night` themselves.
 
 ## Known gaps
 
-- しまね丸改, a 補給艦 the source lets fly at night: every carrier test here goes by ship type.
-- Enemy carriers' cut-ins, their equipment bonuses and aircraft proficiency.
-- An enemy light carrier's power against a submarine in a night-start battle comes from the
-  codex's anti-submarine of 0, not from the source's figure that makes her eligible.
-- The searchlight beyond whether it is lit: the rerolls that draw fire to its ship, and the
-  evasion it costs her.
-- The fit bonuses the source adds to a carrier's torpedo (`eqBonusCV`), no torpedo against a
-  land target, and the special-aircraft multipliers.
-- In the source a combined fleet's escort does real damage to a submarine in the night after a
-  day battle as well (`!NBonly && !isescort`); here that night is `night_start: false`, a scratch.
-- Smoke on the attack on a submarine, and the 夜間瑞雲 cut-in's exception for one.
-- The source lets a carrier roll for several of her cut-ins in turn; here she has the one her
-  air group makes. The types of the other ships are in `night-attack-types.md`.
+- The torpedo fit bonus in a carrier's day shelling and airstrike (the day formulas are not the
+  source's to begin with). Bombing bonuses (`DBCrew`): the 装備ボーナス table carries no bombing.
+- Smoke is not modelled at all (`night-attack-types.md`). The 夜間瑞雲 cut-in is there too.
+- The types of the other ships are in `night-attack-types.md`.

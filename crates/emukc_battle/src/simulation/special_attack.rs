@@ -606,7 +606,7 @@ pub(crate) fn execute_special_attack(
             continue;
         }
 
-        let Some(mut target_idx) = select_surface_target(codex, rng, defenders) else {
+        let Some(mut target_idx) = select_surface_target(codex, rng, defenders, 0) else {
             continue;
         };
         // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.

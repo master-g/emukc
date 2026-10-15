@@ -143,6 +143,9 @@ Current verification baseline:
 - [2026-10-14] 季常/年常重置月（`label_type` 100+N）与 928 以标签为准的取舍：`quest.md` 的 Quest lifecycle。
 - [2026-10-14] kcanotify 的 `total-fp` 是对空合计，27 是护卫空母（`cve_ids`），来源见 #116 #117；改修、Bw1、远征列表的计数规则已入 `quest.md`。客户端把 `mission` 列表里没有的远征置 -1（`main.decoded.js:15821`）。
 
+- [2026-10-15] 陆上设施按来源 `installtype` 表判（`installation_types.rs`，脚本再生）；名字匹配只兜底比来源更新的深海舰（id > 2397）。倍率与上限后倍率见 `anti-installation.md`。
+- [2026-10-15] 测试里 `BattleRuntimeShip::from` 造的是 `is_friendly: false`（注释写反了）：要测「玩家侧」规则（空槽、燃料）得用 `BattleRuntimeShip::new(input, true, true)`。
+
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -175,11 +178,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-15] #142、#149、#146 已合并（PR #151～#153），合并后的 `main` 跑过 clippy 和完整测试，1497 个全过。分支 `docs/battle-fidelity-plan` 写了 #136、#140、#141 的合并计划 `2026-10-15-004`，来源按 `69097abc` 取；golden 只冻结 1-1 第一战，不进夜战，预计这三条都不会改动它。
+- [2026-10-15] 分支 `feat/battle-fidelity` 按计划 `2026-10-15-004` 做完 U1～U14（#140、#136、#141），每单元一个提交；fmt、严格 clippy、`cargo test --workspace --no-fail-fast` 1522 全过、0 ignored；代码审查后修了特四式内火艇重复计入。偏差与没做的列在计划末尾「实施偏差」；未推送、未开 PR、issue 未关。
 
 ## Next Session
 
-- [2026-10-15] 按计划 `2026-10-15-004` 从 U1（照明弹命中）开始；改变随机数消耗的单元（U2、U11）要换种子。#150、#138、#143、#145 缺实机数据；#147 等你决定做不做排名；#144 要先确认无头客户端的运行环境。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-15] 问用户：一个 PR 还是按 issue 拆三个叠放 PR（U1–2 / U3–6 / U7–13）；合并后再关 #140、#136、#141。可选跟进（用户定）：己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施、夜间瑞雲 CI 的无头客户端核对（#144）。#150、#138、#143、#145 缺实机数据；#147 等你决定做不做排名。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。

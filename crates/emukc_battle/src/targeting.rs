@@ -9,6 +9,7 @@ use emukc_model::{
 };
 
 use crate::random::BattleRng;
+use crate::simulation::installation_types::{INSTALLATION_TYPES, LAST_SOURCE_ABYSSAL_ID};
 use crate::types::{AttackCapability, BattlePhase, BattleRuntimeShip, TargetClass};
 
 // ---------------------------------------------------------------------------
@@ -70,6 +71,67 @@ pub(crate) fn select_random_target_index(
     defenders: &[BattleRuntimeShip],
     phase: BattlePhase,
 ) -> Option<usize> {
+    let candidates = target_candidates(codex, attacker, defenders, phase);
+    rng.choose_index(candidates.len()).map(|at| candidates[at])
+}
+
+/// Select a night target as [`select_random_target_index`] does, then draw a surface ship
+/// without a searchlight again, up to `rerolls` times, stopping on one that has one
+/// (`choiceWProtect`). A submarine is drawn once.
+pub(crate) fn select_night_target(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    attacker: &BattleRuntimeShip,
+    defenders: &[BattleRuntimeShip],
+    rerolls: u8,
+) -> Option<usize> {
+    let candidates = target_candidates(codex, attacker, defenders, BattlePhase::NightShelling);
+    let pick = candidates[rng.choose_index(candidates.len())?];
+    if target_class(codex, &defenders[pick]).is_submarine() {
+        return Some(pick);
+    }
+    Some(reroll_toward_searchlight(codex, rng, defenders, &candidates, pick, rerolls))
+}
+
+/// How many times the fleet a ship is in draws a night target again for her searchlight:
+/// 1 for a searchlight, 2 for a large one (`hasSearchlight`).
+// ponytail: the source keeps whichever of the two comes last in her slots; this takes the
+// larger.
+pub(crate) fn searchlight_rerolls(codex: &Codex, ship: &BattleRuntimeShip) -> u8 {
+    if has_slotitem_type(codex, ship, KcSlotItemType3::LargeSearchlight) {
+        2
+    } else if has_slotitem_type(codex, ship, KcSlotItemType3::Searchlight) {
+        1
+    } else {
+        0
+    }
+}
+
+fn reroll_toward_searchlight(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    defenders: &[BattleRuntimeShip],
+    candidates: &[usize],
+    mut pick: usize,
+    rerolls: u8,
+) -> usize {
+    for _ in 0..rerolls {
+        if searchlight_rerolls(codex, &defenders[pick]) > 0 {
+            break;
+        }
+        pick = candidates[rng.roll_range(0, candidates.len() as i64) as usize];
+    }
+    pick
+}
+
+/// The ships an attacker may fire at in `phase`: the surface ships or the submarines,
+/// whichever she prefers and can reach.
+fn target_candidates(
+    codex: &Codex,
+    attacker: &BattleRuntimeShip,
+    defenders: &[BattleRuntimeShip],
+    phase: BattlePhase,
+) -> Vec<usize> {
     let alive_targets = defenders
         .iter()
         .enumerate()
@@ -77,7 +139,7 @@ pub(crate) fn select_random_target_index(
         .map(|(idx, _)| idx)
         .collect::<Vec<_>>();
     if alive_targets.is_empty() {
-        return None;
+        return Vec::new();
     }
 
     let surface_like_targets = alive_targets
@@ -91,8 +153,8 @@ pub(crate) fn select_random_target_index(
         .filter(|idx| target_class(codex, &defenders[*idx]).is_submarine())
         .collect::<Vec<_>>();
 
-    let candidates = match attack_capability_for_phase(codex, attacker, phase) {
-        AttackCapability::CannotAttack => return None,
+    match attack_capability_for_phase(codex, attacker, phase) {
+        AttackCapability::CannotAttack => Vec::new(),
         AttackCapability::SurfaceOnly => surface_like_targets,
         AttackCapability::BothPreferSubmarine => {
             if submarine_targets.is_empty() {
@@ -108,24 +170,18 @@ pub(crate) fn select_random_target_index(
                 surface_like_targets
             }
         }
-    };
-    if candidates.is_empty() {
-        return None;
     }
-
-    Some(
-        candidates
-            [rng.choose_index(candidates.len()).expect("candidates non-empty by construction")],
-    )
 }
 
 /// Select a random alive target that is not a submarine, whatever the attacker would
 /// rather fire at: the ships of a special attack take no other (`shellPhaseTarget` with no
-/// submarines to choose from).
+/// submarines to choose from). At night the defenders' searchlight draws them as it does any
+/// night attack (`rerolls`, 0 by day).
 pub(crate) fn select_surface_target(
     codex: &Codex,
     rng: &mut impl BattleRng,
     defenders: &[BattleRuntimeShip],
+    rerolls: u8,
 ) -> Option<usize> {
     let surface: Vec<usize> = defenders
         .iter()
@@ -133,7 +189,8 @@ pub(crate) fn select_surface_target(
         .filter(|(_, ship)| ship.is_alive() && !target_class(codex, ship).is_submarine())
         .map(|(idx, _)| idx)
         .collect();
-    rng.choose_index(surface.len()).map(|at| surface[at])
+    let pick = surface[rng.choose_index(surface.len())?];
+    Some(reroll_toward_searchlight(codex, rng, defenders, &surface, pick, rerolls))
 }
 
 /// Select a random alive submarine target.
@@ -263,16 +320,37 @@ pub(crate) fn target_class(codex: &Codex, ship: &BattleRuntimeShip) -> TargetCla
         return TargetClass::Submarine;
     }
 
+    let id = ship.ship.api_ship_id;
+    if installation_type(id).is_some() {
+        return TargetClass::Installation;
+    }
     if let Some(name) = ship_mst(codex, ship).map(|mst| mst.api_name.as_str()) {
         if is_pt_target_name(name) {
             return TargetClass::PtBoat;
         }
-        if is_installation_target_name(name) {
+        // A ship newer than the source's table is still judged by her name.
+        if id > LAST_SOURCE_ABYSSAL_ID && is_installation_target_name(name) {
+            static WARNED: std::sync::Once = std::sync::Once::new();
+            WARNED.call_once(|| {
+                tracing::warn!(
+                    "abyssal ship {id} ({name}) is newer than the installation table; \
+                     judging her by name. Regenerate it with scripts/gen_installation_types.py."
+                );
+            });
             return TargetClass::Installation;
         }
     }
 
     TargetClass::SurfaceShip
+}
+
+/// The source's `installtype` of a land target (`kcSHIPDATA.js`): 1 soft-skinned, 2 pillbox,
+/// 3 supply depot, 4 isolated island, 5 northern, 6 harbour summer princess.
+pub(crate) fn installation_type(mst_id: i64) -> Option<u8> {
+    INSTALLATION_TYPES
+        .binary_search_by_key(&mst_id, |row| row.0)
+        .ok()
+        .map(|at| INSTALLATION_TYPES[at].1)
 }
 
 /// A fleet of PT boats and nothing else, sunk or not: no fleet special attack is made
@@ -503,14 +581,21 @@ pub(crate) fn can_attack_submarine_night_shelling(codex: &Codex, ship: &BattleRu
     }
 }
 
+/// The source's anti-submarine of an abyssal carrier that has any (`ABYSSAL_CARRIER_ASW`).
+pub(crate) fn abyssal_carrier_asw(mst_id: i64) -> Option<i64> {
+    crate::simulation::abyssal_night::ABYSSAL_CARRIER_ASW
+        .iter()
+        .find(|(id, _)| *id == mst_id)
+        .map(|(_, asw)| *asw)
+}
+
 /// A ship's anti-submarine without her equipment or what it grants: grown with her level, plus
 /// 近代化改修, as `Codex::cal_ship_status` builds it. An abyssal carrier's is the source's, the
 /// enemy data in the codex having none for her.
 fn bare_asw(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
     const ASW_MODERNIZATION: usize = 6;
-    let abyssal = crate::simulation::abyssal_night::ABYSSAL_CARRIER_ASW;
-    if let Some((_, asw)) = abyssal.iter().find(|(id, _)| *id == ship.ship.api_ship_id) {
-        return *asw;
+    if let Some(asw) = abyssal_carrier_asw(ship.ship.api_ship_id) {
+        return asw;
     }
     codex.find_ship_extra(ship.ship.api_ship_id).map_or(0, |basic| {
         Codex::stat_at_level(ship.ship.api_lv, basic.tais) + ship.ship.api_kyouka[ASW_MODERNIZATION]
@@ -817,6 +902,54 @@ mod tests {
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
 
+    /// Hands out the indices it was given, and panics on one more.
+    struct Picks(std::collections::VecDeque<i64>);
+
+    impl BattleRng for Picks {
+        fn random_f64_range(&mut self, _min: f64, _max: f64) -> f64 {
+            panic!("an unexpected roll")
+        }
+
+        fn roll_range_impl(&mut self, _min: i64, _max: i64) -> i64 {
+            self.0.pop_front().expect("an unexpected roll")
+        }
+    }
+
+    #[test]
+    fn a_searchlight_draws_fire_for_as_many_rerolls_as_its_fleet_has() {
+        const SEARCHLIGHT: i64 = 74;
+        const LARGE_SEARCHLIGHT: i64 = 140;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ship = |gear: &[i64]| {
+            let mut ship = sample_ship(&codex, dd, 50);
+            ship.slot_items = gear.iter().copied().map(slotitem_with_mst_id).collect();
+            BattleRuntimeShip::from(ship)
+        };
+        assert_eq!(searchlight_rerolls(&codex, &ship(&[])), 0);
+        assert_eq!(searchlight_rerolls(&codex, &ship(&[SEARCHLIGHT])), 1);
+        assert_eq!(searchlight_rerolls(&codex, &ship(&[LARGE_SEARCHLIGHT])), 2);
+        assert_eq!(searchlight_rerolls(&codex, &ship(&[LARGE_SEARCHLIGHT, SEARCHLIGHT])), 2);
+
+        let attacker = ship(&[]);
+        let defenders = [ship(&[]), ship(&[SEARCHLIGHT]), ship(&[])];
+        let pick = |rerolls, draws: &[i64]| {
+            let mut rng = Picks(draws.iter().copied().collect());
+            select_night_target(&codex, &mut rng, &attacker, &defenders, rerolls)
+        };
+        // With no searchlight on the fleet the one draw stands.
+        assert_eq!(pick(0, &[0]), Some(0));
+        // A ship without one is drawn again, until the lit one comes up...
+        assert_eq!(pick(2, &[0, 1]), Some(1));
+        // ...or the rerolls run out.
+        assert_eq!(pick(2, &[0, 2, 0]), Some(0));
+        // The lit ship drawn first is kept.
+        assert_eq!(pick(2, &[1]), Some(1));
+        // A special attack's ships draw the same way.
+        let mut rng = Picks([2, 1].into_iter().collect());
+        assert_eq!(select_surface_target(&codex, &mut rng, &defenders, 1), Some(1));
+    }
+
     #[test]
     fn day_shelling_destroyer_prefers_submarine_targets() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
@@ -867,6 +1000,55 @@ mod tests {
         .unwrap();
 
         assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::SurfaceShip);
+    }
+
+    #[test]
+    fn the_installation_tables_follow_the_source() {
+        use crate::simulation::installation_types::*;
+        // What `scripts/gen_installation_types.py` prints: (installtype, ships, sum of their ids).
+        for (kind, ships, sum) in [
+            (1, 66, 120_844),
+            (2, 16, 33_857),
+            (3, 62, 124_795),
+            (4, 11, 18_469),
+            (5, 3, 5_178),
+            (6, 16, 31_340),
+        ] {
+            let ids = || INSTALLATION_TYPES.iter().filter(|row| row.1 == kind).map(|row| row.0);
+            assert_eq!((ids().count(), ids().sum::<i64>()), (ships, sum), "installtype {kind}");
+        }
+        assert!(INSTALLATION_TYPES.is_sorted_by_key(|row| row.0));
+        for (ids, ships, sum) in [
+            (SUPPLY_DEPOT_IDS, 8, 17_132),
+            (ANCHORAGE_IDS, 6, 10_905),
+            (DOCK_IDS, 6, 10_977),
+            (SUMMER_BATTLESHIP_IDS, 3, 5_091),
+            (SUMMER_CRUISER_IDS, 3, 5_118),
+        ] {
+            assert_eq!((ids.len(), ids.iter().sum::<i64>()), (ships, sum));
+        }
+        assert_eq!(LAST_SOURCE_ABYSSAL_ID, 2397);
+    }
+
+    #[test]
+    fn a_land_target_is_whatever_the_sources_table_says() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let class = |name: &str| {
+            let mut ship = sample_ship(&codex, dd, 50);
+            ship.ship.api_ship_id = ship_mst_id_by_name(&codex, name);
+            target_class(&codex, &BattleRuntimeShip::from(ship))
+        };
+        // Land targets whose names carry none of the old markers.
+        assert_eq!(class("北方棲姫"), TargetClass::Installation);
+        assert_eq!(class("中枢棲姫"), TargetClass::Installation);
+        assert_eq!(class("対空小鬼"), TargetClass::Installation);
+        // Ships whose names do, and which the source keeps at sea.
+        assert_eq!(class("浮遊要塞"), TargetClass::SurfaceShip);
+        assert_eq!(class("泊地棲姫"), TargetClass::SurfaceShip);
+        assert_eq!(class("集積地棲姫III バカンスmode"), TargetClass::SurfaceShip);
+        assert_eq!(class("砲台小鬼"), TargetClass::Installation);
+        assert_eq!(installation_type(ship_mst_id_by_name(&codex, "砲台小鬼")), Some(2));
     }
 
     #[test]
