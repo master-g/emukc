@@ -66,7 +66,8 @@ Source: wikiwiki 鎮守府海域, 1-6.
   (`api_required_defeat_count`), counted in the map record's `defeat_count`.
 - Every arrival gives one of fuel, ammunition, steel and bauxite. It waits for the port
   with what the resource cells gave (`cell_effect::put_by`).
-- The seventh gives 燃料 1000, a プレゼント箱 (`api_mst_useitem` 60, at once) and 戦果 75,
+- The seventh gives 燃料 1000, a プレゼント箱 (`api_mst_useitem` 60, at once) and 戦果 75
+  (kept with the month's, `war-result-ranking.md`),
   and clears the map. The monthly reset is the map's, as before.
 
 Ours: while the gauge stands the resource is drawn evenly and its amount evenly from 100
@@ -100,7 +101,6 @@ fleet's equipment and no field of the response; the cargo is counted there
 
 ## Known gaps
 
-- 戦果 is not kept anywhere; 75 is for the client to show.
 - 1-6's month-end limits (21:59 for 戦果, 23:59 for the プレゼント箱).
 - Played in the client on 2026-10-13 by `make headless-check SCENARIO=escort_1_6` (the
   arrival that empties the gauge) and `SCENARIO=recon_6_3` (a great success by flying boat

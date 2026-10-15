@@ -489,6 +489,17 @@ def check_escort_1_6(work: Path) -> list[str]:
     ports = responses(work, "api_port/port")
     fuel = [next(m["api_value"] for m in port["api_material"] if m["api_id"] == 1) for port in ports]
     print("fuel in port, before and after:", fuel)
+    # The 75 is kept: the ranking shows it, decoded as the client does (`__drawRanking`),
+    # with the experience of five battles too little to add one.
+    ranking = responses(work, "api_req_ranking/mxltvkpyuklh")
+    member = ports[-1]["api_basic"]["api_member_id"]
+    keys = [8931, 1201, 1156, 5061, 4569, 4732, 3779, 4568, 5695, 4619, 4912, 5669, 6586]
+    seeds = [3187, 3596, 6413, 9628, 7279, 7678, 6023, 2564, 9558, 9272]
+    seed = (seeds[member % 10] - seeds[member % 10] % 100) / 100
+    rows = [(row["api_mxltvkpyuklh"], row["api_mtjmdcwtvhdr"], row["api_wuhnhojjxmke"] / keys[row["api_mxltvkpyuklh"] % 13] / seed - 91) for row in (ranking[-1]["api_list"] if ranking else [])]
+    print("the ranking (place, name, 戦果):", rows)
+    if rows != [(1, ports[-1]["api_basic"]["api_nickname"], 75)]:
+        problems.append(f"the ranking should list the admiral alone, first, with 75; it listed {rows}")
     return problems
 
 
@@ -506,7 +517,8 @@ SCENARIOS = {
     ),
     # 鎮守府海域's extra operations, 1-6, with its gauge one arrival short of empty: A, a battle at
     # E, the resource cell G, the air battle F, a battle at B and the goal N, which empties the
-    # gauge and hands over the bonus; then home. Photographed through the goal.
+    # gauge and hands over the bonus; then home, and the ranking that keeps its 戦果.
+    # Photographed through the goal and the ranking.
     "escort_1_6": (
         f"sunk:16:6 {TO_MAPS} c:1105,415 w:4 c:660,420 w:3 {START} u:{TAPS}:api_req_map/next {BATTLE} "
         f"u:{TAPS}:api_req_map/next w:3 s:resource u:{TAPS}:api_req_map/next {BATTLE} "
@@ -514,7 +526,9 @@ SCENARIOS = {
         + " ".join(f"w:2 s:goal{n}" for n in range(1, 11))
         # 戦果, then the プレゼント箱, each closed by a tap anywhere.
         + " c:600,400 " + " ".join(f"w:2 s:bonus{n}" for n in range(1, 7))
-        + f" c:600,400 w:4 s:box u:{TAPS}:api_port/port w:5 s:home",
+        + f" c:600,400 w:4 s:box u:{TAPS}:api_port/port w:5 s:home"
+        # 戦績表示, then its ランキング tab.
+        + " u:240,75:api_get_member/record w:4 u:80,282:api_req_ranking/mxltvkpyuklh w:4 s:ranking",
         check_escort_1_6,
     ),
     # One battle of 1-1, up to the choice between going on and going home.

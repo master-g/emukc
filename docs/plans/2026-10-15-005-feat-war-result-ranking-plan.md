@@ -2,7 +2,7 @@
 title: "Monthly 戦果 and a Real Ranking - Plan"
 type: feat
 date: 2026-10-15
-status: active
+status: implemented
 execution: code
 ---
 
