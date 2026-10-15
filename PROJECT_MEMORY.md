@@ -178,11 +178,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-15] 分支 `feat/battle-fidelity` 按计划 `2026-10-15-004` 做完 U1～U14（#140、#136、#141），每单元一个提交；fmt、严格 clippy、`cargo test --workspace --no-fail-fast` 1522 全过、0 ignored；代码审查后修了特四式内火艇重复计入。偏差与没做的列在计划末尾「实施偏差」；未推送、未开 PR、issue 未关。
+- [2026-10-15] 计划 `2026-10-15-004`（#140、#136、#141）经 PR #156 合并进 `main`，分支已删，三个 issue 已关；合并前 fmt、严格 clippy、`cargo test --workspace --no-fail-fast` 1522 全过、0 ignored。偏差与没做的列在计划末尾「实施偏差」与 `anti-installation.md` Known gaps。
 
 ## Next Session
 
-- [2026-10-15] 问用户：一个 PR 还是按 issue 拆三个叠放 PR（U1–2 / U3–6 / U7–13）；合并后再关 #140、#136、#141。可选跟进（用户定）：己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施、夜间瑞雲 CI 的无头客户端核对（#144）。#150、#138、#143、#145 缺实机数据；#147 等你决定做不做排名。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-15] 用户选定先用无头客户端核对 #156 新增的夜战演出（夜间瑞雲 CI 200、空母 CI 62～64、敌方空母 CI，已补进 #144）。可选跟进（用户定）：己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施。#150、#138、#143、#145 缺实机数据；#147 等你决定做不做排名。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
