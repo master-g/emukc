@@ -178,7 +178,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-15] 分支 `feat/battle-fidelity` 按计划 `2026-10-15-004` 做完 U1～U14（#140、#136、#141），每单元一个提交；fmt、严格 clippy、`cargo test --workspace --no-fail-fast` 1521 全过、0 ignored。偏差与没做的列在计划末尾「实施偏差」；未推送、未开 PR、issue 未关。
+- [2026-10-15] 分支 `feat/battle-fidelity` 按计划 `2026-10-15-004` 做完 U1～U14（#140、#136、#141），每单元一个提交；fmt、严格 clippy、`cargo test --workspace --no-fail-fast` 1522 全过、0 ignored；代码审查后修了特四式内火艇重复计入。偏差与没做的列在计划末尾「实施偏差」；未推送、未开 PR、issue 未关。
 
 ## Next Session
 
