@@ -65,6 +65,19 @@ contact multiplies it (`Aim::base`, the source's `NBattack`). It counts for ever
 a surface ship, the special attacks' rows among them, and not for an attack on a submarine,
 which rolls as by day.
 
+A searchlight draws fire and costs its ship her evasion (`kcsim.js` `nightPhase`,
+`choiceWProtect`, `NBattack`):
+
+- As the night begins each fleet takes the most any ship afloat has: 1 for a searchlight, 2 for a
+  large one (`fleet_searchlight`, `searchlight_rerolls`). A night target of that fleet without a
+  searchlight is drawn again up to that many times, stopping on one that has one
+  (`select_night_target`; the special attacks' rows through `select_surface_target`). A
+  submarine is drawn once. Each redraw is one more roll, before かばう.
+- A ship carrying a searchlight keeps a fifth of her formation's night evasion multiplier and of
+  her flat night evasion (`night_evasion`): 5 for a heavy or aviation cruiser, 10 for a destroyer
+  with a radar and a lookout, added after the evasion curve. The flat evasion is counted without
+  a searchlight too. Whether hers is the lit one does not matter.
+
 ## The order of the rolls
 
 Seeded battles depend on it, and the tests in `attack_type_tests` pin it with an RNG that
@@ -160,7 +173,6 @@ double attack, a cut-in or a special attack that misses still scratches and is w
 
 ## Known gaps
 
-- A searchlight's effects on who is fired at.
 - The night Zuiun cut-in is another path in the source. The flagship's special gunnery
   attacks of the day are rolled for at night too (`special_gunnery_at_night`), in the same
   one row as the night assault (`special_attack_row`); `day-shelling-order.md` has their rules.

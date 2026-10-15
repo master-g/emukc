@@ -19,12 +19,12 @@ use crate::simulation::special_attack::{self, SpecialHit};
 use crate::targeting::{
     any_alive, can_attack_night_ship, can_attack_submarine_night_shelling,
     collect_matching_slot_ids, extend_limit, has_slotitem_id, is_day_surface_display_type,
-    is_main_gun_type, is_radar_type, is_secondary_gun_type, is_torpedo_type,
-    select_random_target_index, select_submarine_target, ship_type, target_class,
+    is_main_gun_type, is_radar_type, is_secondary_gun_type, is_torpedo_type, searchlight_rerolls,
+    select_night_target, select_submarine_target, ship_type, target_class,
 };
 use crate::types::{
-    AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, EngagementType,
-    NightBattleParams, SiListId, SpecialAttacksMade, TargetClass,
+    AirState, BattleNightHougeki, BattleRuntimeShip, DamageCell, EngagementType, NightBattleParams,
+    SiListId, SpecialAttacksMade, TargetClass,
 };
 
 // ---------------------------------------------------------------------------
@@ -536,8 +536,20 @@ const D_GUN_K3_ID: i64 = 366;
 struct NightLights {
     /// It fired a star shell as the night began.
     star_shell: bool,
-    /// A ship of it afloat carries a searchlight.
-    searchlight: bool,
+    /// The times a night target of it is drawn again for a searchlight: the most any ship of
+    /// it afloat has ([`searchlight_rerolls`]), so 0 when none carries one.
+    searchlight: u8,
+}
+
+/// What a fleet's searchlights are worth for the night (`nightPhase`): the most any ship afloat
+/// has.
+fn fleet_searchlight(codex: &Codex, fleet: &[BattleRuntimeShip]) -> u8 {
+    fleet
+        .iter()
+        .filter(|ship| ship.is_alive())
+        .map(|ship| searchlight_rerolls(codex, ship))
+        .max()
+        .unwrap_or(0)
 }
 
 /// The equipment the source's `NBtypes` counts.
@@ -673,8 +685,8 @@ fn night_cut_in_chance(
     for (lit, bonus) in [
         (own.star_shell, 4.0),
         (theirs.star_shell, -10.0),
-        (own.searchlight, 7.0),
-        (theirs.searchlight, -5.0),
+        (own.searchlight > 0, 7.0),
+        (theirs.searchlight > 0, -5.0),
     ] {
         if lit {
             chance += bonus;
@@ -1178,7 +1190,9 @@ fn special_attack_row(
         if !ship.is_alive() {
             continue;
         }
-        let Some(mut target_idx) = crate::targeting::select_surface_target(codex, rng, enemy)
+        let rerolls = fleet_searchlight(codex, enemy);
+        let Some(mut target_idx) =
+            crate::targeting::select_surface_target(codex, rng, enemy, rerolls)
         else {
             continue;
         };
@@ -1266,16 +1280,9 @@ pub(crate) fn simulate_night_hougeki(
     };
     let (friendly_form, enemy_form) = (params.friendly_formation_id, params.enemy_formation_id);
     // `nightPhase`: a fleet's searchlight is lit for the whole night if a ship afloat has one.
-    let lit = |fleet: &[BattleRuntimeShip]| {
-        fleet.iter().filter(|ship| ship.is_alive()).any(|ship| {
-            count_equipment_type(codex, ship, KcSlotItemType3::Searchlight)
-                + count_equipment_type(codex, ship, KcSlotItemType3::LargeSearchlight)
-                > 0
-        })
-    };
     let lights = |fleet: &[BattleRuntimeShip], flare: i64| NightLights {
         star_shell: flare >= 0,
-        searchlight: lit(fleet),
+        searchlight: fleet_searchlight(codex, fleet),
     };
     let friendly_lights = lights(friendly, params.flare_pos[0]);
     let enemy_lights = lights(enemy, params.flare_pos[1]);
@@ -1357,13 +1364,13 @@ fn night_turn(
     // `nightPhaseTarget`: a carrier marked 3 takes a surface ship only while the fleet she
     // attacks has its searchlight lit. In the dark she is left the submarines, if she can
     // attack one.
-    let target = if abyssal_night_attack(ship) == 3 && !theirs.searchlight {
+    let target = if abyssal_night_attack(ship) == 3 && theirs.searchlight == 0 {
         if !can_attack_submarine_night_shelling(codex, ship) {
             return;
         }
         select_submarine_target(codex, rng, defenders)
     } else {
-        select_random_target_index(codex, rng, ship, defenders, BattlePhase::NightShelling)
+        select_night_target(codex, rng, ship, defenders, theirs.searchlight)
     };
     let Some(mut target_idx) = target else {
         return;
@@ -3632,11 +3639,11 @@ mod attack_type_tests {
     const DARK: (NightLights, NightLights) = (
         NightLights {
             star_shell: false,
-            searchlight: false,
+            searchlight: 0,
         },
         NightLights {
             star_shell: false,
-            searchlight: false,
+            searchlight: 0,
         },
     );
 
@@ -3775,7 +3782,7 @@ mod attack_type_tests {
         let codex = codex();
         let lit = NightLights {
             star_shell: true,
-            searchlight: true,
+            searchlight: 2,
         };
         let dark = NightLights::default();
         let chance = |ship: &BattleRuntimeShip, flagship, lights| {

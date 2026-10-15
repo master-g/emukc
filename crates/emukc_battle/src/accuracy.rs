@@ -22,7 +22,7 @@ use emukc_model::{
 
 use crate::damage::is_cv_type;
 use crate::random::BattleRng;
-use crate::targeting::ship_type;
+use crate::targeting::{has_slotitem_type, is_radar_type, searchlight_rerolls, ship_type};
 use crate::types::BattleRuntimeShip;
 
 /// What a critical does to the attack power, after the cap and before armour.
@@ -428,6 +428,33 @@ pub(crate) fn evasion_term(evasion: i64, luck: i64, formation: f64, fuel_shortfa
     dodge as i64 - fuel_shortfall
 }
 
+/// A target's night evasion (`NBattack`): her formation's multiplier, and the flat evasion added
+/// after the curve, 5 for a heavy or aviation cruiser and 10 for a destroyer with a radar and a
+/// lookout. Her own searchlight leaves her a fifth of each.
+fn night_evasion(codex: &Codex, ship: &BattleRuntimeShip, formation: f64) -> (f64, i64) {
+    let flat = match ship_type(codex, ship) {
+        Some(KcShipType::CA | KcShipType::CAV) => 5,
+        Some(KcShipType::DD)
+            if has_slotitem_type(codex, ship, KcSlotItemType3::SeaplanePersonnel)
+                && ship.slot_items.iter().any(|item| {
+                    codex
+                        .find::<ApiMstSlotitem>(&item.api_slotitem_id)
+                        .ok()
+                        .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
+                        .is_some_and(is_radar_type)
+                }) =>
+        {
+            10
+        }
+        _ => 0,
+    };
+    if searchlight_rerolls(codex, ship) > 0 {
+        (formation * 0.2, flat / 5)
+    } else {
+        (formation, flat)
+    }
+}
+
 /// The chance to hit in percent, between the floor and the ceiling.
 pub(crate) fn hit_chance(hit: f64, dodge: i64, target_morale: f64) -> i64 {
     let chance = (hit.floor() as i64 - dodge).max(HIT_FLOOR) as f64 * target_morale;
@@ -563,6 +590,11 @@ pub(crate) fn roll_attack(
         AttackKind::Torpedo => (own.torp_acc, theirs.torp_ev),
         AttackKind::Night => (own.night_acc, theirs.night_ev),
     };
+    let (formation_ev, evasion_flat) = if aim.kind == AttackKind::Night {
+        night_evasion(codex, defender, formation_ev)
+    } else {
+        (formation_ev, 0)
+    };
 
     let level = attacker.ship.api_lv.max(0) as f64;
     let luck = attacker.ship.api_lucky[0].max(0) as f64;
@@ -579,7 +611,7 @@ pub(crate) fn roll_attack(
         defender.ship.api_lucky[0],
         formation_ev,
         fuel_shortfall(codex, defender),
-    );
+    ) + evasion_flat;
     let chance = hit_chance(hit, dodge, target_morale(defender));
     let planes = match aim.kind {
         AttackKind::Shelling if aim.carrier_cut_in => {
@@ -809,6 +841,33 @@ mod tests {
         assert_eq!(night.under_contact(scout).lit_by_star_shell(true).base(), 74.0 * 1.1);
         // An attack on a submarine rolls as by day, with no star shell in it.
         assert_eq!(Aim::new(AttackKind::Asw, 1, 1).lit_by_star_shell(true).base(), 80.0);
+    }
+
+    #[test]
+    fn a_searchlight_strips_most_of_its_carriers_night_evasion() {
+        use crate::test_utils::{first_ship_mst_by_type, sample_ship, slotitem_with_mst_id};
+        use emukc_model::kc2::KcShipType;
+        const SURFACE_RADAR: i64 = 28;
+        const LOOKOUT: i64 = 129;
+        const SEARCHLIGHT: i64 = 74;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |stype, gear: &[i64]| {
+            let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, stype), 50);
+            ship.slot_items = gear.iter().copied().map(slotitem_with_mst_id).collect();
+            BattleRuntimeShip::from(ship)
+        };
+        // A heavy cruiser dodges 5 more at night; a destroyer with a radar and a lookout 10.
+        assert_eq!(night_evasion(&codex, &ship(KcShipType::CA, &[]), 1.2), (1.2, 5));
+        assert_eq!(night_evasion(&codex, &ship(KcShipType::CAV, &[]), 1.0), (1.0, 5));
+        let picket = ship(KcShipType::DD, &[SURFACE_RADAR, LOOKOUT]);
+        assert_eq!(night_evasion(&codex, &picket, 1.0), (1.0, 10));
+        assert_eq!(night_evasion(&codex, &ship(KcShipType::DD, &[SURFACE_RADAR]), 1.0), (1.0, 0));
+        // Her own searchlight leaves her a fifth of both.
+        let lit = ship(KcShipType::CA, &[SEARCHLIGHT]);
+        assert_eq!(night_evasion(&codex, &lit, 1.2), (1.2 * 0.2, 1));
+        let lit = ship(KcShipType::DD, &[SURFACE_RADAR, LOOKOUT, SEARCHLIGHT]);
+        assert_eq!(night_evasion(&codex, &lit, 1.0), (0.2, 2));
     }
 
     #[test]

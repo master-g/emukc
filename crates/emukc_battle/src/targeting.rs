@@ -70,6 +70,67 @@ pub(crate) fn select_random_target_index(
     defenders: &[BattleRuntimeShip],
     phase: BattlePhase,
 ) -> Option<usize> {
+    let candidates = target_candidates(codex, attacker, defenders, phase);
+    rng.choose_index(candidates.len()).map(|at| candidates[at])
+}
+
+/// Select a night target as [`select_random_target_index`] does, then draw a surface ship
+/// without a searchlight again, up to `rerolls` times, stopping on one that has one
+/// (`choiceWProtect`). A submarine is drawn once.
+pub(crate) fn select_night_target(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    attacker: &BattleRuntimeShip,
+    defenders: &[BattleRuntimeShip],
+    rerolls: u8,
+) -> Option<usize> {
+    let candidates = target_candidates(codex, attacker, defenders, BattlePhase::NightShelling);
+    let pick = candidates[rng.choose_index(candidates.len())?];
+    if target_class(codex, &defenders[pick]).is_submarine() {
+        return Some(pick);
+    }
+    Some(reroll_toward_searchlight(codex, rng, defenders, &candidates, pick, rerolls))
+}
+
+/// How many times the fleet a ship is in draws a night target again for her searchlight:
+/// 1 for a searchlight, 2 for a large one (`hasSearchlight`).
+// ponytail: the source keeps whichever of the two comes last in her slots; this takes the
+// larger.
+pub(crate) fn searchlight_rerolls(codex: &Codex, ship: &BattleRuntimeShip) -> u8 {
+    if has_slotitem_type(codex, ship, KcSlotItemType3::LargeSearchlight) {
+        2
+    } else if has_slotitem_type(codex, ship, KcSlotItemType3::Searchlight) {
+        1
+    } else {
+        0
+    }
+}
+
+fn reroll_toward_searchlight(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    defenders: &[BattleRuntimeShip],
+    candidates: &[usize],
+    mut pick: usize,
+    rerolls: u8,
+) -> usize {
+    for _ in 0..rerolls {
+        if searchlight_rerolls(codex, &defenders[pick]) > 0 {
+            break;
+        }
+        pick = candidates[rng.roll_range(0, candidates.len() as i64) as usize];
+    }
+    pick
+}
+
+/// The ships an attacker may fire at in `phase`: the surface ships or the submarines,
+/// whichever she prefers and can reach.
+fn target_candidates(
+    codex: &Codex,
+    attacker: &BattleRuntimeShip,
+    defenders: &[BattleRuntimeShip],
+    phase: BattlePhase,
+) -> Vec<usize> {
     let alive_targets = defenders
         .iter()
         .enumerate()
@@ -77,7 +138,7 @@ pub(crate) fn select_random_target_index(
         .map(|(idx, _)| idx)
         .collect::<Vec<_>>();
     if alive_targets.is_empty() {
-        return None;
+        return Vec::new();
     }
 
     let surface_like_targets = alive_targets
@@ -91,8 +152,8 @@ pub(crate) fn select_random_target_index(
         .filter(|idx| target_class(codex, &defenders[*idx]).is_submarine())
         .collect::<Vec<_>>();
 
-    let candidates = match attack_capability_for_phase(codex, attacker, phase) {
-        AttackCapability::CannotAttack => return None,
+    match attack_capability_for_phase(codex, attacker, phase) {
+        AttackCapability::CannotAttack => Vec::new(),
         AttackCapability::SurfaceOnly => surface_like_targets,
         AttackCapability::BothPreferSubmarine => {
             if submarine_targets.is_empty() {
@@ -108,24 +169,18 @@ pub(crate) fn select_random_target_index(
                 surface_like_targets
             }
         }
-    };
-    if candidates.is_empty() {
-        return None;
     }
-
-    Some(
-        candidates
-            [rng.choose_index(candidates.len()).expect("candidates non-empty by construction")],
-    )
 }
 
 /// Select a random alive target that is not a submarine, whatever the attacker would
 /// rather fire at: the ships of a special attack take no other (`shellPhaseTarget` with no
-/// submarines to choose from).
+/// submarines to choose from). At night the defenders' searchlight draws them as it does any
+/// night attack (`rerolls`, 0 by day).
 pub(crate) fn select_surface_target(
     codex: &Codex,
     rng: &mut impl BattleRng,
     defenders: &[BattleRuntimeShip],
+    rerolls: u8,
 ) -> Option<usize> {
     let surface: Vec<usize> = defenders
         .iter()
@@ -133,7 +188,8 @@ pub(crate) fn select_surface_target(
         .filter(|(_, ship)| ship.is_alive() && !target_class(codex, ship).is_submarine())
         .map(|(idx, _)| idx)
         .collect();
-    rng.choose_index(surface.len()).map(|at| surface[at])
+    let pick = surface[rng.choose_index(surface.len())?];
+    Some(reroll_toward_searchlight(codex, rng, defenders, &surface, pick, rerolls))
 }
 
 /// Select a random alive submarine target.
@@ -816,6 +872,54 @@ mod tests {
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
+
+    /// Hands out the indices it was given, and panics on one more.
+    struct Picks(std::collections::VecDeque<i64>);
+
+    impl BattleRng for Picks {
+        fn random_f64_range(&mut self, _min: f64, _max: f64) -> f64 {
+            panic!("an unexpected roll")
+        }
+
+        fn roll_range_impl(&mut self, _min: i64, _max: i64) -> i64 {
+            self.0.pop_front().expect("an unexpected roll")
+        }
+    }
+
+    #[test]
+    fn a_searchlight_draws_fire_for_as_many_rerolls_as_its_fleet_has() {
+        const SEARCHLIGHT: i64 = 74;
+        const LARGE_SEARCHLIGHT: i64 = 140;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ship = |gear: &[i64]| {
+            let mut ship = sample_ship(&codex, dd, 50);
+            ship.slot_items = gear.iter().copied().map(slotitem_with_mst_id).collect();
+            BattleRuntimeShip::from(ship)
+        };
+        assert_eq!(searchlight_rerolls(&codex, &ship(&[])), 0);
+        assert_eq!(searchlight_rerolls(&codex, &ship(&[SEARCHLIGHT])), 1);
+        assert_eq!(searchlight_rerolls(&codex, &ship(&[LARGE_SEARCHLIGHT])), 2);
+        assert_eq!(searchlight_rerolls(&codex, &ship(&[LARGE_SEARCHLIGHT, SEARCHLIGHT])), 2);
+
+        let attacker = ship(&[]);
+        let defenders = [ship(&[]), ship(&[SEARCHLIGHT]), ship(&[])];
+        let pick = |rerolls, draws: &[i64]| {
+            let mut rng = Picks(draws.iter().copied().collect());
+            select_night_target(&codex, &mut rng, &attacker, &defenders, rerolls)
+        };
+        // With no searchlight on the fleet the one draw stands.
+        assert_eq!(pick(0, &[0]), Some(0));
+        // A ship without one is drawn again, until the lit one comes up...
+        assert_eq!(pick(2, &[0, 1]), Some(1));
+        // ...or the rerolls run out.
+        assert_eq!(pick(2, &[0, 2, 0]), Some(0));
+        // The lit ship drawn first is kept.
+        assert_eq!(pick(2, &[1]), Some(1));
+        // A special attack's ships draw the same way.
+        let mut rng = Picks([2, 1].into_iter().collect());
+        assert_eq!(select_surface_target(&codex, &mut rng, &defenders, 1), Some(1));
+    }
 
     #[test]
     fn day_shelling_destroyer_prefers_submarine_targets() {

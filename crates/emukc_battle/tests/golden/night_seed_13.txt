@@ -34,16 +34,13 @@ NightBattlePacket {
                 0,
                 1,
                 0,
-                1,
             ],
             api_at_list: [
                 0,
                 0,
                 1,
-                1,
             ],
             api_n_mother_list: [
-                0,
                 0,
                 0,
                 0,
@@ -54,31 +51,15 @@ NightBattlePacket {
                     1,
                 ],
                 [
-                    1,
-                ],
-                [
                     0,
                     0,
                 ],
                 [
-                    1,
-                    1,
+                    0,
+                    0,
                 ],
             ],
             api_si_list: [
-                [
-                    Text(
-                        "7",
-                    ),
-                    Text(
-                        "11",
-                    ),
-                ],
-                [
-                    Num(
-                        105,
-                    ),
-                ],
                 [
                     Text(
                         "7",
@@ -95,14 +76,19 @@ NightBattlePacket {
                         "8",
                     ),
                 ],
+                [
+                    Text(
+                        "7",
+                    ),
+                    Text(
+                        "11",
+                    ),
+                ],
             ],
             api_cl_list: [
                 [
                     1,
                     1,
-                ],
-                [
-                    0,
                 ],
                 [
                     1,
@@ -115,25 +101,21 @@ NightBattlePacket {
             ],
             api_sp_list: [
                 1,
-                0,
                 1,
                 1,
             ],
             api_damage: [
                 [
-                    3,
-                    4,
-                ],
-                [
+                    279,
                     0,
                 ],
                 [
-                    276,
-                    0,
+                    5,
+                    7,
                 ],
                 [
-                    5.1,
-                    5.1,
+                    280,
+                    0,
                 ],
             ],
         },

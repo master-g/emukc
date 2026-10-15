@@ -168,8 +168,6 @@ and `damage.rs` do not ask `simulation::night` themselves.
 - Enemy carriers' cut-ins, their equipment bonuses and aircraft proficiency.
 - An enemy light carrier's power against a submarine in a night-start battle comes from the
   codex's anti-submarine of 0, not from the source's figure that makes her eligible.
-- The searchlight beyond whether it is lit: the rerolls that draw fire to its ship, and the
-  evasion it costs her.
 - The fit bonuses the source adds to a carrier's torpedo (`eqBonusCV`), no torpedo against a
   land target, and the special-aircraft multipliers.
 - In the source a combined fleet's escort does real damage to a submarine in the night after a
