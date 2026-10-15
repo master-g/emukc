@@ -238,14 +238,20 @@ impl Scenario {
         }
     }
 
-    /// Six 赤城改二戊, whose 夜戦特性 needs no 要員, with night fighters and, on the
-    /// flagship, a night attacker: by day five of them carry nothing that can
-    /// strike, so the battle lasts into a night they all fly in, each with a
-    /// 空母カットイン to form.
+    /// Six 赤城改二戊, whose 夜戦特性 needs no 要員, with night fighters, each with a
+    /// 空母カットイン to form: the flagship one of them and a 光電管彗星 (63), the second one
+    /// and a night attacker (62), the third one and two Swordfish (64), the rest three (64).
+    /// The first three are short of ammunition and the rest strike not at all, so the battle
+    /// lasts into a night they all fly in.
     pub fn night_air_attack() -> Self {
         let mut fleet =
             vec![ShipSpec::new(AKAGI_K2E_MST_ID, 99).with_slots([NIGHT_FIGHTER_MST_ID; 3]); 6];
-        fleet[0].slots[2] = NIGHT_ATTACKER_MST_ID;
+        fleet[0].slots = vec![NIGHT_FIGHTER_MST_ID, KOUDENKAN_SUISEI_MST_ID];
+        fleet[1].slots = vec![NIGHT_FIGHTER_MST_ID, NIGHT_ATTACKER_MST_ID];
+        fleet[2].slots = vec![NIGHT_FIGHTER_MST_ID, SWORDFISH_MST_ID, SWORDFISH_MST_ID];
+        for ship in &mut fleet[..3] {
+            ship.ammo = Some(30);
+        }
         Self {
             fleet,
             materials: default_materials(),
@@ -303,6 +309,24 @@ impl Scenario {
         for (ship, slots) in scenario.fleet.iter_mut().zip(loadouts) {
             ship.slots = slots.to_vec();
         }
+        scenario
+    }
+
+    /// 最上改二特 and 三隈改二特 ahead of four destroyers, two main guns each, for the night
+    /// 瑞雲 cut-in: the first with two 夜間瑞雲, the second with one and a surface radar. Both
+    /// are short of ammunition, so that they do not finish the enemy by day.
+    pub fn night_zuiun() -> Self {
+        const MAIN_GUN: i64 = 50; // 20.3cm(3号)連装砲
+        const NIGHT_ZUIUN: i64 = 490; // 試製 夜間瑞雲(攻撃装備)
+        let mut scenario = Self::leveled_for_mid_boss();
+        scenario.fleet[0] = ShipSpec {
+            ammo: Some(30),
+            ..ShipSpec::new(506, 99).with_slots([MAIN_GUN, MAIN_GUN, NIGHT_ZUIUN, NIGHT_ZUIUN])
+        };
+        scenario.fleet[1] = ShipSpec {
+            ammo: Some(30),
+            ..ShipSpec::new(507, 99).with_slots([MAIN_GUN, MAIN_GUN, NIGHT_ZUIUN, 28]) // 22号対水上電探
+        };
         scenario
     }
 
@@ -488,6 +512,10 @@ const AKAGI_MST_ID: i64 = 83;
 const AKAGI_K2E_MST_ID: i64 = 599;
 const NIGHT_FIGHTER_MST_ID: i64 = 254;
 const NIGHT_ATTACKER_MST_ID: i64 = 257;
+/// 彗星一二型(三一号光電管爆弾搭載機).
+const KOUDENKAN_SUISEI_MST_ID: i64 = 320;
+/// Swordfish.
+const SWORDFISH_MST_ID: i64 = 242;
 /// 零式艦戦21型.
 const FIGHTER_MST_ID: i64 = 20;
 /// 九九式艦爆.
@@ -613,6 +641,13 @@ pub const PRESETS: &[Preset] = &[
     Preset {
         name: "night_cut_in",
         build: Scenario::night_cut_in,
+        maparea: 2,
+        mapinfo: 1,
+        expects: PhaseExpectation::NightCutIn,
+    },
+    Preset {
+        name: "night_zuiun",
+        build: Scenario::night_zuiun,
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::NightCutIn,
