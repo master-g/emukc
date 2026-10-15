@@ -29,6 +29,11 @@ impl Requirements {
         }
 
         // Consume
+        if let Some(useitem_consume) = self.extract_useitem_consume(mst) {
+            conditions.push(Kc3rdQuestCondition::Consumption(
+                Kc3rdQuestConditionConsumption::UseItemConsumption(useitem_consume),
+            ));
+        }
         if let Some(slotitem_consume) = self.extract_slotitem_consume(mst) {
             conditions.push(Kc3rdQuestCondition::Consumption(
                 Kc3rdQuestConditionConsumption::SlotItemConsumption(slotitem_consume),

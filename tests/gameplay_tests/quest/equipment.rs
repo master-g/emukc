@@ -8,6 +8,8 @@
 //! - 678 — 零式艦戦52型 (21) in the flagship's slots 1 and 2, scrap 19 x3 and
 //!   20 x5, bauxite 4000; rewards two of equipment 55, so nothing converts in
 //!   place and both pieces leave the ship.
+//! - 647 中部海域「基地航空隊」展開！ — scrap ドラム缶 x2, fuel 1200 and bauxite
+//!   3000, and a 設営隊 (use item 73) taken at the claim (#142).
 
 #[cfg(test)]
 mod tests {
@@ -85,6 +87,23 @@ mod tests {
         let after = context.get_materials(pid).await.unwrap();
         assert_eq!(after.steel, scrap_refund.steel);
         assert_eq!(after.ammo, scrap_refund.ammo);
+    }
+
+    #[tokio::test]
+    async fn an_equipment_exchange_takes_its_use_item() {
+        const CONSTRUCTION_CORPS: i64 = 73;
+        let context = crate::TestContext::new().await;
+        let pid = new_profile(&context, "exchange").await;
+        taken_with_scrap_done(&context, pid, 647, DRUM).await;
+        let cost = [(MaterialCategory::Fuel, 1200), (MaterialCategory::Bauxite, 3000)];
+        context.add_material(pid, &cost).await.unwrap();
+
+        assert!(context.quest_clear_and_claim_reward(pid, 647, None).await.is_err());
+
+        context.add_use_item(pid, CONSTRUCTION_CORPS, 1).await.unwrap();
+        context.quest_clear_and_claim_reward(pid, 647, None).await.unwrap();
+        let left = context.find_use_item(pid, CONSTRUCTION_CORPS).await.unwrap();
+        assert_eq!(left.api_count, 0);
     }
 
     #[tokio::test]
