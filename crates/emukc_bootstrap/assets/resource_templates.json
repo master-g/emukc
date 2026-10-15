@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-07T05:12:08.973Z",
-  "scriptVersion": "6.3.5.0",
+  "generatedAt": "2026-10-15T12:54:44.972Z",
+  "scriptVersion": "6.3.6.0",
   "summary": {
     "familyCount": 21,
     "observedCompleteFamilyCount": 12,
@@ -254,11 +254,9 @@
       "coverageMode": "observed-complete",
       "provenance": {
         "moduleIds": [
-          "10247",
-          "1463"
+          "10247"
         ],
         "moduleNames": [
-          "FAnimationData",
           "FurnitureLoader"
         ]
       }
@@ -726,19 +724,21 @@
           "3108",
           "4490",
           "5150",
+          "7199",
           "81322",
           "85120",
-          "88313",
-          "90657"
+          "90657",
+          "96188"
         ],
         "moduleNames": [
           "AnimPlane",
           "PhaseAttackBase",
           "PhaseDamageCutin",
           "PhaseEnding",
+          "PresetEditSlot",
           "TaskBossCutin",
           "TaskEnemyDamageCutin",
-          "TaskReward",
+          "TaskNextSpot",
           "VoiceManager"
         ]
       },

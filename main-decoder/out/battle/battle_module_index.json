@@ -1,9 +1,9 @@
 {
-  "scriptVersion": "6.3.5.0",
+  "scriptVersion": "6.3.6.0",
   "summary": {
     "moduleCount": 197,
     "protocolFieldCount": 63,
-    "resourceRuleCount": 239
+    "resourceRuleCount": 244
   },
   "modules": [
     {
@@ -11,7 +11,7 @@
       "readableName": "TaskSupportDeckCutin",
       "fileName": "module-10037-task-support-deck-cutin.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -47,8 +47,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "10037:getShip:banner:_0x4f63f6.mst_id:_0x4f63f6.damaged",
-        "10037:getShip:banner:_0x50b8d0.mst_id:_0x50b8d0.damaged"
+        "10037:getShip:banner:_0x1db912.mst_id:_0x1db912.damaged",
+        "10037:getShip:banner:_0x56f5d5.mst_id:_0x56f5d5.damaged"
       ],
       "explicitResourcePaths": []
     },
@@ -57,7 +57,7 @@
       "readableName": "TaskDamageCutin",
       "fileName": "module-10158-task-damage-cutin.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -108,12 +108,13 @@
           "readableName": "BATTLE_CUTIN_DAMAGE"
         },
         {
-          "moduleId": "52501"
+          "moduleId": "52501",
+          "readableName": "BreakText"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "10158:getShip:full:_0x46c18a:true",
+        "10158:getShip:full:_0xed1f4d:true",
         "10158:getTexture:BATTLE_CUTIN_DAMAGE"
       ],
       "explicitResourcePaths": []
@@ -123,7 +124,7 @@
       "readableName": "CutinCanvasSpRR",
       "fileName": "module-11173-cutin-canvas-sp-rr.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -153,11 +154,11 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "11173:getSlotitem:btxt_flat:_0x3376eb",
-        "11173:getSlotitem:btxt_flat:_0x49f6c9",
-        "11173:getSlotitem:item_up:_0x337049",
-        "11173:getSlotitem:item_up:_0x5e9d35",
-        "11173:getSlotitem:item_up:_0xa7091d",
+        "11173:getSlotitem:btxt_flat:_0x47b86a",
+        "11173:getSlotitem:btxt_flat:_0xe8b761",
+        "11173:getSlotitem:item_up:_0x3ee89c",
+        "11173:getSlotitem:item_up:_0x407cdd",
+        "11173:getSlotitem:item_up:_0xf43538",
         "11173:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -167,7 +168,7 @@
       "readableName": "ResultView",
       "fileName": "module-11811-result-view.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "result",
@@ -255,7 +256,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "11838:getShip:banner:_0x3198ca:_0x575d0c",
+        "11838:getShip:banner:_0x944b9a:_0x1eccb5",
         "11838:getTexture:COMMON_MISC"
       ],
       "explicitResourcePaths": []
@@ -270,7 +271,12 @@
         "banner",
         "battle"
       ],
-      "dependencies": [],
+      "dependencies": [
+        {
+          "moduleId": "81851",
+          "readableName": "BaseKirakira"
+        }
+      ],
       "protocolFields": [],
       "resourceRuleIds": [],
       "explicitResourcePaths": []
@@ -280,7 +286,7 @@
       "readableName": "MeltIntoSprite",
       "fileName": "module-12003-melt-into-sprite.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "slotitem-resource"
@@ -300,7 +306,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "12003:getSlotitem:card:_0x348ae0.id"
+        "12003:getSlotitem:card:_0x514d64.id"
       ],
       "explicitResourcePaths": []
     },
@@ -334,7 +340,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "14283:getShip:banner:_0x5556f4:_0x5a76a9",
+        "14283:getShip:banner:_0x4a2975:_0x2b1986",
         "14283:getTexture:COMMON_MISC"
       ],
       "explicitResourcePaths": []
@@ -344,7 +350,7 @@
       "readableName": "PowerUpAnimation",
       "fileName": "module-15015-power-up-animation.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -372,7 +378,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "15015:getShip:full:_0x83c433:_0x1b16e1"
+        "15015:getShip:full:_0x2586e9:_0x287308"
       ],
       "explicitResourcePaths": []
     },
@@ -381,7 +387,7 @@
       "readableName": "TaskFormationSelect",
       "fileName": "module-18215-task-formation-select.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -419,8 +425,7 @@
           "readableName": "FormationBoxContainer"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "80526",
@@ -453,7 +458,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "18215:getShip:full:mst_id:damaged",
+        "18215:getShip:full:_0x25d53d:_0x317945",
         "18215:getTexture:MAP_TELOP"
       ],
       "explicitResourcePaths": []
@@ -574,7 +579,7 @@
       "readableName": "CutinAttack",
       "fileName": "module-19362-cutin-attack.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -619,7 +624,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "19362:getShip:full:_0x305688:damaged"
+        "19362:getShip:full:_0x1ab9b9:_0x1e15ff"
       ],
       "explicitResourcePaths": []
     },
@@ -628,7 +633,7 @@
       "readableName": "PresetExpansionSlot",
       "fileName": "module-19615-preset-expansion-slot.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "texture-provider"
@@ -638,8 +643,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "72304",
@@ -665,7 +669,7 @@
       "readableName": "CutinCanvasSpRDJ",
       "fileName": "module-19773-cutin-canvas-sp-rdj.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -702,9 +706,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "19773:getSlotitem:btxt_flat:_0x52e63a",
-        "19773:getSlotitem:btxt_flat:_0x9d91d7",
-        "19773:getSlotitem:btxt_flat:_0xf0651f",
+        "19773:getSlotitem:btxt_flat:_0x20c541",
+        "19773:getSlotitem:btxt_flat:_0x2bb328",
+        "19773:getSlotitem:btxt_flat:_0x3e9414",
         "19773:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -742,7 +746,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "21125:getShip:full:_0x3d01cd:damaged"
+        "21125:getShip:full:_0x42bad1:_0x44da9c"
       ],
       "explicitResourcePaths": []
     },
@@ -764,11 +768,15 @@
         {
           "moduleId": "86101",
           "readableName": "COMMON_SELECTABLE_REWARD"
+        },
+        {
+          "moduleId": "21706",
+          "readableName": "RewardSelectDialogBtnBase"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "21574:getSlotitem:card:_0x2f4ad5",
+        "21574:getSlotitem:card:_0x4cd150",
         "21574:getTexture:COMMON_SELECTABLE_REWARD"
       ],
       "explicitResourcePaths": []
@@ -778,7 +786,7 @@
       "readableName": "CutinSpSSS",
       "fileName": "module-23534-cutin-sp-sss.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -868,8 +876,7 @@
           "readableName": "CloseBtn"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         }
       ],
       "protocolFields": [],
@@ -889,11 +896,15 @@
       "dependencies": [
         {
           "moduleId": "56728"
+        },
+        {
+          "moduleId": "21706",
+          "readableName": "RewardSelectDialogBtnBase"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "23881:getShip:reward_card:_0x564d0f:false"
+        "23881:getShip:reward_card:_0x1a3411:false"
       ],
       "explicitResourcePaths": []
     },
@@ -902,7 +913,7 @@
       "readableName": "CutinSSAttack",
       "fileName": "module-24408-cutin-ssattack.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -930,7 +941,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "24408:getShip:full:_0x55fe2a:damaged",
+        "24408:getShip:full:_0x3bf916:_0x38a988",
         "24408:getShip:special:shipModel.mst_id:shipModel.isDamaged()"
       ],
       "explicitResourcePaths": []
@@ -968,7 +979,7 @@
       "readableName": "TaskFlagShipDamaged",
       "fileName": "module-25195-task-flag-ship-damaged.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -983,8 +994,7 @@
           "readableName": "TaskBase"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "80526",
@@ -1036,7 +1046,8 @@
           "readableName": "AirSupportData"
         },
         {
-          "moduleId": "39387"
+          "moduleId": "39387",
+          "readableName": "HougekiListNightData"
         },
         {
           "moduleId": "93922",
@@ -1053,10 +1064,10 @@
         "25399:api_n_hougeki2:object:this._o",
         "25399:api_n_support_flag:number:this._o",
         "25399:api_n_support_info:object:this._o",
-        "25399:api_support_airatack:object:_0x358cc4",
-        "25399:api_support_airatack:object:_0x382ca9",
-        "25399:api_support_hourai:object:_0x1263ee",
-        "25399:api_support_hourai:object:_0x42f991",
+        "25399:api_support_airatack:object:_0x1309a2",
+        "25399:api_support_airatack:object:_0x260120",
+        "25399:api_support_hourai:object:_0x183b4d",
+        "25399:api_support_hourai:object:_0x6a4e0e",
         "25399:api_touch_plane:numArray:this._o"
       ],
       "resourceRuleIds": [],
@@ -1067,7 +1078,7 @@
       "readableName": "AirUnitChangeConfirmPanel",
       "fileName": "module-25501-air-unit-change-confirm-panel.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "slotitem-resource",
@@ -1097,13 +1108,12 @@
           "moduleId": "35937"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "25501:getSlotitem:remodel:_0x4a131d",
+        "25501:getSlotitem:remodel:_0x1c9600",
         "25501:getTexture:SALLY_AIRUNIT"
       ],
       "explicitResourcePaths": []
@@ -1234,7 +1244,12 @@
         "battle",
         "cutin"
       ],
-      "dependencies": [],
+      "dependencies": [
+        {
+          "moduleId": "69636",
+          "readableName": "CutinDouble1"
+        }
+      ],
       "protocolFields": [],
       "resourceRuleIds": [],
       "explicitResourcePaths": []
@@ -1244,7 +1259,7 @@
       "readableName": "KaizoAnimationMain",
       "fileName": "module-26350-kaizo-animation-main.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -1258,8 +1273,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "86212",
@@ -1291,8 +1305,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "26350:getShip:card:ship_mstid:_0x173760",
-        "26350:getShip:full:ship_mstid:_0x173760",
+        "26350:getShip:card:_0x540590:_0x419fa7",
+        "26350:getShip:full:_0x540590:_0x419fa7",
         "26350:getTexture:REMODEL_ANIMATION"
       ],
       "explicitResourcePaths": []
@@ -1324,7 +1338,7 @@
       "readableName": "AnchorageRepairShipBanner",
       "fileName": "module-27601-anchorage-repair-ship-banner.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "banner",
         "battle",
@@ -1363,7 +1377,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "27601:getShip:banner:this._mst_id:_0x385071",
+        "27601:getShip:banner:this._mst_id:_0x5f4c58",
         "27601:getTexture:MAP_ANCHORAGE_REPAIR",
         "27601:getTexture:this"
       ],
@@ -1389,11 +1403,15 @@
         {
           "moduleId": "71153",
           "readableName": "ShipLoader"
+        },
+        {
+          "moduleId": "38928",
+          "readableName": "RewardAnimation"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "27642:getShip:full:mst_id:false"
+        "27642:getShip:full:_0x732095:false"
       ],
       "explicitResourcePaths": []
     },
@@ -1413,8 +1431,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "16743",
@@ -1462,7 +1479,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "27945:getSlotitem:airunit_banner:_0x333514.mst_id",
+        "27945:getSlotitem:airunit_banner:_0x100abf.mst_id",
         "27945:getTexture:SALLY_AIRUNIT"
       ],
       "explicitResourcePaths": []
@@ -1472,7 +1489,7 @@
       "readableName": "CutinSpSSF",
       "fileName": "module-28409-cutin-sp-ssf.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -1599,7 +1616,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "29703:getShip:remodel:mstID:damaged",
+        "29703:getShip:remodel:_0x280314:_0x24a187",
         "29703:getTexture:REMODEL_GRADEUP"
       ],
       "explicitResourcePaths": []
@@ -1609,7 +1626,7 @@
       "readableName": "ShipDisassemblyContainer",
       "fileName": "module-30389-ship-disassembly-container.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "texture-provider"
@@ -1622,8 +1639,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "43707",
@@ -1731,7 +1747,7 @@
       "readableName": "TaskGouchinCutin",
       "fileName": "module-30724-task-gouchin-cutin.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -1788,7 +1804,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "30724:getShip:full:this._mst_id:_0x1e51a8",
+        "30724:getShip:full:this._mst_id:_0x242aea",
         "30724:getTexture:BATTLE_CUTIN_GOUCHIN"
       ],
       "explicitResourcePaths": []
@@ -1798,7 +1814,7 @@
       "readableName": "TaskEnemyDamageCutin",
       "fileName": "module-3108-task-enemy-damage-cutin.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -1849,7 +1865,8 @@
           "readableName": "BATTLE_CUTIN_DAMAGE"
         },
         {
-          "moduleId": "52501"
+          "moduleId": "52501",
+          "readableName": "BreakText"
         },
         {
           "moduleId": "54471",
@@ -1858,7 +1875,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "3108:getShip:full:_0x17c3f1:true",
+        "3108:getShip:full:_0x2984e7:true",
         "3108:getTexture:BATTLE_CUTIN_DAMAGE"
       ],
       "explicitResourcePaths": []
@@ -1910,7 +1927,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "32024:getShip:full:_0x3c9afb:damaged"
+        "32024:getShip:full:_0x178a1f:_0x744aa1"
       ],
       "explicitResourcePaths": []
     },
@@ -1919,7 +1936,7 @@
       "readableName": "ChangeConfirmFromOtherShip",
       "fileName": "module-32780-change-confirm-from-other-ship.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "texture-provider"
@@ -1952,8 +1969,7 @@
           "moduleId": "82464"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         }
       ],
       "protocolFields": [],
@@ -2012,7 +2028,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "33610:getShip:full:_0x462c6b:_0x28bef0"
+        "33610:getShip:full:_0x272435:_0x1e5596"
       ],
       "explicitResourcePaths": []
     },
@@ -2045,7 +2061,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "33911:getShip:full:_0xffc3c9:false"
+        "33911:getShip:full:_0xb5a3b8:false"
       ],
       "explicitResourcePaths": []
     },
@@ -2081,7 +2097,7 @@
       "readableName": "TaskReplenishmentEffect",
       "fileName": "module-35523-task-replenishment-effect.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -2107,13 +2123,14 @@
           "readableName": "ShipLoader"
         },
         {
-          "moduleId": "46262"
+          "moduleId": "46262",
+          "readableName": "TaskReplenishmentBalloonEffect"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "35523:getShip:full:_0x42fca4:damaged",
-        "35523:getShip:full:_0x50f65b:damaged"
+        "35523:getShip:full:_0x28a3f3:_0x1a629c",
+        "35523:getShip:full:_0x29ec3e:_0x496c56"
       ],
       "explicitResourcePaths": []
     },
@@ -2175,7 +2192,7 @@
       "readableName": "TaskFormationSelectCombined",
       "fileName": "module-37012-task-formation-select-combined.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -2217,8 +2234,7 @@
           "readableName": "FormationBoxContainerCombined"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "80526",
@@ -2251,7 +2267,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "37012:getShip:full:mst_id:damaged",
+        "37012:getShip:full:_0x4f98e8:_0x322f1b",
         "37012:getTexture:MAP_TELOP",
         "37012:getTexture:SALLY_JIN"
       ],
@@ -2262,7 +2278,7 @@
       "readableName": "CutinCanvasSpSSF",
       "fileName": "module-37537-cutin-canvas-sp-ssf.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -2287,12 +2303,12 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "37537:getSlotitem:btxt_flat:_0x12a92e",
-        "37537:getSlotitem:btxt_flat:_0x18a541",
-        "37537:getSlotitem:btxt_flat:_0x59c961",
-        "37537:getSlotitem:item_up:_0x260426",
-        "37537:getSlotitem:item_up:_0x2af25f",
-        "37537:getSlotitem:item_up:_0x4fc41e"
+        "37537:getSlotitem:btxt_flat:_0x52ee61",
+        "37537:getSlotitem:btxt_flat:_0x577646",
+        "37537:getSlotitem:btxt_flat:_0x9aafc8",
+        "37537:getSlotitem:item_up:_0x268703",
+        "37537:getSlotitem:item_up:_0x4a2ba2",
+        "37537:getSlotitem:item_up:_0x4f7df4"
       ],
       "explicitResourcePaths": []
     },
@@ -2301,7 +2317,7 @@
       "readableName": "CutinCanvasSpSRD",
       "fileName": "module-38046-cutin-canvas-sp-srd.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -2333,9 +2349,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "38046:getSlotitem:btxt_flat:_0x225727",
-        "38046:getSlotitem:btxt_flat:_0x39742d",
-        "38046:getSlotitem:btxt_flat:_0x3c20de"
+        "38046:getSlotitem:btxt_flat:_0x5287e6",
+        "38046:getSlotitem:btxt_flat:_0x5e30e0",
+        "38046:getSlotitem:btxt_flat:_0x8aa697"
       ],
       "explicitResourcePaths": []
     },
@@ -2344,7 +2360,7 @@
       "readableName": "CutinAntiAircraft",
       "fileName": "module-38288-cutin-anti-aircraft.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -2407,7 +2423,7 @@
       "readableName": "CutinKuboNight",
       "fileName": "module-38703-cutin-kubo-night.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -2449,7 +2465,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "38703:getShip:full:_0x4d8fbe:damaged"
+        "38703:getShip:full:_0x101c16:_0x41745e"
       ],
       "explicitResourcePaths": []
     },
@@ -2472,8 +2488,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "44847",
@@ -2502,7 +2517,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "38726:getShip:full:self.shipModel.mstID:false",
+        "38726:getShip:full:this.shipModel.mstID:false",
         "38726:getTexture:WEDDING_MARRIAGE",
         "38726:getTexture:WEDDING_MARRIAGE_BG"
       ],
@@ -2525,8 +2540,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "2229",
@@ -2635,7 +2649,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "41319:getShip:full:_0x5d4a34:damaged"
+        "41319:getShip:full:_0x38ee32:_0x5346c1"
       ],
       "explicitResourcePaths": []
     },
@@ -2644,7 +2658,7 @@
       "readableName": "LongShipBannerContainer",
       "fileName": "module-42222-long-ship-banner-container.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "banner",
         "battle",
@@ -2676,7 +2690,7 @@
       "readableName": "TaskEventRewardsSelect",
       "fileName": "module-42850-task-event-rewards-select.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -2691,7 +2705,8 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "2009"
+          "moduleId": "2009",
+          "readableName": "EventRewardSelectDialog2"
         },
         {
           "moduleId": "65769",
@@ -2708,8 +2723,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "42850:getShip:reward_icon:_0x50b427.mst_id:false",
-        "42850:getSlotitem:card:_0x50b427.mst_id"
+        "42850:getShip:reward_icon:_0x4c8e60.mst_id:false",
+        "42850:getSlotitem:card:_0x4c8e60.mst_id"
       ],
       "explicitResourcePaths": []
     },
@@ -2718,7 +2733,7 @@
       "readableName": "AirUnitPanelItem",
       "fileName": "module-43134-air-unit-panel-item.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "slotitem-resource",
@@ -2729,8 +2744,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "71933",
@@ -2767,8 +2781,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "43134:getSlotitem:airunit_banner:self._mst_id",
-        "43134:getSlotitem:airunit_name:self._mst_id",
+        "43134:getSlotitem:airunit_banner:this._mst_id",
+        "43134:getSlotitem:airunit_name:this._mst_id",
         "43134:getTexture:SALLY_AIRUNIT"
       ],
       "explicitResourcePaths": []
@@ -2778,7 +2792,7 @@
       "readableName": "MeltIntoTask",
       "fileName": "module-43639-melt-into-task.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "slotitem-resource",
@@ -2831,7 +2845,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "43639:getSlotitem:card:_0xe3277",
+        "43639:getSlotitem:card:_0x3e8c20",
         "43639:getTexture:COMMON_MISC"
       ],
       "explicitResourcePaths": []
@@ -2908,7 +2922,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "43851:getSlotitem:item_up:_0x5a9f81"
+        "43851:getSlotitem:item_up:_0x388e30"
       ],
       "explicitResourcePaths": []
     },
@@ -2917,7 +2931,7 @@
       "readableName": "TaskBonusSlot",
       "fileName": "module-44031-task-bonus-slot.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "slotitem-resource"
@@ -2930,8 +2944,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "85112",
@@ -2956,6 +2969,10 @@
         {
           "moduleId": "50857",
           "readableName": "BonusSlot"
+        },
+        {
+          "moduleId": "81574",
+          "readableName": "TaskBonusBase"
         }
       ],
       "protocolFields": [],
@@ -2978,8 +2995,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "69558",
@@ -3000,7 +3016,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "4490:getShip:full:_0x557693:false"
+        "4490:getShip:full:_0x1209f5:false"
       ],
       "explicitResourcePaths": []
     },
@@ -3043,9 +3059,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "45269:getShip:icon_box:_0x449dac.mst_id:false",
-        "45269:getShip:reward_icon:_0x449dac.mst_id:false",
-        "45269:getSlotitem:card:_0x449dac.mst_id"
+        "45269:getShip:icon_box:_0x19c5fe.mst_id:false",
+        "45269:getShip:reward_icon:_0x19c5fe.mst_id:false",
+        "45269:getSlotitem:card:_0x19c5fe.mst_id"
       ],
       "explicitResourcePaths": []
     },
@@ -3083,7 +3099,7 @@
       "readableName": "TaskExpeditionResultShow",
       "fileName": "module-46606-task-expedition-result-show.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "result",
@@ -3098,8 +3114,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "69558",
@@ -3140,7 +3155,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "46606:getShip:full:_0x52eba3.mstID:_0x52eba3.isDamaged()",
+        "46606:getShip:full:_0xc10896.mstID:_0xc10896.isDamaged()",
         "46606:getTexture:COMMON_EXPEDITION"
       ],
       "explicitResourcePaths": []
@@ -3227,7 +3242,7 @@
       "readableName": "EnemyDeckSilhouette",
       "fileName": "module-47747-enemy-deck-silhouette.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -3256,8 +3271,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "47747:getShip:banner3:_0x5a673b:false",
-        "47747:getShip:banner3:_0x5a92ec:false",
+        "47747:getShip:banner3:_0x1044fb:false",
+        "47747:getShip:banner3:_0x337ca5:false",
         "47747:getTexture:COMMON_MISC",
         "47747:getTexture:MAP_ENEMY_BANNERFRAMES"
       ],
@@ -3268,7 +3283,7 @@
       "readableName": "CutinZuiunNight",
       "fileName": "module-47921-cutin-zuiun-night.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -3317,7 +3332,7 @@
       "readableName": "TaskExpeditionEndCutin",
       "fileName": "module-48184-task-expedition-end-cutin.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -3404,8 +3419,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "72304",
@@ -3432,7 +3446,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "48531:getShip:album_status:_0x35ceca:false",
+        "48531:getShip:album_status:_0x56b25c:false",
         "48531:getTexture:ALBUM_MAIN"
       ],
       "explicitResourcePaths": []
@@ -3442,7 +3456,7 @@
       "readableName": "FlagShipLayer",
       "fileName": "module-48592-flag-ship-layer.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -3513,8 +3527,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "48856:getShip:full:_0x2abdb4[0]:false",
-        "48856:getShip:sp_remodel/silhouette:_0x2abdb4[1]:false"
+        "48856:getShip:full:_0x5eee5c[0]:false",
+        "48856:getShip:sp_remodel/silhouette:_0x5eee5c[1]:false"
       ],
       "explicitResourcePaths": []
     },
@@ -3567,8 +3581,7 @@
           "moduleId": "82464"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         }
       ],
       "protocolFields": [],
@@ -3591,8 +3604,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "72304",
@@ -3616,7 +3628,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "50569:getSlotitem:statustop_item:_0x1d6a24",
+        "50569:getSlotitem:statustop_item:_0x4408af",
         "50569:getTexture:ALBUM_MAIN"
       ],
       "explicitResourcePaths": []
@@ -3658,7 +3670,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "50857:getSlotitem:card:_0x631bc"
+        "50857:getSlotitem:card:_0x2eabd5"
       ],
       "explicitResourcePaths": []
     },
@@ -3834,8 +3846,7 @@
           "readableName": "RevampUtils"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "80526",
@@ -3899,7 +3910,7 @@
       "readableName": "RaigekiOpeningData",
       "fileName": "module-5385-raigeki-opening-data.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "day"
@@ -3908,6 +3919,10 @@
         {
           "moduleId": "46178",
           "readableName": "ObjUtil"
+        },
+        {
+          "moduleId": "49801",
+          "readableName": "RaigekiData"
         }
       ],
       "protocolFields": [
@@ -3926,7 +3941,7 @@
       "readableName": "CutinKuboDayCanvas",
       "fileName": "module-54531-cutin-kubo-day-canvas.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -4074,7 +4089,7 @@
       "readableName": "SpecialRemodelStartStage",
       "fileName": "module-55982-special-remodel-start-stage.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -4084,8 +4099,7 @@
           "moduleId": "80644"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "56728"
@@ -4101,9 +4115,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "55982:getShip:sp_remodel/full_x2:_0x12579d:false",
-        "55982:getShip:sp_remodel/text_class:_0x12579d:false",
-        "55982:getShip:sp_remodel/text_name:_0x12579d:false"
+        "55982:getShip:sp_remodel/full_x2:_0x127d1a:false",
+        "55982:getShip:sp_remodel/text_class:_0x127d1a:false",
+        "55982:getShip:sp_remodel/text_name:_0x127d1a:false"
       ],
       "explicitResourcePaths": []
     },
@@ -4132,7 +4146,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "56079:getShip:card:self._mst_id:false"
+        "56079:getShip:card:this._mst_id:false"
       ],
       "explicitResourcePaths": []
     },
@@ -4193,8 +4207,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "80526",
@@ -4292,11 +4305,15 @@
       "dependencies": [
         {
           "moduleId": "56728"
+        },
+        {
+          "moduleId": "21706",
+          "readableName": "RewardSelectDialogBtnBase"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "56884:getShip:card_round:_0x238b9e:false"
+        "56884:getShip:card_round:_0x5c2080:false"
       ],
       "explicitResourcePaths": []
     },
@@ -4408,7 +4425,7 @@
       "readableName": "RewardAnimationMultiSlot",
       "fileName": "module-58035-reward-animation-multi-slot.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "slotitem-resource",
@@ -4441,8 +4458,7 @@
           "readableName": "MessageBox"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "79963"
@@ -4450,7 +4466,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "58035:getSlotitem:card:_0x3055d6._0x294623",
+        "58035:getSlotitem:card:_0x1f582c._0x4e1278",
         "58035:getTexture:ARSENAL_ANIMATION"
       ],
       "explicitResourcePaths": []
@@ -4460,7 +4476,7 @@
       "readableName": "TaskExp",
       "fileName": "module-58211-task-exp.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -4470,8 +4486,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "69558",
@@ -4512,7 +4527,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "58211:getShip:full:mst_id:damaged"
+        "58211:getShip:full:_0x10d8a7:_0x495e08",
+        "58211:getShip:full:_0x166550:_0x18579a"
       ],
       "explicitResourcePaths": []
     },
@@ -4521,7 +4537,7 @@
       "readableName": "ModelChangeTask",
       "fileName": "module-58357-model-change-task.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "slotitem-resource",
@@ -4532,8 +4548,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "69558",
@@ -4590,8 +4605,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "58357:getSlotitem:card:_0x11c9f2",
-        "58357:getSlotitem:card:_0x5cbbf7",
+        "58357:getSlotitem:card:_0x25d885",
+        "58357:getSlotitem:card:_0x4fd957",
         "58357:getTexture:COMMON_MISC"
       ],
       "explicitResourcePaths": []
@@ -4648,7 +4663,8 @@
           "readableName": "AirUnitJetData"
         },
         {
-          "moduleId": "73509"
+          "moduleId": "73509",
+          "readableName": "HougekiListData"
         },
         {
           "moduleId": "15214",
@@ -4680,11 +4696,11 @@
         "58435:api_opening_taisen:objectArray:this._o",
         "58435:api_raigeki:object:this._o",
         "58435:api_stage_flag:numArray:this._o",
-        "58435:api_support_airatack:object:_0x216a09",
-        "58435:api_support_airatack:object:_0x5c715f",
+        "58435:api_support_airatack:object:_0x3ba239",
+        "58435:api_support_airatack:object:_0x3d7b1b",
         "58435:api_support_flag:number:this._o",
-        "58435:api_support_hourai:object:_0x10e9a6",
-        "58435:api_support_hourai:object:_0x2a4c34",
+        "58435:api_support_hourai:object:_0x5db470",
+        "58435:api_support_hourai:object:_0xef460",
         "58435:api_support_info:object:this._o"
       ],
       "resourceRuleIds": [],
@@ -4797,7 +4813,7 @@
       "readableName": "TaskRevampStart",
       "fileName": "module-60038-task-revamp-start.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -4830,8 +4846,7 @@
           "readableName": "AreaBox"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "80646",
@@ -4840,7 +4855,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "60038:getShip:full:_0x53e811:false",
+        "60038:getShip:full:_0x20f141:false",
         "60038:getTexture:REVAMP_BOX"
       ],
       "explicitResourcePaths": []
@@ -4850,7 +4865,7 @@
       "readableName": "CellTaskBattle",
       "fileName": "module-6009-cell-task-battle.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -4901,7 +4916,7 @@
       "readableName": "BannerGroup",
       "fileName": "module-60276-banner-group.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "banner",
         "battle"
@@ -4949,7 +4964,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "60621:getShip:full:mst_id:damaged"
+        "60621:getShip:full:_0x5271f6:_0x4afffc"
       ],
       "explicitResourcePaths": []
     },
@@ -5093,7 +5108,7 @@
       "readableName": "Content",
       "fileName": "module-62604-content.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -5122,7 +5137,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "62604:getShip:full:mst_id:damaged",
+        "62604:getShip:full:_0x10a78f:_0x3485e3",
         "62604:getTexture:PRAC_MAIN"
       ],
       "explicitResourcePaths": []
@@ -5233,7 +5248,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "65285:getSlotitem:card:self._mst_id"
+        "65285:getSlotitem:card:this._mst_id"
       ],
       "explicitResourcePaths": []
     },
@@ -5242,7 +5257,7 @@
       "readableName": "CutinKuboDay",
       "fileName": "module-65299-cutin-kubo-day.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -5283,7 +5298,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "65299:getShip:full:_0x483119:damaged"
+        "65299:getShip:full:_0x542094:_0x35c95c"
       ],
       "explicitResourcePaths": []
     },
@@ -5292,7 +5307,7 @@
       "readableName": "BattleCommon",
       "fileName": "module-65704-battle-common.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle"
       ],
@@ -5317,7 +5332,7 @@
       "readableName": "TaskLoadResources",
       "fileName": "module-65769-task-load-resources.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -5449,11 +5464,15 @@
         {
           "moduleId": "80883",
           "readableName": "SlotLoader"
+        },
+        {
+          "moduleId": "38928",
+          "readableName": "RewardAnimation"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "68676:getSlotitem:card:mst_id"
+        "68676:getSlotitem:card:_0x1ec98e"
       ],
       "explicitResourcePaths": []
     },
@@ -5462,7 +5481,7 @@
       "readableName": "BannerImage",
       "fileName": "module-68695-banner-image.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "banner",
         "battle",
@@ -5501,12 +5520,12 @@
       "protocolFields": [],
       "resourceRuleIds": [
         "68695:getShip:banner_g:this._mst_id:true",
-        "68695:getShip:banner:this._mst_id:_0x206ce8",
-        "68695:getShip:banner:this._mst_id:_0x3dd6aa",
+        "68695:getShip:banner:this._mst_id:_0x21c8e2",
+        "68695:getShip:banner:this._mst_id:_0xa7605a",
         "68695:getShip:banner2_g:this._mst_id:true",
-        "68695:getShip:banner2:this._mst_id:_0x4ec3b5",
+        "68695:getShip:banner2:this._mst_id:_0x8ca3f1",
         "68695:getShip:banner3_g:this._mst_id:true",
-        "68695:getShip:banner3:this._mst_id:_0x2306fe",
+        "68695:getShip:banner3:this._mst_id:_0x45ecc5",
         "68695:getTexture:BATTLE_MAIN",
         "68695:getTexture:this"
       ],
@@ -5517,7 +5536,7 @@
       "readableName": "TaskBonusShip",
       "fileName": "module-68985-task-bonus-ship.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -5530,8 +5549,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "85112",
@@ -5556,6 +5574,10 @@
         {
           "moduleId": "33911",
           "readableName": "BonusShip"
+        },
+        {
+          "moduleId": "81574",
+          "readableName": "TaskBonusBase"
         }
       ],
       "protocolFields": [],
@@ -5622,7 +5644,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "69636:getShip:full:_0x5704a5:damaged"
+        "69636:getShip:full:_0x55b934:_0x21ec07"
       ],
       "explicitResourcePaths": []
     },
@@ -5631,7 +5653,7 @@
       "readableName": "SlotDetailContent",
       "fileName": "module-69802-slot-detail-content.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "slotitem-resource"
@@ -5644,8 +5666,7 @@
           "moduleId": "65411"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "14609",
@@ -5658,12 +5679,12 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "69802:getSlotitem:card:_0x760b6d",
-        "69802:getSlotitem:item_character:_0x760b6d",
-        "69802:getSlotitem:item_on:_0x760b6d",
-        "69802:getSlotitem:item_on2:_0x760b6d",
-        "69802:getSlotitem:item_up:_0x760b6d",
-        "69802:getSlotitem:item_up2:_0x760b6d"
+        "69802:getSlotitem:card:_0x89070d",
+        "69802:getSlotitem:item_character:_0x89070d",
+        "69802:getSlotitem:item_on:_0x89070d",
+        "69802:getSlotitem:item_on2:_0x89070d",
+        "69802:getSlotitem:item_up:_0x89070d",
+        "69802:getSlotitem:item_up2:_0x89070d"
       ],
       "explicitResourcePaths": []
     },
@@ -5699,7 +5720,7 @@
       "readableName": "Banner",
       "fileName": "module-69984-banner.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "banner",
         "battle"
@@ -5742,7 +5763,7 @@
       "readableName": "PhaseAllyOpening",
       "fileName": "module-7076-phase-ally-opening.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -5780,13 +5801,14 @@
           "readableName": "ShipLoader"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "7076:getShip:full:mst_id:damaged"
+        "7076:getShip:full:_0x1a2674:_0x2b32d2",
+        "7076:getShip:full:_0x3f90af:_0x449a26",
+        "7076:getShip:full:_0x54a7c5:_0x2e3e31"
       ],
       "explicitResourcePaths": []
     },
@@ -5818,7 +5840,7 @@
       "readableName": "ShipLoader",
       "fileName": "module-71153-ship-loader.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -5920,8 +5942,8 @@
       "protocolFields": [],
       "resourceRuleIds": [
         "72369:getShip:full:this._ship_mst_id:this._ship_damaged",
-        "72369:getSlotitem:item_on:_0x321bd0",
-        "72369:getSlotitem:item_up:_0x321bd0"
+        "72369:getSlotitem:item_on:_0x452f14",
+        "72369:getSlotitem:item_up:_0x452f14"
       ],
       "explicitResourcePaths": []
     },
@@ -5930,7 +5952,7 @@
       "readableName": "CutinStatusBox",
       "fileName": "module-72783-cutin-status-box.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -5968,7 +5990,7 @@
       "readableName": "ShipDragging",
       "fileName": "module-73268-ship-dragging.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -5978,8 +6000,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "80526",
@@ -5991,7 +6012,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "73268:getShip:banner:_0x40eb5e.mstID:_0x40eb5e.isDamaged()"
+        "73268:getShip:banner:_0x39df14.mstID:_0x39df14.isDamaged()"
       ],
       "explicitResourcePaths": []
     },
@@ -6060,7 +6081,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "74003:getShip:special:_0x3b4560:false",
+        "74003:getShip:special:_0x55df17:false",
         "74003:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -6180,7 +6201,7 @@
       "readableName": "ShipDetailContent",
       "fileName": "module-74400-ship-detail-content.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -6190,8 +6211,7 @@
           "moduleId": "56728"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "80526",
@@ -6226,11 +6246,11 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "74400:getShip:card:_0x42d56a:false",
-        "74400:getShip:character_full:_0x42d56a:false",
-        "74400:getShip:character_full:_0x42d56a:true",
-        "74400:getShip:character_up:_0x42d56a:false",
-        "74400:getShip:character_up:_0x42d56a:true"
+        "74400:getShip:card:_0x579a07:false",
+        "74400:getShip:character_full:_0x579a07:false",
+        "74400:getShip:character_full:_0x579a07:true",
+        "74400:getShip:character_up:_0x579a07:false",
+        "74400:getShip:character_up:_0x579a07:true"
       ],
       "explicitResourcePaths": []
     },
@@ -6298,7 +6318,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "74671:getSlotitem:btxt_flat:mst.mstID",
+        "74671:getSlotitem:btxt_flat:_0x104d9a.mstID",
         "74671:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -6677,7 +6697,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "76559:getSlotitem:airunit_fairy:self._mst_id",
+        "76559:getSlotitem:airunit_fairy:this._mst_id",
         "76559:getTexture:SALLY_AIRUNIT"
       ],
       "explicitResourcePaths": []
@@ -6694,8 +6714,7 @@
       ],
       "dependencies": [
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "55408"
@@ -6797,7 +6816,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "79342:getSlotitem:btxt_flat:_0x5771e4"
+        "79342:getSlotitem:btxt_flat:_0x32fbef"
       ],
       "explicitResourcePaths": []
     },
@@ -6847,8 +6866,7 @@
           "readableName": "TweenTask"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         }
       ],
       "protocolFields": [],
@@ -6927,7 +6945,7 @@
       "readableName": "PanelDeckSelect",
       "fileName": "module-81608-panel-deck-select.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "texture-provider"
@@ -7021,11 +7039,15 @@
         {
           "moduleId": "71153",
           "readableName": "ShipLoader"
+        },
+        {
+          "moduleId": "51511",
+          "readableName": "TaskRewardDialogBase"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "84080:getShip:card:_0x1e8755:false"
+        "84080:getShip:card:_0x4c5e3d:false"
       ],
       "explicitResourcePaths": []
     },
@@ -7090,7 +7112,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "84192:getSlotitem:item_up:mst_id",
+        "84192:getSlotitem:item_up:_0x525205",
         "84192:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -7132,7 +7154,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "84462:getShip:card:_0x14c785:_0x49641b",
+        "84462:getShip:card:_0x11b694:_0x10728b",
         "84462:getTexture:COMMON_MISC"
       ],
       "explicitResourcePaths": []
@@ -7142,7 +7164,7 @@
       "readableName": "CutinKongoAttack",
       "fileName": "module-84582-cutin-kongo-attack.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -7175,7 +7197,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "84582:getShip:full:_0x5669ac:damaged",
+        "84582:getShip:full:_0x5b57bb:_0x50bc2c",
         "84582:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -7185,7 +7207,7 @@
       "readableName": "TaskGouchinCutinRepair",
       "fileName": "module-84685-task-gouchin-cutin-repair.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -7239,7 +7261,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "84685:getShip:full:self._mst_id:_0xef2b62",
+        "84685:getShip:full:this._mst_id:_0x3e420c",
         "84685:getSlotitem:card:slotitemMstID",
         "84685:getTexture:BATTLE_CUTIN_GOUCHIN",
         "84685:getTexture:COMMON_MISC"
@@ -7251,7 +7273,7 @@
       "readableName": "CutinCanvasSpSuirai",
       "fileName": "module-84952-cutin-canvas-sp-suirai.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -7288,9 +7310,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "84952:getSlotitem:btxt_flat:_0x220270",
-        "84952:getSlotitem:btxt_flat:_0x302e9d",
-        "84952:getSlotitem:btxt_flat:_0x5e524d",
+        "84952:getSlotitem:btxt_flat:_0x3fdf50",
+        "84952:getSlotitem:btxt_flat:_0x426e96",
+        "84952:getSlotitem:btxt_flat:_0x453ee2",
         "84952:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -7360,7 +7382,7 @@
       "readableName": "ResultDialog",
       "fileName": "module-86508-result-dialog.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "result",
@@ -7400,8 +7422,7 @@
           "readableName": "KamihubukiLayer"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         }
       ],
       "protocolFields": [],
@@ -7415,7 +7436,7 @@
       "readableName": "CutinCanvasSpSR",
       "fileName": "module-88752-cutin-canvas-sp-sr.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -7444,10 +7465,10 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "88752:getSlotitem:btxt_flat:_0x1cf43e",
-        "88752:getSlotitem:btxt_flat:_0x8bc0b",
-        "88752:getSlotitem:item_up:_0x10a087",
-        "88752:getSlotitem:item_up:_0x129303"
+        "88752:getSlotitem:btxt_flat:_0x5a22b7",
+        "88752:getSlotitem:btxt_flat:_0x5f14f6",
+        "88752:getSlotitem:item_up:_0x443262",
+        "88752:getSlotitem:item_up:_0x747f3f"
       ],
       "explicitResourcePaths": []
     },
@@ -7456,7 +7477,7 @@
       "readableName": "CutinCanvasSpYusou",
       "fileName": "module-88762-cutin-canvas-sp-yusou.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "cutin",
@@ -7493,9 +7514,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "88762:getSlotitem:btxt_flat:_0x2b791f",
-        "88762:getSlotitem:btxt_flat:_0x429314",
-        "88762:getSlotitem:btxt_flat:_0x5e4bc0",
+        "88762:getSlotitem:btxt_flat:_0x4004eb",
+        "88762:getSlotitem:btxt_flat:_0x555d4b",
+        "88762:getSlotitem:btxt_flat:_0x59cf17",
         "88762:getTexture:BATTLE_MAIN"
       ],
       "explicitResourcePaths": []
@@ -7505,7 +7526,7 @@
       "readableName": "LongShipBanner",
       "fileName": "module-88948-long-ship-banner.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "banner",
         "battle",
@@ -7566,7 +7587,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "88948:getShip:supply_character:_0x596de9:_0x722d89",
+        "88948:getShip:supply_character:_0xc87aaa:_0x405186",
         "88948:getTexture:COMMON_MAIN",
         "88948:getTexture:COMMON_MISC"
       ],
@@ -7577,7 +7598,7 @@
       "readableName": "BattleCommonModel",
       "fileName": "module-89532-battle-common-model.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle"
       ],
@@ -7654,7 +7675,7 @@
       "readableName": "PhaseAllyOpening",
       "fileName": "module-9288-phase-ally-opening.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource"
@@ -7692,13 +7713,14 @@
           "readableName": "ShipLoader"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         }
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "9288:getShip:full:mst_id:damaged"
+        "9288:getShip:full:_0x104b47:_0x33aaa8",
+        "9288:getShip:full:_0x5095c3:_0xc8140c",
+        "9288:getShip:full:_0x517e9f:_0x2d8e55"
       ],
       "explicitResourcePaths": []
     },
@@ -7719,8 +7741,7 @@
           "readableName": "REVAMP_RESET"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "56728"
@@ -7776,7 +7797,7 @@
       "readableName": "TaskUseGiftBox",
       "fileName": "module-93399-task-use-gift-box.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -7816,8 +7837,8 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "93399:getShip:icon_box:_0x202e11.mst_id:false",
-        "93399:getSlotitem:card:_0x202e11.mst_id"
+        "93399:getShip:icon_box:_0x1149bc.mst_id:false",
+        "93399:getSlotitem:card:_0x1149bc.mst_id"
       ],
       "explicitResourcePaths": []
     },
@@ -7914,7 +7935,7 @@
       "readableName": "BannerContent",
       "fileName": "module-94359-banner-content.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "banner",
         "battle",
@@ -8007,7 +8028,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "94669:getShip:full:_0x569bca:damaged"
+        "94669:getShip:full:_0x31982c:_0x197dc2"
       ],
       "explicitResourcePaths": []
     },
@@ -8016,7 +8037,7 @@
       "readableName": "BannerGroupLayer",
       "fileName": "module-95946-banner-group-layer.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "banner",
         "battle"
@@ -8070,15 +8091,14 @@
       "readableName": "PresetEditSlot",
       "fileName": "module-96188-preset-edit-slot.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "texture-provider"
       ],
       "dependencies": [
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "72304",
@@ -8119,7 +8139,7 @@
       "readableName": "SpKaizoConfirm",
       "fileName": "module-96208-sp-kaizo-confirm.js",
       "moduleKind": "game",
-      "cleanupTier": "priority-body",
+      "cleanupTier": "named-game",
       "tags": [
         "battle",
         "ship-resource",
@@ -8156,8 +8176,7 @@
           "readableName": "SceneMemory"
         },
         {
-          "moduleId": "40167",
-          "readableName": "EventType"
+          "moduleId": "40167"
         },
         {
           "moduleId": "29698",
@@ -8170,7 +8189,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "96208:getShip:sp_remodel/text_remodel_mes:_0xa1469e.mstID:false",
+        "96208:getShip:sp_remodel/text_remodel_mes:_0x25ea16.mstID:false",
         "96208:getTexture:REMODEL_GRADEUP"
       ],
       "explicitResourcePaths": []
@@ -8333,9 +8352,9 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "98934:getShip:banner_g:_0x5e0ff9:true",
-        "98934:getShip:banner:_0x5e0ff9:false",
-        "98934:getShip:banner:_0x5e0ff9:true"
+        "98934:getShip:banner_g:_0x45e77f:true",
+        "98934:getShip:banner:_0x45e77f:false",
+        "98934:getShip:banner:_0x45e77f:true"
       ],
       "explicitResourcePaths": []
     },
@@ -8478,7 +8497,7 @@
       ],
       "protocolFields": [],
       "resourceRuleIds": [
-        "99417:getSlotitem:card:_0x3e9fc2"
+        "99417:getSlotitem:card:_0x1934a1"
       ],
       "explicitResourcePaths": []
     }

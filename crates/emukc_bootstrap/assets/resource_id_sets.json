@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-07T05:12:08.913Z",
-  "scriptVersion": "6.3.5.0",
+  "generatedAt": "2026-10-15T12:54:44.925Z",
+  "scriptVersion": "6.3.6.0",
   "coverageMode": "mainjs-observed",
   "summary": {
     "shipCategoryCount": 5,

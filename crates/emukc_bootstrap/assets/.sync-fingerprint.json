@@ -1,13 +1,13 @@
 {
-  "version": "6.3.5.0",
+  "version": "6.3.6.0",
   "assets": {
-    "audio_resources": "5GEpg449Cg6LEQEpyo4KK7gQv6Qq2ChaVZcB4ptDAyG1",
-    "battle_attack_type_acceptance": "BBuoarPPu3fBTyre3UXUPw32vjg3aKNMsN8EM3SR343d",
-    "battle_module_index": "Ae6VUFCZx8dtajzB5yyPZ68odViu9Bs118FCiK31dAbP",
-    "battle_protocol_fields": "3UUcxEhzDUFDc7XbQMWZ5rRQUAR4PXyW9QiiMYX3bikn",
-    "battle_resource_rules": "CbTJYCqNsYWV1Far79mL57yDdVYMau63g9zysksCRNEE",
-    "battle_slot_resource_triggers": "DE8FGF3XUCJnxyvUTRuM1vSKFea4eA9NPLFvnhrh7FVs",
-    "cache_rules": "6msLMj6WeE2LcfqyytQUGAjBHpsoiEbT6cRvU6ncTiBF",
+    "audio_resources": "EyaA6eqnZeyNtQA2HWUyC1mxoBF8v5ZNbXcAzJkRJxLU",
+    "battle_attack_type_acceptance": "3R1LmDxYoNTbQeCTaQiNjYTRrsHF961iEak4bqqz6sXj",
+    "battle_module_index": "BGb5RoZua5z1T41wCUCUggorN41Ghn54e7kKknZcVi7X",
+    "battle_protocol_fields": "3TbdsNKnrak8FvNxpt26aCpu94NjxeX2MNZVqa1adAc8",
+    "battle_resource_rules": "97MjjYH2w7EfRnfBAZy1vN1RbvxiGULsMXqhjXLMV3W3",
+    "battle_slot_resource_triggers": "8zkSwa2ojVVaua7tczbVYPheYBateAg6BsBqM2r6bCjx",
+    "cache_rules": "75vUS8UBu9SFFtwEJNXnPgMUXjXDAKbDo3VvKeFeaLDk",
     "gear_bonus": "Dchf8gxHaUcHDefvsQEsFg9SaZtU7iPTb5yWM1X9Ks21",
     "kcnav_cell_events": "F3sVuaXyGL5kvCcJE6BuuLQoq2fizbwSbFniaosBtF8P",
     "kcnav_enemy_fleets": "6Wca1ESeP3ZWdrRbraqtQEaYnzYeEfgfJugWMjzMabfd",
@@ -18,10 +18,10 @@
     "map_route_rules": "7ohFNL2VqgNCaDQCnUpEToWpZVFWDyg55iXwgdiP2jzP",
     "map_ship_drops": "AJ3rz9aJkLmDqQ3LeVdQqxeqtug5eeiCrpo9bcE1BPCd",
     "public_map_catalog_overlays": "E1AT4wGopwQqKmZ9TatZHeBnXnCn8d91AQFNtZeJ6HN8",
-    "resource_categories": "6ZaD8a9WeibUP2cb6NJw5NjrTcUYsVpwpS4oYLvuzbHr",
-    "resource_id_sets": "6APJBGmcm3qZfiX5mrsN1NKqNoEbFXNjdVVBXFPvEToM",
-    "resource_manifest": "HB1vT41BhxNmvFPyC4MdcVdkoF1KJqRrbuKjCHX6ybsY",
-    "resource_templates": "Gx2dC99H2WwGn8sHPbPbSQLfrKcTPtBe53eRTFpQYk3u",
-    "ui_resources": "DNWuU4baDs65rqGzF35LJweuakDXJKsqsqCgEdMezkMd"
+    "resource_categories": "9PAzRX3W49uqvjBAHrmfa11mRgoe3rMjcpuFiA9AQ7WU",
+    "resource_id_sets": "DZjuJTmrPRNYGBcDFbjU4zbverLwZJPvH8EnwHbe2rRB",
+    "resource_manifest": "DTfdUSLZ8aPUYU5QfMDWVMXQZN7K6ZcDazfAr5Fn7eCT",
+    "resource_templates": "C1ZeQvHaidRNeACcQyYzmQJHe7CqAnx1Cv6FxjQjL2d9",
+    "ui_resources": "BLfxw5jiS494F8USJDfuMsMHCNnfqwZcwqRM9cXqXf54"
   }
 }
