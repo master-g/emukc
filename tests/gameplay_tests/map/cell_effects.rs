@@ -644,4 +644,26 @@ mod tests {
         assert_eq!(convoy_route(&context, pid).await, (true, 7));
         assert_eq!(use_item_count(&context, pid, PRESENT_BOX).await, boxes + 1);
     }
+
+    /// 807 「第三十一戦隊」出撃せよ！ counts reaching 1-6's goal N, which has no battle (#149).
+    #[tokio::test]
+    async fn reaching_the_goal_of_1_6_counts_for_the_quests_that_name_it() {
+        use emukc_internal::db::entity::profile::quest::progress::Progress;
+
+        let context = crate::TestContext::new().await;
+        let pid = profile(&context, "goal-quest").await;
+        // 五十鈴改二 leading two of 418 / 309, as 807 asks.
+        fleet_of(&context, pid, &[141, 418, 309]).await;
+        context.quest_add(pid, 807).await.unwrap();
+        context.quest_start(pid, 807).await.unwrap();
+        let progress = async || {
+            let records = context.get_quest_records(pid).await.unwrap();
+            records.iter().find(|r| r.quest_id == 807).expect("807 has a record").progress
+        };
+        assert_ne!(progress().await, Progress::Completed);
+
+        arrive(&context, pid, 16, "N", async || {}).await;
+
+        assert_eq!(progress().await, Progress::Completed);
+    }
 }

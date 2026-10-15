@@ -484,6 +484,10 @@ pub(super) fn build_sortie_battle_outcome(
         boss_cell: active
             .pending_battle_cell_id
             .is_some_and(|id| stage.boss_cell_nos().contains(&id)),
+        node: active
+            .pending_battle_cell_id
+            .and_then(|id| stage.cell(id))
+            .and_then(|cell| cell.node_label.clone()),
         win_rank: parse_sortie_result_rank(&snapshot.win_rank)?,
         fleet_id: active.deck_id,
         fleet_ships: snapshot.friendly_fleet_snapshot.clone(),
@@ -1184,6 +1188,7 @@ mod tests {
                 mapinfo_no,
                 gauge_phase,
                 boss_cell,
+                node,
                 win_rank,
                 fleet_id,
                 fleet_ships,
@@ -1192,6 +1197,7 @@ mod tests {
                 assert_eq!(mapinfo_no, 2);
                 assert_eq!(gauge_phase, 2, "the phase is passed through as given");
                 assert!(boss_cell);
+                assert_eq!(node.as_deref(), Some("C"), "the cell's label");
                 assert_eq!(win_rank, emukc_model::kc2::KcSortieResultRank::A);
                 assert_eq!(fleet_id, 3);
                 assert_eq!(fleet_ships, fleet, "the fleet as it fought is passed through");

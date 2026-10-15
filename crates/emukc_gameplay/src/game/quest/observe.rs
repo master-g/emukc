@@ -97,11 +97,28 @@ pub(crate) enum GameplayOutcome {
         gauge_phase: i64,
         /// Whether the battle happened on a boss cell.
         boss_cell: bool,
+        /// The cell's `node_label`.
+        node: Option<String>,
         /// The battle result rank.
         win_rank: KcSortieResultRank,
         /// The fleet that fought.
         fleet_id: i64,
         /// 第1艦隊 as it fought.
+        fleet_ships: Vec<FleetShipSnapshot>,
+    },
+    /// A sortie fleet reached a cell where it does not fight, such as 1-6's goal.
+    SortieNodeReached {
+        /// The map area ID.
+        maparea_id: i64,
+        /// The map number within the area.
+        mapinfo_no: i64,
+        /// The map's gauge (1-based) when the cell was reached.
+        gauge_phase: i64,
+        /// The cell's `node_label`.
+        node: String,
+        /// The fleet that arrived.
+        fleet_id: i64,
+        /// 第1艦隊 as it arrived.
         fleet_ships: Vec<FleetShipSnapshot>,
     },
     /// A modernization was applied.
@@ -195,6 +212,7 @@ impl GameplayOutcome {
                 mapinfo_no,
                 gauge_phase,
                 boss_cell,
+                node,
                 win_rank,
                 fleet_id,
                 fleet_ships,
@@ -203,7 +221,23 @@ impl GameplayOutcome {
                 mapinfo_no: *mapinfo_no,
                 gauge_phase: *gauge_phase,
                 boss_cell: *boss_cell,
+                node: node.clone(),
                 win_rank: *win_rank,
+                fleet_id: *fleet_id,
+                fleet_ships: fleet_ships.clone(),
+            },
+            Self::SortieNodeReached {
+                maparea_id,
+                mapinfo_no,
+                gauge_phase,
+                node,
+                fleet_id,
+                fleet_ships,
+            } => QuestActionEvent::SortieNodeReached {
+                maparea_id: *maparea_id,
+                mapinfo_no: *mapinfo_no,
+                gauge_phase: *gauge_phase,
+                node: node.clone(),
                 fleet_id: *fleet_id,
                 fleet_ships: fleet_ships.clone(),
             },

@@ -356,7 +356,7 @@ mod tests {
     use emukc_model::prelude::*;
 
     use super::super::{
-        Consume, ConsumeCategory, Id, List, Requirements, RequirementsCategory, Sortie,
+        Consume, ConsumeCategory, Id, List, Node, Requirements, RequirementsCategory, Sortie,
     };
     use super::ParseError;
 
@@ -578,6 +578,57 @@ mod tests {
                     amount: 1,
                 }]
             ))]
+        );
+    }
+
+    /// 847's `7-3P` is 7-3's cell P, and 1051's `node: "n"` is 1-6's goal N (#149).
+    #[test]
+    fn sortie_entries_keep_their_cell() {
+        let sortie = |map: Id, node| Sortie {
+            map: Some(map),
+            boss: None,
+            result: None,
+            times: None,
+            node,
+            any: None,
+        };
+        let req = Requirements {
+            category: RequirementsCategory::Sortie,
+            sortie: Some(vec![
+                sortie(Id::StringArray(vec!["2-2".to_string(), "7-3P".to_string()]), None),
+                sortie(Id::String("7-2-P2".to_string()), None),
+                sortie(Id::String("1-6".to_string()), Some(Node::N)),
+            ]),
+            ..empty_requirements()
+        };
+
+        let result = req.to_requirements(&empty_manifest());
+        let Ok(Kc3rdQuestRequirement::And(conditions)) = result else {
+            panic!("expected And conditions, got {result:?}");
+        };
+        let maps: Vec<_> = conditions
+            .iter()
+            .map(|condition| match condition {
+                Kc3rdQuestCondition::Sortie(sortie) => sortie.map.clone(),
+                other => panic!("expected a sortie, got {other:?}"),
+            })
+            .collect();
+        let info = |area, number, phase, node: Option<&str>| Kc3rdQuestConditionMapInfo {
+            area,
+            number,
+            phase,
+            node: node.map(str::to_string),
+        };
+        assert_eq!(
+            maps,
+            [
+                Some(Kc3rdQuestConditionSortieMap::All(vec![
+                    info(2, 2, None, None),
+                    info(7, 3, None, Some("P")),
+                ])),
+                Some(Kc3rdQuestConditionSortieMap::One(info(7, 2, Some(2), None))),
+                Some(Kc3rdQuestConditionSortieMap::One(info(1, 6, None, Some("N")))),
+            ]
         );
     }
 

@@ -586,6 +586,12 @@ impl Ctx {
 
                 // Resolve non-battle node effects (resource gain / maelstrom loss).
                 let tx = db.begin().await?;
+                // Read before the cell can empty a gauge, as a battle's phase is.
+                let reached_phase = if matches!(next.event_id, 4 | 5) {
+                    None
+                } else {
+                    Some(find_map_record_impl(&tx, profile_id, active.map_id).await?.gauge_index)
+                };
                 let (itemget, happening) = cell_effect::resolve_cell_effect(
                     &tx,
                     codex,
@@ -664,6 +670,29 @@ impl Ctx {
                         None
                     }
                 };
+                // A cell without a battle counts for the quests that name it: 1-6's goal,
+                // 7-4 O.
+                if let (Some(gauge_phase), Some(node)) = (reached_phase, next.node_label.clone()) {
+                    let (maparea_id, mapinfo_no) = split_map_id(active.map_id);
+                    let fleet_ships = fleet_ships
+                        .iter()
+                        .enumerate()
+                        .map(|(idx, ship)| emukc_model::thirdparty::FleetShipSnapshot {
+                            mst_id: ship.mst_id,
+                            level: ship.level,
+                            position: idx as i64 + 1,
+                        })
+                        .collect();
+                    let outcome = GameplayOutcome::SortieNodeReached {
+                        maparea_id,
+                        mapinfo_no,
+                        gauge_phase,
+                        node,
+                        fleet_id: active.deck_id,
+                        fleet_ships,
+                    };
+                    observe(&tx, codex, profile_id, &[outcome]).await?;
+                }
                 tx.commit().await?;
                 cell_effect::put_by(store, profile_id, itemget.as_deref());
                 cell_effect::put_by(

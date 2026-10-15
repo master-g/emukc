@@ -53,9 +53,23 @@ pub enum QuestActionEvent {
         /// The map's gauge (1-based) when the battle was fought.
         gauge_phase: i64,
         boss_cell: bool,
+        /// The cell's `node_label`.
+        node: Option<String>,
         win_rank: KcSortieResultRank,
         fleet_id: i64,
         /// 第1艦隊 as it fought.
+        fleet_ships: Vec<FleetShipSnapshot>,
+    },
+    /// A sortie fleet reached a cell where it does not fight, such as 1-6's goal.
+    SortieNodeReached {
+        maparea_id: i64,
+        mapinfo_no: i64,
+        /// The map's gauge (1-based) when the cell was reached.
+        gauge_phase: i64,
+        /// The cell's `node_label`.
+        node: String,
+        fleet_id: i64,
+        /// 第1艦隊 as it arrived.
         fleet_ships: Vec<FleetShipSnapshot>,
     },
     ModernizationCompleted {
@@ -118,6 +132,7 @@ impl Kc3rdQuestCondition {
                     QuestActionEvent::ExpeditionCompleted { .. },
                 )
                 | (Kc3rdQuestCondition::Sortie(_), QuestActionEvent::SortieBattleCompleted { .. },)
+                | (Kc3rdQuestCondition::Sortie(_), QuestActionEvent::SortieNodeReached { .. },)
                 // Which of the two a sortie condition counts is decided by its master.
                 | (Kc3rdQuestCondition::Sortie(_), QuestActionEvent::SortieStarted { .. },)
         )
@@ -271,6 +286,11 @@ pub fn apply_event_to_conditions(
             fleet_id,
             fleet_ships,
             ..
+        }
+        | QuestActionEvent::SortieNodeReached {
+            fleet_id,
+            fleet_ships,
+            ..
         } = event
             && let Some(composition) = master.and_then(|master| paired_composition(master, idx))
             && !codex.is_some_and(|codex| {
@@ -365,17 +385,33 @@ fn apply_sortie_event(
     if master_condition.unwrap_or(condition).count_at_sortie_start {
         return apply_sortie_start_event(condition, event);
     }
-    let &QuestActionEvent::SortieBattleCompleted {
-        maparea_id,
-        mapinfo_no,
-        gauge_phase,
-        boss_cell,
-        win_rank,
-        fleet_id,
-        ..
-    } = event
-    else {
-        return false;
+    let (maparea_id, mapinfo_no, gauge_phase, node, fleet_id, battle) = match event {
+        QuestActionEvent::SortieBattleCompleted {
+            maparea_id,
+            mapinfo_no,
+            gauge_phase,
+            boss_cell,
+            node,
+            win_rank,
+            fleet_id,
+            ..
+        } => (
+            *maparea_id,
+            *mapinfo_no,
+            *gauge_phase,
+            node.as_deref(),
+            *fleet_id,
+            Some((*boss_cell, *win_rank)),
+        ),
+        QuestActionEvent::SortieNodeReached {
+            maparea_id,
+            mapinfo_no,
+            gauge_phase,
+            node,
+            fleet_id,
+            ..
+        } => (*maparea_id, *mapinfo_no, *gauge_phase, Some(node.as_str()), *fleet_id, None),
+        _ => return false,
     };
     if condition.times <= 0 {
         return false;
@@ -383,19 +419,42 @@ fn apply_sortie_event(
     if condition.fleet_id > 0 && condition.fleet_id != fleet_id {
         return false;
     }
-    if condition.defeat_boss && !boss_cell {
-        return false;
+    match battle {
+        Some((boss_cell, win_rank)) => {
+            if condition.defeat_boss && !boss_cell {
+                return false;
+            }
+            if !sortie_result_matches(condition.result.as_ref(), boss_cell, win_rank) {
+                return false;
+            }
+        }
+        // Reaching the cell is all an entry naming it asks, unless it asks for a win.
+        None => {
+            if condition.defeat_boss || matches!(condition.result, Some(KcSortieResult::Ranked(_)))
+            {
+                return false;
+            }
+        }
     }
-    if !sortie_result_matches(condition.result.as_ref(), boss_cell, win_rank) {
-        return false;
+    if let (Some(map), Some(master)) =
+        (condition.map.as_mut(), master_condition.and_then(|m| m.map.as_ref()))
+    {
+        take_cells_from_master(map, master);
     }
-    if !sortie_map_matches(condition.map.as_ref(), maparea_id, mapinfo_no, gauge_phase) {
+    let cell = SortieCell {
+        maparea_id,
+        mapinfo_no,
+        gauge_phase,
+        node,
+        reached: battle.is_none(),
+    };
+    if !sortie_map_matches(condition.map.as_ref(), &cell) {
         return false;
     }
 
     match condition.map.as_mut() {
         Some(Kc3rdQuestConditionSortieMap::All(maps)) => {
-            remove_sortie_map(maps, maparea_id, mapinfo_no, gauge_phase);
+            remove_sortie_map(maps, &cell);
             if !maps.is_empty() {
                 return true;
             }
@@ -446,47 +505,65 @@ fn sortie_result_matches(
     }
 }
 
-fn sortie_map_matches(
-    required: Option<&Kc3rdQuestConditionSortieMap>,
+/// Where a sortie event happened.
+struct SortieCell<'a> {
     maparea_id: i64,
     mapinfo_no: i64,
     gauge_phase: i64,
-) -> bool {
+    node: Option<&'a str>,
+    /// Reached without a battle.
+    reached: bool,
+}
+
+fn sortie_map_matches(required: Option<&Kc3rdQuestConditionSortieMap>, cell: &SortieCell) -> bool {
     match required {
-        None => true,
-        Some(Kc3rdQuestConditionSortieMap::One(map)) => {
-            sortie_map_info_matches(map, maparea_id, mapinfo_no, gauge_phase)
-        }
-        Some(Kc3rdQuestConditionSortieMap::AnyOf(maps))
-        | Some(Kc3rdQuestConditionSortieMap::All(maps)) => {
-            maps.iter().any(|map| sortie_map_info_matches(map, maparea_id, mapinfo_no, gauge_phase))
-        }
+        // Any battle counts; a bare arrival counts only for an entry naming the cell.
+        None => !cell.reached,
+        Some(map) => map_infos(map).iter().any(|map| sortie_map_info_matches(map, cell)),
     }
 }
 
-/// An entry naming a gauge phase only matches battles fought in that phase.
-fn sortie_map_info_matches(
-    map: &Kc3rdQuestConditionMapInfo,
-    maparea_id: i64,
-    mapinfo_no: i64,
-    gauge_phase: i64,
-) -> bool {
-    map.area == maparea_id
-        && map.number == mapinfo_no
-        && map.phase.is_none_or(|phase| phase == gauge_phase)
+/// An entry naming a gauge phase only matches battles fought in that phase, and one naming
+/// a cell only what happens on that cell.
+fn sortie_map_info_matches(map: &Kc3rdQuestConditionMapInfo, cell: &SortieCell) -> bool {
+    map.area == cell.maparea_id
+        && map.number == cell.mapinfo_no
+        && map.phase.is_none_or(|phase| phase == cell.gauge_phase)
+        && match map.node.as_deref() {
+            Some(node) => cell.node == Some(node),
+            None => !cell.reached,
+        }
 }
 
-fn remove_sortie_map(
-    maps: &mut Vec<Kc3rdQuestConditionMapInfo>,
-    maparea_id: i64,
-    mapinfo_no: i64,
-    gauge_phase: i64,
-) {
-    if let Some(idx) = maps
-        .iter()
-        .position(|map| sortie_map_info_matches(map, maparea_id, mapinfo_no, gauge_phase))
-    {
+fn remove_sortie_map(maps: &mut Vec<Kc3rdQuestConditionMapInfo>, cell: &SortieCell) {
+    if let Some(idx) = maps.iter().position(|map| sortie_map_info_matches(map, cell)) {
         maps.remove(idx);
+    }
+}
+
+fn map_infos(map: &Kc3rdQuestConditionSortieMap) -> &[Kc3rdQuestConditionMapInfo] {
+    match map {
+        Kc3rdQuestConditionSortieMap::One(map) => std::slice::from_ref(map),
+        Kc3rdQuestConditionSortieMap::All(maps) | Kc3rdQuestConditionSortieMap::AnyOf(maps) => maps,
+    }
+}
+
+/// Progress rows saved before entries kept their cell take it from the master.
+fn take_cells_from_master(
+    map: &mut Kc3rdQuestConditionSortieMap,
+    master: &Kc3rdQuestConditionSortieMap,
+) {
+    let infos = match map {
+        Kc3rdQuestConditionSortieMap::One(map) => std::slice::from_mut(map),
+        Kc3rdQuestConditionSortieMap::All(maps) | Kc3rdQuestConditionSortieMap::AnyOf(maps) => {
+            maps.as_mut_slice()
+        }
+    };
+    for info in infos.iter_mut().filter(|info| info.node.is_none()) {
+        info.node = map_infos(master)
+            .iter()
+            .find(|m| m.area == info.area && m.number == info.number && m.phase == info.phase)
+            .and_then(|m| m.node.clone());
     }
 }
 
@@ -620,6 +697,7 @@ mod tests {
             area,
             number,
             phase: None,
+            node: None,
         }
     }
 
@@ -659,6 +737,7 @@ mod tests {
                 mapinfo_no: 1,
                 gauge_phase: 1,
                 boss_cell: false,
+                node: None,
                 win_rank: KcSortieResultRank::S,
                 fleet_id: 1,
                 fleet_ships: vec![],
@@ -671,6 +750,7 @@ mod tests {
                 mapinfo_no: 1,
                 gauge_phase: 1,
                 boss_cell: true,
+                node: None,
                 win_rank: KcSortieResultRank::C,
                 fleet_id: 1,
                 fleet_ships: vec![],
@@ -683,6 +763,7 @@ mod tests {
                 mapinfo_no: 1,
                 gauge_phase: 1,
                 boss_cell: true,
+                node: None,
                 win_rank: KcSortieResultRank::A,
                 fleet_id: 1,
                 fleet_ships: vec![],
@@ -714,6 +795,7 @@ mod tests {
                 mapinfo_no: 6,
                 gauge_phase: 1,
                 boss_cell: false,
+                node: None,
                 win_rank: KcSortieResultRank::A,
                 fleet_id: 1,
                 fleet_ships: vec![],
@@ -726,6 +808,7 @@ mod tests {
                 mapinfo_no: 6,
                 gauge_phase: 1,
                 boss_cell: true,
+                node: None,
                 win_rank: KcSortieResultRank::C,
                 fleet_id: 1,
                 fleet_ships: vec![],
@@ -738,6 +821,7 @@ mod tests {
                 mapinfo_no: 6,
                 gauge_phase: 1,
                 boss_cell: true,
+                node: None,
                 win_rank: KcSortieResultRank::B,
                 fleet_id: 1,
                 fleet_ships: vec![],
@@ -765,6 +849,7 @@ mod tests {
                 mapinfo_no: 1,
                 gauge_phase: 1,
                 boss_cell: true,
+                node: None,
                 win_rank: KcSortieResultRank::A,
                 fleet_id: 1,
                 fleet_ships: vec![],
@@ -783,6 +868,7 @@ mod tests {
                 mapinfo_no: 2,
                 gauge_phase: 1,
                 boss_cell: true,
+                node: None,
                 win_rank: KcSortieResultRank::A,
                 fleet_id: 1,
                 fleet_ships: vec![],
@@ -801,6 +887,7 @@ mod tests {
             area,
             number,
             phase: Some(phase),
+            node: None,
         }
     }
 
@@ -811,10 +898,145 @@ mod tests {
             mapinfo_no: number,
             gauge_phase,
             boss_cell: true,
+            node: None,
             win_rank: KcSortieResultRank::S,
             fleet_id: 1,
             fleet_ships: vec![],
         }
+    }
+
+    fn at_cell(area: i64, number: i64, node: &str) -> Kc3rdQuestConditionMapInfo {
+        Kc3rdQuestConditionMapInfo {
+            node: Some(node.to_string()),
+            ..map(area, number)
+        }
+    }
+
+    /// The fleet reached `area-number` cell `node` without fighting there.
+    fn reached(area: i64, number: i64, node: &str) -> QuestActionEvent {
+        QuestActionEvent::SortieNodeReached {
+            maparea_id: area,
+            mapinfo_no: number,
+            gauge_phase: 1,
+            node: node.to_string(),
+            fleet_id: 1,
+            fleet_ships: vec![],
+        }
+    }
+
+    /// A sortie entry on `map`, once, with `result`.
+    fn entry(
+        map: Option<Kc3rdQuestConditionMapInfo>,
+        result: Option<KcSortieResult>,
+    ) -> Kc3rdQuestCondition {
+        Kc3rdQuestCondition::Sortie(Kc3rdQuestConditionSortie {
+            map: map.map(Kc3rdQuestConditionSortieMap::One),
+            result,
+            times: 1,
+            ..Default::default()
+        })
+    }
+
+    fn times_left(condition: &Kc3rdQuestCondition) -> i64 {
+        match condition {
+            Kc3rdQuestCondition::Sortie(sortie) => sortie.times,
+            other => panic!("expected a sortie condition, got {other:?}"),
+        }
+    }
+
+    /// 807's 1-6 entry: reaching the goal is the whole of it (#149).
+    #[test]
+    fn reaching_1_6_n_counts_an_entry_naming_it() {
+        let master = entry(Some(at_cell(1, 6, "N")), Some(KcSortieResult::Clear));
+
+        let mut elsewhere = master.clone();
+        assert!(!elsewhere.apply_event_with_reference(&reached(1, 6, "M"), Some(&master)));
+        let mut fought = master.clone();
+        assert!(!fought.apply_event_with_reference(&boss_s(1, 6, 1), Some(&master)));
+
+        let mut current = master.clone();
+        assert!(current.apply_event_with_reference(&reached(1, 6, "N"), Some(&master)));
+        assert_eq!(times_left(&current), 0);
+    }
+
+    #[test]
+    fn reaching_a_cell_counts_no_entry_that_names_none() {
+        for master in [entry(Some(map(1, 6)), None), entry(None, None)] {
+            let mut current = master.clone();
+            assert!(!current.apply_event_with_reference(&reached(1, 6, "N"), Some(&master)));
+        }
+    }
+
+    #[test]
+    fn reaching_a_cell_counts_no_entry_asking_for_a_win() {
+        let master =
+            entry(Some(at_cell(1, 6, "N")), Some(KcSortieResult::Ranked(KcSortieResultRank::A)));
+        let mut current = master.clone();
+        assert!(!current.apply_event_with_reference(&reached(1, 6, "N"), Some(&master)));
+    }
+
+    /// 847's 7-3P: a boss win counts only on cell P.
+    #[test]
+    fn a_battle_counts_an_entry_naming_a_cell_only_on_that_cell() {
+        let master =
+            entry(Some(at_cell(7, 3, "P")), Some(KcSortieResult::Ranked(KcSortieResultRank::S)));
+        let on = |node: &str| match boss_s(7, 3, 2) {
+            QuestActionEvent::SortieBattleCompleted {
+                maparea_id,
+                mapinfo_no,
+                gauge_phase,
+                boss_cell,
+                win_rank,
+                fleet_id,
+                fleet_ships,
+                ..
+            } => QuestActionEvent::SortieBattleCompleted {
+                maparea_id,
+                mapinfo_no,
+                gauge_phase,
+                boss_cell,
+                node: Some(node.to_string()),
+                win_rank,
+                fleet_id,
+                fleet_ships,
+            },
+            _ => unreachable!(),
+        };
+
+        let mut current = master.clone();
+        assert!(!current.apply_event_with_reference(&on("E"), Some(&master)));
+        assert!(current.apply_event_with_reference(&on("P"), Some(&master)));
+    }
+
+    /// 855's shape: boss S wins on 1-3, 1-4 and 1-5, and 1-6's goal. Reaching the goal
+    /// leaves the boss wins to do.
+    #[test]
+    fn reaching_the_goal_leaves_the_other_entries_of_the_quest() {
+        let master = vec![
+            Kc3rdQuestCondition::Sortie(Kc3rdQuestConditionSortie {
+                defeat_boss: true,
+                map: Some(Kc3rdQuestConditionSortieMap::All(vec![map(1, 3), map(1, 4), map(1, 5)])),
+                result: Some(KcSortieResult::Ranked(KcSortieResultRank::S)),
+                times: 1,
+                ..Default::default()
+            }),
+            entry(Some(at_cell(1, 6, "N")), Some(KcSortieResult::Clear)),
+        ];
+        let mut current = master.clone();
+
+        assert!(apply_event_to_conditions(&mut current, Some(&master), &reached(1, 6, "N"), None));
+
+        assert_eq!(current.iter().map(times_left).collect::<Vec<_>>(), [1, 0]);
+    }
+
+    /// A progress row saved before entries kept their cell takes it from the master.
+    #[test]
+    fn an_old_progress_row_takes_the_cell_from_the_master() {
+        let master = entry(Some(at_cell(1, 6, "N")), Some(KcSortieResult::Clear));
+        let mut old_row = entry(Some(map(1, 6)), Some(KcSortieResult::Clear));
+
+        assert!(old_row.apply_event_with_reference(&reached(1, 6, "N"), Some(&master)));
+        assert_eq!(times_left(&old_row), 0);
     }
 
     /// 893's shape: 1-5, 7-1, 7-2 phase 1 and 7-2 phase 2, three cycles.
@@ -1073,6 +1295,7 @@ mod tests {
             mapinfo_no: 1,
             gauge_phase: 1,
             boss_cell: true,
+            node: None,
             win_rank: KcSortieResultRank::S,
             fleet_id,
             fleet_ships: vec![],
