@@ -68,9 +68,12 @@ execution: code
   - 版本升了但内容没变，也记一条（同一 hash），这样任何版本都查得到。
   - 版本 v 早于所有记录时，给最早那条。
 - **版本号天然唯一**，不同季节的 URL 不会撞上浏览器缓存，不需要另编版本号。季节 A 下发 59、当前是 60，浏览器把它们当作两个地址。
-- **刷新判断用 HEAD，不用条件请求。**
-  - 先 HEAD：大小相同，且 `Last-Modified` 与记录相差不超过一个窗口（暂定 1 小时，用来吸收节点差），就只记新版本号、不下载。
+- **刷新判断只看大小（用户定）。**
+  - 版本号升了先 HEAD：`Content-Length` 与记录相同就只记新版本号（同一 hash），不下载。
+  - `Last-Modified` 照样记下，留作证据，不参与判断。
   - 没有记录时照旧整份下载。
+  - 已知风险：大小相同、内容变了会漏掉。2026-10-14 的 1,339 个文件里没有这种情况。
+- **季节清单手工维护（用户定）**，放在 `crates/emukc_bootstrap/assets/seasons.json`：日期 id、人工标签、对应的 kcwiki start2 提交。在 CLAUDE.md 的手工维护例外名单里登记。快照文件本身只在各人本地。
 - **季节替换只碰 `api_mst_shipgraph`**，按舰逐条替换 `api_version` 与坐标字段。那个季节之后才有的舰保持当前。
 
 ## Not in scope
@@ -81,10 +84,8 @@ execution: code
 
 ## Open questions
 
-- `api_version[2]` 一次升了 865 艘，对应 1,730 个文件里只有 161 个内容变了：只升号的情况占大多数。
-- 刷新判断只用大小，还是大小加时间窗口？只用大小这次零误判、省下的下载最多，但没有反例样本。
-- `Last-Modified` 窗口取多少？官方在同一次维护里重传同一文件时会不会落在窗口内？
-- 季节清单（id、标签、kcwiki 提交）放在哪里：手工维护的 `assets/seasons.json`（要在 CLAUDE.md 例外名单登记），还是 `.data` 下的本地文件？
+- 已结：刷新判断只看大小；季节清单放 `assets/seasons.json`（均为用户定）。
+- 已结：`api_version[2]` 一次升了 865 艘，对应的 1,730 个文件里只有 161 个内容变了，大多是只升号、不换文件。
 
 ## Implementation Units
 
@@ -92,10 +93,10 @@ execution: code
   - 覆盖活文件前，先把旧内容收进 blob。
   - 旧的 `kache_entry` 保留，只读迁移。
 - **U2（先写测试）**：按「版本不超过 v 的最新记录」取内容，替换 `kache.rs:268` 的「给更新的那份」规则。没有历史时行为不变。
-- **U3（先写测试，本地 HTTP 夹具）**：版本升了先 HEAD，按大小加时间窗口判断要不要下载；记录 `Last-Modified`。
+- **U3（先写测试，本地 HTTP 夹具）**：版本升了先 HEAD，按大小判断要不要下载；同时记录 `Last-Modified`。
 - **U4**：CLI `cache archive import <dir> --version-from <start2>`，导入 2026-10-15 的保护快照。另加一个可选的批量 HEAD 回填 `Last-Modified` 的命令（只取响应头）。
 - **U5**：季节定义。
   - 从 kcwiki 指定提交取 start2，只存 `api_mst_shipgraph` 到 `.data/seasons/<id>.json`。
-  - 季节清单的位置见 Open questions。
+  - 季节清单 `assets/seasons.json`，先登记 `2026-09-20`、`2026-10-14` 两条。
 - **U6（先写测试）**：配置项选季节。`getData` 按 U5 替换 shipgraph 条目。端到端检查：headless 截母港立绘，对比两个季节。
 - **U7**：`docs/solutions/` 记缓存历史与季节的语义；CLAUDE.md 命令表补 U4/U5 的命令。
