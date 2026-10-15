@@ -88,6 +88,9 @@ Where it is read (`damage.rs`):
   not take them, and the generator does not list them.
 - A carrier's day shelling of a land target (`CV.prototype.shellPower`) keeps the carrier formula
   without the multipliers.
+- A carrier with dive bombers that cannot attack land does not shell a land target in the source
+  (`CV.canShellInstallation`, `divebomberInstall`); here she still does. In #136's body, not in
+  plan 2026-10-15-004.
 - The source never lets かばう touch a land target (`choiceWProtect` returns a targeted
   installation, and an installation does not shield its flagship); `select_escort_shield` does not
   know this.
