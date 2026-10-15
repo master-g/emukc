@@ -169,6 +169,15 @@ is now internal to the quest module and is reached only from `observe`; see
   `gauge_index` read at the start of settlement, before anything moves the
   gauge; the battle that empties gauge 1 is phase 1. A map entry with
   `phase: Some(n)` matches only phase `n`, `None` matches any (872, 893, 896).
+- Cells: a map entry may name a cell (`node`, a `node_label`), from tsunkit's
+  `node` field (`1-6` + `N`) or a letter after the map (`7-3P`, `7-2M`; `7-2-P2`
+  is still a phase). A battle counts an entry naming a cell only on that cell.
+  Reaching a cell without a battle (`event_id` not 4 or 5) sends
+  `SortieNodeReached`, which counts only entries naming that cell and asking
+  for no win (no `defeat_boss`, result `Clear`, `Any` or none): 1-6's goal N,
+  7-4 O (#149). Rows saved before entries kept their cell take it from the
+  master entry with the same map and phase; 7-x entries the parser used to
+  drop are not restored in those rows.
 - Counted at sortie start: a `Sortie` condition with `count_at_sortie_start`
   counts `SortieStarted` (from `start_sortie`) and ignores battles; every other
   `Sortie` condition does the reverse. The matcher reads the flag from the

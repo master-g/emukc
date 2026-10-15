@@ -69,6 +69,7 @@ mod tests {
             mapinfo_no: number,
             gauge_phase: 1,
             boss_cell: true,
+            node: None,
             win_rank,
             fleet_id: 1,
             fleet_ships: fleet(ships),

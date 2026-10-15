@@ -182,10 +182,16 @@ impl CombatResult {
 }
 
 impl Sortie {
+    /// `7-2` is a map, `7-2-P2` its second gauge phase, and `7-3P` its cell P.
     fn parse_single_map_info(name: &str) -> Option<Kc3rdQuestConditionMapInfo> {
         let mut parts = name.splitn(3, '-');
         let area = parts.next()?.parse::<i64>().ok()?;
-        let number = parts.next()?.parse::<i64>().ok()?;
+        let number_and_cell = parts.next()?;
+        let digits = number_and_cell.bytes().take_while(u8::is_ascii_digit).count();
+        let number = number_and_cell[..digits].parse::<i64>().ok()?;
+        let node = Some(&number_and_cell[digits..])
+            .filter(|cell| !cell.is_empty())
+            .map(str::to_ascii_uppercase);
         let phase =
             parts.next().and_then(|phase| phase.trim_start_matches('P').parse::<i64>().ok());
 
@@ -193,7 +199,17 @@ impl Sortie {
             area,
             number,
             phase,
+            node,
         })
+    }
+
+    /// A map of this entry, with the entry's own cell where the map names none.
+    fn map_info(&self, name: &str) -> Option<Kc3rdQuestConditionMapInfo> {
+        let mut info = Self::parse_single_map_info(name)?;
+        if info.node.is_none() {
+            info.node = self.node.map(|node| format!("{node:?}"));
+        }
+        Some(info)
     }
 
     pub(super) fn to_kc3rd_sortie(&self) -> Kc3rdQuestConditionSortie {
@@ -203,14 +219,9 @@ impl Sortie {
 
         let map = if let Some(maps) = &self.map {
             match maps {
-                super::Id::String(id) => {
-                    Self::parse_single_map_info(id).map(Kc3rdQuestConditionSortieMap::One)
-                }
+                super::Id::String(id) => self.map_info(id).map(Kc3rdQuestConditionSortieMap::One),
                 super::Id::StringArray(ids) => {
-                    let maps = ids
-                        .iter()
-                        .filter_map(|map| Self::parse_single_map_info(map))
-                        .collect::<Vec<_>>();
+                    let maps = ids.iter().filter_map(|map| self.map_info(map)).collect::<Vec<_>>();
 
                     if maps.is_empty() {
                         None

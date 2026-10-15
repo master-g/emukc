@@ -466,6 +466,10 @@ pub struct Kc3rdQuestConditionMapInfo {
     pub area: i64,
     pub number: i64,
     pub phase: Option<i64>,
+    /// The cell (`node_label`) the entry is about, such as 1-6's goal `N` or 7-3's boss
+    /// `P`; none means any cell.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub node: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

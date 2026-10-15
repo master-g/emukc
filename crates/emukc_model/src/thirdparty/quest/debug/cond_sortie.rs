@@ -52,6 +52,7 @@ impl Kc3rdQuestDebugJson for Kc3rdQuestConditionMapInfo {
             "area": self.area,
             "number": self.number,
             "phase": self.phase,
+            "node": self.node,
         })
     }
 }
