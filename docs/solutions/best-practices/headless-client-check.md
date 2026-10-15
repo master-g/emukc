@@ -242,7 +242,8 @@ screen, pass steps on the command line and read the screenshots:
   who has a night crew of her own: the check wants her night attack flown. Three runs of three
   on 2026-10-15, the same cells each time, without a page error; the client plays her attack
   as abyssal aircraft (`night2`). The run found 5-6's later map parts (`06_info18`, `20`, `36`
-  and their images) missing from the cache list (#161).
+  and their images) missing from the cache list; the regular maps' list in
+  `make_list/source/kcs2/resources/map.rs` names them now (#161).
 - `practice_night_contact` opens 演習 (670, 450 on the sortie screen), writes every rival over
   with 川内改二 and three 赤城 at level 99 once the list has drawn them, and challenges the first
   (340, 300; 演習を挑む 357, 610; 演習開始!! 683, 643) with six destroyers who carry no aircraft.
