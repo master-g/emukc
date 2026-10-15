@@ -180,11 +180,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-15] 分支 `fix/cache-list-5-6-phases` 修 #161：`make_list/source/kcs2/resources/map.rs` 的常规图手写清单补上 5-6（含补载分片 18/20/36），本地重建清单后 `enemy_night_crew_5_6` 无 `not_in_cache_list`。fmt、严格 clippy、`cargo test --workspace` 1531 全过、0 ignored。CDN 已是 6.3.6.0，本地清单用 `--allow-stale-assets` 生成。
+- [2026-10-15] 分支 `feat/decoder-es2015`：6.3.6.0 的 `main.js` 改为 ES2015（`const` 别名、`class` 成员），解码器补上这两种写法与攻击种别的 `class` 方法/构造函数查找。新版流水线跑在草稿目录、未同步资产：与 6.3.5.0 只差局部名和来源模块；清单对拍全过；`bun test` 98 过。Rust 未改。
 
 ## Next Session
 
-- [2026-10-15] CDN 已发 6.3.6.0，解码资产仍是 6.3.5.0：先 `make update` 并看漂移报告。用户定做三项跟进（己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施），属战斗规则，先写计划。#150、#138、#143、#145 继续等实机数据（用户定）。瑞雲 CI 第三件之后显示什么、发动后是否算照明弹都没有游戏证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-15] CDN 已发 6.3.6.0，解码资产仍是 6.3.5.0：先 `make update` 看漂移报告。
+  6.3.6.0 改了：南瓜兑换换成 2026 版；装备 296/373/520/584 新增按★的加成（对拍会报这 4 件，`gear_bonus.json` 待 KC3Kai 跟进或手工修正）。用户定做三项跟进（己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施），属战斗规则，先写计划。#150、#138、#143、#145 继续等实机数据（用户定）。瑞雲 CI 第三件后的显示、是否算照明弹均无游戏证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。

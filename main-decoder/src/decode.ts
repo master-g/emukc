@@ -1,8 +1,10 @@
 import { DEFAULT_MAX_PASSES } from "./defaults.ts";
 import type { BundleSections, DecodeAssessment, DecodedBundle, DecodeOptions, MarkerSummary } from "./types.ts";
 
-const ALIAS_ASSIGNMENT_RE = /(?:var|,)\s*(_0x[0-9a-fA-F]+)\s*=\s*(_0x[0-9a-fA-F]+)(?=[,;])/g;
+const ALIAS_ASSIGNMENT_RE = /(?:\b(?:var|let|const)|,)\s*(_0x[0-9a-fA-F]+)\s*=\s*(_0x[0-9a-fA-F]+)(?=[,;])/g;
 const DECODER_CALL_RE = /\b(_0x[0-9a-fA-F]+)\(\s*(0x[0-9a-fA-F]+|\d+)\s*\)/g;
+
+const MEMBER_KEY_MODIFIERS = new Set(["static", "get", "set", "async"]);
 
 type DecoderFunction = (value: number | string) => string;
 
@@ -40,17 +42,31 @@ const CLEANUP_TRANSFORMS: CleanupTransform[] = [
   {
     name: "identifier-dot-access",
     apply(source) {
-      return replaceAndCount(source, /(\b[$A-Z_a-z][$\w]*)\[['"]([$A-Z_a-z][$\w]*)['"]\](?![$\w])/g, (_match, target, property) => {
-        return `${target}.${property}`;
+      return replaceAndCount(source, /(\.?)(\b[$A-Z_a-z][$\w]*)\[['"]([$A-Z_a-z][$\w]*)['"]\](?![$\w])/g, (_match, dot, target, property) => {
+        // ES2015 output: `static["x"](){`, `get["x"](){` are class/object member keys.
+        if (dot === "" && MEMBER_KEY_MODIFIERS.has(target)) {
+          return `${target} ${property}`;
+        }
+        return `${dot}${target}.${property}`;
       });
     },
   },
   {
     name: "closed-expression-dot-access",
     apply(source) {
-      return replaceAndCount(source, /([\])'}])\s*\[['"]([$A-Z_a-z][$\w]*)['"]\](?![$\w])/g, (_match, target, property) => {
-        return `${target}.${property}`;
-      });
+      let changes = 0;
+      const nextSource = source.replace(
+        /([\])'}])\s*\[['"]([$A-Z_a-z][$\w]*)['"]\](?![$\w])/g,
+        (match: string, target: string, property: string, offset: number, whole: string) => {
+          changes += 1;
+          // ES2015 output: a class method after another, `}["x"](a){`, keeps its key form.
+          if (target === "}" && isMethodHead(whole, offset + match.length)) {
+            return `}${property}`;
+          }
+          return `${target}.${property}`;
+        },
+      );
+      return { source: nextSource, changes };
     },
   },
   {
@@ -101,6 +117,36 @@ const CLEANUP_TRANSFORMS: CleanupTransform[] = [
   },
 ];
 
+/** Whether `source` at `index` reads `(params){`, the rest of a method definition's head. */
+// ponytail: skips quoted strings only; a regex literal or `${}` holding `(`/`)` in a parameter
+// default would miscount. Minified parameters have none; parse the params if one shows up.
+function isMethodHead(source: string, index: number): boolean {
+  if (source[index] !== "(") {
+    return false;
+  }
+  let depth = 0;
+  for (let i = index; i < source.length; i += 1) {
+    const char = source[i];
+    if (char === "'" || char === '"' || char === "`") {
+      i = source.indexOf(char, i + 1);
+      while (i !== -1 && source[i - 1] === "\\") {
+        i = source.indexOf(char, i + 1);
+      }
+      if (i === -1) {
+        return false;
+      }
+    } else if (char === "(") {
+      depth += 1;
+    } else if (char === ")") {
+      depth -= 1;
+      if (depth === 0) {
+        return source[i + 1] === "{";
+      }
+    }
+  }
+  return false;
+}
+
 function createDecoder(sections: BundleSections): DecoderFunction {
   const factory = new Function(`${sections.decoderRuntimeSource}; return ${sections.decoderFunctionName};`);
   const decoderCandidate = factory();
@@ -144,7 +190,7 @@ function collectDecoderAliases(source: string, decoderFunctionName: string): Set
 
 function stripAliasDeclarations(source: string, aliases: Set<string>): string {
   const withoutStandaloneAliases = source.replace(
-    /var\s+(_0x[0-9a-fA-F]+)\s*=\s*(_0x[0-9a-fA-F]+)\s*;\s*/g,
+    /\b(?:var|let|const)\s+(_0x[0-9a-fA-F]+)\s*=\s*(_0x[0-9a-fA-F]+)\s*;\s*/g,
     (match, assignedAlias: string, assignedValue: string) => {
       if (aliases.has(assignedAlias) && aliases.has(assignedValue)) {
         return "";
@@ -154,10 +200,10 @@ function stripAliasDeclarations(source: string, aliases: Set<string>): string {
   );
 
   return withoutStandaloneAliases.replace(
-    /var\s+(_0x[0-9a-fA-F]+)\s*=\s*(_0x[0-9a-fA-F]+)\s*,\s*/g,
-    (match, assignedAlias: string, assignedValue: string) => {
+    /\b(var|let|const)\s+(_0x[0-9a-fA-F]+)\s*=\s*(_0x[0-9a-fA-F]+)\s*,\s*/g,
+    (match, keyword: string, assignedAlias: string, assignedValue: string) => {
       if (aliases.has(assignedAlias) && aliases.has(assignedValue)) {
-        return "var ";
+        return `${keyword} `;
       }
       return match;
     },

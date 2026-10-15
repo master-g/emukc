@@ -13,7 +13,7 @@ export interface Client {
 	moduleSource(id: number): string;
 }
 
-/** The webpack id of the bundle's entry module, checked against 6.3.5.0. */
+/** The webpack id of the bundle's entry module, checked against 6.3.6.0. */
 const ENTRY_MODULE = 32875;
 
 export function loadClient(bundlePath: string, entry = ENTRY_MODULE): Client {

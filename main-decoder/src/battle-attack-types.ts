@@ -129,6 +129,12 @@ function findPrototypeMethod(ast: t.File, methodName: string): t.Function | unde
         found = right;
       }
     },
+    // ES2015 output (main.js 6.3.6.0): `class X { _hougeki(){...} }`.
+    ClassMethod(path: NodePath<t.ClassMethod>) {
+      if (found === undefined && !path.node.computed && path.node.kind === "method" && t.isIdentifier(path.node.key, { name: methodName })) {
+        found = path.node;
+      }
+    },
   });
   return found;
 }
@@ -281,11 +287,19 @@ function extractDelegatedAcceptance(
 
   const { module, exportName, subjectIndex } = target;
   const targetAst = parseFactorySource(module.source);
-  let ctor: t.FunctionDeclaration | undefined;
+  let ctor: t.FunctionDeclaration | t.ClassMethod | undefined;
   traverse(targetAst, {
     FunctionDeclaration(path: NodePath<t.FunctionDeclaration>) {
       if (ctor === undefined && t.isIdentifier(path.node.id, { name: exportName })) {
         ctor = path.node;
+      }
+    },
+    // ES2015 output (main.js 6.3.6.0): `class X { constructor(...){...} }`.
+    ClassDeclaration(path: NodePath<t.ClassDeclaration>) {
+      if (ctor === undefined && t.isIdentifier(path.node.id, { name: exportName })) {
+        ctor = path.node.body.body.find((member): member is t.ClassMethod => {
+          return t.isClassMethod(member) && member.kind === "constructor";
+        });
       }
     },
   });
