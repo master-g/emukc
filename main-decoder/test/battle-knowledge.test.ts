@@ -240,6 +240,41 @@ const DANCHAKU_SOURCE = `function(module, exports, require) {
   exports.PhaseAttackDanchaku = PhaseAttackDanchaku;
 }`;
 
+// main.js 6.3.6.0 is ES2015: the same modules as classes.
+function phaseHougekiClassSource(name: string, chain: string, fallbackBody: string): string {
+  return `function(module, exports, require) {
+    const danchakuModule = require(90992);
+    class ${name} {
+      _hougeki(record) {
+        const type = record.type;
+        ${chain}
+      }
+      _normal(record) {
+        const dShip = this._getDShip(record.d_indexes[0], record.flag);
+      }
+      _double(record) {}
+      _kuboCI(record) {}
+      _special(record) {
+        ${fallbackBody}
+      }
+    }
+    exports.${name} = ${name};
+  }`;
+}
+
+const DANCHAKU_CLASS_SOURCE = `function(module, exports, require) {
+  class PhaseAttackDanchaku extends Base {
+    constructor(scene, type, attacker, slot) {
+      if (super(scene), this._slot = slot, 3 == type) this._cutin = new CutinDanchaku1();
+      else {
+        if (201 != type) throw new Error();
+        this._cutin = new CutinDanchaku1(2);
+      }
+    }
+  }
+  exports.PhaseAttackDanchaku = PhaseAttackDanchaku;
+}`;
+
 function dispatcherSource(name: string, hougekiModuleId: number): string {
   return `function(module, exports, require) {
     var hougekiModule = require(${hougekiModuleId});
@@ -362,6 +397,27 @@ test("merges a delegating fallback's closed set into the stage's effective set",
   expect(opening?.fallback?.closed).toBe(true);
   expect(opening?.effectiveAcceptedValues).toEqual([0, 2, 3, 4, 200, 201]);
   expect(opening?.effectiveAcceptedValues).not.toContain(7);
+});
+
+test("reads the dispatch and the delegated constructor from ES2015 classes", () => {
+  const graph = attackTypeGraph();
+  const sources: Record<string, string> = {
+    "90992": DANCHAKU_CLASS_SOURCE,
+    "16599": phaseHougekiClassSource(
+      "PhasePreAntiSubmarine",
+      "0 == type ? this._normal(record) : 2 == type ? this._double(record) : this._special(record);",
+      DELEGATING_FALLBACK,
+    ),
+  };
+  const stages = extractBattleAttackTypeStages({
+    ...graph,
+    modules: graph.modules.map(module => ({ ...module, source: sources[module.id] ?? module.source })),
+  });
+  const opening = stages.find(stage => stage.id === "opening-anti-submarine");
+
+  expect(opening?.acceptedValues).toEqual([0, 2]);
+  expect(opening?.fallback?.acceptedValues).toEqual([3, 201]);
+  expect(opening?.effectiveAcceptedValues).toEqual([0, 2, 3, 201]);
 });
 
 test("merges a fallback the consumer guards itself", () => {
