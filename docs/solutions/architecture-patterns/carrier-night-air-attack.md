@@ -84,8 +84,8 @@ carriers with a `nightattack` mark, and the 74 with `hasBuiltInNightCrew`.
   it from a third generated table, `ABYSSAL_CARRIER_ASW`: the 40 light carriers (30 marked 3,
   10 with a crew and no mark) whose `ASW` in the source is above zero. One marked 3 takes a
   submarine without the searchlight; a submarine is all she can take in the dark. After a day
-  battle such a hit is a scratch, as any; in a night-start battle its power is counted from
-  the codex's 0.
+  battle such a hit is a scratch, as any; in a night-start battle its power counts the same
+  table's figure as her own anti-submarine (`damage::base_asw`, the source's `statsBase.ASW`).
 
 ## The power
 
@@ -172,8 +172,6 @@ and `damage.rs` do not ask `simulation::night` themselves.
 ## Known gaps
 
 - Enemy carriers' cut-ins, their equipment bonuses and aircraft proficiency.
-- An enemy light carrier's power against a submarine in a night-start battle comes from the
-  codex's anti-submarine of 0, not from the source's figure that makes her eligible.
 - The fit bonuses the source adds to a carrier's torpedo (`eqBonusCV`), no torpedo against a
   land target, and the special-aircraft multipliers.
 - Smoke on the attack on a submarine, and the 夜間瑞雲 cut-in's exception for one.

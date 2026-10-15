@@ -22,7 +22,8 @@ use crate::combined::{
 use crate::installation::{AntiInstallation, land_target, post_cap_multiplier};
 use crate::random::BattleRng;
 use crate::targeting::{
-    has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type, ship_type, target_class,
+    abyssal_carrier_asw, has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type,
+    ship_type, target_class,
 };
 use crate::types::{BattlePhase, BattleRuntimeShip, EngagementType};
 
@@ -348,10 +349,8 @@ pub(crate) fn calculate_asw_damage(
     outcome: HitOutcome,
     planes: PlaneProficiency,
 ) -> i64 {
-    let ship_asw = attacker.ship.api_taisen[0].max(0) as f64;
     let equip_asw = equipment_asw_total(codex, attacker);
-    // base ASW = total ASW - equipment ASW (modernization + innate)
-    let base_asw = (ship_asw - equip_asw).max(0.0);
+    let base_asw = base_asw(codex, attacker);
 
     // Attack type bonus: +8 for ASW aircraft, +13 for depth charge projector (cumulative)
     let has_asw_aircraft = has_active_asw_aircraft(codex, attacker);
@@ -675,6 +674,16 @@ pub(crate) fn depth_charge_armor_reduction(codex: &Codex, ship: &BattleRuntimeSh
 }
 
 /// Calculate equipment ASW from all equipped items.
+/// A ship's own anti-submarine for her attack on a submarine: her total less her equipment's
+/// (modernization and innate). An abyssal carrier the source lets attack one takes the source's
+/// figure, the codex giving her none (`ABYSSAL_CARRIER_ASW`).
+pub(crate) fn base_asw(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+    if let Some(asw) = abyssal_carrier_asw(ship.ship.api_ship_id) {
+        return asw as f64;
+    }
+    (ship.ship.api_taisen[0].max(0) as f64 - equipment_asw_total(codex, ship)).max(0.0)
+}
+
 pub(crate) fn equipment_asw_total(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
     ship.slot_items
         .iter()

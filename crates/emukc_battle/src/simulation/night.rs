@@ -3624,6 +3624,19 @@ mod abyssal_carrier_tests {
         assert_eq!(night(abyssal(&codex, WO_FLAGSHIP, 100)), [0; 0]);
     }
 
+    /// `ASWPower` counts her `statsBase.ASW`: for these carriers the source's figure, not the
+    /// codex's 0.
+    #[test]
+    fn an_enemy_light_carriers_attack_on_a_submarine_counts_the_sources_anti_submarine() {
+        let codex = codex();
+        assert_eq!(crate::damage::base_asw(&codex, &abyssal(&codex, NU_KAI_ELITE, 100)), 30.0);
+        assert_eq!(crate::damage::base_asw(&codex, &abyssal(&codex, 1560, 100)), 0.0);
+        let mut dd = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        dd.slot_items.clear();
+        dd.ship.api_taisen[0] = 60;
+        assert_eq!(crate::damage::base_asw(&codex, &BattleRuntimeShip::from(dd)), 60.0);
+    }
+
     #[test]
     fn an_enemy_carrier_with_a_night_crew_flies_her_attack() {
         let codex = codex();
