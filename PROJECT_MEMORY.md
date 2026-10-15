@@ -145,7 +145,7 @@ Current verification baseline:
 
 - [2026-10-15] 陆上设施按来源 `installtype` 表判（`installation_types.rs`，脚本再生）；名字匹配只兜底比来源更新的深海舰（id > 2397）。倍率与上限后倍率见 `anti-installation.md`。
 - [2026-10-15] 测试里 `BattleRuntimeShip::from` 造的是 `is_friendly: false`（注释写反了）：要测「玩家侧」规则（空槽、燃料）得用 `BattleRuntimeShip::new(input, true, true)`。
-- [2026-10-15] #147 用户定：戦果 = 提督经验（1 万 7 点）+ 任务与 1-6 的加成，JST 每月 1 日清零，排名列本服务器所有账号；见 `war-result-ranking.md`。
+- [2026-10-15] #147 用户定：戦果 = 提督经验（1 万 7 点）+ 任务与 1-6 的加成，按月清零，排名列本服务器所有账号。月末规则（读过的日文攻略页）：戦果月在最后一天 22:00 JST 结束，22:00～23:59 破 EO 只给箱不给戦果，EO ゲージ 1 日 00:00 恢复；见 `war-result-ranking.md`。
 
 ## Failed Attempts / Pitfalls
 
@@ -179,11 +179,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-15] PR #157、#158 已合并（新夜战演出、夜战种别 4/7～14 的无头核对）。分支 `feat/war-result-ranking` 按计划 `2026-10-15-005` 做完 #147 的 戦果 保存与真实排名；fmt、严格 clippy、`cargo test --workspace` 1528 全过、0 ignored；`escort_1_6` 无头核对排名显示 75。经 PR #159 合并，分支已删，#147 已评论（仍开着：月底截止时间）。
+- [2026-10-15] 分支 `feat/war-result-month-end` 按计划 `2026-10-15-006` 做完 #147 的月末截止：戦果月以 22:00 JST 为界、22:00 后破 1-6 不记 75、月度地图改在 1 日 00:00 重置、跨月到达 1-6 终点不发箱。fmt、严格 clippy、`cargo test --workspace` 1531 全过、0 ignored；未做无头核对（规则只靠时钟）。已本地提交，未推送。
 
 ## Next Session
 
-- [2026-10-15] #147 剩月底截止时间（21:59 戦果、23:59 プレゼント箱）。#144 剩 #55 遗留、演习夜间触接、侦察/护卫格；瑞雲 CI 第三件之后显示什么、发动后是否算照明弹都没有游戏证据。可选跟进（用户定）：己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施。#150、#138、#143、#145 缺实机数据；#147 等你决定做不做排名。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-15] 推送 `feat/war-result-month-end`、开 PR（`Closes #147`）等用户点头。#144 剩 #55 遗留、演习夜间触接、侦察/护卫格；瑞雲 CI 第三件之后显示什么、发动后是否算照明弹都没有游戏证据。可选跟进（用户定）：己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施。#150、#138、#143、#145 缺实机数据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。

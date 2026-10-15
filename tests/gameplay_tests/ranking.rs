@@ -16,8 +16,9 @@ async fn profile(context: &crate::TestContext, name: &str) -> i64 {
 
 /// Give a profile this month's 戦果 as a bonus, or last month's.
 async fn war_result(context: &crate::TestContext, pid: i64, points: i64, this_month: bool) {
-    let jst = Utc::now().with_timezone(&FixedOffset::east_opt(9 * 3600).unwrap());
-    let month = i64::from(jst.year()) * 100 + i64::from(jst.month());
+    // The 戦果 month ends at 22:00 JST on its last day: midnight at UTC+11.
+    let now = Utc::now().with_timezone(&FixedOffset::east_opt(11 * 3600).unwrap());
+    let month = i64::from(now.year()) * 100 + i64::from(now.month());
     let record = profile::Entity::find_by_id(pid).one(&*context.db).await.unwrap().unwrap();
     let mut am = record.into_active_model();
     am.war_result = ActiveValue::Set(points);

@@ -36,3 +36,6 @@ emukc.config.toml
 
 # Compound Engineering local config
 .compound-engineering/*.local.yaml
+
+# Python bytecode
+__pycache__/

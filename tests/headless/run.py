@@ -17,6 +17,7 @@ Needs the bootstrapped .data/codex, the resource cache, main-decoder/out/main.de
 and Playwright for Python with Chrome installed. Never touches .data/emukc.db.
 """
 
+import datetime
 import json
 import os
 import re
@@ -498,8 +499,12 @@ def check_escort_1_6(work: Path) -> list[str]:
     seed = (seeds[member % 10] - seeds[member % 10] % 100) / 100
     rows = [(row["api_mxltvkpyuklh"], row["api_mtjmdcwtvhdr"], row["api_wuhnhojjxmke"] / keys[row["api_mxltvkpyuklh"] % 13] / seed - 91) for row in (ranking[-1]["api_list"] if ranking else [])]
     print("the ranking (place, name, 戦果):", rows)
-    if rows != [(1, ports[-1]["api_basic"]["api_nickname"], 75)]:
-        problems.append(f"the ranking should list the admiral alone, first, with 75; it listed {rows}")
+    # From 22:00 JST on the month's last day the 75 is not kept and the ranking is the next
+    # month's (`war-result-ranking.md`): midnight at UTC+11 is in another month than at UTC+9.
+    now = datetime.datetime.now(datetime.timezone.utc)
+    kept = 75 if (now + datetime.timedelta(hours=11)).month == (now + datetime.timedelta(hours=9)).month else 0
+    if rows != [(1, ports[-1]["api_basic"]["api_nickname"], kept)]:
+        problems.append(f"the ranking should list the admiral alone, first, with {kept}; it listed {rows}")
     return problems
 
 
