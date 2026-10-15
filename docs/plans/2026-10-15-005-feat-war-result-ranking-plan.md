@@ -28,7 +28,7 @@ Issue #147（只取 戦果 保存这一条；月底截止时间 21:59 / 23:59 �
 
 ## Decisions
 
-- 戦果 = `floor((提督经验 − 本月起点经验) × 7 / 10000) + 本月加成`。加成是 `war_result`：任务奖励和 1-6 的 75 都记在这里（任务奖励本来就记在这里，一并改成按月）。wikiwiki 「戦果」：提督経験値 1 万で 7。
+- 戦果 = `floor((提督经验 − 本月起点经验) × 7 / 10000) + 本月加成`。加成是 `war_result`：任务奖励和 1-6 的 75 都记在这里（任务奖励本来就记在这里，一并改成按月）。来源：「獲得戦果 = 提督経験値 × 7 ÷ 10,000」（anastasiatetris.com、kankore-sheep.blog.jp）。
 - 新列 `war_result_month`（JST 的 年×100+月，0 表示从未开始）与 `war_result_base_exp`。每次加经验或加成之前先「翻月」：月份不同就把起点经验设成加之前的经验、加成清零、月份改成本月。读的时候月份不同即为 0，不写库。
 - 旧库：两列用 `ALTER TABLE ... ADD COLUMN ... DEFAULT 0` 补上（同 `fleet.launch_fully_supplied`）；月份 0 会在下一次加经验时翻月，之前的任务 戦果 清零，本月在升级之前得到的经验不计。
 - 排名：所有 profile 按本月 戦果 降序、同分按 profile id 升序；勲章用 `profile.medals`，阶级用 `hq_rank`，`api_pbgkfylkbjuy` 与两个不画的分数字段填 0。编码用看的人的 member_id。

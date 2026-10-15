@@ -21,7 +21,8 @@ month starts over on the 1st in Japan, and the ranking lists every admiral on th
 ## The month's 戦果
 
 `basic::war_result`: 7 for every 10000 admiral experience gained since the JST month began
-(wikiwiki 「戦果」), rounded down over the month's total, plus the month's bonus
+(「獲得戦果 = 提督経験値 × 7 ÷ 10,000」: anastasiatetris.com
+`kancolle-teitoku-exp-senka`, kankore-sheep.blog.jp `82941742`; wikiwiki was not read), rounded down over the month's total, plus the month's bonus
 `profile.war_result`. The bonus is what quests reward (`add_war_result_impl`) and the 75 of
 1-6's goal (`sortie/escort.rs`). Quest rewards were kept there before, never reset; they now
 reset with the month like the rest.

@@ -379,7 +379,8 @@ where
     Ok(())
 }
 
-/// 戦果 for every 10000 admiral experience (wikiwiki 「戦果」).
+/// 戦果 for every 10000 admiral experience: 「獲得戦果 = 提督経験値 × 7 ÷ 10,000」
+/// (anastasiatetris.com kancolle-teitoku-exp-senka; kankore-sheep.blog.jp 82941742).
 const WAR_RESULT_PER_10000_EXP: i64 = 7;
 
 /// The JST month a moment falls in, as year × 100 + month.
