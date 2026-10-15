@@ -138,7 +138,8 @@ impl Gear {
                     gear.dh1 += 1;
                     gear.dh1_stars += stars;
                 }
-                Some(KcSlotItemType3::SpecialTypeAmphibiousTank) => {
+                // 特四式内火艇 and 改 carry `btype: 0` in the source: they count as T4 alone.
+                Some(KcSlotItemType3::SpecialTypeAmphibiousTank) if !T4_IDS.contains(&id) => {
                     gear.dh3 += 1;
                     gear.dh3_stars += stars;
                 }
@@ -706,6 +707,19 @@ mod tests {
         let tdh11 = with(&codex, &[(TDH11_ID, 0)]);
         assert_near(tdh11.soft_skin, 1.4 * 1.8);
         assert_eq!(tdh11.flat, 25.0);
+    }
+
+    #[test]
+    fn a_type4_amphibious_tank_is_no_third_class_landing_craft() {
+        let codex = codex();
+        // A landing craft 1.4, and the tank's 1.2 and 42 to every kind; no third class's 1.5.
+        let t4 = with(&codex, &[(525, 0)]);
+        assert_near(t4.soft_skin, 1.4 * 1.2);
+        assert_eq!(t4.flat, 42.0);
+        // 特二式内火艇 is one: 1.5 against soft skin, 2.4 against a pillbox.
+        let t2 = with(&codex, &[(167, 0)]);
+        assert_eq!(t2.soft_skin, 1.5);
+        assert_near(t2.pillbox, 1.4 * 2.4);
     }
 
     #[test]

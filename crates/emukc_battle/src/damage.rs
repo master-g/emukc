@@ -673,7 +673,6 @@ pub(crate) fn depth_charge_armor_reduction(codex: &Codex, ship: &BattleRuntimeSh
         .sum()
 }
 
-/// Calculate equipment ASW from all equipped items.
 /// A ship's own anti-submarine for her attack on a submarine: her total less her equipment's
 /// (modernization and innate). An abyssal carrier the source lets attack one takes the source's
 /// figure, the codex giving her none (`ABYSSAL_CARRIER_ASW`).
@@ -684,6 +683,7 @@ pub(crate) fn base_asw(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
     (ship.ship.api_taisen[0].max(0) as f64 - equipment_asw_total(codex, ship)).max(0.0)
 }
 
+/// Calculate equipment ASW from all equipped items.
 pub(crate) fn equipment_asw_total(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
     ship.slot_items
         .iter()
