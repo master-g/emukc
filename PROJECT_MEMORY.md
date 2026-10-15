@@ -179,11 +179,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-15] 分支 `feat/war-result-month-end` 按计划 `2026-10-15-006` 做完 #147 的月末截止：戦果月以 22:00 JST 为界、22:00 后破 1-6 不记 75、月度地图改在 1 日 00:00 重置、跨月到达 1-6 终点不发箱。fmt、严格 clippy、`cargo test --workspace` 1531 全过、0 ignored；未做无头核对（规则只靠时钟）。已本地提交，未推送。
+- [2026-10-15] 分支 `feat/war-result-month-end` 按计划 `2026-10-15-006` 做完 #147 的月末截止：戦果月以 22:00 JST 为界、22:00 后破 1-6 不记 75、月度地图改在 1 日 00:00 重置、跨月到达 1-6 终点不发箱。fmt、严格 clippy、`cargo test --workspace` 1531 全过、0 ignored；未做无头核对（规则只靠时钟）。经 PR #160 合并，分支已删，#147 已关闭。
 
 ## Next Session
 
-- [2026-10-15] 推送 `feat/war-result-month-end`、开 PR（`Closes #147`）等用户点头。#144 剩 #55 遗留、演习夜间触接、侦察/护卫格；瑞雲 CI 第三件之后显示什么、发动后是否算照明弹都没有游戏证据。可选跟进（用户定）：己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施。#150、#138、#143、#145 缺实机数据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-15] #144 剩 #55 遗留、演习夜间触接、侦察/护卫格；瑞雲 CI 第三件之后显示什么、发动后是否算照明弹都没有游戏证据。可选跟进（用户定）：己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施。#150、#138、#143、#145 缺实机数据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
