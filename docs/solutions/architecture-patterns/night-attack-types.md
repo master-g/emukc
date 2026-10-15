@@ -94,14 +94,17 @@ instead of her attack (`zuiun_night_attack`, the source's `canSpecialAttack` and
 - It is two hits of her own on surface ships, chosen as night targets are (searchlight
   redraws, かばう), in one row: `api_sp_list` 200, her place in `api_at_list`, `api_si_list` the
   瑞雲 first (the client draws its first slot's aircraft without checking), a second 瑞雲 and the
-  radar where the type has them. The multiplier goes in before the cap; a miss scratches.
+  radar where the type has them, then main guns to three pieces: `CutinZuiunNightCanvas` reads
+  the name plate of three without a check, and a page error stopped the battle when two came
+  (found by the headless `night_zuiun`). Which pieces the game itself shows past the 瑞雲 has
+  not been seen. The multiplier goes in before the cap; a miss scratches.
 - Once it is made, her fleet counts as having fired a star shell for the rest of the night,
   the cut-in's own hits included (the source's `star1 = true`): +4 to the chance and +5 to the
   accuracy of every later friendly attack, 10 off the enemy's chance. That is the source's
   behaviour; nothing read says whether the game does it. `api_flare_pos` is not changed.
 - The flagship tries the fleet special attacks first; the 瑞雲 cut-in only if none comes up.
-- The client's `PhaseZuiunNightAttack` for `api_sp_list` 200 has not been watched in a headless
-  run (client checks are #144).
+- Played in the client (`night_zuiun`, 2026-10-15): all three shapes it can show, without a
+  page error. That proves the packet plays, not that the game lights her fleet afterwards.
 
 ## The order of the rolls
 
