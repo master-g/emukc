@@ -205,7 +205,11 @@ and `damage.rs` do not ask `simulation::night` themselves.
   (2-5, cell C) is in the gate with `PhaseExpectation::EnemyCarrierNightAttack`, and in the
   headless check. A crewed enemy (flag 1) is met only in 5-6's fourth phase and in 7-4; the headless
   scenario `enemy_night_crew` meets 7-4's ヒ船団棲姫 at M and the client flies her attack, and
-  her 62 when it comes up.
+  her 62 when it comes up; `enemy_night_crew_5_6` meets 5-6's 南太平洋空母棲姫 at X in the fourth
+  phase, whose flown attack the client plays as aircraft (three runs, 2026-10-15).
+- Mark 2's gunfire cannot be played in a regular map: its only ones there (離島棲姫 1668 and 1669)
+  are at 6-4 D, F, G and I, all air-raid cells (`event_kind` 6) with no night, and 6-4's boss
+  (1671, 1672) has no mark. It waits for an event map.
 
 ## Known gaps
 
