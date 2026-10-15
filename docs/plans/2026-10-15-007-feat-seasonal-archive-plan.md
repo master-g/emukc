@@ -108,3 +108,10 @@ execution: code
   - 季节清单 `assets/seasons.json`，先登记 `2026-09-20`、`2026-10-14` 两条。
 - **U6（先写测试）**：配置项选季节。`getData` 按 U5 替换 shipgraph 条目。端到端检查：headless 截母港立绘，对比两个季节。
 - **U7**：`docs/solutions/` 记缓存历史与季节的语义；CLAUDE.md 命令表补 U4/U5 的命令。
+- **L1 实施记录（2026-10-15，U5–U7 完成）**：
+  - 季节清单：`assets/seasons.json`，登记了 `2026-09-20`（kcwiki `5214c06b`）和 `2026-10-14`（`a8e8e47b`，kcwiki 在 10-15 提交）。
+  - 取数：`cargo run -- season sync` 只保留 `api_mst_shipgraph`，写到 `.data/seasons/<id>.json`，已有的跳过。
+  - 替换方式：取季节的版本号和坐标，文件名、排序号、`api_sp_flag` 保留当前值。两次提交之间这三个字段本来就相同。
+  - 替换时机：服务器启动时替换一次；不配置季节时 getData 不变。
+  - 核对：两次提交里的版本号和两份快照完全一致（图片 386、台词 144/137、母港台词 816）。
+  - 端到端：headless `season_2026_09_20` / `season_2026_10_14` 截到吹雪的常规服和祭典法被，都没有回源站下载。

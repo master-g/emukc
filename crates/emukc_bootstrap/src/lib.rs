@@ -36,6 +36,7 @@ mod populate;
 mod progress;
 mod real_map_start_asset;
 mod res;
+mod seasons;
 
 /// The `emukc_bootstrap` crate prelude.
 pub mod prelude {
@@ -103,4 +104,5 @@ pub mod prelude {
     };
     pub use crate::populate::populate;
     pub use crate::real_map_start_asset::{EMBEDDED_REAL_MAP_START_ASSETS, RealMapStartAsset};
+    pub use crate::seasons::{Season, load_repo_seasons, season_shipgraph_path, sync_season};
 }

@@ -80,7 +80,8 @@ screen, pass steps on the command line and read the screenshots:
   mid-run: `tire:<n>` sets every squadron's condition, which is how `air_corps_6_4` gets to
   see the orange fatigue icon after one sortie. Likewise `sunk:<map>:<n>` (a gauge's count),
   `cleared:<map>` (a gauge emptied this month), `stage:<map>:<variant>:<gauge index>` (a later
-  phase of a map with several) and `rival:<mst id>,…` (every practice rival's ships, at level 99).
+  phase of a map with several), `rival:<mst id>,…` (every practice rival's ships, at level 99)
+  and `secretary:<mst id>` (the first fleet's flagship takes that ship's looks, not her stats).
 - A preset need not be about one battle. `air_corps_6_4` opens 中部海域 as far as 6-4 and
   leaves bombers and 設営隊 in the inventory; its steps deploy a squadron, order a sortie, buy
   a second air corps, sortie 6-4 with the air corps pointed at D, fight there and resupply at
@@ -252,6 +253,11 @@ screen, pass steps on the command line and read the screenshots:
   without a page error: the rival's scout on our radar (bottom left) with 触接中! under it,
   and her searchlight's beam (`night1`, `night2`). A destroyer the day left at 0
   (`api_f_nowhps`) is drawn at 1/35 by the client itself, without a page error.
+- `season_2026_09_20` and `season_2026_10_14` start the server with that `season` (and a copy of
+  `.data/seasons`), make 吹雪 secretary and photograph the port. The check wants her art at the
+  season's version in getData (59 or 60) and not fetched from the origin, which holds only 60.
+  The first port takes about 15 s of its own time to draw; at 5 s it is still black. On
+  2026-10-15: her usual uniform on 09-20, the festival 法被 with cotton candy on 10-14.
 
 ## Limits
 

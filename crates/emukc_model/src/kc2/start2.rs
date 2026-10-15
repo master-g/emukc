@@ -729,6 +729,26 @@ impl ApiManifest {
     pub fn friend_ships(&self) -> Vec<&ApiMstShip> {
         self.api_mst_ship.iter().filter(|s| s.api_aftershipid.is_some()).collect()
     }
+
+    /// Dress the ships in a past season: each ship the season has takes its versions and
+    /// coordinates from it, so the client asks for the art and voices of that date. File name,
+    /// sort number and `api_sp_flag` stay today's. Ships that came after it keep today's graph.
+    ///
+    /// See `docs/plans/2026-10-15-007-feat-seasonal-archive-plan.md` (U6).
+    pub fn wear_season(&mut self, season: Vec<ApiMstShipgraph>) {
+        let mut season: BTreeMap<i64, ApiMstShipgraph> =
+            season.into_iter().map(|graph| (graph.api_id, graph)).collect();
+        for graph in &mut self.api_mst_shipgraph {
+            if let Some(worn) = season.remove(&graph.api_id) {
+                *graph = ApiMstShipgraph {
+                    api_filename: std::mem::take(&mut graph.api_filename),
+                    api_sortno: graph.api_sortno,
+                    api_sp_flag: graph.api_sp_flag,
+                    ..worn
+                };
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -853,6 +873,33 @@ mod tests {
                 .and_then(|value| value.first())
                 .and_then(serde_json::Value::as_i64),
             Some(27)
+        );
+    }
+
+    #[test]
+    fn a_season_replaces_the_shipgraph_of_the_ships_it_has() {
+        let graph = |id: i64, version: &str| ApiMstShipgraph {
+            api_id: id,
+            api_version: vec![version.to_owned()],
+            ..Default::default()
+        };
+        let mut manifest = ApiManifest {
+            api_mst_shipgraph: vec![graph(9, "60"), graph(10, "7"), graph(1000, "1")],
+            ..Default::default()
+        };
+
+        // 10 is the same in the season; 1000 came after it; 2000 is gone since.
+        let mut renamed = graph(9, "59");
+        renamed.api_filename = "then".to_owned();
+        renamed.api_battle_d = Some([1, 2]);
+        manifest.wear_season(vec![graph(2000, "3"), graph(10, "7"), renamed]);
+
+        let mut worn = graph(9, "59");
+        worn.api_battle_d = Some([1, 2]);
+        assert_eq!(
+            manifest.api_mst_shipgraph,
+            vec![worn, graph(10, "7"), graph(1000, "1")],
+            "the order, the ships and their file names are today's; versions and coordinates the season's"
         );
     }
 }

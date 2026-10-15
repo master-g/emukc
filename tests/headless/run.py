@@ -410,6 +410,23 @@ def check_night_contact(work: Path) -> list[str]:
     return problems
 
 
+def check_season(version: str):
+    """吹雪's graph in getData is the season's, and her art was not fetched from the origin, which
+    holds only today's: an older version can only have come from the cache history."""
+
+    def check(work: Path) -> list[str]:
+        graph = next(g for g in responses(work, "api_start2/getData")[0]["api_mst_shipgraph"] if g["api_id"] == 9)
+        problems = []
+        if graph["api_version"][0] != version:
+            problems.append(f"吹雪's art should be version {version}; getData said {graph['api_version']}")
+        log = re.sub(r"\x1b\[[0-9;]*m", "", (work / "server.log").read_text())
+        if re.search(r"🛬 \S*/kcs2/resources/ship/full/0009_", log):
+            problems.append("吹雪's art was fetched from the origin, not the cache history")
+        return problems
+
+    return check
+
+
 def check_practice_night_contact(work: Path) -> list[str]:
     seiku = responses(work, "api_req_practice/battle")[0]["api_kouku"]["api_stage1"]["api_disp_seiku"]
     nights = responses(work, "api_req_practice/midnight_battle")
@@ -593,6 +610,9 @@ def check_escort_1_6(work: Path) -> list[str]:
         problems.append(f"the ranking should list the admiral alone, first, with {kept}; it listed {rows}")
     return problems
 
+
+# The port with 吹雪 as secretary, dressed as on a date: the cache history serves her art of then.
+SEASON_PORT = "secretary:9 api:api_world/get_worldinfo u:310,85:api_start2/get_option_setting u:910,605:api_port/port w:15 s:port"
 
 SCENARIOS = {
     # 6-3 with two 二式大艇 and two 零観, who make a great success of both reconnaissances.
@@ -794,10 +814,17 @@ SCENARIOS = {
         + " s:claimed u:125,690:api_port/port w:5 s:port",
         check_quest_equipment,
     ),
+    "season_2026_09_20": (SEASON_PORT, check_season("59")),
+    "season_2026_10_14": (SEASON_PORT, check_season("60")),
 }
+
+# The season a scenario's server is configured with.
+SEASON_OF = {"season_2026_09_20": "2026-09-20", "season_2026_10_14": "2026-10-14"}
 
 # Scenarios played with another scenario's preset.
 PRESET_OF = {
+    "season_2026_09_20": "fresh_1_1",
+    "season_2026_10_14": "fresh_1_1",
     "escort_1_6_standing": "escort_1_6",
     "escort_1_6_cleared": "escort_1_6",
     "enemy_night_crew_5_6": "transport_5_6",
@@ -837,7 +864,7 @@ def workspace(scenario: str) -> tuple[Path, Path]:
         json.dumps(json.loads(game.read_text()) | {"god_mode": cheats, "one_hit_kill": cheats and scenario not in UNHURT})
     )
 
-    replaced = ("workspace_root", "cache_root", "mods_root", "bind", "tls_cert", "tls_key")
+    replaced = ("workspace_root", "cache_root", "mods_root", "bind", "tls_cert", "tls_key", "season")
     kept = [
         line
         for line in (ROOT / "emukc.config.toml").read_text().splitlines()
@@ -851,10 +878,13 @@ def workspace(scenario: str) -> tuple[Path, Path]:
                 f'cache_root = "{ROOT / "z/cache"}"',
                 f'mods_root = "{ROOT / "z/mods"}"',
                 f'bind = "127.0.0.1:{PORT}"',
+                *([f'season = "{SEASON_OF[scenario]}"'] if scenario in SEASON_OF else []),
                 *kept,
             ]
         )
     )
+    if scenario in SEASON_OF:
+        shutil.copytree(ROOT / ".data/seasons", work / "seasons")
     (work / "api").mkdir()
     return work, config
 
@@ -1011,6 +1041,14 @@ def main() -> int:
                                     "INSERT INTO rival_ship (profile_id, rival_id, mst_id, level, star) VALUES (?, ?, ?, 99, 0)",
                                     (profile, rival, int(mst_id)),
                                 )
+                elif kind == "secretary":
+                    # The first fleet's flagship becomes this ship: `secretary:<mst id>`. Only her
+                    # looks change; her stats stay the preset ship's, which the port does not show.
+                    with sqlite3.connect(work / "emukc.db", timeout=30) as db:
+                        db.execute(
+                            "UPDATE ship SET mst_id = ? WHERE id = (SELECT ship_1 FROM fleet WHERE \"index\" = 1)",
+                            (int(value),),
+                        )
                 elif kind == "cleared":
                     # A gauge already emptied this month: `cleared:<map id>`.
                     with sqlite3.connect(work / "emukc.db", timeout=30) as db:

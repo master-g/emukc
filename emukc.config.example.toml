@@ -12,6 +12,9 @@ bind = "0.0.0.0:27666"
 # tls_key = "key.pem"
 # the proxy to use for fetch missing game resources
 proxy = "socks5://127.0.0.1:1086"
+# dress the ships as on this date, a season id from crates/emukc_bootstrap/assets/seasons.json;
+# fetch its data first with `cargo run -- season sync` (optional, today's when unset)
+# season = "2026-09-20"
 # html gadgets
 gadgets_cdn = ["w00g.kancolle-server.com", "kcwiki.github.io/cache"]
 # game resources

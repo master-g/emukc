@@ -10,7 +10,7 @@ applies_when:
   - "A cached resource gets a new version"
   - "Asking the cache for an older version than the one it holds"
   - "Keeping seasonal art or voices before a maintenance replaces them"
-tags: [cache, kache, history, versioning, seasonal, cdn]
+tags: [cache, kache, history, versioning, seasonal, cdn, season]
 related_components: [emukc_cache]
 ---
 
@@ -22,7 +22,7 @@ The CDN keeps only the current file at each path. `?version=` only busts caches,
 value returns the same object. Seasonal art is a new file uploaded over the old path. Once
 the cache overwrote a file, the content it replaced was gone for good. Plan
 `docs/plans/2026-10-15-007-feat-seasonal-archive-plan.md` (L0) adds a history so the
-content can be served again later. Picking a season to serve (L1) builds on it.
+content can be served again later. Picking a season to serve (L1, below) builds on it.
 
 ## Rules
 
@@ -60,6 +60,26 @@ content can be served again later. Picking a season to serve (L1) builds on it.
     plain relative paths.
   - It skips unversioned entries with a warning.
   - It leaves the live files and their versions alone.
+
+## Seasons
+
+- **A season is the state of a date.** `crates/emukc_bootstrap/assets/seasons.json` lists each
+  by date id, a human label and the `kcwiki/kancolle-data` commit holding that date's start2. It
+  is maintained by hand.
+- `cargo run -- season sync` keeps each season's `api_mst_shipgraph` at
+  `.data/seasons/<id>.json`, and skips a season already there. After a season's `start2_commit`
+  changes, delete its file first.
+- `season = "<id>"` in the config dresses the ships when the server starts. Every ship the
+  season has takes that season's `api_version` and coordinates. File name, sort number and
+  `api_sp_flag` stay today's. Ships that came after it keep today's entry. The client then asks
+  for that date's versions, and the history above answers them.
+  - Between 09-20 and 10-14, only `api_version` and the coordinates differed.
+  - Unset, getData is exactly today's.
+- A season's art is only as complete as the history. A file the cache never held before the
+  CDN replaced it is lost. Its request falls back to the earliest kept version, or else to the
+  live file.
+- `make headless-check SCENARIO=season_2026_09_20` (and `season_2026_10_14`) photographs 吹雪 in
+  the port. See `headless-client-check.md`.
 
 ## Why size alone
 

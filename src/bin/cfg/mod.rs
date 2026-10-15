@@ -42,6 +42,10 @@ pub struct AppConfig {
 
     /// The URL to the game files CDN
     pub game_cdn: Vec<String>,
+
+    /// Serve the ships' art and voices of this date, a season id from `seasons.json`; today's
+    /// when unset
+    pub season: Option<String>,
 }
 
 impl AppConfig {

@@ -2,8 +2,8 @@
 
 use std::{fs::create_dir, ops::Deref, sync::Arc};
 
-use anyhow::bail;
-use emukc_internal::prelude::{Codex, Ctx, Kache, prepare};
+use anyhow::{Context, bail};
+use emukc_internal::prelude::{Codex, Ctx, Kache, prepare, season_shipgraph_path};
 
 use crate::cfg::AppConfig;
 
@@ -66,7 +66,20 @@ impl State {
 
         // codex
         let codex_root = cfg.codex_root()?;
-        let codex = Codex::load(&codex_root, load_cache_source)?;
+        let mut codex = Codex::load(&codex_root, load_cache_source)?;
+        if let Some(season) = &cfg.season {
+            let path = season_shipgraph_path(&cfg.workspace_root, season);
+            let raw = std::fs::read(&path).with_context(|| {
+                format!(
+                    "season {season} wants {}; fetch it with `cargo run -- season sync`",
+                    path.display()
+                )
+            })?;
+            codex.manifest.wear_season(
+                serde_json::from_slice(&raw).with_context(|| format!("{}", path.display()))?,
+            );
+            info!("dressed the ships as on {season}");
+        }
         let codex = Arc::new(codex);
 
         Ok(Self {
