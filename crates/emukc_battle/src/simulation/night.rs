@@ -294,18 +294,6 @@ fn count_slotitems_with_onslot(ship: &BattleRuntimeShip, pred: impl Fn(i64) -> b
         .count()
 }
 
-/// Count 光電管彗星 (item 320) in non-shot-down slots. Disjoint from icon-based counts —
-/// item 320 carries a regular dive-bomber icon, not a night-plane icon.
-fn count_kouden_suisei(ship: &BattleRuntimeShip) -> usize {
-    count_slotitems_with_onslot(ship, |id| id == KOUDENKAN_SUISEI_ID)
-}
-
-/// Count Swordfish系 (242/243/244) and 岩井爆戦 (154) in non-shot-down slots. 夜間飛行機 by
-/// classification, but with non-night icons, so matched by item id (disjoint from icon counts).
-fn count_swordfish_iwai(ship: &BattleRuntimeShip) -> usize {
-    count_slotitems_with_onslot(ship, |id| SWORDFISH_IDS.contains(&id) || id == IWAI_FUKUSEN_ID)
-}
-
 fn is_swordfish_or_iwai_or_kouden(id: i64) -> bool {
     SWORDFISH_IDS.contains(&id)
         || id == IWAI_FUKUSEN_ID
@@ -533,19 +521,34 @@ impl CarrierNightCiSubType {
 }
 
 /// The carrier night cut-ins a carrier rolls for, in order (`CV.NBtypes`): her night air group
-/// counted by kind — night fighters, night attackers, night bombers, and the 光電管彗星, Swordfish
-/// and 岩井 that fly with them — in slots with aircraft left. Every one that her group makes,
-/// not only the first. Empty if she makes none, or does not fly with a night air group.
+/// counted by kind — night fighters, night attackers, night bombers, and the 光電管彗星, Swordfish,
+/// 岩井 and abyssal night bombers that fly with them. Every one that her group makes, not only the
+/// first. The player's slots count only with aircraft left; the source does not ask an enemy.
+/// Empty if she makes none, or does not fly with a night air group.
 fn carrier_night_cut_ins(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<CarrierNightCiSubType> {
     use CarrierNightCiSubType::*;
+    use emukc_model::kc2::start2::ApiMstSlotitem;
     if !is_cv_night_ci_eligible(codex, ship) {
         return Vec::new();
     }
-    let fighters = count_night_planes_by_icon(codex, ship, NIGHT_FIGHTER_ICON);
-    let attackers = count_night_planes_by_icon(codex, ship, NIGHT_ATTACKER_ICON);
-    let bombers = count_night_planes_by_icon(codex, ship, NIGHT_BOMBER_ICON);
-    let fuze = count_kouden_suisei(ship);
-    let auxiliary = fuze + count_swordfish_iwai(ship);
+    let (mut fighters, mut attackers, mut bombers, mut fuze, mut auxiliary) = (0, 0, 0, 0, 0);
+    for (item, count) in ship.slot_items.iter().zip(ship.ship.api_onslot) {
+        if ship.is_friendly && count <= 0 {
+            continue;
+        }
+        let Ok(mst) = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id) else {
+            continue;
+        };
+        match mst.api_type[3] {
+            NIGHT_FIGHTER_ICON => fighters += 1,
+            NIGHT_ATTACKER_ICON => attackers += 1,
+            NIGHT_BOMBER_ICON => bombers += 1,
+            _ if mst.api_id == KOUDENKAN_SUISEI_ID => fuze += 1,
+            _ if is_swordfish_or_iwai_or_kouden(mst.api_id) => auxiliary += 1,
+            _ => {}
+        }
+    }
+    let auxiliary = fuze + auxiliary;
     let night = fighters + attackers + bombers;
 
     let mut types = Vec::new();
@@ -565,7 +568,8 @@ fn carrier_night_cut_ins(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<Carrier
 }
 
 /// Whether a carrier may make a night cut-in at all: she flies (`flies_at_night_as_carrier`)
-/// with 夜間作戦航空要員 (item 258/259) or a built-in 夜戦特性 ([`EXEMPT_NIGHT_CV_IDS`]), and with
+/// with 夜間作戦航空要員 (item 258/259) or a built-in 夜戦特性 ([`EXEMPT_NIGHT_CV_IDS`], and the
+/// abyssal carriers with a crew of their own), and with
 /// a night air group on a working deck. Which cut-ins her group makes is
 /// [`carrier_night_cut_ins`].
 fn is_cv_night_ci_eligible(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
@@ -575,7 +579,8 @@ fn is_cv_night_ci_eligible(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     let has_personnel = AVIATION_PERSONNEL_IDS
         .iter()
         .any(|&id| ship.slot_items.iter().any(|si| si.api_slotitem_id == id));
-    let is_exempt = EXEMPT_NIGHT_CV_IDS.contains(&ship.ship.api_ship_id);
+    let is_exempt = EXEMPT_NIGHT_CV_IDS.contains(&ship.ship.api_ship_id)
+        || ABYSSAL_NIGHT_CREW_IDS.contains(&ship.ship.api_ship_id);
     if !(has_personnel || is_exempt) {
         return false;
     }
@@ -3145,7 +3150,7 @@ mod tests {
         let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CVL), 99);
         ship.slot_items = [AVIATION_PERSONNEL_IDS[0], NF, KK].map(slotitem_with_mst_id).to_vec();
         ship.ship.api_onslot = [0, 1, 0, 0, 0];
-        let rt = BattleRuntimeShip::from(ship);
+        let rt = BattleRuntimeShip::new(ship, true, true);
         assert_eq!(carrier_night_cut_ins(&codex, &rt), []);
     }
 
@@ -3933,6 +3938,22 @@ mod abyssal_carrier_tests {
         dd.slot_items.clear();
         dd.ship.api_taisen[0] = 60;
         assert_eq!(crate::damage::base_asw(&codex, &BattleRuntimeShip::from(dd)), 60.0);
+    }
+
+    /// `CV.NBtypes` asks an enemy carrier for her crew and her aircraft types, not for aircraft
+    /// left in the slot. 夜深海艦爆 counts as Swordfish do.
+    #[test]
+    fn an_enemy_carrier_with_a_night_crew_rolls_the_carrier_cut_ins() {
+        use CarrierNightCiSubType::*;
+        let codex = codex();
+        // 夜猫深海艦戦, 夜深海艦爆, 夜復讐深海艦攻: 62, and 64 with the bomber as the third.
+        let princess = abyssal(&codex, SOUTH_PACIFIC, 100);
+        assert_eq!(carrier_night_cut_ins(&codex, &princess), [FighterAttacker, FighterAndTwo]);
+        let mut emptied = abyssal(&codex, SOUTH_PACIFIC, 100);
+        emptied.ship.api_onslot = [0; 5];
+        assert_eq!(carrier_night_cut_ins(&codex, &emptied), [FighterAttacker, FighterAndTwo]);
+        // A carrier that shells, with no crew, makes none.
+        assert_eq!(carrier_night_cut_ins(&codex, &abyssal(&codex, WO_FLAGSHIP, 100)), []);
     }
 
     #[test]

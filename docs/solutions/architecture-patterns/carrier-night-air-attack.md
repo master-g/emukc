@@ -76,7 +76,14 @@ carriers with a `nightattack` mark, and the 74 with `hasBuiltInNightCrew`.
   slot (the source does not ask an enemy). 夜深海艦爆, 夜深海艦爆II and 深海不屈艦爆 Mk.II count
   in the power as 光電管彗星 does. 22 light carriers have a crew and no mark: they attack only
   while they can fly.
-- An enemy carrier makes no cut-in: the tables are not in `is_cv_night_ci_eligible`.
+- A carrier with a crew of her own rolls the carrier cut-ins as the player's do (`CV.NBtypes`
+  has no side check): her crew stands in for the 要員, and her aircraft count by type whether or
+  not any are left in the slot. 夜猫深海艦戦 and the like are night fighters (icon 45), 夜復讐深海艦攻
+  and the like night attackers (46); 夜深海艦爆 and the like count as Swordfish do, towards 64.
+  The marked carriers without a crew shell, and make none.
+- Neither the source nor the codex gives an enemy's aircraft any proficiency (the source loads
+  enemy equipment with ranks of 0, the codex with `api_alv` none), and the 装備ボーナス table has
+  no abyssal equipment, so her torpedo fit bonus is 0: there is nothing more to port there.
 - The enemy fires by position, as the player does. The source's "enemy always skips to the
   next capable ship" is its NPC friend fleet's night only.
 - An enemy light carrier attacks a submarine at night by the rule above: anti-submarine of
@@ -200,7 +207,6 @@ and `damage.rs` do not ask `simulation::night` themselves.
 
 ## Known gaps
 
-- Enemy carriers' cut-ins, their equipment bonuses and aircraft proficiency.
 - The torpedo fit bonus in a carrier's day shelling and airstrike (the day formulas are not the
   source's to begin with). Bombing bonuses (`DBCrew`): the 装備ボーナス table carries no bombing.
 - Smoke is not modelled at all (`night-attack-types.md`). The 夜間瑞雲 cut-in is there too.
