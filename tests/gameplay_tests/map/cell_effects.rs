@@ -635,11 +635,20 @@ mod tests {
         assert_eq!((escort.bonus_use_item, escort.rank_points), (Some((PRESENT_BOX, 1)), 75));
         assert_eq!(convoy_route(&context, pid).await, (true, 7));
         assert_eq!(use_item_count(&context, pid, PRESENT_BOX).await, boxes + 1);
-        // The 75 is kept with the month's 戦果, beside what the experience gives.
+        // The 75 is kept with the month's 戦果, beside what the experience gives; not from
+        // 22:00 JST on the month's last day, when midnight at UTC+11 is in the next month.
+        use emukc_internal::time::chrono::{Datelike, Duration, Utc};
+        let now = Utc::now();
+        let month_at = |hours| (now + Duration::hours(hours)).month();
+        let kept = if month_at(11) == month_at(9) {
+            75
+        } else {
+            0
+        };
         let (record, user) = context.get_user_basic(pid).await.unwrap();
-        assert_eq!(record.war_result, 75);
+        assert_eq!(record.war_result, kept);
         let from_exp = (record.experience - record.war_result_base_exp) * 7 / 10_000;
-        assert_eq!(user.api_war_result, from_exp + 75);
+        assert_eq!(user.api_war_result, from_exp + kept);
 
         let arrival = arrive(&context, pid, 16, "N", async || {}).await;
         let escort = arrival.next.escort.as_ref().unwrap();
