@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-07T05:12:07.693Z",
-  "scriptVersion": "6.3.5.0",
+  "generatedAt": "2026-10-15T12:54:44.127Z",
+  "scriptVersion": "6.3.6.0",
   "summary": {
     "shipTargetTypeCount": 36,
     "slotTargetTypeCount": 13,
@@ -1227,6 +1227,7 @@
       "targetType": "card",
       "moduleIds": [
         "12003",
+        "43639",
         "44031",
         "45326",
         "58035",
@@ -1239,6 +1240,7 @@
       ],
       "moduleNames": [
         "MeltIntoSprite",
+        "MeltIntoTask",
         "ModelChangeTask",
         "RewardAnimationMultiSlot",
         "TaskBonusSlot",
