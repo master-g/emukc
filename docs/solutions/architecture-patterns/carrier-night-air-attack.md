@@ -128,7 +128,9 @@ Any ship's night attack on a submarine is the day one (`ASW`, called from the ni
   anti-submarine of each sonar, the formation's anti-submarine column, morale, and the
   proficiency of `asw_proficiency`. Not the night gunfire roll, so it can miss.
 - After a day battle the attack power counts as 0: a hit is scratch damage
-  (`calculate_scratch_damage`) and the submarine cannot be sunk.
+  (`calculate_scratch_damage`) and the submarine cannot be sunk. Not for a combined fleet's
+  escort, on either side (`is_escort_deck`): the source hands `ASW` `!NBonly && !isescort`, so its
+  attack does real damage as in a night-start battle.
 - In a night-start battle (開幕夜戦, `NightBattleInput::night_start`, set by
   `execute_sp_midnight` alone) the damage is `calculate_asw_damage` as by day, with formation,
   engagement and the attacker's damage state, and she can be sunk.
@@ -174,8 +176,6 @@ and `damage.rs` do not ask `simulation::night` themselves.
   codex's anti-submarine of 0, not from the source's figure that makes her eligible.
 - The fit bonuses the source adds to a carrier's torpedo (`eqBonusCV`), no torpedo against a
   land target, and the special-aircraft multipliers.
-- In the source a combined fleet's escort does real damage to a submarine in the night after a
-  day battle as well (`!NBonly && !isescort`); here that night is `night_start: false`, a scratch.
 - Smoke on the attack on a submarine, and the 夜間瑞雲 cut-in's exception for one.
 - The source lets a carrier roll for several of her cut-ins in turn; here she has the one her
   air group makes. The types of the other ships are in `night-attack-types.md`.

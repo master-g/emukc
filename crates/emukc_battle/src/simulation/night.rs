@@ -1424,7 +1424,9 @@ fn night_turn(
                 .lit_by_star_shell(own.star_shell)
         };
         let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
-        let raw = if is_submarine && params.night_start {
+        // `nightPhase` hands `ASW` `isNightDmg = !NBonly && !isescort`: the attack counts in a
+        // night-start battle, and for a combined fleet's escort after a day battle too.
+        let raw = if is_submarine && (params.night_start || ship.is_escort_deck()) {
             calculate_asw_damage(
                 codex,
                 rng,
@@ -1719,8 +1721,13 @@ mod tests {
     }
 
     /// A destroyer's night attack on a 30 HP submarine, one per seed: the `api_cl_list` value
-    /// and the submarine's HP afterwards.
-    fn night_asw_runs(codex: &Codex, sonar: bool, night_start: bool) -> Vec<(i64, i64)> {
+    /// and the submarine's HP afterwards. `escort` puts her in a combined fleet's escort.
+    fn night_asw_runs(
+        codex: &Codex,
+        sonar: bool,
+        night_start: bool,
+        escort: bool,
+    ) -> Vec<(i64, i64)> {
         let mut hunter = sample_ship(codex, first_ship_mst_by_type(codex, KcShipType::DD), 99);
         hunter.ship.api_taisen[0] = 100;
         // Two torpedoes would be a cut-in on a surface ship.
@@ -1740,7 +1747,14 @@ mod tests {
 
         (0..300)
             .map(|seed| {
-                let mut friendly = vec![BattleRuntimeShip::from(hunter.clone())];
+                let mut ship = BattleRuntimeShip::from(hunter.clone());
+                if escort {
+                    ship = ship.in_combined_fleet(
+                        crate::combined::CombinedType::CarrierTaskForce,
+                        crate::combined::CombinedFleetRole::Escort,
+                    );
+                }
+                let mut friendly = vec![ship];
                 let mut enemy = vec![BattleRuntimeShip::from(submarine.clone())];
                 let hougeki = simulate_night_hougeki(
                     codex,
@@ -1773,7 +1787,7 @@ mod tests {
     #[test]
     fn a_night_attack_on_a_submarine_after_a_day_battle_can_miss_and_only_scratches() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let runs = night_asw_runs(&codex, true, false);
+        let runs = night_asw_runs(&codex, true, false, false);
 
         assert!(runs.iter().any(|(cl, _)| *cl == 0), "it can miss");
         assert!(runs.iter().any(|(cl, _)| *cl > 0), "it can hit");
@@ -1784,7 +1798,18 @@ mod tests {
     #[test]
     fn a_night_attack_on_a_submarine_in_a_night_start_battle_can_sink_her() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let runs = night_asw_runs(&codex, true, true);
+        let runs = night_asw_runs(&codex, true, true, false);
+
+        assert!(runs.iter().any(|(cl, _)| *cl == 0), "it can miss");
+        assert!(runs.iter().any(|(_, hp)| *hp <= 0), "it can sink her");
+    }
+
+    /// `nightPhase` hands `ASW` `!NBonly && !isescort`: a combined fleet's escort does real damage
+    /// to a submarine in the night after a day battle too.
+    #[test]
+    fn a_combined_fleets_escort_can_sink_a_submarine_after_a_day_battle() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let runs = night_asw_runs(&codex, true, false, true);
 
         assert!(runs.iter().any(|(cl, _)| *cl == 0), "it can miss");
         assert!(runs.iter().any(|(_, hp)| *hp <= 0), "it can sink her");
@@ -1793,8 +1818,9 @@ mod tests {
     #[test]
     fn a_sonar_makes_a_night_attack_on_a_submarine_miss_less() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let misses =
-            |sonar| night_asw_runs(&codex, sonar, false).iter().filter(|(cl, _)| *cl == 0).count();
+        let misses = |sonar| {
+            night_asw_runs(&codex, sonar, false, false).iter().filter(|(cl, _)| *cl == 0).count()
+        };
 
         assert!(misses(true) < misses(false), "{} < {}", misses(true), misses(false));
     }
