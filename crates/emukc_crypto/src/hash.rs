@@ -72,6 +72,20 @@ impl<T: AsRef<[u8]>> SimpleHash for T {
     }
 }
 
+/// Calculate the lowercase hex sha256 of some bytes
+///
+/// # Example
+///
+/// ```
+/// use emukc_crypto::hash::sha256_hex;
+///
+/// let hash = sha256_hex(b"hello world");
+/// assert_eq!(hash, "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");
+/// ```
+pub fn sha256_hex(data: &[u8]) -> String {
+    base16ct::lower::encode_string(&Sha256::digest(data))
+}
+
 /// Calculate md5 hash of a string
 ///
 /// # Arguments

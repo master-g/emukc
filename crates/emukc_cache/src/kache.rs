@@ -1,17 +1,25 @@
 //! Kache is for `KanColle` Cache, a simple cache system.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use emukc_crypto::rng;
 use redb::{Database, ReadableDatabase, TableDefinition};
 use tokio::io::AsyncReadExt;
 
-use emukc_network::{client::new_reqwest_client, download, reqwest};
+use emukc_network::{
+    client::new_reqwest_client,
+    download,
+    reqwest::{
+        self,
+        header::{CONTENT_LENGTH, LAST_MODIFIED},
+    },
+};
 
 use crate::{
     download_lock::DownloadLock,
     error::Error,
+    history::HISTORY_TABLE,
     opt::GetOption,
     unified_rel_path,
     ver::{IntoVersion, cmp_version},
@@ -46,6 +54,9 @@ pub struct Kache {
 
     /// Root directory for the mods.
     mods_root: Option<PathBuf>,
+
+    /// Root directory for the versions a newer one replaced.
+    pub(crate) history_root: PathBuf,
 
     /// CDN URLs for downloading gadgets.
     gadgets_cdn: Vec<String>,
@@ -166,6 +177,7 @@ impl Builder {
         let write_txn = db.begin_write()?;
         {
             let _ = write_txn.open_table(KACHE_TABLE)?;
+            let _ = write_txn.open_table(HISTORY_TABLE)?;
         }
         write_txn.commit()?;
 
@@ -174,6 +186,7 @@ impl Builder {
         let download_lock = Arc::new(DownloadLock::new());
 
         Ok(Kache {
+            history_root: cache_root.join(".history"),
             cache_root,
             mods_root: self.mods_root,
             gadgets_cdn,
@@ -266,12 +279,7 @@ impl Kache {
                         warn!("🥀 expired: {log_tail}");
                     }
                     Error::InvalidFileVersion(_) => {
-                        // The local cache is NEWER than the requested version (a rollback
-                        // request, e.g. populating from a stale list). Serve the newer local
-                        // file instead of re-fetching the older version, which would downgrade
-                        // and corrupt a good cache entry. The DB version is left untouched.
-                        warn!("🎃 version rollback: {log_tail} — keeping newer local file");
-                        return Ok(tokio::fs::File::open(&local_path).await?);
+                        return self.serve_older(path, &local_path, &v).await;
                     }
                     _ => {
                         error!("❗️ local_path:{}, err:{:?}", path, e);
@@ -575,8 +583,15 @@ impl Kache {
         // Check if file was downloaded by another request.
         // Skipped for remote-only lookups (e.g. `kcs2/version.json`): a stale local
         // copy must never short-circuit a forced refresh.
-        if check_local && let Ok(file) = self.find_in_local(path, local_path, version).await {
-            return Ok(file);
+        if check_local {
+            match self.find_in_local(path, local_path, version).await {
+                Ok(file) => return Ok(file),
+                // Another request moved the file past this version while this one waited.
+                Err(Error::InvalidFileVersion(_)) => {
+                    return self.serve_older(path, local_path, version).await;
+                }
+                Err(_) => {}
+            }
         }
 
         let cdn_list = self.select_cdn_list(path);
@@ -591,6 +606,16 @@ impl Kache {
         if shuffle {
             rng::shuffle(&mut indices);
         }
+
+        if check_local
+            && let Some(file) = self
+                .keep_if_unchanged(path, local_path, version, indices.iter().map(|&i| &cdn_list[i]))
+                .await?
+        {
+            return Ok(file);
+        }
+        // The download below overwrites the live file.
+        self.keep_live(path, local_path).await?;
 
         // Stays true while every mirror answers with a body the game cannot use
         // (an empty 200, an error page). That is an answer, so it is reported as
@@ -640,6 +665,83 @@ impl Kache {
         error!("🚫 all cdn failed for {}", path);
 
         Err(Error::FailedOnAllCdn)
+    }
+
+    /// Answer a version older than the recorded one: with what that version held when it was
+    /// kept, or else (a rollback request, e.g. populating from a stale list) with the newer
+    /// local file. Re-fetching the older version would downgrade and corrupt a good cache
+    /// entry, so the DB version is left untouched.
+    async fn serve_older(
+        &self,
+        path: &str,
+        local_path: &Path,
+        version: &str,
+    ) -> Result<tokio::fs::File, Error> {
+        if let Some(kept) = self.find_in_history(path, version).await? {
+            debug!("📜 {path}, version: {version}");
+            return Ok(tokio::fs::File::open(kept).await?);
+        }
+        warn!("🎃 version rollback: {path}, version: {version} — keeping newer local file");
+        Ok(tokio::fs::File::open(local_path).await?)
+    }
+
+    /// Keep the live file under the version it is recorded at, before something replaces it.
+    async fn keep_live(&self, rel_path: &str, local_path: &Path) -> Result<(), Error> {
+        if !Self::is_valid(local_path).await {
+            return Ok(());
+        }
+        if let Some(version) = self.get_cached_version(rel_path).await? {
+            self.keep_version(rel_path, &version, local_path, None).await?;
+        }
+        Ok(())
+    }
+
+    /// A version bump whose file on the CDN is as long as the live one is taken as the same
+    /// file: the new version is recorded against the live bytes and nothing is downloaded.
+    /// A live file with no recorded version is downloaded as before.
+    ///
+    /// On 2026-10-14, 1,339 bumped files had a new `Last-Modified`; the 667 whose length had not
+    /// changed were byte-identical re-uploads, and the 672 whose length had changed all differed.
+    // ponytail: equal length is taken as equal content; a same-length edit would be missed. A
+    // ranged GET of a few slices would catch it if one ever turns up.
+    async fn keep_if_unchanged(
+        &self,
+        rel_path: &str,
+        local_path: &Path,
+        version: &str,
+        cdn_list: impl Iterator<Item = &String>,
+    ) -> Result<Option<tokio::fs::File>, Error> {
+        if version.into_version().is_none()
+            || self.get_cached_version(rel_path).await?.is_none()
+            || !Self::is_valid(local_path).await
+        {
+            return Ok(None);
+        }
+        let local_len = tokio::fs::metadata(local_path).await?.len();
+
+        for cdn in cdn_list {
+            let url = self.build_cdn_url(cdn, rel_path, version);
+            let Ok(resp) = self.client.head(&url).send().await else {
+                continue;
+            };
+            if !resp.status().is_success() {
+                // A 404 or an error page is the GET's to report.
+                return Ok(None);
+            }
+            // Not `content_length()`: a HEAD response has no body, so that reads 0.
+            let header = |name| resp.headers().get(name).and_then(|value| value.to_str().ok());
+            let remote_len = header(CONTENT_LENGTH).and_then(|len| len.parse::<u64>().ok());
+            if remote_len != Some(local_len) {
+                return Ok(None);
+            }
+            let last_modified = header(LAST_MODIFIED).map(str::to_owned);
+            self.keep_live(rel_path, local_path).await?;
+            self.keep_version(rel_path, version, local_path, last_modified.as_deref()).await?;
+            self.set_version(rel_path, Some(version)).await?;
+            info!("🟰 {url} is as long as the cached file, kept it");
+            return Ok(Some(tokio::fs::File::open(local_path).await?));
+        }
+        Ok(None)
     }
 
     /// Check if the file is valid.

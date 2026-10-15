@@ -250,7 +250,7 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 - 最终质量门：`cargo fmt --all --check`、`cargo clippy --workspace --all-targets -- -D warnings`、`cargo test --workspace`。
 - 数据准备：`make bootstrap`；需要已配置 `emukc.config.toml`，生成的本地数据位于忽略目录 `.data/`、`z/`。
 - 解码并同步生成资产：`make decode-main`；先在 `main-decoder/` 安装 Bun 依赖并完成 bootstrap。
-- 缓存：`make cache-make-list`、`make cache-populate CONCURRENT=16`。
+- 缓存：`make cache-make-list`、`make cache-populate CONCURRENT=16`。版本号升了会先比大小再决定下不下，被换掉的版本留在 `z/cache/.history`；`cargo run -- cache archive-import <dir>` 把带 `manifest.json` 的快照（如 `z/seasons/2026-09-20`）收进历史。见 `docs/solutions/best-practices/cache-resource-history.md`。
 - 可复现战斗：`make battle-sim SCENARIO=fresh_1_1 SEED=1`；可加 `FIND=night MAX_SEEDS=1000`。
 - 路由规则：`make route-rules-update` 从钉住的羅針盤シミュ源码再生 `map_route_rules.json`；之后 `cargo run -- bootstrap --codex-only` 重建 codex，再 `make route-oracle` 与来源代码对拍。
 - 装備ボーナス：`make gear-bonus-update` 从钉住的 KC3Kai 提交再生 `gear_bonus.json`，之后 `cargo run -- bootstrap --codex-only` 重建 codex，再 `make gear-bonus-oracle` 与客户端 `main.js` 的加成函数对拍（需先 `make decode-main`）。对拍报出的差异手工写进 `main-decoder/gear-bonus-corrections.json`。`make update` 在漂移报告之后会自动跑一次对拍（不阻断）。

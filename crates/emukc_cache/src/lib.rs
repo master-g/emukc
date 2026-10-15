@@ -10,6 +10,7 @@ extern crate tracing;
 mod download_lock;
 mod error;
 mod export;
+mod history;
 mod kache;
 mod opt;
 mod ver;
