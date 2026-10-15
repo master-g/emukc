@@ -119,6 +119,16 @@ screen, pass steps on the command line and read the screenshots:
   this fleet on 2026-10-15, four of them passing: 63, 62 and 64 each played, with
   their name plates (`night4` of one run: F6F-3N, 彗星一二型(三一号光電管爆弾搭載機)), without a
   page error.
+- `night_destroyer_cut_in` is the same sortie led by 古鷹 with two main guns and a secondary
+  (4), with five 天津風改二 at level 99, past the level (80) at which a destroyer cut-in may be
+  made with two hits: a torpedo, 熟練見張員 and a radar (8 or 12), a torpedo, 水雷戦隊 熟練見張員
+  and a drum (10 or 14, twice), a gun, a torpedo and the radar (7 or 11), two torpedoes and
+  水雷戦隊 熟練見張員 (9 or 13). All are short of ammunition; the sim reached the night 30 seeds
+  in 30. The check wants each attack to be of a type her equipment makes, with its hits and the
+  three pieces it shows, and one cut-in at least. Fourteen runs on 2026-10-15, all passing
+  without a page error: seven while the fourth ship still carried the radar lookout set, seven
+  with the gun; together they played 4, 7, 8, 9, 10, 11, 12, 13 and 14. The cut-in screens of 4,
+  8, 10 and 12 were read, the last three with their three name plates.
 - `night_zuiun` is the same sortie led by 最上改二特 (two 20.3cm(3号)連装砲, two 夜間瑞雲) and
   三隈改二特 (the guns, one 瑞雲, a 22号対水上電探), both short of ammunition. The check wants
   any 200 of theirs to hit once or twice (once when the first sinks the last enemy), not flown,
