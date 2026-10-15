@@ -312,6 +312,39 @@ impl Scenario {
         scenario
     }
 
+    /// 古鷹 with two main guns and a secondary gun (the cut-in of type 4) ahead of five
+    /// destroyers with the destroyer cut-ins: a torpedo, 熟練見張員 and a surface radar (8) on
+    /// the second, a torpedo, 水雷戦隊 熟練見張員 and a drum (10) on the third and fifth, a main
+    /// gun, a torpedo and the radar (7) on the fourth, two torpedoes and 水雷戦隊 熟練見張員 (9)
+    /// on the last. At level 99 each of those may be made with two hits instead (12, 14, 11,
+    /// 13). All are short of ammunition, so that they do not finish the enemy by day.
+    pub fn night_destroyer_cut_in() -> Self {
+        const TORPEDO: i64 = 15; // 61cm四連装(酸素)魚雷
+        const LOOKOUT: i64 = 129; // 熟練見張員
+        const SKILLED_LOOKOUT: i64 = 412; // 水雷戦隊 熟練見張員
+        let radar_lookout = [TORPEDO, LOOKOUT, 28]; // 22号対水上電探
+        let drum_lookout = [TORPEDO, SKILLED_LOOKOUT, DRUM_CANISTER];
+        let loadouts = [
+            radar_lookout,
+            drum_lookout,
+            [2, TORPEDO, 28], // 12.7cm連装砲
+            drum_lookout,
+            [TORPEDO, TORPEDO, SKILLED_LOOKOUT],
+        ];
+        let mut scenario = Self::leveled_for_mid_boss();
+        scenario.fleet[0] = ShipSpec {
+            ammo: Some(20),
+            ..ShipSpec::new(59, 99).with_slots([50, 50, 12]) // 20.3cm(3号)連装砲, 15.5cm三連装副砲
+        };
+        for (ship, slots) in scenario.fleet[1..].iter_mut().zip(loadouts) {
+            *ship = ShipSpec {
+                ammo: Some(20),
+                ..ShipSpec::new(951, 99).with_slots(slots)
+            };
+        }
+        scenario
+    }
+
     /// 最上改二特 and 三隈改二特 ahead of four destroyers, two main guns each, for the night
     /// 瑞雲 cut-in: the first with two 夜間瑞雲, the second with one and a surface radar. Both
     /// are short of ammunition, so that they do not finish the enemy by day.
@@ -641,6 +674,13 @@ pub const PRESETS: &[Preset] = &[
     Preset {
         name: "night_cut_in",
         build: Scenario::night_cut_in,
+        maparea: 2,
+        mapinfo: 1,
+        expects: PhaseExpectation::NightCutIn,
+    },
+    Preset {
+        name: "night_destroyer_cut_in",
+        build: Scenario::night_destroyer_cut_in,
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::NightCutIn,

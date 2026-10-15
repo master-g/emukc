@@ -214,4 +214,10 @@ double attack, a cut-in or a special attack that misses still scratches and is w
 - Played in the client (`night_cut_in`): types 2, 3, 5 and 7 and the star shell; the
   submarine's torpedo cut-in with her radar and her plain attack (`night_asw`); the Kongou
   class's night assault (`kongou_night_assault`); 101 at night, once and with one hit
-  (`nagato_broadside`). Not played: 4, 8 to 14.
+  (`nagato_broadside`); 4 and 7 to 14 (`night_destroyer_cut_in`, 2026-10-15), without a page
+  error. The client reads three pieces for each (`getSlotitem(0..2)`, -1 past the row's end):
+  4's `CutinSpSSF` reads their `mstID` unchecked, so it must get three, and does (two main guns
+  and a secondary are what make it); the destroyer cut-ins' `CutinSpSRD`, `RDJ`, `Suirai` and
+  `Yusou` (11 to 14 use the same) check for a missing piece and would draw it blank. All of them
+  get three here. The client lays the pieces out its own way: 8 sends torpedo, lookout, radar
+  and shows torpedo, radar, lookout.
