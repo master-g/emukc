@@ -29,6 +29,11 @@ A carrier attacks at night in one of two ways, and otherwise not at all
   shell as a surface ship does until heavily damaged, with the ordinary night formula. The
   abyssal carriers the source marks `nightattack` attack the same way (see "Enemy carriers").
 
+しまね丸改 (1008), a 補給艦, flies by air under the same rules as a carrier (the source's
+`canAirAttackNB`, `AO.prototype.loadEquips`): a night air group, more than half her hull, the
+carrier cut-ins and the carrier's power (`flies_at_night_as_carrier`). Without it, or below half
+her hull, she shells as any ship does. しまね丸 and the other oilers do not fly.
+
 光電管彗星, 岩井爆戦 and Swordfish fly with a night air group and count in its power and its
 cut-ins, but do not make one. So 要員 with ordinary bombers is not enough: such a carrier
 stays out of the night, where she used to attack.
@@ -164,7 +169,6 @@ and `damage.rs` do not ask `simulation::night` themselves.
 
 ## Known gaps
 
-- しまね丸改, a 補給艦 the source lets fly at night: every carrier test here goes by ship type.
 - Enemy carriers' cut-ins, their equipment bonuses and aircraft proficiency.
 - An enemy light carrier's power against a submarine in a night-start battle comes from the
   codex's anti-submarine of 0, not from the source's figure that makes her eligible.

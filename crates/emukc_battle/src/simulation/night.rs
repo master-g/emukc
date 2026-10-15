@@ -214,6 +214,16 @@ const INDEPENDENCE_FLIGHT2_ID: i64 = 1036; // Independence Flight II
 const EXEMPT_NIGHT_CV_IDS: &[i64] =
     &[SARATOGA_MK2_ID, AKAGI_K2E_ID, KAGA_K2E_ID, RYUUHOU_K2E_ID, INDEPENDENCE_FLIGHT2_ID];
 
+/// しまね丸改: the one 補給艦 the source lets fly at night as a carrier, with a night air group
+/// (`kcSHIPDATA.js` `canAirAttackNB`, `kcships.js` `AO.prototype.loadEquips`).
+const NIGHT_FLYING_OILER_IDS: &[i64] = &[1008];
+
+/// Whether a ship's night attack may be flown at all: a carrier's, or that of the oiler above.
+fn flies_at_night_as_carrier(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+    crate::damage::is_cv_type(codex, ship)
+        || NIGHT_FLYING_OILER_IDS.contains(&ship.ship.api_ship_id)
+}
+
 /// Carriers that shell at night as a surface ship does, with no aircraft in it: Graf Zeppelin
 /// and 改, Saratoga, 大鷹改二, 神鷹改二, 加賀改二護, Lexington改, 雲鷹改二, Lexington, Wasp and 改.
 /// The first nine are `kancolle-replay`'s `nightattack`, which predates Wasp; the wiki's Wasp
@@ -331,7 +341,7 @@ fn has_night_air_gear(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 /// or Swordfish aboard Ark Royal, and a flight deck that still works — more than half her
 /// hull, or more than a quarter for an armoured carrier.
 pub(crate) fn can_night_air_attack(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-    if !crate::damage::is_cv_type(codex, ship) {
+    if !flies_at_night_as_carrier(codex, ship) {
         return false;
     }
     let mst = crate::targeting::ship_mst(codex, ship);
@@ -501,7 +511,7 @@ fn detect_carrier_night_ci_sub_type(
 /// never diverge — the old icon-only predicate could not recognise the 光電管彗星 / Swordfish /
 /// 岩井 sub-types, and a 夜間瑞雲-only or lone-夜戦 setup correctly returns `None` → ineligible.
 fn is_cv_night_ci_eligible(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-    if !crate::damage::is_cv_type(codex, ship) {
+    if !flies_at_night_as_carrier(codex, ship) {
         return false;
     }
     let has_personnel = AVIATION_PERSONNEL_IDS
@@ -2545,6 +2555,28 @@ mod tests {
         assert!(attacks(100));
         assert!(attacks(26));
         assert!(!attacks(25));
+    }
+
+    /// `AO`: しまね丸改 alone of the 補給艦 (`canAirAttackNB`) flies at night as a carrier does.
+    #[test]
+    fn shimane_maru_kai_flies_at_night_with_a_night_air_group() {
+        const SHIMANE_MARU: i64 = 1003;
+        const SHIMANE_MARU_KAI: i64 = 1008;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let group = [CREW, (NF, 10, 0), (NA, 9, 0)];
+        let ship = |mst_id, hp| night_carrier(&codex, mst_id, &group, hp);
+        assert!(can_night_air_attack(&codex, &ship(SHIMANE_MARU_KAI, 100)));
+        assert!(!can_night_air_attack(&codex, &ship(SHIMANE_MARU, 100)));
+        assert!(!can_night_air_attack(&codex, &night_carrier(&codex, SHIMANE_MARU_KAI, &[], 100)));
+        // A carrier's deck: more than half her hull. Below it she shells.
+        assert!(can_night_air_attack(&codex, &ship(SHIMANE_MARU_KAI, 51)));
+        assert!(!can_night_air_attack(&codex, &ship(SHIMANE_MARU_KAI, 50)));
+        assert!(crate::targeting::can_attack_night_ship(&codex, &ship(SHIMANE_MARU_KAI, 50)));
+        // Her air group makes the carrier cut-in.
+        assert_eq!(
+            detect_night_attack_type(&codex, &ship(SHIMANE_MARU_KAI, 100)),
+            NightAttackType::CarrierNightCI(CarrierNightCiSubType::Nf1Na)
+        );
     }
 
     #[test]
