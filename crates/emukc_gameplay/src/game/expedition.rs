@@ -20,7 +20,7 @@ use emukc_time::{
 use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::{
-    basic::find_profile,
+    basic::{find_profile, roll_war_result},
     fleet::{find_fleet, get_fleet_ships_impl},
     material::add_material_impl,
     quest::observe::{GameplayOutcome, observe},
@@ -1132,6 +1132,7 @@ where
 {
     let record = find_profile(c, profile_id).await?;
     let mut am = record.into_active_model();
+    roll_war_result(&mut am, Utc::now());
 
     let current_exp = am.experience.clone().take().unwrap_or_default();
     let new_exp = current_exp + admiral_exp;

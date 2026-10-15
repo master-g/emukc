@@ -7,6 +7,7 @@ use emukc_model::{
     codex::Codex,
     kc2::{KcApiUserBasic, KcUseItemType},
 };
+use emukc_time::chrono::{DateTime, Datelike, FixedOffset, Utc};
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
@@ -207,7 +208,7 @@ where
                 0
             },
         ],
-        api_war_result: record.war_result,
+        api_war_result: war_result(&record, Utc::now()),
     };
 
     Ok((record, basic))
@@ -378,6 +379,39 @@ where
     Ok(())
 }
 
+/// 戦果 for every 10000 admiral experience (wikiwiki 「戦果」).
+const WAR_RESULT_PER_10000_EXP: i64 = 7;
+
+/// The JST month a moment falls in, as year × 100 + month.
+fn jst_month(now: DateTime<Utc>) -> i64 {
+    let jst = now.with_timezone(&FixedOffset::east_opt(9 * 3600).unwrap());
+    i64::from(jst.year()) * 100 + i64::from(jst.month())
+}
+
+/// Start this month's 戦果 if the profile's is another month's: experience from here on
+/// counts and the bonus starts at nothing. Call it before experience or bonus is added, so
+/// that `experience` still holds what came before.
+pub(crate) fn roll_war_result(am: &mut profile::ActiveModel, now: DateTime<Utc>) {
+    let month = jst_month(now);
+    if *am.war_result_month.as_ref() == month {
+        return;
+    }
+    am.war_result_month = ActiveValue::Set(month);
+    am.war_result_base_exp = ActiveValue::Set(*am.experience.as_ref());
+    am.war_result = ActiveValue::Set(0);
+}
+
+/// This month's 戦果: 7 for every 10000 experience since the month started, and the bonus
+/// (quests, 1-6's goal). Nothing while no experience or bonus has come this month.
+// ponytail: the month-end limits (21:59 for 戦果) are #147's.
+pub(crate) fn war_result(record: &profile::Model, now: DateTime<Utc>) -> i64 {
+    if record.war_result_month != jst_month(now) {
+        return 0;
+    }
+    (record.experience - record.war_result_base_exp) * WAR_RESULT_PER_10000_EXP / 10_000
+        + record.war_result
+}
+
 pub(crate) async fn add_war_result_impl<C>(
     c: &C,
     profile_id: i64,
@@ -387,9 +421,9 @@ where
     C: ConnectionTrait,
 {
     let profile = find_profile(c, profile_id).await?;
-    let war_result = profile.war_result + amount;
     let mut am = profile.into_active_model();
-    am.war_result = ActiveValue::Set(war_result);
+    roll_war_result(&mut am, Utc::now());
+    am.war_result = ActiveValue::Set(am.war_result.as_ref() + amount);
     am.update(c).await?;
     Ok(())
 }
@@ -420,4 +454,62 @@ where
     am.large_dock_unlocked = ActiveValue::Set(true);
     am.update(c).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod war_result_tests {
+    use emukc_db::{
+        entity::profile,
+        sea_orm::{ActiveValue, IntoActiveModel, TryIntoModel},
+    };
+    use emukc_time::chrono::{DateTime, TimeZone, Utc};
+
+    use super::{roll_war_result, war_result};
+
+    /// 2026-10-31 15:30 UTC is 2026-11-01 00:30 JST.
+    fn utc(month: u32, day: u32, hour: u32) -> DateTime<Utc> {
+        Utc.with_ymd_and_hms(2026, month, day, hour, 30, 0).unwrap()
+    }
+
+    fn record(experience: i64) -> profile::Model {
+        let mut am = profile::default_active_model(1, "admiral");
+        am.id = ActiveValue::Set(1);
+        am.experience = ActiveValue::Set(experience);
+        am.try_into_model().unwrap()
+    }
+
+    /// Add experience and bonus the way the callers do: roll first, then add.
+    fn gain(record: profile::Model, now: DateTime<Utc>, exp: i64, bonus: i64) -> profile::Model {
+        let mut am = record.into_active_model();
+        roll_war_result(&mut am, now);
+        am.experience = ActiveValue::Set(am.experience.as_ref() + exp);
+        am.war_result = ActiveValue::Set(am.war_result.as_ref() + bonus);
+        am.try_into_model().unwrap()
+    }
+
+    #[test]
+    fn a_month_counts_seven_in_ten_thousand_of_experience_and_its_bonus() {
+        // Experience from before the month started does not count.
+        let r = gain(record(500_000), utc(10, 2, 0), 10_000, 0);
+        assert_eq!(war_result(&r, utc(10, 2, 1)), 7);
+        let r = gain(r, utc(10, 3, 0), 4_285, 75);
+        // 14285 × 7 / 10000 = 9.9995, down to 9; and the bonus.
+        assert_eq!(war_result(&r, utc(10, 3, 1)), 9 + 75);
+    }
+
+    #[test]
+    fn a_new_month_in_japan_starts_from_nothing() {
+        let r = gain(record(0), utc(10, 2, 0), 20_000, 75);
+        assert_eq!(war_result(&r, utc(10, 31, 14)), 14 + 75);
+        // Read in November (JST) before anything is gained: nothing yet.
+        assert_eq!(war_result(&r, utc(10, 31, 15)), 0);
+        // Gained in November: only November's.
+        let r = gain(r, utc(10, 31, 16), 10_000, 0);
+        assert_eq!(war_result(&r, utc(10, 31, 17)), 7);
+    }
+
+    #[test]
+    fn a_profile_that_never_started_a_month_has_none() {
+        assert_eq!(war_result(&record(1_000_000), utc(10, 2, 0)), 0);
+    }
 }

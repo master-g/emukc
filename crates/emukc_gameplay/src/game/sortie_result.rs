@@ -18,7 +18,7 @@ use serde::Serialize;
 use crate::err::GameplayError;
 
 use super::{
-    basic::find_profile,
+    basic::{find_profile, roll_war_result},
     map::{check_and_unlock_dependencies_impl, find_map_record_impl},
     map_progress::assign_stage_id,
     proficiency,
@@ -610,6 +610,7 @@ where
 {
     let profile = find_profile(c, profile_id).await?;
     let mut am = profile.into_active_model();
+    roll_war_result(&mut am, Utc::now());
     let current_exp = am.experience.take().unwrap_or_default();
     let new_exp = current_exp + snapshot.get_exp;
     let (hq_level, _) = level::exp_to_hq_level(new_exp);

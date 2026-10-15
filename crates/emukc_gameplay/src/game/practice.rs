@@ -20,7 +20,7 @@ use emukc_time::{
 use crate::{err::GameplayError, gameplay::Ctx};
 
 use super::{
-    basic::find_profile,
+    basic::{find_profile, roll_war_result},
     battle::practice::{
         PracticeBattleInput, PracticeBattleResultResponse, PracticeBattleResultSnapshot,
         PracticeBattleShipInput, build_result_response, calculate_ship_exp, run_day_battle,
@@ -750,6 +750,7 @@ where
 {
     let profile = find_profile(c, profile_id).await?;
     let mut am = profile.into_active_model();
+    roll_war_result(&mut am, Utc::now());
     let current_exp = am.experience.take().unwrap_or_default();
     let new_exp = current_exp + snapshot.get_exp;
     let (hq_level, _) = level::exp_to_hq_level(new_exp);
