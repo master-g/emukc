@@ -2,7 +2,7 @@
 title: "Resource History and Cosmetic Seasons - Plan"
 type: feat
 date: 2026-10-15
-status: in-progress
+status: implemented
 execution: code
 ---
 
