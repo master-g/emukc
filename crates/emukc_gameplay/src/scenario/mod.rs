@@ -407,6 +407,15 @@ impl Scenario {
         scenario
     }
 
+    /// Richelieu Deux ahead of Jean Bart改 moderately damaged (40 of 88) and four destroyers,
+    /// for the Richelieu class's attack with a damaged second ship, as `mutsu_broadside`.
+    pub fn richelieu_attack() -> Self {
+        let mut scenario = Self::leveled_for_mid_boss();
+        scenario.fleet[0] = ShipSpec::new(969, 99);
+        scenario.fleet[1] = ShipSpec::new(724, 99).with_hp(40);
+        scenario
+    }
+
     /// 金剛 and three destroyers into 2-5: a battleship and fewer than four destroyers are sent
     /// to C, whose flagship is 軽母ヌ級flagship, one of the abyssal carriers that attack at
     /// night. Too few and too weak to be sure of sinking her by day.
@@ -743,6 +752,13 @@ pub const PRESETS: &[Preset] = &[
     Preset {
         name: "mutsu_broadside",
         build: Scenario::mutsu_broadside,
+        maparea: 2,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
+    },
+    Preset {
+        name: "richelieu_attack",
+        build: Scenario::richelieu_attack,
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,

@@ -495,22 +495,29 @@ def check_nagato_broadside(work: Path) -> list[str]:
     return problems
 
 
-def check_mutsu_broadside(work: Path) -> list[str]:
-    problems = []
-    graph = next(g for g in responses(work, "api_start2/getData")[0]["api_mst_shipgraph"] if g["api_id"] == 541)
-    if graph.get("api_wedc") != [329, 12] or graph.get("api_wedd") != [98, 175]:
-        problems.append(f"getData should carry 長門改二's damaged face (api_wedc [329, 12], api_wedd [98, 175]); it said {graph.get('api_wedc')}, {graph.get('api_wedd')}")
-    day = responses(work, "api_req_sortie/battle")[0]
-    if not 91 // 4 < day["api_f_nowhps"][1] <= 91 // 2:
-        problems.append(f"長門改二 was to start moderately damaged; she had {day['api_f_nowhps'][1]} of 91")
-    ours = []
-    for name in ("api_hougeki1", "api_hougeki2", "api_hougeki3"):
-        shelling = day.get(name) or {}
-        ours += [(at, kind) for flag, at, kind in zip(shelling.get("api_at_eflag", []), shelling.get("api_at_list", []), shelling.get("api_at_type", [])) if not flag]
-    print("our day rows (ship, kind):", ours)
-    if (0, 102) not in ours:
-        problems.append("the Mutsu broadside did not come up by day this time (62 in 100 a turn of the flagship's): run it again")
-    return problems
+def damaged_partner_check(partner: int, wedc: list[int], wedd: list[int], kind: int, formation: int):
+    """The check of a two-ship special attack whose second ship starts moderately damaged: the
+    client centres her damaged art on `api_wedc`/`api_wedd`, which getData has to carry."""
+    def check(work: Path) -> list[str]:
+        problems = []
+        graph = next(g for g in responses(work, "api_start2/getData")[0]["api_mst_shipgraph"] if g["api_id"] == partner)
+        if graph.get("api_wedc") != wedc or graph.get("api_wedd") != wedd:
+            problems.append(f"getData should carry {partner}'s damaged face (api_wedc {wedc}, api_wedd {wedd}); it said {graph.get('api_wedc')}, {graph.get('api_wedd')}")
+        day = responses(work, "api_req_sortie/battle")[0]
+        if day["api_formation"][0] != formation:
+            problems.append(f"the fleet was to fight in formation {formation}; api_formation said {day['api_formation']}")
+        hp, top = day["api_f_nowhps"][1], day["api_f_maxhps"][1]
+        if not top / 4 < hp <= top / 2:
+            problems.append(f"the second ship was to start moderately damaged; she had {hp} of {top}")
+        ours = []
+        for name in ("api_hougeki1", "api_hougeki2", "api_hougeki3"):
+            shelling = day.get(name) or {}
+            ours += [(at, made) for flag, at, made in zip(shelling.get("api_at_eflag", []), shelling.get("api_at_list", []), shelling.get("api_at_type", [])) if not flag]
+        print("our day rows (ship, kind):", ours)
+        if (0, kind) not in ours:
+            problems.append(f"the special attack ({kind}) did not come up by day this time: run it again")
+        return problems
+    return check
 
 
 # 中部海域, 6-3: the choice of route at A, where C is tapped, a battle at C and at E, the
@@ -761,7 +768,15 @@ SCENARIOS = {
         f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;772,516:api_req_sortie/battle "
         + "w:6 " + " ".join(f"w:0.5 s:day{n}" for n in range(1, 65))
         + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
-        check_mutsu_broadside,
+        damaged_partner_check(541, [329, 12], [98, 175], 102, 4),
+    ),
+    # 2-1 in 複縦陣 with Richelieu Deux and a damaged Jean Bart改 leading: the second ship's
+    # damaged art in the Richelieu class's attack. Photographed through the day every half second.
+    "richelieu_attack": (
+        f"{TO_MAPS} c:320,680 w:3 c:280,280 w:3 {START} u:600,400;870,278:api_req_sortie/battle "
+        + "w:6 " + " ".join(f"w:0.5 s:day{n}" for n in range(1, 65))
+        + " u:600,400;770,365:api_req_sortie/battleresult w:14 s:result u:600,400;770,365:api_port/port w:5 s:home",
+        damaged_partner_check(724, [176, -32], [109, 205], 105, 2),
     ),
     # 2-5 again, sent to C by a battleship: its flagship 軽母ヌ級flagship attacks at night, which
     # the client plays as aircraft. Photographed through the night.
@@ -859,7 +874,7 @@ PRESET_OF = {
 # Fought as the server would fight them for a player.
 FAIR = {"gunnery_cutin", "leveled_for_mid_boss", "anti_air_cut_in", "night_air_attack", "night_asw", "night_cut_in", "night_destroyer_cut_in", "night_zuiun", "enemy_night_carrier", "kongou_night_assault", "nagato_broadside", "night_contact", "practice_night_contact"}
 # Never hurt, but sinking nothing at a blow: for an enemy several battles in who has to live.
-UNHURT = {"enemy_night_crew", "enemy_night_crew_5_6", "mutsu_broadside"}
+UNHURT = {"enemy_night_crew", "enemy_night_crew_5_6", "mutsu_broadside", "richelieu_attack"}
 
 
 def resource_report(work: Path, requested: set[str]) -> dict:
