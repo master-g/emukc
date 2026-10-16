@@ -1820,6 +1820,15 @@
           "multiple": {
             "houk": 1
           }
+        },
+        {
+          "ids": [
+            987
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
         }
       ]
     },
@@ -1983,6 +1992,27 @@
               ],
               "single": {
                 "tyku": -1
+              },
+              "flags": []
+            }
+          ]
+        },
+        {
+          "ids": [
+            986,
+            987
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    533
+                  ]
+                }
+              ],
+              "single": {
+                "houm": -1
               },
               "flags": []
             }
@@ -2224,6 +2254,27 @@
               ],
               "single": {
                 "tyku": -1
+              },
+              "flags": []
+            }
+          ]
+        },
+        {
+          "ids": [
+            986,
+            987
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    533
+                  ]
+                }
+              ],
+              "single": {
+                "houm": -1
               },
               "flags": []
             }
@@ -4848,6 +4899,16 @@
           "minStars": 10,
           "multiple": {
             "houg": 1
+          }
+        },
+        {
+          "ids": [
+            1035,
+            1040
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houm": 1
           }
         }
       ]
@@ -8299,6 +8360,17 @@
             "houk": 2,
             "tais": 1
           }
+        },
+        {
+          "ids": [
+            64,
+            193,
+            267
+          ],
+          "minStars": 7,
+          "multiple": {
+            "houm": 1
+          }
         }
       ]
     },
@@ -10756,6 +10828,15 @@
             "houk": 1,
             "houm": 1
           }
+        },
+        {
+          "ids": [
+            629,
+            1040
+          ],
+          "multiple": {
+            "houm": 1
+          }
         }
       ]
     },
@@ -11757,6 +11838,15 @@
           "multiple": {
             "houg": 4
           }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "multiple": {
+            "houm": 1
+          }
         }
       ]
     },
@@ -12520,6 +12610,12 @@
             "houg": 2,
             "tyku": 1,
             "houk": 1
+          }
+        },
+        {
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
           }
         }
       ]
@@ -13878,6 +13974,232 @@
               }
             }
           ]
+        },
+        {
+          "ids": [
+            17,
+            18,
+            19,
+            20,
+            50,
+            122,
+            132,
+            133,
+            134,
+            135,
+            167,
+            168,
+            169,
+            170,
+            181,
+            186,
+            190,
+            225,
+            226,
+            227,
+            228,
+            294,
+            300,
+            301,
+            302,
+            303,
+            304,
+            312,
+            313,
+            316,
+            317,
+            320,
+            322,
+            324,
+            325,
+            329,
+            344,
+            345,
+            349,
+            354,
+            355,
+            359,
+            362,
+            373,
+            409,
+            410,
+            415,
+            424,
+            425,
+            452,
+            453,
+            454,
+            455,
+            456,
+            484,
+            485,
+            527,
+            528,
+            556,
+            557,
+            558,
+            559,
+            566,
+            567,
+            568,
+            625,
+            651,
+            656,
+            670,
+            671,
+            674,
+            675,
+            680,
+            686,
+            688,
+            695,
+            709,
+            710,
+            718,
+            720,
+            886,
+            915,
+            951
+          ],
+          "minStars": 5,
+          "multiple": {
+            "houm": -1
+          }
+        },
+        {
+          "ids": [
+            17,
+            18,
+            19,
+            20,
+            50,
+            122,
+            132,
+            133,
+            134,
+            135,
+            167,
+            168,
+            169,
+            170,
+            181,
+            186,
+            190,
+            225,
+            226,
+            227,
+            228,
+            294,
+            300,
+            301,
+            302,
+            303,
+            304,
+            312,
+            313,
+            316,
+            317,
+            320,
+            322,
+            324,
+            325,
+            329,
+            344,
+            345,
+            349,
+            354,
+            355,
+            359,
+            362,
+            373,
+            409,
+            410,
+            415,
+            424,
+            425,
+            452,
+            453,
+            454,
+            455,
+            456,
+            484,
+            485,
+            527,
+            528,
+            556,
+            557,
+            558,
+            559,
+            566,
+            567,
+            568,
+            625,
+            651,
+            656,
+            670,
+            671,
+            674,
+            675,
+            680,
+            686,
+            688,
+            695,
+            709,
+            710,
+            718,
+            720,
+            886,
+            915,
+            951
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": -1
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "single": {
+            "houm": 1
+          },
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houm": 2
+              }
+            },
+            {
+              "flags": [
+                "airRadar"
+              ],
+              "single": {
+                "houm": 1
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            961
+          ],
+          "minStars": 5,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
         }
       ]
     },
@@ -14493,6 +14815,15 @@
           "multiple": {
             "houm": 1
           }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "multiple": {
+            "houm": 1
+          }
         }
       ]
     },
@@ -14700,6 +15031,15 @@
           "single": {
             "raig": 2,
             "houk": 3
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "multiple": {
+            "houm": 2
           }
         }
       ]
@@ -15533,6 +15873,19 @@
           "single": {
             "houk": 1
           }
+        },
+        {
+          "class": 101,
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houm": 2
+              }
+            }
+          ]
         }
       ]
     },
@@ -20408,6 +20761,14 @@
               "flags": []
             }
           ]
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "multiple": {
+            "houm": 2
+          }
         }
       ]
     },
@@ -21417,6 +21778,13 @@
       "rules": [
         {
           "class": 37,
+          "minStars": 3,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "class": 37,
           "synergy": [
             {
               "flags": [
@@ -21425,27 +21793,23 @@
               "single": {
                 "houg": 2,
                 "houm": 2
-              },
-              "byStars": {
-                "gearId": "465",
-                "table": [
-                  {
-                    "minStars": 4,
-                    "stats": {
-                      "houm": 1
-                    }
-                  }
-                ]
               }
             }
           ]
         },
         {
           "class": 37,
-          "minStars": 3,
-          "multiple": {
-            "houg": 1
-          }
+          "minStars": 4,
+          "synergy": [
+            {
+              "flags": [
+                "rangefinderAirRadar"
+              ],
+              "multiple": {
+                "houm": 1
+              }
+            }
+          ]
         },
         {
           "ids": [
@@ -21463,9 +21827,8 @@
                 "rangefinderKaiAirRadar"
               ],
               "single": {
-                "tyku": 1,
                 "houk": 1,
-                "houm": 2
+                "houm": 1
               }
             }
           ]
@@ -21496,28 +21859,14 @@
             916
           ],
           "minStars": 5,
-          "multiple": {
-            "houm": 1
-          }
-        },
-        {
-          "ids": [
-            546,
-            911
-          ],
           "synergy": [
             {
-              "requires": [
-                {
-                  "gears": [
-                    460
-                  ]
-                }
+              "flags": [
+                "rangefinderKaiAirRadar"
               ],
-              "single": {
-                "tyku": -1
-              },
-              "flags": []
+              "multiple": {
+                "houm": 1
+              }
             }
           ]
         }
@@ -24448,6 +24797,36 @@
               "flags": []
             }
           ]
+        },
+        {
+          "ids": [
+            987
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            986,
+            987
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    533
+                  ]
+                }
+              ],
+              "single": {
+                "houm": -1
+              },
+              "flags": []
+            }
+          ]
         }
       ]
     },
@@ -24825,6 +25204,34 @@
               "multiple": {
                 "houg": 1,
                 "houk": 1
+              },
+              "flags": []
+            }
+          ]
+        },
+        {
+          "minStars": 9,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            924,
+            929,
+            936
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    507
+                  ]
+                }
+              ],
+              "multiple": {
+                "houm": 1
               },
               "flags": []
             }
@@ -25562,6 +25969,30 @@
           "minCount": 3,
           "single": {
             "saku": 3
+          }
+        },
+        {
+          "ids": [
+            571,
+            572,
+            576,
+            577
+          ],
+          "minCount": 2,
+          "single": {
+            "houm": 2
+          }
+        },
+        {
+          "ids": [
+            571,
+            572,
+            576,
+            577
+          ],
+          "minCount": 3,
+          "single": {
+            "houm": 2
           }
         }
       ]
@@ -27011,6 +27442,15 @@
             "houg": 2,
             "raig": 1
           }
+        },
+        {
+          "ids": [
+            972,
+            977
+          ],
+          "single": {
+            "houm": 2
+          }
         }
       ]
     },
@@ -27117,6 +27557,15 @@
           "single": {
             "houg": 2,
             "raig": 1
+          }
+        },
+        {
+          "ids": [
+            972,
+            977
+          ],
+          "single": {
+            "houm": 2
           }
         }
       ]
@@ -28293,6 +28742,60 @@
           "multiple": {
             "souk": 1
           }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 2,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 7,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minCount": 2,
+          "single": {
+            "houm": 3
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minCount": 3,
+          "single": {
+            "houm": 2
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minCount": 4,
+          "single": {
+            "houm": 2
+          }
         }
       ]
     },
@@ -28854,6 +29357,27 @@
               }
             }
           ]
+        },
+        {
+          "ids": [
+            372,
+            491,
+            965,
+            1051,
+            1056
+          ],
+          "minStars": 1,
+          "synergy": [
+            {
+              "flags": [
+                "frenchNightRecon"
+              ],
+              "countFlag": 0,
+              "multiple": {
+                "houm": 1
+              }
+            }
+          ]
         }
       ]
     },
@@ -28991,6 +29515,27 @@
           "multiple": {
             "houm": 1
           }
+        },
+        {
+          "ids": [
+            372,
+            491,
+            965,
+            1051,
+            1056
+          ],
+          "minStars": 1,
+          "synergy": [
+            {
+              "flags": [
+                "frenchNightRecon"
+              ],
+              "countFlag": 0,
+              "multiple": {
+                "houm": 1
+              }
+            }
+          ]
         }
       ]
     },
@@ -29107,6 +29652,19 @@
           "minStars": 7,
           "multiple": {
             "houk": -1
+          }
+        },
+        {
+          "class": 79,
+          "multiple": {
+            "houm": -1
+          }
+        },
+        {
+          "nation": "France",
+          "minStars": 9,
+          "multiple": {
+            "houm": -1
           }
         }
       ]
@@ -32382,6 +32940,42 @@
               }
             }
           ]
+        },
+        {
+          "class": 101,
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houm": 2
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "multiple": {
+            "houm": 2
+          }
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houm": 2
+              }
+            }
+          ]
         }
       ]
     },
@@ -33038,6 +33632,20 @@
             "houk": 1,
             "tyku": 1
           }
+        },
+        {
+          "ids": [
+            738,
+            739,
+            973,
+            978,
+            998,
+            999
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houm": -1
+          }
         }
       ]
     },
@@ -33416,6 +34024,24 @@
               }
             }
           ]
+        },
+        {
+          "ids": [
+            1061
+          ],
+          "multiple": {
+            "houm": -1
+          },
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "multiple": {
+                "houm": -1
+              }
+            }
+          ]
         }
       ]
     },
@@ -33493,6 +34119,24 @@
               ],
               "multiple": {
                 "raig": -1
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            1061
+          ],
+          "multiple": {
+            "houm": -1
+          },
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "multiple": {
+                "houm": -1
               }
             }
           ]

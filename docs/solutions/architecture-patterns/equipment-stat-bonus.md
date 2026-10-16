@@ -68,6 +68,11 @@ merged by the converter, per entry key: `replace` stands in for the source's rul
 follows them. With it the oracle reports no difference over 2.26 million probes, and
 `gear-bonus-known-diffs.json` is empty.
 
+The oracle compares accuracy too since 2026-10-16 (client 6.3.6.0). Before, 33 entries
+were wrong only in accuracy and nothing showed it. The table's accuracy is not used yet:
+`cal_ship_status` adds the seven stats above, and battle accuracy (`equipment_accuracy`)
+reads only the equipment's own 命中.
+
 ### Where the two disagree, the client is right
 
 Checked on 2026-10-08 against a third table, the bonus data of noro6's 制空権シミュレータ
