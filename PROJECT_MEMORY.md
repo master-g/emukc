@@ -183,12 +183,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-16] #178、#180 已合并；`fix/port-api-seed` 修 #185（seed 改由 decoder 同步），质量门过（1551、0 ignored），线上 `api_port` 返回 1。
+- [2026-10-16] #178、#180、#185 已合并（seed 改由 decoder 同步，线上 `api_port` 返回 1）；`main` 1551 过、0 ignored。
 
 ## Next Session
 
-- [2026-10-16] #182 待用户选方案（补 902 数据／按改装前舰兜底／等 kcwiki）。可做：`GearBonusGear` 另两处手写构造可合并（见 PR #174）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
-  #150 等用户按评论抓一次 `questlist`。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-16] #182 等 kcwiki 补 902（用户定），补上后加 gameplay 测试。可做：#187（`GearBonusGear` 构造合一）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
+  #150 用户自己改账号凑状态后再抓 `questlist`（10-16 快照：无已接任务，候选都已做完）。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   `kancolle-replay` 源按提交 `69097abc` 重取 `js/`；`en.kancollewiki.net` 有人机验证。
