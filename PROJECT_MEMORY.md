@@ -183,7 +183,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-16] #187 已合并（PR #190）；三份 draft 计划核对后标为 implemented。
+- [2026-10-16] #187 已合并。6.3.6.0 `make update`：漂移仅 `generatedAt`，oracle 全 0 差异，1551 过。
 
 ## Next Session
 
