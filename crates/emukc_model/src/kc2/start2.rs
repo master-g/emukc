@@ -428,10 +428,44 @@ pub struct ApiMstShipgraph {
     pub api_weda: Option<[i64; 2]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_wedb: Option<[i64; 2]>,
+    /// Top-left of the face in the damaged art, as `api_weda` is in the undamaged one.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_wedc: Option<[i64; 2]>,
+    /// Size of the face in the damaged art, as `api_wedb` is in the undamaged one.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_wedd: Option<[i64; 2]>,
+}
+
+/// Where a ship's face sits in her full art.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FaceRect {
+    /// Left edge.
+    pub x: i64,
+    /// Top edge.
+    pub y: i64,
+    /// Width.
+    pub width: i64,
+    /// Height.
+    pub height: i64,
+}
+
+impl ApiMstShipgraph {
+    /// The face in her damaged or undamaged art, as `ShipGraphModel.getFaceRect` reads it:
+    /// `api_wedc`/`api_wedd` when damaged, `api_weda`/`api_wedb` otherwise. `None` where the
+    /// client draws on an empty rectangle at (0,0).
+    pub fn face_rect(&self, damaged: bool) -> Option<FaceRect> {
+        let (pos, size) = if damaged {
+            (self.api_wedc?, self.api_wedd?)
+        } else {
+            (self.api_weda?, self.api_wedb?)
+        };
+        Some(FaceRect {
+            x: pos[0],
+            y: pos[1],
+            width: size[0],
+            height: size[1],
+        })
+    }
 }
 
 #[expect(missing_docs)]
@@ -761,7 +795,7 @@ mod tests {
 
     use serde_json::json;
 
-    use super::{ApiManifest, ApiMstShipgraph, ApiMstStype};
+    use super::{ApiManifest, ApiMstShipgraph, ApiMstStype, FaceRect};
 
     #[test]
     fn passthrough_fields_present_are_kept_and_serialized() {
@@ -807,6 +841,41 @@ mod tests {
     }
 
     #[test]
+    fn face_rect_reads_the_damaged_pair_only_when_damaged() {
+        let graph = ApiMstShipgraph {
+            api_weda: Some([450, 6]),
+            api_wedb: Some([114, 144]),
+            api_wedc: Some([329, 12]),
+            api_wedd: Some([98, 175]),
+            ..Default::default()
+        };
+        assert_eq!(
+            graph.face_rect(false),
+            Some(FaceRect {
+                x: 450,
+                y: 6,
+                width: 114,
+                height: 144
+            })
+        );
+        assert_eq!(
+            graph.face_rect(true),
+            Some(FaceRect {
+                x: 329,
+                y: 12,
+                width: 98,
+                height: 175
+            })
+        );
+        // The client falls back to an empty rectangle when either half is missing.
+        let half = ApiMstShipgraph {
+            api_wedc: Some([329, 12]),
+            ..Default::default()
+        };
+        assert_eq!(half.face_rect(true), None);
+    }
+
+    #[test]
     fn passthrough_fields_absent_are_none_and_omitted() {
         let stype: ApiMstStype = serde_json::from_value(json!({
             "api_id": 1,
@@ -832,9 +901,10 @@ mod tests {
         assert!(encoded.get("api_sp_flag").is_none());
     }
 
-    /// The two passthrough fields are optional upstream: absent before 6.3.x, present
-    /// since. Pin the round trip rather than their presence, so the assertion survives
-    /// either shape and still fails if the parser starts dropping them.
+    /// The passthrough fields are optional upstream: `api_max_slotplus` and `api_sp_flag`
+    /// absent before 6.3.x, `api_wedc`/`api_wedd` on some ships only. Pin the round trip
+    /// rather than their presence, so the assertion survives either shape and still fails
+    /// if the parser starts dropping them.
     #[test]
     fn real_manifest_round_trips_passthrough_fields() {
         let manifest_path =
@@ -852,25 +922,39 @@ mod tests {
         }
 
         for graph in &manifest.api_mst_shipgraph {
-            let expected = lookup_field(&source, "api_mst_shipgraph", graph.api_id, "api_sp_flag");
-            assert_eq!(graph.api_sp_flag, expected, "shipgraph {}", graph.api_id);
+            let (table, id) = ("api_mst_shipgraph", graph.api_id);
+            assert_eq!(
+                graph.api_sp_flag,
+                lookup_field(&source, table, id, "api_sp_flag"),
+                "shipgraph {id}"
+            );
+            assert_eq!(
+                graph.api_wedc,
+                lookup_field(&source, table, id, "api_wedc"),
+                "shipgraph {id}"
+            );
+            assert_eq!(
+                graph.api_wedd,
+                lookup_field(&source, table, id, "api_wedd"),
+                "shipgraph {id}"
+            );
         }
     }
 
     /// Read `field` off the `api_id`-keyed entry of `table` in the raw manifest.
-    fn lookup_field(
+    fn lookup_field<T: serde::de::DeserializeOwned>(
         source: &serde_json::Value,
         table: &str,
         api_id: i64,
         field: &str,
-    ) -> Option<i64> {
-        source
+    ) -> Option<T> {
+        let value = source
             .get(table)?
             .as_array()?
             .iter()
             .find(|entry| entry.get("api_id").and_then(serde_json::Value::as_i64) == Some(api_id))?
-            .get(field)?
-            .as_i64()
+            .get(field)?;
+        serde_json::from_value(value.clone()).ok()
     }
 
     #[test]
