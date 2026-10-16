@@ -280,10 +280,11 @@ const COMBINED_SHIELD_RATE: i64 = 60;
 /// damage instead. Returns the interceptor's index, or `None` when no
 /// interception occurs.
 ///
-/// Eligibility (no RNG): the flagship must be the target, the formation must
-/// have a defined rate, and at least one escort must be non-flagship, alive, in
-/// green health (小破未満, HP > 75%), and of the flagship's category (surface-like
-/// ships protect surface-like flagships, submarines protect submarine flagships).
+/// Eligibility (no RNG): the flagship must be the target and not a land target,
+/// the formation must have a defined rate, and at least one escort must be
+/// non-flagship, alive, in green health (小破未満, HP > 75%), not a land target,
+/// and of the flagship's category (ships at sea protect ships at sea, submarines
+/// protect submarine flagships).
 /// The flagship's own HP does **not** gate — interception fires even when the
 /// flagship is 大破.
 ///
@@ -306,11 +307,16 @@ pub(crate) fn select_escort_shield(
     if target_idx != 0 {
         return None;
     }
+    // A land target is neither shielded nor a shield (`kcsim.js:2309`, `:2317`).
+    let flagship = target_class(codex, &defenders[0]);
+    if flagship == TargetClass::Installation {
+        return None;
+    }
     let rate = escort_shield_rate(defender_formation_id)?;
 
-    // Surface-like (incl. PT / installation) protects surface-like; submarine
-    // protects submarine. The two categories are complementary.
-    let flagship_is_submarine = target_class(codex, &defenders[0]).is_submarine();
+    // A ship at sea (incl. PT) protects one at sea; submarine protects
+    // submarine.
+    let flagship_is_submarine = flagship.is_submarine();
 
     let eligible: Vec<usize> = defenders
         .iter()
@@ -322,10 +328,12 @@ pub(crate) fn select_escort_shield(
             // opts in, and the day shelling / torpedo paths do not.
             // `is_escort_deck` is false for every ship in a single-fleet battle,
             // so this filter is a no-op there.
+            let class = target_class(codex, ship);
             !ship.is_escort_deck()
                 && ship.is_alive()
                 && ship.hp() * 4 > ship.ship.api_maxhp * 3
-                && target_class(codex, ship).is_submarine() == flagship_is_submarine
+                && class != TargetClass::Installation
+                && class.is_submarine() == flagship_is_submarine
         })
         .map(|(idx, _)| idx)
         .collect();
@@ -1766,6 +1774,29 @@ mod tests {
         let next = rng.roll_range(0, 1_000_000);
         let fresh = crate::random::SeededRng::new(5).roll_range(0, 1_000_000);
         assert_eq!(next, fresh, "non-flagship target must not draw RNG");
+    }
+
+    /// `choiceWProtect`: a land target is neither shielded nor a shield.
+    #[test]
+    fn a_land_target_neither_takes_nor_gives_cover() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let land = || {
+            let mut ship = rt_ship(&codex, dd, 30, 30);
+            ship.ship.api_ship_id = ship_mst_id_by_name(&codex, "砲台小鬼");
+            ship
+        };
+        let picks = |faces: &[i64]| Picks(faces.iter().copied().collect());
+
+        // A land flagship is not covered, and no die is cast for it.
+        let defenders = vec![land(), rt_ship(&codex, dd, 30, 30)];
+        assert_eq!(select_escort_shield(&codex, &mut picks(&[]), &defenders, 0, 3), None);
+        // A healthy land escort does not cover a ship.
+        let defenders = vec![rt_ship(&codex, dd, 30, 30), land()];
+        assert_eq!(select_escort_shield(&codex, &mut picks(&[]), &defenders, 0, 3), None);
+        // A ship beside it still does: the first eligible escort is the ship, not the land.
+        let defenders = vec![rt_ship(&codex, dd, 30, 30), land(), rt_ship(&codex, dd, 30, 30)];
+        assert_eq!(select_escort_shield(&codex, &mut picks(&[0, 0]), &defenders, 0, 3), Some(2));
     }
 
     /// R5: a submarine escort protects a submarine flagship.
