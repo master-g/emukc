@@ -9,7 +9,9 @@ use emukc_model::{
 };
 
 use crate::random::BattleRng;
-use crate::simulation::installation_types::{INSTALLATION_TYPES, LAST_SOURCE_ABYSSAL_ID};
+use crate::simulation::installation_types::{
+    INSTALLATION_BOMBERS, INSTALLATION_TYPES, LAST_SOURCE_ABYSSAL_ID,
+};
 use crate::types::{AttackCapability, BattlePhase, BattleRuntimeShip, TargetClass};
 
 // ---------------------------------------------------------------------------
@@ -142,10 +144,14 @@ fn target_candidates(
         return Vec::new();
     }
 
+    let shuns_land = phase == BattlePhase::DayShelling && shuns_installations(codex, attacker);
     let surface_like_targets = alive_targets
         .iter()
         .copied()
-        .filter(|idx| target_class(codex, &defenders[*idx]).is_surface_like())
+        .filter(|idx| {
+            let class = target_class(codex, &defenders[*idx]);
+            class.is_surface_like() && !(shuns_land && class == TargetClass::Installation)
+        })
         .collect::<Vec<_>>();
     let submarine_targets = alive_targets
         .iter()
@@ -171,6 +177,30 @@ fn target_candidates(
             }
         }
     }
+}
+
+/// A carrier whose dive bombers may not attack a land target leaves one out of her day
+/// shelling (`shellPhaseTarget`): she carries a dive or jet bomber, flown or not
+/// (`hasDivebomber`), and no bomber the source lets attack land (`canShellInstall`) has planes
+/// left while some dive or jet bomber does (`CV.canShellInstallation`).
+// ponytail: carrier-style shelling is `is_cv_type`, as the shelling formula has it; the source
+// also counts an oiler flying bombers (速吸改).
+fn shuns_installations(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+    if !crate::damage::is_cv_type(codex, ship) {
+        return false;
+    }
+    let is_bomber = |item: &KcApiSlotItem| {
+        slotitem_mst(codex, item).is_some_and(|mst| {
+            matches!(
+                KcSlotItemType3::n(mst.api_type[2]),
+                Some(KcSlotItemType3::CarrierBasedDiveBomber | KcSlotItemType3::JetFighterBomber)
+            )
+        })
+    };
+    let flown = || ship.slot_items.iter().zip(ship.ship.api_onslot).filter(|(_, count)| *count > 0);
+    ship.slot_items.iter().any(is_bomber)
+        && !flown().any(|(item, _)| INSTALLATION_BOMBERS.contains(&item.api_slotitem_id))
+        && flown().any(|(item, _)| is_bomber(item))
 }
 
 /// Select a random alive target that is not a submarine, whatever the attacker would
@@ -1024,6 +1054,7 @@ mod tests {
             (DOCK_IDS, 6, 10_977),
             (SUMMER_BATTLESHIP_IDS, 3, 5_091),
             (SUMMER_CRUISER_IDS, 3, 5_118),
+            (INSTALLATION_BOMBERS, 14, 4_648),
         ] {
             assert_eq!((ids.len(), ids.iter().sum::<i64>()), (ships, sum));
         }
@@ -1103,6 +1134,62 @@ mod tests {
         .unwrap();
 
         assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::PtBoat);
+    }
+
+    #[test]
+    fn a_carrier_with_dive_bombers_that_cannot_hit_land_does_not_shell_a_land_target() {
+        const TYPE99_DIVE_BOMBER: i64 = 23;
+        const JU87C_KAI: i64 = 64;
+        const SB2C_3: i64 = 420;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cv = first_ship_mst_by_type(&codex, KcShipType::CV);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let attack_plane =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedTorpedoBomber);
+        let carrier = |gear: &[(i64, i64)]| {
+            let mut ship = sample_ship(&codex, cv, 50);
+            ship.slot_items = gear.iter().map(|(id, _)| slotitem_with_mst_id(*id)).collect();
+            ship.ship.api_onslot = [0; 5];
+            for (at, (_, count)) in gear.iter().enumerate() {
+                ship.ship.api_onslot[at] = *count;
+            }
+            BattleRuntimeShip::from(ship)
+        };
+        let mut land = sample_ship(&codex, dd, 50);
+        land.ship.api_ship_id = ship_mst_id_by_name(&codex, "砲台小鬼");
+        let land = BattleRuntimeShip::from(land);
+        let sea = BattleRuntimeShip::from(sample_ship(&codex, dd, 50));
+        let fleet = [land.clone(), sea];
+        let aims = |ship: &BattleRuntimeShip, defenders: &[BattleRuntimeShip]| {
+            target_candidates(&codex, ship, defenders, BattlePhase::DayShelling)
+        };
+
+        let type99 = carrier(&[(TYPE99_DIVE_BOMBER, 18)]);
+        assert_eq!(aims(&type99, &fleet), vec![1]);
+        // With only the land target left she does not fire, and draws nothing for it.
+        assert_eq!(aims(&type99, std::slice::from_ref(&land)), Vec::<usize>::new());
+        let mut rng = crate::random::SeededRng::new(5);
+        let drawn = select_random_target_index(
+            &codex,
+            &mut rng,
+            &type99,
+            std::slice::from_ref(&land),
+            BattlePhase::DayShelling,
+        );
+        assert_eq!(drawn, None);
+        assert_eq!(rng.roll_range(0, 1000), crate::random::SeededRng::new(5).roll_range(0, 1000));
+        // A dive bomber the source lets attack land takes the land target back in.
+        assert_eq!(aims(&carrier(&[(JU87C_KAI, 18)]), &fleet), vec![0, 1]);
+        assert_eq!(aims(&carrier(&[(SB2C_3, 18)]), &fleet), vec![0, 1]);
+        // A land-capable bomber alongside the 九九式 is enough.
+        assert_eq!(aims(&carrier(&[(TYPE99_DIVE_BOMBER, 18), (SB2C_3, 12)]), &fleet), vec![0, 1]);
+        // ...but not once it has lost all its planes.
+        assert_eq!(aims(&carrier(&[(TYPE99_DIVE_BOMBER, 18), (SB2C_3, 0)]), &fleet), vec![1]);
+        // A 九九式 shot down to nothing leaves her attack planes free to strike the land.
+        let shot_down = carrier(&[(TYPE99_DIVE_BOMBER, 0), (attack_plane, 18)]);
+        assert_eq!(aims(&shot_down, &fleet), vec![0, 1]);
+        // Attack planes alone were never kept off it.
+        assert_eq!(aims(&carrier(&[(attack_plane, 18)]), &fleet), vec![0, 1]);
     }
 
     #[test]
