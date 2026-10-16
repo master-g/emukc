@@ -944,7 +944,9 @@ mod tests {
 
     /// Every field kcwiki sends on a shipgraph survives the parse: compared with the raw
     /// download that bootstrap builds the codex from, not with the codex, which the same
-    /// struct wrote and so lacks whatever it drops (#168: `api_wedc`/`api_wedd`).
+    /// struct wrote and so lacks whatever it drops (#168: `api_wedc`/`api_wedd`). A `null`
+    /// is not checked: the client reads it as a missing field. When this fails after an
+    /// update, kcwiki has a field the struct does not: add it.
     #[test]
     fn shipgraph_keeps_every_field_kcwiki_sends() {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/temp/start2.json");
@@ -958,7 +960,12 @@ mod tests {
         assert!(!sent.is_empty());
         assert_eq!(sent.len(), kept.len());
         for (sent, kept) in sent.iter().zip(kept) {
-            assert_eq!(sent, kept, "shipgraph {}", sent["api_id"]);
+            let id = &sent["api_id"];
+            for (field, value) in sent.as_object().unwrap().iter().filter(|(_, v)| !v.is_null()) {
+                let kept = kept.get(field);
+                assert!(kept.is_some(), "shipgraph {id}: ApiMstShipgraph drops `{field}`");
+                assert_eq!(kept, Some(value), "shipgraph {id}: `{field}`");
+            }
         }
     }
 
