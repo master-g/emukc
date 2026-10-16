@@ -12,6 +12,7 @@ use std::{
     borrow::Cow,
     fs, io,
     path::{Path, PathBuf},
+    sync::LazyLock,
 };
 
 /// Where an asset's contents came from.
@@ -67,6 +68,7 @@ pub(crate) const CACHE_RULES: RepoAsset = asset!("cache_rules", embedded);
 pub(crate) const GEAR_BONUS: RepoAsset = asset!("gear_bonus", embedded);
 pub(crate) const SEASONS: RepoAsset = asset!("seasons", embedded);
 pub(crate) const REMODEL_TABLES: RepoAsset = asset!("remodel_tables", embedded);
+pub(crate) const PORT_API_SEED: RepoAsset = asset!("port_api_seed", embedded);
 
 /// Every checked-in asset. The cache-list inputs without an embedded copy are
 /// still found next to whatever rules file a caller names (see
@@ -91,6 +93,7 @@ pub const REPO_ASSETS: &[RepoAsset] = &[
     GEAR_BONUS,
     SEASONS,
     REMODEL_TABLES,
+    PORT_API_SEED,
     asset!("resource_manifest"),
     asset!("resource_categories"),
     asset!("resource_id_sets"),
@@ -98,6 +101,22 @@ pub const REPO_ASSETS: &[RepoAsset] = &[
     asset!("ui_resources"),
     asset!("resource_templates"),
 ];
+
+/// The client's `PORT_API_SEED`, indexed by `member_id % 10`: it signs `api_port/port` and
+/// scales the 戦果 in the ranking list. Read once from the synced asset, which
+/// `main-decoder` takes from the client, so a client that changes it is followed on the next
+/// `decode --sync-assets`.
+pub fn port_api_seed() -> &'static [i64; 10] {
+    #[derive(serde::Deserialize)]
+    struct Asset {
+        seed: [i64; 10],
+    }
+    static SEED: LazyLock<[i64; 10]> = LazyLock::new(|| {
+        let (_, raw) = PORT_API_SEED.load().expect("port_api_seed asset is readable");
+        serde_json::from_str::<Asset>(&raw).expect("port_api_seed asset holds ten seeds").seed
+    });
+    &SEED
+}
 
 impl RepoAsset {
     /// The repo-tracked file.

@@ -1,3 +1,4 @@
+import type { PortApiSeedAsset } from "./port-api-seed.ts";
 import type { RemodelTablesAsset } from "./remodel-tables.ts";
 import type { ResourceManifest } from "./resource-manifest.ts";
 
@@ -350,6 +351,7 @@ export interface PipelineArtifacts {
   uiResourcesFile: string;
   resourceTemplatesFile: string;
   remodelTablesFile: string;
+  portApiSeedFile: string;
   resourceManifestFile?: string;
   modulesDir: string;
 }
@@ -773,6 +775,7 @@ export interface PipelineResult {
   uiResources: UiResourcesAsset;
   resourceTemplates: ResourceTemplatesAsset;
   remodelTables: RemodelTablesAsset;
+  portApiSeed: PortApiSeedAsset;
   resourceManifest?: unknown;
   resourceManifestSummary?: ResourceManifestSummary;
   summary: DecodeSummary;

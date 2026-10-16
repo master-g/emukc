@@ -531,10 +531,11 @@ mod tests {
             "map_cell_effects",
             "seasons",
             "remodel_tables",
+            "port_api_seed",
         ] {
             assert!(paths.iter().any(|(key, _)| key == name), "{name} is not fingerprinted");
         }
-        assert_eq!(paths.len(), 24);
+        assert_eq!(paths.len(), 25);
     }
 
     #[test]

@@ -8,9 +8,6 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// `PORT_API_SEED`, indexed by `member_id % 10`.
-static PORT_API_SEED: [i64; 10] = [3187, 3596, 6413, 9628, 7279, 7678, 6023, 2564, 9558, 9272];
-
 /// JS `String.prototype.substr`, which clamps instead of panicking. Every
 /// string here is ASCII digits, so byte slicing is safe.
 fn substr(s: &str, start: usize, len: Option<usize>) -> &str {
@@ -27,11 +24,14 @@ pub struct PortApiKey;
 
 impl PortApiKey {
     /// Build the key for this member id, drawing the three randoms and the
-    /// timestamp the way the client does.
-    pub fn create(member_id: i64) -> String {
+    /// timestamp the way the client does. `seed` is the client's `PORT_API_SEED`,
+    /// indexed by `member_id % 10`; the client changes it between builds, so the
+    /// caller takes it from the synced asset (`emukc_bootstrap`'s `port_api_seed`).
+    pub fn create(member_id: i64, seed: &[i64; 10]) -> String {
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
         Self::create_with(
             member_id,
+            seed,
             now,
             [
                 fastrand::i64(0..9),
@@ -48,9 +48,9 @@ impl PortApiKey {
     /// the client's own output. `draws` is `[r1, r2, r3, d, e, f]` in the
     /// order the client draws them: three `Math.random()` values before their
     /// offsets, then the three digits spliced into the result.
-    fn create_with(member_id: i64, now_sec: i64, draws: [i64; 6]) -> String {
+    fn create_with(member_id: i64, seed: &[i64; 10], now_sec: i64, draws: [i64; 6]) -> String {
         let [r1, r2, r3, d, e, f] = draws;
-        let seed = PORT_API_SEED[(member_id % 10) as usize];
+        let seed = seed[(member_id % 10) as usize];
         let a = 1000 * (r1 + 1) + member_id % 1000;
         let b = r2 + 1000;
         let c = r3 + 32768;
@@ -75,20 +75,23 @@ impl PortApiKey {
 mod tests {
     use super::*;
 
-    /// Vectors produced by running the client's own `_createKey` (transcribed
-    /// out of `main.decoded.js` with the randoms lifted into parameters).
+    /// `PORT_API_SEED` of client 6.3.6.0.
+    const SEED: [i64; 10] = [5560, 8863, 7748, 8399, 9742, 7258, 3474, 6103, 7002, 2282];
+
+    /// Vectors produced by running the client's own `_createKey` with `Math.random` and
+    /// `Date.now` pinned (client 6.3.6.0, the seed above).
     #[test]
     fn matches_the_client_implementation() {
         let cases = [
-            (12345678, 1790070509, [0, 0, 0, 0, 0, 0], "016787170357072736044100032768"),
-            (12345678, 1790070509, [8, 8998, 32766, 9, 9, 9], "996787249381642446948999865534"),
-            (1000, 1600000000, [4, 1234, 10000, 1, 2, 3], "150002152221357266317223442768"),
-            (99999999, 1790070509, [3, 777, 20000, 5, 0, 7], "5499940903377151197664177752768"),
-            (7, 1, [0, 0, 0, 0, 0, 0], "010071070604665641020100032768"),
+            (12345678, 1790070509, [0, 0, 0, 0, 0, 0], "016785250521471364036100032768"),
+            (12345678, 1790070509, [8, 8998, 32766, 9, 9, 9], "996785309667530907912999865534"),
+            (1000, 1600000000, [4, 1234, 10000, 1, 2, 3], "150003752472465139360223442768"),
+            (99999999, 1790070509, [3, 777, 20000, 5, 0, 7], "5499910007451106457284177752768"),
+            (7, 1, [0, 0, 0, 0, 0, 0], "010072560127642124090100032768"),
         ];
         for (member_id, now, draws, expected) in cases {
             assert_eq!(
-                PortApiKey::create_with(member_id, now, draws),
+                PortApiKey::create_with(member_id, &SEED, now, draws),
                 expected,
                 "member {member_id} at {now}"
             );
@@ -97,7 +100,7 @@ mod tests {
 
     #[test]
     fn a_live_key_has_the_shape_the_server_expects() {
-        let key = PortApiKey::create(12345678);
+        let key = PortApiKey::create(12345678, &SEED);
         assert!(key.len() >= 28, "the key is a long digit run, got {key}");
         assert!(key.chars().all(|c| c.is_ascii_digit()), "digits only, got {key}");
     }

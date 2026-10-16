@@ -11,7 +11,7 @@ Options:
   --world <path>       Path to world.js for world-select resources
   --out <path>         Output directory
   --max-passes <n>     Maximum decode passes (default: ${DEFAULT_MAX_PASSES})
-  --sync-assets        Sync decoder coverage, remodel and battle assets into ../crates/emukc_bootstrap/assets
+  --sync-assets        Sync decoder coverage, client constant and battle assets into ../crates/emukc_bootstrap/assets
   --sync-battle-assets Sync battle JSON assets into ../crates/emukc_bootstrap/assets
   --sync-resource-manifest Extract resource manifest from all modules and sync
   --no-write           Do not write output artifacts
