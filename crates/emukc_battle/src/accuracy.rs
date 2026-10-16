@@ -506,6 +506,8 @@ pub(crate) struct Aim {
     pub contact: Option<NightContact>,
     /// Whether the attacker's fleet fired a star shell as the night began.
     pub star_shell: bool,
+    /// Whether the attacker's fleet has a searchlight lit for the night.
+    pub searchlight: bool,
 }
 
 impl Aim {
@@ -521,6 +523,7 @@ impl Aim {
             night_air_attack: false,
             contact: None,
             star_shell: false,
+            searchlight: false,
         }
     }
 
@@ -537,6 +540,11 @@ impl Aim {
 
     pub(crate) fn lit_by_star_shell(mut self, star_shell: bool) -> Self {
         self.star_shell = star_shell;
+        self
+    }
+
+    pub(crate) fn lit_by_searchlight(mut self, searchlight: bool) -> Self {
+        self.searchlight = searchlight;
         self
     }
 
@@ -605,7 +613,9 @@ pub(crate) fn roll_attack(
         + aim.flat)
         * attacker_morale(attacker, aim.kind)
         * formation_acc
-        * aim.modifier;
+        * aim.modifier
+        // `NBattack`: the attacker's fleet's searchlight adds 7 after every multiplier.
+        + if aim.searchlight && aim.kind == AttackKind::Night { 7.0 } else { 0.0 };
     let dodge = evasion_term(
         defender.ship.api_kaihi[0],
         defender.ship.api_lucky[0],
@@ -841,6 +851,42 @@ mod tests {
         assert_eq!(night.under_contact(scout).lit_by_star_shell(true).base(), 74.0 * 1.1);
         // An attack on a submarine rolls as by day, with no star shell in it.
         assert_eq!(Aim::new(AttackKind::Asw, 1, 1).lit_by_star_shell(true).base(), 80.0);
+    }
+
+    #[test]
+    fn a_searchlight_on_her_own_side_adds_seven_to_hit_after_the_multipliers() {
+        use crate::test_utils::{first_ship_mst_by_type, sample_ship};
+        use emukc_model::kc2::KcShipType;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |stype, level| {
+            BattleRuntimeShip::from(sample_ship(
+                &codex,
+                first_ship_mst_by_type(&codex, stype),
+                level,
+            ))
+        };
+        let (attacker, target) = (ship(KcShipType::DD, 1), ship(KcShipType::DD, 99));
+        // The highest face of the die that still hits is the chance to hit.
+        let chance = |aim: Aim| {
+            (0..100)
+                .filter(|face| {
+                    roll_attack(&codex, &mut Fixed(*face), &attacker, &target, aim)
+                        != HitOutcome::Miss
+                })
+                .max()
+                .unwrap()
+        };
+        // 単横陣 at night multiplies by 0.8 and a cut-in by 1.5; the 7 comes after both.
+        let aim = Aim::new(AttackKind::Night, 5, 1).with_modifier(1.5);
+        let dark = chance(aim);
+        assert!(dark > 10 && dark + 7 < 96, "the base chance {dark} must sit between the bounds");
+        assert_eq!(chance(aim.lit_by_searchlight(true)), dark + 7);
+        // By day, or at a submarine, a searchlight adds nothing.
+        let day = Aim::new(AttackKind::Shelling, 1, 1);
+        assert_eq!(chance(day.lit_by_searchlight(true)), chance(day));
+        let asw = Aim::new(AttackKind::Asw, 1, 1);
+        assert_eq!(chance(asw.lit_by_searchlight(true)), chance(asw));
     }
 
     #[test]
