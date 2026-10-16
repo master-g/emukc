@@ -182,7 +182,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-16] 分支 `feat/shelling-bonus-accuracy`（#170）：装備ボーナス 命中进昼战炮击（计划 2026-10-16-002）；workspace 测试全绿，golden 未变。待审查与 PR。
+- [2026-10-16] 分支 `feat/shelling-bonus-accuracy`（#170）：装備ボーナス 命中进昼战炮击（计划 2026-10-16-002）；workspace 1544 过 0 败 0 忽略，golden 未变；审查已做并处理。未推送、未开 PR。
 
 ## Next Session
 
