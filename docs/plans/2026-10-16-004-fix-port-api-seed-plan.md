@@ -19,7 +19,7 @@ Issue #185。客户端 6.3.6.0 的 `PORT_API_SEED` 换成了 `[5560, 8863, 7748,
 
 ### U1 decoder 抽取 `port_api_seed`
 
-- `main-decoder/src/port-api-seed.ts`：按导出名 `PORT_API_SEED` 找模块，babel 读出 10 个数的数组字面量，形状不对就报错。
+- `main-decoder/src/port-api-seed.ts`：按导出名 `PORT_API_SEED` 找模块，用正则读出 `exports.PORT_API_SEED = [...]` 的 10 个十进制整数；形状不对（含十六进制等）就报错，不会悄悄读错。
 - `pipeline.ts` 写 `out/resources/port_api_seed.json`，`--sync-assets` 同步到 `crates/emukc_bootstrap/assets/`。不写 `generatedAt`。
 - bun 单测喂合成模块。
 
