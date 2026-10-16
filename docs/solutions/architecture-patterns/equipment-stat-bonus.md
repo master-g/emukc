@@ -69,9 +69,11 @@ follows them. With it the oracle reports no difference over 2.26 million probes,
 `gear-bonus-known-diffs.json` is empty.
 
 The oracle compares accuracy too since 2026-10-16 (client 6.3.6.0). Before, 33 entries
-were wrong only in accuracy and nothing showed it. The table's accuracy is not used yet:
-`cal_ship_status` adds the seven stats above, and battle accuracy (`equipment_accuracy`)
-reads only the equipment's own 命中.
+were wrong only in accuracy and nothing showed it. The table's accuracy stays off the ship's
+stats (`cal_ship_status` adds the seven above), as in `kancolle-replay`. Battle reads it in
+`emukc_battle` `accuracy.rs` `hit_value`: day shelling, special attacks included, adds it next
+to the equipment's own 命中, before the morale, formation and cut-in multipliers
+(`kcsim.js` `shell`, `statsEqBonus.ACC`). Night, torpedo and anti-submarine attacks do not.
 
 ### Where the two disagree, the client is right
 
