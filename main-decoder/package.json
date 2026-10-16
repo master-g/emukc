@@ -10,6 +10,7 @@
     "gear-bonus": "bun run src/gear-bonus.ts",
     "gear-bonus-oracle": "bun run src/gear-bonus-oracle.ts",
     "cache-list-oracle": "bun run src/cache-list-oracle.ts",
+    "remodel-tables-oracle": "bun run src/remodel-tables-oracle.ts",
     "battle-replay": "bun run src/battle-replay.ts",
     "check": "tsc --noEmit",
     "test": "bun test",

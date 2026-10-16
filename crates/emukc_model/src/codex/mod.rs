@@ -19,6 +19,8 @@ pub mod incentive;
 /// Map catalog and cache parsing support.
 pub mod map;
 pub mod query;
+/// Ship remodel (改造) requirements.
+pub mod remodel;
 /// Improvement arsenal (改修工廠) recipe lookup.
 pub mod remodel_slot;
 pub mod repair;
@@ -94,6 +96,9 @@ pub struct Codex {
     /// Visible equipment bonuses.
     pub gear_bonus: gear_bonus::GearBonusTable,
 
+    /// Remodel numbers the client hard-codes.
+    pub remodel_tables: remodel::RemodelTables,
+
     /// Cache source.
     pub cache_source: Option<CacheSource>,
     // TODO(#0): add more limitations.
@@ -114,6 +119,7 @@ const PATH_MUSIC_LIST: &str = "music_list.json";
 const PATH_MAP_CATALOG: &str = "map_catalog.json";
 const PATH_GAME_CFG: &str = "game_config.json";
 const PATH_GEAR_BONUS: &str = "gear_bonus.json";
+const PATH_REMODEL_TABLES: &str = "remodel_tables.json";
 const PATH_CACHE_SOURCE: &str = "cache_source.json";
 
 impl Codex {
@@ -297,6 +303,7 @@ impl Codex {
             music_list,
             maps,
             gear_bonus: Self::load_single_item(path.join(PATH_GEAR_BONUS))?,
+            remodel_tables: Self::load_single_item(path.join(PATH_REMODEL_TABLES))?,
             game_cfg: Self::load_single_item(path.join(PATH_GAME_CFG))?,
             cache_source,
         })
@@ -374,6 +381,7 @@ impl Codex {
         Self::save_item(dst.join(PATH_MUSIC_LIST), overwrite, &self.music_list)?;
         Self::save_item(dst.join(PATH_MAP_CATALOG), overwrite, &self.maps)?;
         Self::save_item(dst.join(PATH_GEAR_BONUS), overwrite, &self.gear_bonus)?;
+        Self::save_item(dst.join(PATH_REMODEL_TABLES), overwrite, &self.remodel_tables)?;
         if let Some(source) = &self.cache_source {
             Self::save_item(dst.join(PATH_CACHE_SOURCE), overwrite, source)?;
         }

@@ -119,8 +119,6 @@ async fn ship_book(state: AppState, pid: i64, start_index: i64, end_index: i64) 
                     buildable: false,
                     buildable_lsc: false,
                     remodel: None,
-                    remodel_back_to: None,
-                    remodel_back_requirement: None,
                 }
                 // continue;
             },

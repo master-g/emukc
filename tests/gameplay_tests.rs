@@ -53,6 +53,8 @@ mod useitem_material_sync;
 
 #[path = "gameplay_tests/remodel_hp_restore.rs"]
 mod remodel_hp_restore;
+#[path = "gameplay_tests/remodel_requirements.rs"]
+mod remodel_requirements;
 
 #[path = "gameplay_tests/level_cap_exp.rs"]
 mod level_cap_exp;

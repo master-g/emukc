@@ -258,40 +258,6 @@ pub(super) fn parse(
             None
         };
 
-        let (remodel_back_to, remodel_back_requirement) = if wiki_ship.reversible.unwrap_or(false) {
-            let remodel_to = match &wiki_ship.remodel_to {
-                BoolOrString::Bool(_) => 0,
-                BoolOrString::String(v) => {
-                    if let Some(id) = context.find_ship_id(v) {
-                        id
-                    } else {
-                        error!("ship not found: {}", v);
-                        0
-                    }
-                }
-            };
-            (
-                Some(remodel_to),
-                Some(Kc3rdShipRemodelRequirement {
-                    level: wiki_ship.remodel_to_level.unwrap_or(0),
-                    ammo: wiki_ship.remodel_to_ammo.unwrap_or(0),
-                    steel: wiki_ship.remodel_to_steel.unwrap_or(0),
-                    blueprint: wiki_ship.remodel_to_blueprint.map_or(0, Into::into),
-                    catapult: wiki_ship.remodel_to_catapult.map_or(0, Into::into),
-                    report: wiki_ship.remodel_to_report.map_or(0, Into::into),
-                    devmat: wiki_ship.remodel_to_development_material.map_or(0, Into::into),
-                    torch: wiki_ship.remodel_to_construction_material.map_or(0, Into::into),
-                    aviation: 0,
-                    artillery: 0,
-                    armament: 0,
-                    boiler: 0,
-                    overseas: 0,
-                }),
-            )
-        } else {
-            (None, None)
-        };
-
         result.insert(
             api_id,
             Kc3rdShip {
@@ -315,8 +281,6 @@ pub(super) fn parse(
                 buildable_lsc: wiki_ship.buildable_lsc.unwrap_or(false),
                 slots,
                 remodel,
-                remodel_back_to,
-                remodel_back_requirement,
             },
         );
     }

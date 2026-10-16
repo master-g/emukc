@@ -530,10 +530,11 @@ mod tests {
             "map_gauge_phases",
             "map_cell_effects",
             "seasons",
+            "remodel_tables",
         ] {
             assert!(paths.iter().any(|(key, _)| key == name), "{name} is not fingerprinted");
         }
-        assert_eq!(paths.len(), 23);
+        assert_eq!(paths.len(), 24);
     }
 
     #[test]

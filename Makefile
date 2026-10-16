@@ -36,7 +36,7 @@ endif
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle gear-bonus-sync gear-bonus-update gear-bonus-oracle kcnav-sync kcnav-normalize kcnav-update cache-make-list cache-populate cache-list-oracle battle-sim headless-check clean-debug
+.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle gear-bonus-sync gear-bonus-update gear-bonus-oracle remodel-tables-oracle kcnav-sync kcnav-normalize kcnav-update cache-make-list cache-populate cache-list-oracle battle-sim headless-check clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -69,11 +69,14 @@ bootstrap: ## 下载/刷新游戏数据 (--overwrite --force-update)
 decode-main: ## decode main.js 并同步全部资源资产到 rust 项目
 	cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest
 
-update: ## 全链更新游戏资源: bootstrap → 解码同步资产 → 漂移报告 → 装備ボーナス对拍 → 生成缓存清单
+update: ## 全链更新游戏资源: bootstrap → 解码同步资产 → 重建 codex → 漂移报告 → 改装表/装備ボーナス对拍 → 生成缓存清单
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- bootstrap --overwrite --force-update
 	cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest
+	$(CARGO) run $(CARGO_PROFILE_FLAG) -- bootstrap --codex-only
 	@echo "--- 资产漂移报告 (不阻断; review 过 diff 后跑 make drift-accept) ---"
 	-$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
+	@echo "--- 改装表对拍新客户端 (不阻断; 有差异则修 main-decoder/src/remodel-tables.ts) ---"
+	-cd main-decoder && bun run remodel-tables-oracle
 	@echo "--- 装備ボーナス对拍新客户端 (不阻断; 有差异则订正 main-decoder/gear-bonus-corrections.json) ---"
 	-cd main-decoder && bun run gear-bonus-oracle
 	@echo "--- 缓存清单对拍新客户端 (不阻断; 对的是现有清单, 报出的目录先 cache-make-list 再看) ---"
@@ -114,6 +117,9 @@ gear-bonus-update: gear-bonus-sync ## 从钉住的源码再生装備ボーナス
 
 gear-bonus-oracle: ## 用客户端 main.js 的加成函数对拍装備ボーナス (需先 decode-main 并重建 codex), 报告写到 .data/temp
 	cd main-decoder && bun run gear-bonus-oracle
+
+remodel-tables-oracle: ## 用客户端 main.js 的函数对拍改装用的開発資材/高速建造材等表 (需先 decode-main)
+	cd main-decoder && bun run remodel-tables-oracle
 
 cache-make-list: ## 生成缓存资源清单
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite

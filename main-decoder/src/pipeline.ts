@@ -18,6 +18,7 @@ import { extractCacheRules, toCacheRulesAsset } from "./cache-rules.ts";
 import { extractResourceCategories, toResourceCategoriesAsset } from "./resource-categories.ts";
 import { extractResourceIdSets, toResourceIdSetsAsset } from "./resource-id-sets.ts";
 import { extractResourceManifest } from "./resource-manifest.ts";
+import { extractRemodelTables, toRemodelTablesAsset } from "./remodel-tables.ts";
 import { extractResourceTemplates, toResourceTemplatesAsset } from "./resource-templates.ts";
 import { extractUiResources, toUiResourcesAsset } from "./ui-resources.ts";
 import { splitBundle } from "./split.ts";
@@ -49,6 +50,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     cacheRulesFile: resolve(resourcesDir, "cache_rules.json"),
     uiResourcesFile: resolve(resourcesDir, "ui_resources.json"),
     resourceTemplatesFile: resolve(resourcesDir, "resource_templates.json"),
+    remodelTablesFile: resolve(resourcesDir, "remodel_tables.json"),
     resourceManifestFile: undefined,
     modulesDir,
   };
@@ -109,6 +111,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
   await writeTextFile(artifacts.cacheRulesFile, `${JSON.stringify(result.cacheRules, null, 2)}\n`);
   await writeTextFile(artifacts.uiResourcesFile, `${JSON.stringify(result.uiResources, null, 2)}\n`);
   await writeTextFile(artifacts.resourceTemplatesFile, `${JSON.stringify(result.resourceTemplates, null, 2)}\n`);
+  await writeTextFile(artifacts.remodelTablesFile, `${JSON.stringify(result.remodelTables, null, 2)}\n`);
   if (result.resourceManifest !== undefined) {
     artifacts.resourceManifestFile = resolve(resourcesDir, "resource_manifest.json");
     await writeTextFile(artifacts.resourceManifestFile, `${JSON.stringify(result.resourceManifest, null, 2)}\n`);
@@ -127,6 +130,7 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     await writeTextFile(resolve(bootstrapAssetsDir, "cache_rules.json"), `${JSON.stringify(result.cacheRules, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "ui_resources.json"), `${JSON.stringify(result.uiResources, null, 2)}\n`);
     await writeTextFile(resolve(bootstrapAssetsDir, "resource_templates.json"), `${JSON.stringify(result.resourceTemplates, null, 2)}\n`);
+    await writeTextFile(resolve(bootstrapAssetsDir, "remodel_tables.json"), `${JSON.stringify(result.remodelTables, null, 2)}\n`);
   }
   if (options.syncResourceManifest === true) {
     await writeTextFile(resolve(bootstrapAssetsDir, "resource_manifest.json"), `${JSON.stringify(result.resourceManifest, null, 2)}\n`);
@@ -166,6 +170,7 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
     moduleGraph,
     loaded.worldSource === undefined ? [] : [loaded.worldSource],
   ));
+  const remodelTables = toRemodelTablesAsset(loaded.scriptVersion, extractRemodelTables(moduleGraph));
   const emittedResourceManifest = options.syncResourceManifest === true || options.emitResourceManifest === true
     ? resourceManifest
     : undefined;
@@ -182,6 +187,7 @@ export async function runDecodePipeline(options: PipelineOptions = {}): Promise<
     cacheRules,
     uiResources,
     resourceTemplates,
+    remodelTables,
     resourceManifest: emittedResourceManifest,
     resourceManifestSummary: resourceManifest.summary,
     summary: {
