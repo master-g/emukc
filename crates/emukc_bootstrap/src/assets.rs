@@ -66,6 +66,7 @@ pub(crate) const MAP_GAUGE_PHASES: RepoAsset = asset!("map_gauge_phases", embedd
 pub(crate) const CACHE_RULES: RepoAsset = asset!("cache_rules", embedded);
 pub(crate) const GEAR_BONUS: RepoAsset = asset!("gear_bonus", embedded);
 pub(crate) const SEASONS: RepoAsset = asset!("seasons", embedded);
+pub(crate) const REMODEL_TABLES: RepoAsset = asset!("remodel_tables", embedded);
 
 /// Every checked-in asset. The cache-list inputs without an embedded copy are
 /// still found next to whatever rules file a caller names (see
@@ -89,6 +90,7 @@ pub const REPO_ASSETS: &[RepoAsset] = &[
     CACHE_RULES,
     GEAR_BONUS,
     SEASONS,
+    REMODEL_TABLES,
     asset!("resource_manifest"),
     asset!("resource_categories"),
     asset!("resource_id_sets"),

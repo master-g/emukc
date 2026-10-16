@@ -17,6 +17,9 @@ use crate::{
     },
 };
 
+/// 新型高温高圧缶
+const NEW_HIGH_PRESSURE_BOILER: i64 = 87;
+
 pub(crate) async fn remodel_impl<C>(
     c: &C,
     codex: &Codex,
@@ -31,7 +34,8 @@ where
         .await?
         .ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ID {ship_id}")))?;
 
-    let (after_mst, _, requirements) = codex.find_ship_after(ship_model.mst_id)?;
+    let requirements = codex.remodel_requirement(ship_model.mst_id)?;
+    let after_mst = codex.find::<ApiMstShip>(&requirements.after)?;
 
     let mst = codex.find::<ApiMstShip>(&ship_model.mst_id)?;
 
@@ -45,11 +49,12 @@ where
         .new_ship(after_mst.api_id)
         .ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ID {}", after_mst.api_id)))?;
 
-    // deduct boiler
+    // deduct boiler: the client counts 新型高温高圧缶 only, not the other engine parts
     {
-        let free_boiler =
+        let mut free_boiler =
             get_free_slot_item_by_type3_impl(c, profile_id, KcSlotItemType3::EngineBoost as i64)
                 .await?;
+        free_boiler.retain(|item| item.mst_id == NEW_HIGH_PRESSURE_BOILER);
         if free_boiler.len() < requirements.boiler as usize {
             return Err(GameplayError::Insufficient(format!(
                 "boiler (required: {}, available: {})",
@@ -87,75 +92,27 @@ where
         &[
             (MaterialCategory::Ammo, requirements.ammo),
             (MaterialCategory::Steel, requirements.steel),
-            (MaterialCategory::DevMat, requirements.devmat),
-            (MaterialCategory::Torch, requirements.torch),
+            (MaterialCategory::DevMat, requirements.devkit),
+            (MaterialCategory::Torch, requirements.buildkit),
+            (MaterialCategory::Screw, requirements.screw),
         ],
     )
     .await?;
 
     // deduct use items
-    if requirements.blueprint > 0 {
-        deduct_use_item_impl(
-            c,
-            profile_id,
-            KcUseItemType::Blueprint as i64,
-            requirements.blueprint,
-        )
-        .await?;
-    }
-    if requirements.catapult > 0 {
-        deduct_use_item_impl(
-            c,
-            profile_id,
-            KcUseItemType::ProtoCatapult as i64,
-            requirements.catapult,
-        )
-        .await?;
-    }
-    if requirements.report > 0 {
-        deduct_use_item_impl(
-            c,
-            profile_id,
-            KcUseItemType::ActionReport as i64,
-            requirements.report,
-        )
-        .await?;
-    }
-    if requirements.aviation > 0 {
-        deduct_use_item_impl(
-            c,
-            profile_id,
-            KcUseItemType::NewAviationMaterial as i64,
-            requirements.aviation,
-        )
-        .await?;
-    }
-    if requirements.artillery > 0 {
-        deduct_use_item_impl(
-            c,
-            profile_id,
-            KcUseItemType::NewArtilleryMaterial as i64,
-            requirements.artillery,
-        )
-        .await?;
-    }
-    if requirements.armament > 0 {
-        deduct_use_item_impl(
-            c,
-            profile_id,
-            KcUseItemType::NewArmamentMaterial as i64,
-            requirements.armament,
-        )
-        .await?;
-    }
-    if requirements.overseas > 0 {
-        deduct_use_item_impl(
-            c,
-            profile_id,
-            KcUseItemType::OverseasWarshipTechnology as i64,
-            requirements.overseas,
-        )
-        .await?;
+    for (item, count) in [
+        (KcUseItemType::Blueprint, requirements.blueprint),
+        (KcUseItemType::ProtoCatapult, requirements.catapult),
+        (KcUseItemType::ActionReport, requirements.report),
+        (KcUseItemType::NewArtilleryMaterial, requirements.artillery),
+        (KcUseItemType::NewAviationMaterial, requirements.aviation),
+        (KcUseItemType::NewArmamentMaterial, requirements.armament),
+        (KcUseItemType::OverseasWarshipTechnology, requirements.tech),
+        (KcUseItemType::ArsenalResource, requirements.arsenal),
+    ] {
+        if count > 0 {
+            deduct_use_item_impl(c, profile_id, item as i64, count).await?;
+        }
     }
 
     // add new slot items

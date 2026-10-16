@@ -1,3 +1,4 @@
+import type { RemodelTablesAsset } from "./remodel-tables.ts";
 import type { ResourceManifest } from "./resource-manifest.ts";
 
 export interface SourcePaths {
@@ -348,6 +349,7 @@ export interface PipelineArtifacts {
   cacheRulesFile: string;
   uiResourcesFile: string;
   resourceTemplatesFile: string;
+  remodelTablesFile: string;
   resourceManifestFile?: string;
   modulesDir: string;
 }
@@ -770,6 +772,7 @@ export interface PipelineResult {
   cacheRules: CacheRulesAsset;
   uiResources: UiResourcesAsset;
   resourceTemplates: ResourceTemplatesAsset;
+  remodelTables: RemodelTablesAsset;
   resourceManifest?: unknown;
   resourceManifestSummary?: ResourceManifestSummary;
   summary: DecodeSummary;

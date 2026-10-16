@@ -18,7 +18,10 @@ use emukc_model::{
     prelude::*,
 };
 
-use crate::{assets::GEAR_BONUS, map_pipeline::build_final_map_catalog};
+use crate::{
+    assets::{GEAR_BONUS, REMODEL_TABLES},
+    map_pipeline::build_final_map_catalog,
+};
 use error::ParseError;
 pub use kc3kai::parse as parse_kc3kai;
 pub use kccp::quest::parse as parse_kccp_quests;
@@ -120,6 +123,11 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
         let (_, raw) = GEAR_BONUS.load().map_err(|source| ParseError::io_at(&path, source))?;
         serde_json::from_str(&raw).map_err(|source| ParseError::json_at(&path, source))?
     };
+    let remodel_tables = {
+        let path = REMODEL_TABLES.path();
+        let (_, raw) = REMODEL_TABLES.load().map_err(|source| ParseError::io_at(&path, source))?;
+        serde_json::from_str(&raw).map_err(|source| ParseError::json_at(&path, source))?
+    };
 
     Ok(Codex {
         manifest,
@@ -137,6 +145,7 @@ pub fn parse_partial_codex(dir: impl AsRef<std::path::Path>) -> Result<Codex, Pa
         music_list,
         maps,
         gear_bonus,
+        remodel_tables,
         cache_source: Some(cache_source),
     })
 }
