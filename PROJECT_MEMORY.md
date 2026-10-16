@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-15 · branch `main`
+Last updated: 2026-10-16 · branch `fix/gear-bonus-6.3.6.0`
 
 ## Verified Facts
 
@@ -128,6 +128,7 @@ Current verification baseline:
 - [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
 - [2026-10-06] 路由规则的来源（羅針盤シミュ `compass_dev` 分支）与转换：`docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
+- [2026-10-16] 装備ボーナス对拍（`STATS`）不比命中 `houm`：订正里的命中值只能读客户端函数核对，对拍过了不代表命中对。
 
 - [2026-10-11] 対空カットイン（53 个种别全有，数值照来源模拟器，与 wiki 的 5 处差异列在文档里）：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
 - [2026-10-14] 任务 `api_voice_id` = 1000+任务号，领奖时播；名单以 KC3Kai `quotes.json` 的 `npc` 为准（含 1005→2005）。`kc9999/1101` 是客户端替 190 换的，不能按 `npc` 键反推。
@@ -180,12 +181,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-15] 分支 `feat/cosmetic-seasons` 做完季节计划 L1（U5–U7），审查问题已修；测试 1540 过，headless 两季截图对上（吹雪常规服 / 祭典法被）。未推送。
+- [2026-10-16] #167（季节）合并。分支 `fix/gear-bonus-6.3.6.0`：装備ボーナス 5 件按客户端函数订正（对拍 2,264,312 探测 0 差异），写了三项战斗规则跟进的计划 `docs/plans/2026-10-16-001-…`；测试 1540 过、0 ignored。建了 #168（`api_wedc`/`api_wedd`）。未推送。
 
 ## Next Session
 
-- [2026-10-15] 推送 `feat/cosmetic-seasons` 待用户定。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。`ApiMstShipgraph` 缺 `api_wedc`/`api_wedd`（客户端读，90 艘有），未立票。
-  装備ボーナス对拍报 5 件真实改动（296/373/520/584 新增按★加成，63 给新舰狭霧改二 902），`gear_bonus.json` 待 KC3Kai 跟进或手工修正。用户定做三项跟进（己方探照灯命中 +7、空母 `canShellInstallation`、かばう 不涉及陆上设施），属战斗规则，先写计划。#150、#138、#143、#145 继续等实机数据（用户定）。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-16] 推送 `fix/gear-bonus-6.3.6.0` 待用户定；之后按计划 2026-10-16-001 实施 U1–U5（探照灯命中 +7、空母不炮击陆上设施、かばう 不涉及陆上设施）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
+  #150、#138、#143、#145 继续等实机数据（用户定）。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
