@@ -33,7 +33,7 @@ Issue #170。装備ボーナス表算出的命中（`GearBonusStats.houm`）自 
 
 ### U1 炮击命中加装備ボーナス命中
 
-- 把构造 `GearBonusGear` 列表的代码从 `night.rs` 提到 `accuracy.rs`，两处共用。
+- 把构造 `GearBonusGear` 列表的代码从 `night.rs` 提到 `targeting.rs`（与 `ship_mst` 同处），两处共用。
 - 把 `roll_attack` 里命中值（截断前）的算式提成函数，便于直接测。
 - `AttackKind::Shelling` 时，在 `equipment_accuracy` 旁边加 `codex.gear_bonus(...).houm`；拿不到舰船或表出错按 0。
 - 测试：鈴谷航改二 带 2 件 373，炮击命中值比不算加成时高出 `加成 × 士气 × 阵型 × 系数`；夜战、雷击、对潜的命中值不含加成。

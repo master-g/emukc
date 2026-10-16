@@ -13,7 +13,7 @@
 //! balloons, PT imps and event bonuses.
 
 use emukc_model::{
-    codex::{Codex, gear_bonus::GearBonusGear},
+    codex::Codex,
     kc2::{
         KcShipType, KcSlotItemType3,
         start2::{ApiMstShip, ApiMstSlotitem},
@@ -23,7 +23,7 @@ use emukc_model::{
 use crate::damage::is_cv_type;
 use crate::random::BattleRng;
 use crate::targeting::{
-    has_slotitem_type, is_radar_type, searchlight_rerolls, ship_mst, ship_type,
+    bonus_gears, has_slotitem_type, is_radar_type, searchlight_rerolls, ship_mst, ship_type,
 };
 use crate::types::BattleRuntimeShip;
 
@@ -398,25 +398,6 @@ fn equipment_accuracy(codex: &Codex, ship: &BattleRuntimeShip, kind: AttackKind)
             }
         })
         .sum::<i64>() as f64
-}
-
-/// The ship's equipment as the 装備ボーナス table reads it, in slot order.
-pub(crate) fn bonus_gears(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<GearBonusGear> {
-    ship.slot_items
-        .iter()
-        .filter_map(|item| {
-            let mst = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok()?;
-            Some(GearBonusGear {
-                id: mst.api_id,
-                type2: mst.api_type[2],
-                type3: mst.api_type[3],
-                stars: item.api_level,
-                saku: mst.api_saku,
-                tyku: mst.api_tyku,
-                houm: mst.api_houm,
-            })
-        })
-        .collect()
 }
 
 /// The accuracy the attacker's 装備ボーナス adds. The source keeps it off the ship's stats and
@@ -901,6 +882,9 @@ mod tests {
         assert!((gain(AttackKind::Night) - 2.0 * 1.2 * 1.1 * 1.5).abs() < 1e-9);
         assert!((gain(AttackKind::Torpedo) - 2.0 * 1.3 * 1.1 * 1.5).abs() < 1e-9);
         assert_eq!(gain(AttackKind::Asw), 0.0);
+        // Night has the same morale, so the difference is the bonus alone.
+        let bonus = gain(AttackKind::Shelling) - gain(AttackKind::Night);
+        assert!((bonus - 2.0 * 1.2 * 1.1 * 1.5).abs() < 1e-9);
     }
 
     #[test]

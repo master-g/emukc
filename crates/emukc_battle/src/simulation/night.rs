@@ -428,7 +428,7 @@ fn carrier_torpedo_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
     let Some(hull) = crate::targeting::ship_mst(codex, ship) else {
         return 0.0;
     };
-    let carried = crate::accuracy::bonus_gears(codex, ship);
+    let carried = crate::targeting::bonus_gears(codex, ship);
     let totals: Vec<i64> = (0..=carried.len())
         .map(|n| codex.gear_bonus(hull, &carried[..n]).map_or(0, |bonus| bonus.raig))
         .collect();
