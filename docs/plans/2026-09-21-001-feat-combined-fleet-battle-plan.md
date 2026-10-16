@@ -4,7 +4,7 @@ type: feat
 date: 2026-09-21
 artifact_contract: ce-unified-plan/v1
 artifact_readiness: drafted
-status: draft
+status: implemented
 product_contract_source: ce-plan-bootstrap
 execution: code
 ---
@@ -117,7 +117,7 @@ R2 与 R3 由 **U2b** 落地；计划初稿把两张表的建立（U1）与接�
 
 ## Implementation Units
 
-### U1 — 战斗核心的联合舰队数据模型
+### U1 — 战斗核心的联合舰队数据模型 ✅ 已实施
 
 **改动点：** `crates/emukc_battle/src/types/runtime.rs`、`types/mod.rs`、
 新增 `crates/emukc_battle/src/combined.rs`
@@ -486,6 +486,8 @@ borrowed-expression，全部不在改动文件里）；`battle_golden.rs` 与
 `docs/api_coverage.md`、`TODO.md` 三处同步。
 
 ### 敌方联合（`ec_*` / `each_*`）为何没接着做
+
+后续：`ec_battle`、`ec_midnight_battle` 已由 `2026-10-06-006-feat-enemy-combined-fleet-battles-plan.md` 实施；`each_battle*`、`ec_night_to_day` 仍未做。
 
 不是数值不足，是**数据不存在**。`.data/codex/map_catalog.json` 里是 37 张常规图
 （1-1 ~ 7-5），全部编成中**没有一个超过 6 条船**（分布：1 船 13 个、2 船 7 个、

@@ -2,7 +2,7 @@
 title: "Sortie Quest Composition at Battle Time - Plan"
 type: fix
 date: 2026-10-14
-status: draft
+status: implemented
 execution: code
 ---
 
