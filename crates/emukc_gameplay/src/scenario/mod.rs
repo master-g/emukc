@@ -397,6 +397,16 @@ impl Scenario {
         scenario
     }
 
+    /// 陸奥改二 ahead of 長門改二 moderately damaged (40 of 91) and four destroyers, for the
+    /// Mutsu broadside with a damaged second ship: the client centres her damaged art on
+    /// `api_wedc`/`api_wedd`.
+    pub fn mutsu_broadside() -> Self {
+        let mut scenario = Self::leveled_for_mid_boss();
+        scenario.fleet[0] = ShipSpec::new(573, 99);
+        scenario.fleet[1] = ShipSpec::new(541, 99).with_hp(40);
+        scenario
+    }
+
     /// 金剛 and three destroyers into 2-5: a battleship and fewer than four destroyers are sent
     /// to C, whose flagship is 軽母ヌ級flagship, one of the abyssal carriers that attack at
     /// night. Too few and too weak to be sure of sinking her by day.
@@ -726,6 +736,13 @@ pub const PRESETS: &[Preset] = &[
     Preset {
         name: "nagato_broadside",
         build: Scenario::nagato_broadside,
+        maparea: 2,
+        mapinfo: 1,
+        expects: PhaseExpectation::PlainBattle,
+    },
+    Preset {
+        name: "mutsu_broadside",
+        build: Scenario::mutsu_broadside,
         maparea: 2,
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,
