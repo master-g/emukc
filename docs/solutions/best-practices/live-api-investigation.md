@@ -61,7 +61,11 @@ a session error before checking the client's `_connect` for that endpoint.
   `practice`, `remodel_slotlist`, `api_start2/getData`, and `questlist` per tab.
 - **Read-only but signed** — `api_port/port`. The key comes from
   `emukc_crypto::PortApiKey` (authoritative) or the mirror in the script; both
-  are pinned to the same five vectors so they cannot drift.
+  are pinned to the same five vectors so they cannot drift. The seed table they
+  sign with is the client's `PORT_API_SEED`, which changes between client builds
+  (6.3.6.0 did, #185): both read it from `crates/emukc_bootstrap/assets/port_api_seed.json`,
+  synced from `main.js` by `decode --sync-assets`. A 100 on `api_port` with every
+  other endpoint answering 1 means the seed is stale: re-run the decode.
 - **Gone** — `api_get_member/base_air_corps` answers 404 on the live server
   although apilist lists it. Its data lives in `mapinfo`.
 - **Writes** — `set_plane`, `supply`, sorties, practice. Each one changes the

@@ -56,11 +56,12 @@ READ_ONLY = [
     *[(f"api_get_member/questlist", f"&api_tab_id={t}&api_page_no=1") for t in (0, 9, 1, 2, 3, 4, 5)],
 ]
 
-# PORT_API_SEED, mirrored from emukc_crypto::PortApiKey (the authority).
-PORT_API_SEED = [3187, 3596, 6413, 9628, 7279, 7678, 6023, 2564, 9558, 9272]
+# The client's PORT_API_SEED, which main-decoder syncs from main.js (it changes between builds).
+SEED_ASSET = Path(__file__).resolve().parents[1] / "crates/emukc_bootstrap/assets/port_api_seed.json"
+PORT_API_SEED = json.loads(SEED_ASSET.read_text())["seed"]
 
 
-def port_api_key(member_id, now_sec=None, draws=None):
+def port_api_key(member_id, now_sec=None, draws=None, seeds=PORT_API_SEED):
     """The api_port signature. Mirrors PortAPI._createKey in the client."""
     now_sec = int(time.time()) if now_sec is None else now_sec
     r1, r2, r3, d, e, f = draws or (
@@ -71,7 +72,7 @@ def port_api_key(member_id, now_sec=None, draws=None):
         random.randrange(10),
         random.randrange(10),
     )
-    seed = PORT_API_SEED[member_id % 10]
+    seed = seeds[member_id % 10]
     a = 1000 * (r1 + 1) + member_id % 1000
     b, c = r2 + 1000, r3 + 32768
     g = ((4132653 + c) * (int(str(member_id)[:4]) + 1000) - now_sec + (1875979 + 9 * c) - member_id) * seed
@@ -82,16 +83,17 @@ def port_api_key(member_id, now_sec=None, draws=None):
 
 
 def selftest():
-    """Same vectors as the Rust test, so the two cannot drift apart."""
+    """Same vectors and seed (client 6.3.6.0) as the Rust test, so the two cannot drift apart."""
+    seeds = [5560, 8863, 7748, 8399, 9742, 7258, 3474, 6103, 7002, 2282]
     cases = [
-        (12345678, 1790070509, (0, 0, 0, 0, 0, 0), "016787170357072736044100032768"),
-        (12345678, 1790070509, (8, 8998, 32766, 9, 9, 9), "996787249381642446948999865534"),
-        (1000, 1600000000, (4, 1234, 10000, 1, 2, 3), "150002152221357266317223442768"),
-        (99999999, 1790070509, (3, 777, 20000, 5, 0, 7), "5499940903377151197664177752768"),
-        (7, 1, (0, 0, 0, 0, 0, 0), "010071070604665641020100032768"),
+        (12345678, 1790070509, (0, 0, 0, 0, 0, 0), "016785250521471364036100032768"),
+        (12345678, 1790070509, (8, 8998, 32766, 9, 9, 9), "996785309667530907912999865534"),
+        (1000, 1600000000, (4, 1234, 10000, 1, 2, 3), "150003752472465139360223442768"),
+        (99999999, 1790070509, (3, 777, 20000, 5, 0, 7), "5499910007451106457284177752768"),
+        (7, 1, (0, 0, 0, 0, 0, 0), "010072560127642124090100032768"),
     ]
     for member_id, now, draws, expected in cases:
-        got = port_api_key(member_id, now, draws)
+        got = port_api_key(member_id, now, draws, seeds)
         assert got == expected, f"{member_id}: {got} != {expected}"
     print("port_api_key selftest ok")
 

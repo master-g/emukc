@@ -183,7 +183,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-16] #178（#181）、#180（#183）已合并，`main` 重建 codex 后 1551 过、0 ignored；狭霧改二拆到 #182。
+- [2026-10-16] #178、#180 已合并；`fix/port-api-seed` 修 #185（seed 改由 decoder 同步），质量门过（1551、0 ignored），线上 `api_port` 返回 1。
 
 ## Next Session
 

@@ -40,7 +40,7 @@ mod seasons;
 
 /// The `emukc_bootstrap` crate prelude.
 pub mod prelude {
-    pub use crate::assets::{REPO_ASSETS, RepoAsset, RepoAssetSource};
+    pub use crate::assets::{REPO_ASSETS, RepoAsset, RepoAssetSource, port_api_seed};
     pub use crate::battle_rules::{
         BattleAttackTypeAcceptanceAsset, BattleAttackTypeFallback, BattleAttackTypeStage,
         BattleIncidentReport, BattleIncidentTriggerMatch, BattleKnowledgeAssetSources,

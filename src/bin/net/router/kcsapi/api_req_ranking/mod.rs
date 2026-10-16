@@ -1,6 +1,8 @@
 use axum::{Form, Router, routing::post};
 use serde::{Deserialize, Serialize};
 
+use emukc::bootstrap::prelude::port_api_seed;
+
 use crate::net::prelude::*;
 
 pub(super) fn router() -> Router {
@@ -47,12 +49,11 @@ pub struct Item {
 /// The client's keys by place (`__drawRanking`), `rank % 13`.
 const RANK_KEYS: [i64; 13] =
     [8931, 1201, 1156, 5061, 4569, 4732, 3779, 4568, 5695, 4619, 4912, 5669, 6586];
-/// `PORT_API_SEED` by the viewer's member id `% 10`, without its last two digits.
-const PORT_SEEDS: [i64; 10] = [31, 35, 64, 96, 72, 76, 60, 25, 95, 92];
-
-/// What the client shows as `raw / RANK_KEYS[rank % 13] / PORT_SEEDS[viewer % 10] - 91`.
+/// What the client shows as `raw / RANK_KEYS[rank % 13] / port_seed - 91`, where
+/// `port_seed` is `PORT_API_SEED[viewer % 10]` without its last two digits.
 fn encode_war_result(war_result: i64, rank: i64, viewer: i64) -> i64 {
-    (war_result + 91) * RANK_KEYS[rank as usize % 13] * PORT_SEEDS[viewer as usize % 10]
+    let port_seed = port_api_seed()[viewer as usize % 10] / 100;
+    (war_result + 91) * RANK_KEYS[rank as usize % 13] * port_seed
 }
 
 /// What the client shows as `raw / (RANK_KEYS[rank % 13] + 1853) - 157`.
@@ -93,12 +94,11 @@ async fn handler(state: AppState, Pid(pid): Pid, Form(params): Form<Params>) -> 
 mod tests {
     use super::*;
 
-    /// The client's decoding, as `__drawRanking` and `_getPortSeed` write it.
+    /// The client's decoding, as `__drawRanking` and `_getPortSeed` write it, with the
+    /// seed table the decoded client exports.
     fn shown(raw: i64, rank: i64, viewer: i64) -> f64 {
-        const PORT_API_SEED: [i64; 10] =
-            [3187, 0xe0c, 0x190d, 0x259c, 0x1c6f, 0x1dfe, 0x1787, 0xa04, 0x2556, 0x2438];
         let key = RANK_KEYS[rank as usize % 13] as f64;
-        let seed = PORT_API_SEED[viewer as usize % 10];
+        let seed = port_api_seed()[viewer as usize % 10];
         let seed = ((seed - seed % 100) / 100) as f64;
         raw as f64 / key / seed - 91.0
     }
