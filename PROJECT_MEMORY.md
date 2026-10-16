@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-16 · branch `fix/gear-bonus-6.3.6.0`
+Last updated: 2026-10-16 · branch `feat/battle-rule-followups`
 
 ## Verified Facts
 
@@ -128,6 +128,7 @@ Current verification baseline:
 - [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
 - [2026-10-06] 路由规则的来源（羅針盤シミュ `compass_dev` 分支）与转换：`docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
+- [2026-10-16] 能对地的艦爆照来源的 14 件 `canShellInstall`；码典 kcwiki 标记只有 7 件，战斗不读它：`anti-installation.md`。
 - [2026-10-16] 装備ボーナス对拍自 10-16 起也比命中；表里的命中加成目前无人使用（舰船属性只加七项，战斗命中只读装备本身 `api_houm`），接进战斗要另写计划。
 
 - [2026-10-11] 対空カットイン（53 个种别全有，数值照来源模拟器，与 wiki 的 5 处差异列在文档里）：`docs/solutions/architecture-patterns/anti-air-cut-in.md`。航空队熟练度的成长/损耗/清零与集中派遣恢复机数见 `air-corps.md`「Proficiency」。
@@ -181,11 +182,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-16] #167 合并。分支 `fix/gear-bonus-6.3.6.0`（未推送）：装備ボーナス 5 件订正、计划 2026-10-16-001、对拍加命中并补 33 条（全量 0 差异）；测试 1540 过。建了 #168。
+- [2026-10-16] 分支 `feat/battle-rule-followups`（未推送）完成计划 2026-10-16-001（偏差见计划末节）；三项质量门过，测试 1543 个。
 
 ## Next Session
 
-- [2026-10-16] 推送 `fix/gear-bonus-6.3.6.0` 待用户定；命中加成接进战斗与否待用户定；之后按计划 2026-10-16-001 实施 U1–U5（探照灯命中 +7、空母不炮击陆上设施、かばう 不涉及陆上设施）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
+- [2026-10-16] 推送 `feat/battle-rule-followups` 并开 PR 待用户定。命中加成是否接进战斗待用户定。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
   #150、#138、#143、#145 继续等实机数据（用户定）。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。

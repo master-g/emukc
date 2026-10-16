@@ -2,7 +2,7 @@
 title: "Searchlight Accuracy, Carriers on Land Targets and Shielding - Plan"
 type: feat
 date: 2026-10-16
-status: planned
+status: implemented
 execution: code
 ---
 
@@ -100,3 +100,12 @@ U1 与 U2–U3、U4 互不依赖。U3 依赖 U2。U5 最后做。
 
 - **种子漂移**：U1 改变命中判定的结果，U4 在旗舰是陆上设施时少掷一次随机数，这两处都会让后续的随机序列移位。U3 也会改变带艦爆的空母对陆上设施时的出手与随机数消耗。
 - **名单与 kcwiki 不一致**：码典 `can_attack_installations` 仍只有 7 件，别处要是读它，会和战斗里的判定不一致。目前除解析器外没有读它的地方。本计划不改它，只在 `anti-installation.md` 里写明。
+
+## 实施偏差
+
+- 实际基线是 `main` `194d11b3`（#169 合并之后），不是 `0d2fc03d`。
+- U2 与 U3 合在一个提交：`INSTALLATION_BOMBERS` 单独提交时没有使用者，`clippy -D warnings` 报 dead_code。
+- 计划写的「彗星一二型甲(64)」名字错了：`kcEQDATA.js` 与码典里 64 都是 Ju87C改。id 照用，测试按 Ju87C改 命名。
+- U1 的测试在 `roll_attack` 这一层，用固定骰子找出命中边界，比较有灯和无灯。`Aim` 只带攻击方自己这一方的探照灯，`night_turn` 传的是 `own`，所以敌方探照灯不进这个值，测试不再单独断言。特殊攻击的行在旗舰那一回合取己方探照灯，这时夜战刚开始，和开局时的取值相同。
+- U3「按空母方式炮击」用现有的 `is_cv_type`（CV/CVL/CVB）。来源还把带艦攻或艦爆的补给舰（速吸改）算在内，这里没有算，和昼战炮击公式的口径一致。
+- golden：U1 让夜战 20 个种子里的 seed 12 变了，已重新 bless。golden 的敌方山城改二带着探照灯，第二行的敌方攻击由未命中变为命中，后面的随机序列随之移位。U3、U4 没有改动任何 golden，`battle_golden.rs` 也没变。

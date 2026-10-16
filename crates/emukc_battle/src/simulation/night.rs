@@ -1374,6 +1374,7 @@ fn zuiun_night_attack(
         at: idx,
         shown,
         star_shell: true,
+        searchlight: lights.0.searchlight > 0,
     };
     special_attack_row(codex, rng, friendly, enemy, forms, params, hougeki, row, &[hit(), hit()]);
     true
@@ -1395,6 +1396,8 @@ struct SpecialRow {
     shown: Vec<i64>,
     /// Whether her fleet's star shell counts for the hits.
     star_shell: bool,
+    /// Whether her fleet's searchlight is lit for the hits.
+    searchlight: bool,
 }
 
 impl SpecialRow {
@@ -1419,6 +1422,8 @@ impl SpecialRow {
             at: 0,
             shown,
             star_shell: params.flare_pos[0] >= 0,
+            // The flagship's turn is the night's first, so no ship has sunk since it began.
+            searchlight: fleet_searchlight(codex, friendly) > 0,
         }
     }
 }
@@ -1465,7 +1470,8 @@ fn special_attack_row(
         let aim = Aim::new(AttackKind::Night, friendly_formation, enemy_formation)
             .with_modifier(hit.accuracy)
             .under_contact(params.contact[0])
-            .lit_by_star_shell(row.star_shell);
+            .lit_by_star_shell(row.star_shell)
+            .lit_by_searchlight(row.searchlight);
         let outcome = roll_attack(codex, rng, ship, &enemy[target_idx], aim);
         let raw = calculate_night_damage(
             codex,
@@ -1671,6 +1677,7 @@ fn night_turn(
                 .as_night_air_attack(air_power.is_some())
                 .under_contact(contact)
                 .lit_by_star_shell(own.star_shell)
+                .lit_by_searchlight(own.searchlight > 0)
         };
         let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
         // `nightPhase` hands `ASW` `isNightDmg = !NBonly && !isescort`: the attack counts in a
