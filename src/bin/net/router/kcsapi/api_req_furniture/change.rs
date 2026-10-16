@@ -13,6 +13,8 @@ pub(super) struct Params {
     api_shelf: i64,
     api_desk: i64,
     api_season: Option<i64>,
+    /// Sent only when the placed furniture comes with a port BGM.
+    api_bgm_id: Option<i64>,
 }
 
 pub(super) async fn handler(
@@ -34,6 +36,16 @@ pub(super) async fn handler(
             },
         )
         .await?;
+
+    // 0: the piece that came with a BGM was replaced by one without; back to the default.
+    if let Some(bgm_id) = params.api_bgm_id {
+        let bgm_id = if bgm_id == 0 {
+            101
+        } else {
+            bgm_id
+        };
+        state.update_port_bgm(pid, bgm_id).await?;
+    }
 
     Ok(KcApiResponse::empty())
 }
