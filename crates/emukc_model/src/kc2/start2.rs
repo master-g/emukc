@@ -428,6 +428,10 @@ pub struct ApiMstShipgraph {
     pub api_weda: Option<[i64; 2]>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_wedb: Option<[i64; 2]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_wedc: Option<[i64; 2]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_wedd: Option<[i64; 2]>,
 }
 
 #[expect(missing_docs)]
@@ -785,6 +789,21 @@ mod tests {
         assert_eq!(graph.api_sp_flag, Some(1));
         let encoded = serde_json::to_value(&graph).unwrap();
         assert_eq!(encoded.get("api_sp_flag").and_then(serde_json::Value::as_i64), Some(1));
+    }
+
+    /// `ShipGraphModel.getFaceRect(damaged)` reads `api_wedc`/`api_wedd` for a damaged
+    /// ship; without them multi-ship cut-ins centre its art on (0,0).
+    #[test]
+    fn damaged_face_rect_survives_the_round_trip() {
+        let raw = json!({
+            "api_id": 26,
+            "api_filename": "026",
+            "api_version": ["1", "1"],
+            "api_wedc": [625, 196],
+            "api_wedd": [148, 159]
+        });
+        let graph: ApiMstShipgraph = serde_json::from_value(raw.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&graph).unwrap(), raw);
     }
 
     #[test]
