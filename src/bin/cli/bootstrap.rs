@@ -95,6 +95,7 @@ mod tests {
             proxy: proxy.map(ToOwned::to_owned),
             gadgets_cdn: vec![],
             game_cdn: vec![],
+            season: None,
         }
     }
 

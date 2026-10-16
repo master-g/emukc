@@ -16,6 +16,7 @@ mod gear_bonus;
 mod kcnav;
 mod map;
 mod route_rules;
+mod season;
 mod serve;
 mod version;
 
@@ -72,6 +73,9 @@ enum Commands {
 
     #[command(about = "Fetch and normalize drops and enemy fleets from KCNav")]
     Kcnav(kcnav::KcnavArgs),
+
+    #[command(about = "Fetch the data of the cosmetic seasons in seasons.json")]
+    Season(season::SeasonArgs),
 
     #[command(about = "Cache management")]
     Cache(cache::CacheArgs),
@@ -225,6 +229,7 @@ pub async fn init() -> ExitCode {
         Some(Commands::RouteRules(args)) => route_rules::exec(&args).await,
         Some(Commands::GearBonus(args)) => gear_bonus::exec(&args).await,
         Some(Commands::Kcnav(args)) => kcnav::exec(&args).await,
+        Some(Commands::Season(args)) => season::exec(&args, &cfg).await,
         Some(Commands::Cache(args)) => cache::exec(&args, &cfg).await,
         Some(Commands::Serve(args)) => {
             let Some(state) = prepare_state(&cfg).await else {

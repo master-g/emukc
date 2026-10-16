@@ -1,0 +1,15 @@
+{
+  "note": "Hand-maintained. Each season is the state of the game on a date: the ships' art and voices as they were then. The id is the date, the label a human tag, and start2_commit the kcwiki/kancolle-data commit whose api/api_start2.json holds that date's shipgraph. `cargo run -- season sync` fetches them; the art and voices themselves come from the cache history.",
+  "seasons": [
+    {
+      "id": "2026-09-20",
+      "label": "Before the 2026-10-14 maintenance",
+      "start2_commit": "5214c06b4c9c872a6b38365b086ebd870d4e6195"
+    },
+    {
+      "id": "2026-10-14",
+      "label": "Halloween and autumn 2026",
+      "start2_commit": "a8e8e47b3b675899459988f1fd6e29a585be1528"
+    }
+  ]
+}
