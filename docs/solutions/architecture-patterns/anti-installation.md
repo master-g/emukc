@@ -79,6 +79,21 @@ Where it is read (`damage.rs`):
   and at night all five; by torpedo the dock's and the summer ships' (the source's
   `anchorageTorpNerf` leaves the anchorage out, and a supply depot is not torpedoed).
 
+## Who fires at them, and who covers them
+
+- A carrier leaves a land target out of her day shelling (`shuns_installations` in
+  `target_candidates`; `kcsim.js` `shellPhaseTarget`) when she carries a dive or jet bomber, flown
+  or not (`hasDivebomber`), and `CV.canShellInstallation` fails: no bomber the source lets attack
+  land has planes left, while some dive or jet bomber does. With nothing else afloat she does not
+  fire, and draws nothing. Only day shelling filters; carrier-style shelling is `is_cv_type`,
+  without the source's oiler flying bombers.
+- The bombers that may attack land are the source's 14 `canShellInstall` items in `kcEQDATA.js`
+  (`INSTALLATION_BOMBERS`, from the same generator). The codex's kcwiki mark
+  (`_can_attack_installations` in `slotitem_extra_info.json`) lists only 7 of them, so the battle
+  does not read it.
+- かばう never touches a land target (`select_escort_shield`; `choiceWProtect`): a land flagship is
+  not covered, returned before the protection roll, and a land target never covers its flagship.
+
 ## Known gaps
 
 - The airstrike's own bonuses against land targets and special ships (`enableAirstrikeSpecialBonus`,
@@ -88,9 +103,6 @@ Where it is read (`damage.rs`):
   not take them, and the generator does not list them.
 - A carrier's day shelling of a land target (`CV.prototype.shellPower`) keeps the carrier formula
   without the multipliers.
-- A carrier with dive bombers that cannot attack land does not shell a land target in the source
-  (`CV.canShellInstallation`, `divebomberInstall`); here she still does. In #136's body, not in
-  plan 2026-10-15-004.
-- The source never lets かばう touch a land target (`choiceWProtect` returns a targeted
-  installation, and an installation does not shield its flagship); `select_escort_shield` does not
-  know this.
+- `choiceWProtect` rolls for かばう before it gathers the protectors; `select_escort_shield` rolls
+  only when one is eligible. With nothing but healthy land targets beside a ship flagship, the
+  source draws once and this draws nothing, so a seed lines up differently after it.

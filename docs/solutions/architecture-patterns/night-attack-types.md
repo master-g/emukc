@@ -77,6 +77,11 @@ A searchlight draws fire and costs its ship her evasion (`kcsim.js` `nightPhase`
   her flat night evasion (`night_evasion`): 5 for a heavy or aviation cruiser, 10 for a destroyer
   with a radar and a lookout, added after the evasion curve. The flat evasion is counted without
   a searchlight too. Whether hers is the lit one does not matter.
+- A fleet with one lit adds 7 to the accuracy of each of its night attacks on a surface ship
+  (`Aim::lit_by_searchlight`; `NBattack`: `if (searchlights[0]) acc += .07`), after every
+  multiplier. The source adds it after the gun fit and before the PT boat's correction, neither
+  of which is modelled (`accuracy.rs`). The special attacks' rows and the night 瑞雲 cut-in take
+  it too; the enemy's searchlight does nothing to it.
 
 ## The night 瑞雲 cut-in
 
@@ -205,8 +210,6 @@ double attack, a cut-in or a special attack that misses still scratches and is w
 - The flagship's special gunnery attacks of the day are rolled for at night too
   (`special_gunnery_at_night`), in the same one row as the night assault
   (`special_attack_row`); `day-shelling-order.md` has their rules.
-- A fleet's own searchlight adds 7 to the accuracy of its night attacks after the multipliers
-  (`NBattack`: `if (searchlights[0]) acc += .07`); not modelled, and #140 did not list it.
 - Smoke (`smokeType`) is not modelled at all, by day or at night, so neither is its effect on
   the attack on a submarine.
 - A night attack on an installation leaves the torpedo out; its equipment multipliers are in
