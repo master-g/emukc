@@ -2852,6 +2852,50 @@
           "multiple": {
             "houg": 2
           }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "multiple": {
+            "houg": 2
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
         }
       ]
     },
@@ -10230,6 +10274,86 @@
           "multiple": {
             "houg": 3
           }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "multiple": {
+            "houg": 3,
+            "tyku": 1,
+            "tais": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            588,
+            667,
+            587,
+            145,
+            961,
+            627,
+            902
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tais": 1
+          }
+        },
+        {
+          "ids": [
+            588,
+            667,
+            587,
+            145,
+            961,
+            627,
+            902
+          ],
+          "minStars": 9,
+          "multiple": {
+            "tais": 1
+          }
         }
       ]
     },
@@ -14328,6 +14452,46 @@
           "single": {
             "raig": 2,
             "houk": 3
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tais": 1
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 8,
+          "multiple": {
+            "raig": 1
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
           }
         }
       ]
@@ -26284,6 +26448,26 @@
           "single": {
             "houg": -2
           }
+        },
+        {
+          "ids": [
+            503,
+            504
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            503,
+            504
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houg": 1
+          }
         }
       ]
     },
@@ -33489,6 +33673,38 @@
           "minStars": 4,
           "multiple": {
             "houm": 1
+          }
+        },
+        {
+          "minStars": 6,
+          "multiple": {
+            "tais": 1
+          }
+        },
+        {
+          "minStars": 8,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "nation": "Sweden",
+          "minStars": 7,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "nation": "Sweden",
+          "minStars": 9,
+          "multiple": {
+            "tais": 1
           }
         }
       ]

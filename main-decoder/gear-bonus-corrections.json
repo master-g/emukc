@@ -120,6 +120,55 @@
         }
       ]
     },
+    "63": {
+      "why": "the client grants 狭霧改二 firepower +2 per copy and star bonuses from 7 stars; the source predates her",
+      "append": [
+        {
+          "ids": [
+            902
+          ],
+          "multiple": {
+            "houg": 2
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
+        }
+      ]
+    },
     "85": {
       "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
       "append": [
@@ -771,6 +820,91 @@
         }
       ]
     },
+    "296": {
+      "why": "the client grants Japanese destroyers star bonuses from 7 stars, anti-submarine ones to a fixed list of ships, and 狭霧改二 her own per-copy bonus; the source has none of them",
+      "append": [
+        {
+          "ids": [
+            902
+          ],
+          "multiple": {
+            "houg": 3,
+            "tyku": 1,
+            "tais": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            588,
+            667,
+            587,
+            145,
+            961,
+            627,
+            902
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tais": 1
+          }
+        },
+        {
+          "ids": [
+            588,
+            667,
+            587,
+            145,
+            961,
+            627,
+            902
+          ],
+          "minStars": 9,
+          "multiple": {
+            "tais": 1
+          }
+        }
+      ]
+    },
     "299": {
       "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
       "append": [
@@ -1375,6 +1509,51 @@
               }
             }
           ]
+        }
+      ]
+    },
+    "373": {
+      "why": "the client grants 鈴谷航改二 and 熊野航改二 star bonuses from 7 stars",
+      "append": [
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tais": 1
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 8,
+          "multiple": {
+            "raig": 1
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
         }
       ]
     },
@@ -2350,7 +2529,7 @@
       ]
     },
     "520": {
-      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; 鈴谷改二 and 熊野改二 gain accuracy from 8 stars and firepower from 9, read from the client",
       "append": [
         {
           "ids": [
@@ -2378,6 +2557,26 @@
           "minCount": 3,
           "single": {
             "houg": -2
+          }
+        },
+        {
+          "ids": [
+            503,
+            504
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            503,
+            504
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houg": 1
           }
         }
       ]
@@ -3215,6 +3414,43 @@
               }
             }
           ]
+        }
+      ]
+    },
+    "584": {
+      "why": "the client grants every ship star bonuses at 6, 8 and 10 stars, and Swedish ships more at 7 and 9; the source stops at 4",
+      "append": [
+        {
+          "minStars": 6,
+          "multiple": {
+            "tais": 1
+          }
+        },
+        {
+          "minStars": 8,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "nation": "Sweden",
+          "minStars": 7,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "nation": "Sweden",
+          "minStars": 9,
+          "multiple": {
+            "tais": 1
+          }
         }
       ]
     },
