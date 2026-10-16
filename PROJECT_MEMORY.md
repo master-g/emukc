@@ -179,19 +179,19 @@ Current verification baseline:
 | [2026-10-14] 调试用 `quest_add_at` 把新行 `progress` 写成 `Completed`：测未接取任务要读条件里的剩余计数，不能看 `progress`。 | session 2026-10-14 |
 | [2026-10-15] 无头检查里到点的请求在点「進撃」时就发出，罗盘还要再点一下才转；不补点击，之后截图全停在罗盘上。新场景截图全相同时先查是否卡在等点击的界面。 | session 2026-10-15、`run.py` RECON_6_3 |
 | [2026-10-15] 照计划「没有做」节建 issue 会漏掉后来已修的（#137、#139 建时已修）：建前先 `git log -S`/读当前代码核对。 | triage 2026-10-15 |
+| [2026-10-16] codex 自比抓不到结构体丢字段（codex 由同一结构体写出）；要和原始 `.data/temp/start2.json` 比。 | `shipgraph_keeps_every_field_kcwiki_sends` |
 
 ## Last Session
 
-- [2026-10-16] #168 经 PR #176 合并：补 `api_wedc`/`api_wedd` 与 `face_rect`，无头场景 `mutsu_broadside`、`richelieu_attack` 修复前后各跑一次比对截图；三道质量门全过。
+- [2026-10-16] #168 已合并（#176）；分支 `test/shipgraph-against-kcwiki`：shipgraph 改与原始 kcwiki 比对，质量门全过，PR 待合并。
 
 ## Next Session
 
-- [2026-10-16] 可做：`GearBonusGear` 另两处手写构造可合并（见 PR #174）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
+- [2026-10-16] 待查是否同 #168：codex 丢了 `furniture.api_bgm_id`、`mapinfo.api_max_maphp`/`api_required_defeat_count`、`shipupgrade.api_tech_count`/`api_boiler_count`。可做：`GearBonusGear` 另两处手写构造可合并（见 PR #174）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
   #150 等用户按评论抓一次 `questlist`。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
-  远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
-  来源副本不在仓库，按 `kancolle-replay` 提交 `69097abc` 重新取 `js/` 下的文件。`en.kancollewiki.net` 有人机验证，抓不到。
-  验证"客户端会不会正确演出"先读 `main.decoded.js` 与 `z/cache` 资源，再跑 `make headless-check`，不找用户开浏览器；
-  查清单漏项跑 `make cache-list-oracle`。改了 `parser/` 或 `assets/` 后重建 codex：`cargo run -- bootstrap --codex-only`；
+  远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
+  `kancolle-replay` 源按提交 `69097abc` 重取 `js/`；`en.kancollewiki.net` 有人机验证。
+  验证客户端演出先读 `main.decoded.js` 与 `z/cache`，再跑 `make headless-check`；立绘位置要修复前后比截图。
   多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
   带种子的战斗测试落空时换种子、不放宽断言。数字先读到再写。
