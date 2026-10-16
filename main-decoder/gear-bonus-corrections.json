@@ -17,7 +17,7 @@
       ]
     },
     "39": {
-      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; accuracy +1 per copy for 初雪改二 at 10 stars, as for 986",
       "append": [
         {
           "ids": [
@@ -45,11 +45,20 @@
           "multiple": {
             "houk": 1
           }
+        },
+        {
+          "ids": [
+            987
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
         }
       ]
     },
     "40": {
-      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way",
+      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way; and the accuracy the twin 10cm synergy gives once with 533",
       "append": [
         {
           "ids": [
@@ -70,11 +79,32 @@
               }
             }
           ]
+        },
+        {
+          "ids": [
+            986,
+            987
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    533
+                  ]
+                }
+              ],
+              "single": {
+                "houm": -1
+              },
+              "flags": []
+            }
+          ]
         }
       ]
     },
     "49": {
-      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way",
+      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way; and the accuracy the twin 10cm synergy gives once with 533",
       "append": [
         {
           "ids": [
@@ -93,6 +123,27 @@
               "single": {
                 "tyku": -1
               }
+            }
+          ]
+        },
+        {
+          "ids": [
+            986,
+            987
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    533
+                  ]
+                }
+              ],
+              "single": {
+                "houm": -1
+              },
+              "flags": []
             }
           ]
         }
@@ -117,6 +168,55 @@
               }
             }
           ]
+        }
+      ]
+    },
+    "63": {
+      "why": "the client grants 狭霧改二 firepower +2 per copy and star bonuses from 7 stars; the source predates her",
+      "append": [
+        {
+          "ids": [
+            902
+          ],
+          "multiple": {
+            "houg": 2
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            902
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
         }
       ]
     },
@@ -269,7 +369,7 @@
       ]
     },
     "122": {
-      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; accuracy +1 per copy for 吹雪改三 and 吹雪改三護(六式) from 9 stars",
       "append": [
         {
           "ids": [
@@ -299,6 +399,16 @@
           "minStars": 10,
           "multiple": {
             "houg": 1
+          }
+        },
+        {
+          "ids": [
+            1035,
+            1040
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houm": 1
           }
         }
       ]
@@ -634,7 +744,7 @@
       ]
     },
     "268": {
-      "why": "the client grants the bonus for carrying the arctic deck personnel to every ship, the source only to a few; the rest fitted to the client's values",
+      "why": "the client grants the bonus for carrying the arctic deck personnel to every ship, the source only to a few; the rest fitted to the client's values; accuracy +1 per copy for 足柄 from 7 stars",
       "append": [
         {
           "ids": [
@@ -646,6 +756,17 @@
           "multiple": {
             "houk": 2,
             "tais": 1
+          }
+        },
+        {
+          "ids": [
+            64,
+            193,
+            267
+          ],
+          "minStars": 7,
+          "multiple": {
+            "houm": 1
           }
         }
       ],
@@ -771,6 +892,91 @@
         }
       ]
     },
+    "296": {
+      "why": "the client grants Japanese destroyers star bonuses from 7 stars, anti-submarine ones to a fixed list of ships, and 狭霧改二 her own per-copy bonus; the source has none of them",
+      "append": [
+        {
+          "ids": [
+            902
+          ],
+          "multiple": {
+            "houg": 3,
+            "tyku": 1,
+            "tais": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tyku": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "nation": "Japan",
+          "stypes": [
+            2
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "ids": [
+            588,
+            667,
+            587,
+            145,
+            961,
+            627,
+            902
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tais": 1
+          }
+        },
+        {
+          "ids": [
+            588,
+            667,
+            587,
+            145,
+            961,
+            627,
+            902
+          ],
+          "minStars": 9,
+          "multiple": {
+            "tais": 1
+          }
+        }
+      ]
+    },
     "299": {
       "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
       "append": [
@@ -797,6 +1003,20 @@
             "houg": 2,
             "houk": -2,
             "souk": 1
+          }
+        }
+      ]
+    },
+    "307": {
+      "why": "the client grants Fletcher Mk.II and 吹雪改三護(六式) accuracy +2 per copy, the source +1",
+      "append": [
+        {
+          "ids": [
+            629,
+            1040
+          ],
+          "multiple": {
+            "houm": 1
           }
         }
       ]
@@ -1046,6 +1266,20 @@
         }
       ]
     },
+    "320": {
+      "why": "the client grants 鈴谷航改二 and 熊野航改二 accuracy +1 per copy",
+      "append": [
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "multiple": {
+            "houm": 1
+          }
+        }
+      ]
+    },
     "330": {
       "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
       "append": [
@@ -1085,6 +1319,17 @@
         }
       ]
     },
+    "341": {
+      "why": "the client grants every ship accuracy +1 per copy at 10 stars",
+      "append": [
+        {
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
+        }
+      ]
+    },
     "363": {
       "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
       "append": [
@@ -1120,7 +1365,7 @@
       ]
     },
     "366": {
-      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way; accuracy: none from 5 and 10 stars for the ships listed above; 時雨改三 gets +1 once, +1 per copy from 5 and from 10 stars, and +2 with a surface radar, +1 with an anti-air radar",
       "append": [
         {
           "ids": [
@@ -1375,6 +1620,300 @@
               }
             }
           ]
+        },
+        {
+          "ids": [
+            17,
+            18,
+            19,
+            20,
+            50,
+            122,
+            132,
+            133,
+            134,
+            135,
+            167,
+            168,
+            169,
+            170,
+            181,
+            186,
+            190,
+            225,
+            226,
+            227,
+            228,
+            294,
+            300,
+            301,
+            302,
+            303,
+            304,
+            312,
+            313,
+            316,
+            317,
+            320,
+            322,
+            324,
+            325,
+            329,
+            344,
+            345,
+            349,
+            354,
+            355,
+            359,
+            362,
+            373,
+            409,
+            410,
+            415,
+            424,
+            425,
+            452,
+            453,
+            454,
+            455,
+            456,
+            484,
+            485,
+            527,
+            528,
+            556,
+            557,
+            558,
+            559,
+            566,
+            567,
+            568,
+            625,
+            651,
+            656,
+            670,
+            671,
+            674,
+            675,
+            680,
+            686,
+            688,
+            695,
+            709,
+            710,
+            718,
+            720,
+            886,
+            915,
+            951
+          ],
+          "minStars": 5,
+          "multiple": {
+            "houm": -1
+          }
+        },
+        {
+          "ids": [
+            17,
+            18,
+            19,
+            20,
+            50,
+            122,
+            132,
+            133,
+            134,
+            135,
+            167,
+            168,
+            169,
+            170,
+            181,
+            186,
+            190,
+            225,
+            226,
+            227,
+            228,
+            294,
+            300,
+            301,
+            302,
+            303,
+            304,
+            312,
+            313,
+            316,
+            317,
+            320,
+            322,
+            324,
+            325,
+            329,
+            344,
+            345,
+            349,
+            354,
+            355,
+            359,
+            362,
+            373,
+            409,
+            410,
+            415,
+            424,
+            425,
+            452,
+            453,
+            454,
+            455,
+            456,
+            484,
+            485,
+            527,
+            528,
+            556,
+            557,
+            558,
+            559,
+            566,
+            567,
+            568,
+            625,
+            651,
+            656,
+            670,
+            671,
+            674,
+            675,
+            680,
+            686,
+            688,
+            695,
+            709,
+            710,
+            718,
+            720,
+            886,
+            915,
+            951
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": -1
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "single": {
+            "houm": 1
+          },
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houm": 2
+              }
+            },
+            {
+              "flags": [
+                "airRadar"
+              ],
+              "single": {
+                "houm": 1
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            961
+          ],
+          "minStars": 5,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            961
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
+        }
+      ]
+    },
+    "373": {
+      "why": "the client grants 鈴谷航改二 and 熊野航改二 star bonuses from 7 stars; and accuracy +1 per copy",
+      "append": [
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 7,
+          "multiple": {
+            "tais": 1
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 8,
+          "multiple": {
+            "raig": 1
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "multiple": {
+            "houm": 1
+          }
+        }
+      ]
+    },
+    "374": {
+      "why": "the client grants 鈴谷航改二 and 熊野航改二 accuracy +2 per copy",
+      "append": [
+        {
+          "ids": [
+            508,
+            509
+          ],
+          "multiple": {
+            "houm": 2
+          }
         }
       ]
     },
@@ -1394,7 +1933,7 @@
       ]
     },
     "379": {
-      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; accuracy +2 once for the Matsu class with a surface radar",
       "append": [
         {
           "ids": [
@@ -1535,6 +2074,19 @@
           "single": {
             "houk": 1
           }
+        },
+        {
+          "class": 101,
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houm": 2
+              }
+            }
+          ]
         }
       ]
     },
@@ -1749,7 +2301,7 @@
       ]
     },
     "450": {
-      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way; 北上改三 gets accuracy +2 per copy too",
       "append": [
         {
           "ids": [
@@ -1806,6 +2358,14 @@
               }
             }
           ]
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "multiple": {
+            "houm": 2
+          }
         }
       ]
     },
@@ -1837,24 +2397,98 @@
       ]
     },
     "465": {
-      "why": "differences fitted to the client's values; with other equipment carried, fitted the same way",
-      "append": [
+      "why": "restates the client's function: the Yamato class's accuracy for stars counts every copy from 4 stars; 大和改二重's from 5 stars, and the bonuses with 460 of all three remodels, need 460",
+      "replace": [
         {
-          "ids": [
-            546,
-            911
-          ],
+          "class": 37,
+          "minStars": 3,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "class": 37,
           "synergy": [
             {
-              "requires": [
-                {
-                  "gears": [
-                    460
-                  ]
-                }
+              "flags": [
+                "rangefinderAirRadar"
               ],
               "single": {
-                "tyku": -1
+                "houg": 2,
+                "houm": 2
+              }
+            }
+          ]
+        },
+        {
+          "class": 37,
+          "minStars": 4,
+          "synergy": [
+            {
+              "flags": [
+                "rangefinderAirRadar"
+              ],
+              "multiple": {
+                "houm": 1
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            911,
+            546
+          ],
+          "multiple": {
+            "houg": 1,
+            "houk": 2,
+            "houm": 1
+          },
+          "synergy": [
+            {
+              "flags": [
+                "rangefinderKaiAirRadar"
+              ],
+              "single": {
+                "houk": 1,
+                "houm": 1
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            916
+          ],
+          "multiple": {
+            "houg": 2,
+            "houk": 8,
+            "houm": 2
+          },
+          "synergy": [
+            {
+              "flags": [
+                "rangefinderKaiAirRadar"
+              ],
+              "single": {
+                "houk": 2,
+                "houm": 1
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            916
+          ],
+          "minStars": 5,
+          "synergy": [
+            {
+              "flags": [
+                "rangefinderKaiAirRadar"
+              ],
+              "multiple": {
+                "houm": 1
               }
             }
           ]
@@ -1902,7 +2536,7 @@
       ]
     },
     "505": {
-      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way; accuracy +1 per copy for 初雪改二 from 8 stars, as for 986, and the accuracy the twin 10cm synergy gives once with 533",
       "append": [
         {
           "ids": [
@@ -1938,6 +2572,36 @@
               }
             }
           ]
+        },
+        {
+          "ids": [
+            987
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            986,
+            987
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    533
+                  ]
+                }
+              ],
+              "single": {
+                "houm": -1
+              },
+              "flags": []
+            }
+          ]
         }
       ]
     },
@@ -1946,7 +2610,7 @@
       "append": []
     },
     "508": {
-      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way; accuracy +1 per copy from 9 stars, which the client counts over 507 and 508 together; and +1 per copy for the Nevada class with 507",
       "append": [
         {
           "minStars": 3,
@@ -1981,11 +2645,39 @@
               }
             }
           ]
+        },
+        {
+          "minStars": 9,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            924,
+            929,
+            936
+          ],
+          "synergy": [
+            {
+              "requires": [
+                {
+                  "gears": [
+                    507
+                  ]
+                }
+              ],
+              "multiple": {
+                "houm": 1
+              },
+              "flags": []
+            }
+          ]
         }
       ]
     },
     "510": {
-      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; accuracy too, the client per copy",
       "append": [
         {
           "ids": [
@@ -2009,6 +2701,30 @@
           "minCount": 3,
           "single": {
             "saku": 3
+          }
+        },
+        {
+          "ids": [
+            571,
+            572,
+            576,
+            577
+          ],
+          "minCount": 2,
+          "single": {
+            "houm": 2
+          }
+        },
+        {
+          "ids": [
+            571,
+            572,
+            576,
+            577
+          ],
+          "minCount": 3,
+          "single": {
+            "houm": 2
           }
         }
       ]
@@ -2350,7 +3066,7 @@
       ]
     },
     "520": {
-      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; 鈴谷改二 and 熊野改二 gain accuracy from 8 stars and firepower from 9, read from the client",
       "append": [
         {
           "ids": [
@@ -2378,6 +3094,26 @@
           "minCount": 3,
           "single": {
             "houg": -2
+          }
+        },
+        {
+          "ids": [
+            503,
+            504
+          ],
+          "minStars": 8,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            503,
+            504
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houg": 1
           }
         }
       ]
@@ -2424,7 +3160,7 @@
       ]
     },
     "525": {
-      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; accuracy too",
       "append": [
         {
           "ids": [
@@ -2435,11 +3171,20 @@
             "houg": 2,
             "raig": 1
           }
+        },
+        {
+          "ids": [
+            972,
+            977
+          ],
+          "single": {
+            "houm": 2
+          }
         }
       ]
     },
     "526": {
-      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; accuracy too",
       "append": [
         {
           "ids": [
@@ -2449,6 +3194,15 @@
           "single": {
             "houg": 2,
             "raig": 1
+          }
+        },
+        {
+          "ids": [
+            972,
+            977
+          ],
+          "single": {
+            "houm": 2
           }
         }
       ]
@@ -2528,7 +3282,7 @@
       ]
     },
     "530": {
-      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; 霧島改二丙 gets the accuracy 592 gets, for stars and for count",
       "append": [
         {
           "ids": [
@@ -2565,11 +3319,117 @@
           "multiple": {
             "souk": 1
           }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 2,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 7,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minStars": 10,
+          "multiple": {
+            "houm": 1
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minCount": 2,
+          "single": {
+            "houm": 3
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minCount": 3,
+          "single": {
+            "houm": 2
+          }
+        },
+        {
+          "ids": [
+            694
+          ],
+          "minCount": 4,
+          "single": {
+            "houm": 2
+          }
+        }
+      ]
+    },
+    "536": {
+      "why": "the client grants every French ship accuracy +1 per Loire 130M with a copy of 1 star or more, the source only Gloire改; listed by id, Gloire改 having her own rule",
+      "append": [
+        {
+          "ids": [
+            372,
+            491,
+            965,
+            1051,
+            1056
+          ],
+          "minStars": 1,
+          "synergy": [
+            {
+              "flags": [
+                "frenchNightRecon"
+              ],
+              "countFlag": 0,
+              "multiple": {
+                "houm": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "537": {
+      "why": "the client grants every French ship accuracy +1 per Loire 130M with a copy of 1 star or more, the source only Gloire改; listed by id, Gloire改 having her own rule",
+      "append": [
+        {
+          "ids": [
+            372,
+            491,
+            965,
+            1051,
+            1056
+          ],
+          "minStars": 1,
+          "synergy": [
+            {
+              "flags": [
+                "frenchNightRecon"
+              ],
+              "countFlag": 0,
+              "multiple": {
+                "houm": 1
+              }
+            }
+          ]
         }
       ]
     },
     "538": {
-      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; the client gives the Richelieu class no accuracy per copy and no accuracy at 9 stars",
       "append": [
         {
           "ids": [
@@ -2588,6 +3448,19 @@
           "minStars": 7,
           "multiple": {
             "houk": -1
+          }
+        },
+        {
+          "class": 79,
+          "multiple": {
+            "houm": -1
+          }
+        },
+        {
+          "nation": "France",
+          "minStars": 9,
+          "multiple": {
+            "houm": -1
           }
         }
       ]
@@ -2704,7 +3577,7 @@
       ]
     },
     "572": {
-      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "why": "differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way; accuracy +2 once for the Matsu class with a surface radar, and +2 per copy for 北上改三; and +2 once with a surface radar",
       "append": [
         {
           "ids": [
@@ -2921,6 +3794,42 @@
               }
             }
           ]
+        },
+        {
+          "class": 101,
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houm": 2
+              }
+            }
+          ]
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "multiple": {
+            "houm": 2
+          }
+        },
+        {
+          "ids": [
+            1071
+          ],
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "single": {
+                "houm": 2
+              }
+            }
+          ]
         }
       ]
     },
@@ -2944,7 +3853,7 @@
       ]
     },
     "575": {
-      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level",
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; the accuracy at 9 stars is for Japanese escorts only",
       "append": [
         {
           "ids": [
@@ -3011,6 +3920,20 @@
           "multiple": {
             "houk": 1,
             "tyku": 1
+          }
+        },
+        {
+          "ids": [
+            738,
+            739,
+            973,
+            978,
+            998,
+            999
+          ],
+          "minStars": 9,
+          "multiple": {
+            "houm": -1
           }
         }
       ]
@@ -3163,7 +4086,7 @@
       ]
     },
     "580": {
-      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way; Béarn amélioration gets accuracy +1 per copy and no surface radar bonus",
       "append": [
         {
           "ids": [
@@ -3187,11 +4110,29 @@
               }
             }
           ]
+        },
+        {
+          "ids": [
+            1061
+          ],
+          "multiple": {
+            "houm": -1
+          },
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "multiple": {
+                "houm": -1
+              }
+            }
+          ]
         }
       ]
     },
     "581": {
-      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way",
+      "why": "per-copy differences fitted to the client: each ship carrying 1 to 3 copies at every star level; with other equipment carried, fitted the same way; Béarn amélioration gets accuracy +1 per copy and no surface radar bonus",
       "append": [
         {
           "ids": [
@@ -3215,6 +4156,61 @@
               }
             }
           ]
+        },
+        {
+          "ids": [
+            1061
+          ],
+          "multiple": {
+            "houm": -1
+          },
+          "synergy": [
+            {
+              "flags": [
+                "surfaceRadar"
+              ],
+              "multiple": {
+                "houm": -1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "584": {
+      "why": "the client grants every ship star bonuses at 6, 8 and 10 stars, and Swedish ships more at 7 and 9; the source stops at 4",
+      "append": [
+        {
+          "minStars": 6,
+          "multiple": {
+            "tais": 1
+          }
+        },
+        {
+          "minStars": 8,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "minStars": 10,
+          "multiple": {
+            "houg": 1
+          }
+        },
+        {
+          "nation": "Sweden",
+          "minStars": 7,
+          "multiple": {
+            "houk": 1
+          }
+        },
+        {
+          "nation": "Sweden",
+          "minStars": 9,
+          "multiple": {
+            "tais": 1
+          }
         }
       ]
     },

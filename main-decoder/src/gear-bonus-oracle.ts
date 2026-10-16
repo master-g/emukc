@@ -16,7 +16,7 @@ import { loadClient } from "./client-runtime";
 import type { GearBonusDocument } from "./gear-bonus";
 
 /** Client stat name to the name used in the asset and by the server. */
-const STATS = { houg: "houg", raig: "raig", tyku: "tyku", souk: "souk", kaih: "houk", tais: "tais", saku: "saku" } as const;
+const STATS = { houg: "houg", raig: "raig", tyku: "tyku", souk: "souk", kaih: "houk", tais: "tais", saku: "saku", houm: "houm" } as const;
 
 /** Equipment id and improvement level. */
 type Loadout = [number, number][];
