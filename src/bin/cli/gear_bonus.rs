@@ -85,15 +85,7 @@ pub(super) async fn exec(args: &GearBonusArgs) -> Result<()> {
                         .iter()
                         .map(|(id, stars)| {
                             let mst = codex.find::<ApiMstSlotitem>(id)?;
-                            Ok(GearBonusGear {
-                                id: *id,
-                                type2: mst.api_type[2],
-                                type3: mst.api_type[3],
-                                stars: *stars,
-                                saku: mst.api_saku,
-                                tyku: mst.api_tyku,
-                                houm: mst.api_houm,
-                            })
+                            Ok(GearBonusGear::new(mst, *stars))
                         })
                         .collect::<Result<Vec<_>, CodexError>>()?;
                     codex.gear_bonus(ship, &gears)

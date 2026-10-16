@@ -426,15 +426,7 @@ pub(crate) fn bonus_gears(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<GearBo
         .iter()
         .filter_map(|item| {
             let mst = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok()?;
-            Some(GearBonusGear {
-                id: mst.api_id,
-                type2: mst.api_type[2],
-                type3: mst.api_type[3],
-                stars: item.api_level,
-                saku: mst.api_saku,
-                tyku: mst.api_tyku,
-                houm: mst.api_houm,
-            })
+            Some(GearBonusGear::new(mst, item.api_level))
         })
         .collect()
 }
