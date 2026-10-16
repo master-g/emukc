@@ -901,10 +901,9 @@ mod tests {
         assert!(encoded.get("api_sp_flag").is_none());
     }
 
-    /// The passthrough fields are optional upstream: `api_max_slotplus` and `api_sp_flag`
-    /// absent before 6.3.x, `api_wedc`/`api_wedd` on some ships only. Pin the round trip
-    /// rather than their presence, so the assertion survives either shape and still fails
-    /// if the parser starts dropping them.
+    /// The two passthrough fields are optional upstream: absent before 6.3.x, present
+    /// since. Pin the round trip rather than their presence, so the assertion survives
+    /// either shape and still fails if the parser starts dropping them.
     #[test]
     fn real_manifest_round_trips_passthrough_fields() {
         let manifest_path =
@@ -922,39 +921,45 @@ mod tests {
         }
 
         for graph in &manifest.api_mst_shipgraph {
-            let (table, id) = ("api_mst_shipgraph", graph.api_id);
-            assert_eq!(
-                graph.api_sp_flag,
-                lookup_field(&source, table, id, "api_sp_flag"),
-                "shipgraph {id}"
-            );
-            assert_eq!(
-                graph.api_wedc,
-                lookup_field(&source, table, id, "api_wedc"),
-                "shipgraph {id}"
-            );
-            assert_eq!(
-                graph.api_wedd,
-                lookup_field(&source, table, id, "api_wedd"),
-                "shipgraph {id}"
-            );
+            let expected = lookup_field(&source, "api_mst_shipgraph", graph.api_id, "api_sp_flag");
+            assert_eq!(graph.api_sp_flag, expected, "shipgraph {}", graph.api_id);
         }
     }
 
     /// Read `field` off the `api_id`-keyed entry of `table` in the raw manifest.
-    fn lookup_field<T: serde::de::DeserializeOwned>(
+    fn lookup_field(
         source: &serde_json::Value,
         table: &str,
         api_id: i64,
         field: &str,
-    ) -> Option<T> {
-        let value = source
+    ) -> Option<i64> {
+        source
             .get(table)?
             .as_array()?
             .iter()
             .find(|entry| entry.get("api_id").and_then(serde_json::Value::as_i64) == Some(api_id))?
-            .get(field)?;
-        serde_json::from_value(value.clone()).ok()
+            .get(field)?
+            .as_i64()
+    }
+
+    /// Every field kcwiki sends on a shipgraph survives the parse: compared with the raw
+    /// download that bootstrap builds the codex from, not with the codex, which the same
+    /// struct wrote and so lacks whatever it drops (#168: `api_wedc`/`api_wedd`).
+    #[test]
+    fn shipgraph_keeps_every_field_kcwiki_sends() {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/temp/start2.json");
+        let raw = fs::read_to_string(path).unwrap();
+        let source: serde_json::Value = serde_json::from_str(&raw).unwrap();
+        let source = source.get("api_data").unwrap_or(&source);
+
+        let parsed = serde_json::to_value(ApiManifest::from_str(&raw).unwrap()).unwrap();
+        let sent = source["api_mst_shipgraph"].as_array().unwrap();
+        let kept = parsed["api_mst_shipgraph"].as_array().unwrap();
+        assert!(!sent.is_empty());
+        assert_eq!(sent.len(), kept.len());
+        for (sent, kept) in sent.iter().zip(kept) {
+            assert_eq!(sent, kept, "shipgraph {}", sent["api_id"]);
+        }
     }
 
     #[test]
