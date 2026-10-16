@@ -179,15 +179,15 @@ Current verification baseline:
 | [2026-10-14] 调试用 `quest_add_at` 把新行 `progress` 写成 `Completed`：测未接取任务要读条件里的剩余计数，不能看 `progress`。 | session 2026-10-14 |
 | [2026-10-15] 无头检查里到点的请求在点「進撃」时就发出，罗盘还要再点一下才转；不补点击，之后截图全停在罗盘上。新场景截图全相同时先查是否卡在等点击的界面。 | session 2026-10-15、`run.py` RECON_6_3 |
 | [2026-10-15] 照计划「没有做」节建 issue 会漏掉后来已修的（#137、#139 建时已修）：建前先 `git log -S`/读当前代码核对。 | triage 2026-10-15 |
-| [2026-10-16] codex 自比抓不到结构体丢字段（codex 由同一结构体写出）；要和原始 `.data/temp/start2.json` 比。 | `shipgraph_keeps_every_field_kcwiki_sends` |
+| [2026-10-16] codex 自比抓不到结构体丢字段（codex 由同一结构体写出）；要和原始 `.data/temp/start2.json` 比；新表丢字段时加进该测试的表名列表。 | `start2_keeps_every_field_kcwiki_sends` |
 
 ## Last Session
 
-- [2026-10-16] #168 经 #176 合并；#177 把 shipgraph 改与原始 kcwiki 比对，已合并；比对其他表后开 #178。
+- [2026-10-16] `fix/start2-tech-count-bgm-id` 修 #178，已重建 codex；三道质量门过（1547 测试、0 ignored）。
 
 ## Next Session
 
-- [2026-10-16] #178：start2 丢 `api_tech_count`、`api_bgm_id`（同 #168；mapinfo 的差异只是 null，不是丢）。可做：`GearBonusGear` 另两处手写构造可合并（见 PR #174）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
+- [2026-10-16] #178 开 PR 合并后做 #180（改装需求改读 start2 + main.js 表；用户定）。可做：`GearBonusGear` 另两处手写构造可合并（见 PR #174）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
   #150 等用户按评论抓一次 `questlist`。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。

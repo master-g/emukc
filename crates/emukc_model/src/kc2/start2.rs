@@ -135,6 +135,9 @@ pub struct ApiMstFurniture {
     pub api_type: i64,
     /// Version.
     pub api_version: i64,
+    /// Port BGM that comes with this piece; 0 if none.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_bgm_id: Option<i64>,
 }
 
 /// Furniture graph data.
@@ -483,6 +486,8 @@ pub struct ApiMstShipUpgrade {
     pub api_arms_mat_count: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_boiler_count: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_tech_count: Option<i64>, // 海外艦最新技術
     pub api_sortno: i64,
 }
 
@@ -942,29 +947,33 @@ mod tests {
             .as_i64()
     }
 
-    /// Every field kcwiki sends on a shipgraph survives the parse: compared with the raw
+    /// Every field kcwiki sends on these tables survives the parse: compared with the raw
     /// download that bootstrap builds the codex from, not with the codex, which the same
-    /// struct wrote and so lacks whatever it drops (#168: `api_wedc`/`api_wedd`). A `null`
-    /// is not checked: the client reads it as a missing field. When this fails after an
-    /// update, kcwiki has a field the struct does not: add it.
+    /// struct wrote and so lacks whatever it drops (#168: `api_wedc`/`api_wedd`; #178:
+    /// `api_tech_count`, `api_bgm_id`). A `null` is not checked: the client reads it as a
+    /// missing field. When this fails after an update, kcwiki has a field the struct does
+    /// not: add it.
     #[test]
-    fn shipgraph_keeps_every_field_kcwiki_sends() {
+    fn start2_keeps_every_field_kcwiki_sends() {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.data/temp/start2.json");
         let raw = fs::read_to_string(path).unwrap();
         let source: serde_json::Value = serde_json::from_str(&raw).unwrap();
         let source = source.get("api_data").unwrap_or(&source);
 
         let parsed = serde_json::to_value(ApiManifest::from_str(&raw).unwrap()).unwrap();
-        let sent = source["api_mst_shipgraph"].as_array().unwrap();
-        let kept = parsed["api_mst_shipgraph"].as_array().unwrap();
-        assert!(!sent.is_empty());
-        assert_eq!(sent.len(), kept.len());
-        for (sent, kept) in sent.iter().zip(kept) {
-            let id = &sent["api_id"];
-            for (field, value) in sent.as_object().unwrap().iter().filter(|(_, v)| !v.is_null()) {
-                let kept = kept.get(field);
-                assert!(kept.is_some(), "shipgraph {id}: ApiMstShipgraph drops `{field}`");
-                assert_eq!(kept, Some(value), "shipgraph {id}: `{field}`");
+        for table in ["api_mst_shipgraph", "api_mst_shipupgrade", "api_mst_furniture"] {
+            let sent = source[table].as_array().unwrap();
+            let kept = parsed[table].as_array().unwrap();
+            assert!(!sent.is_empty(), "{table}");
+            assert_eq!(sent.len(), kept.len(), "{table}");
+            for (sent, kept) in sent.iter().zip(kept) {
+                let id = &sent["api_id"];
+                for (field, value) in sent.as_object().unwrap().iter().filter(|(_, v)| !v.is_null())
+                {
+                    let kept = kept.get(field);
+                    assert!(kept.is_some(), "{table} {id}: drops `{field}`");
+                    assert_eq!(kept, Some(value), "{table} {id}: `{field}`");
+                }
             }
         }
     }
