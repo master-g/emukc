@@ -22,7 +22,9 @@ use emukc_model::{
 
 use crate::damage::is_cv_type;
 use crate::random::BattleRng;
-use crate::targeting::{has_slotitem_type, is_radar_type, searchlight_rerolls, ship_type};
+use crate::targeting::{
+    bonus_gears, has_slotitem_type, is_radar_type, searchlight_rerolls, ship_mst, ship_type,
+};
 use crate::types::BattleRuntimeShip;
 
 /// What a critical does to the attack power, after the cap and before armour.
@@ -398,6 +400,14 @@ fn equipment_accuracy(codex: &Codex, ship: &BattleRuntimeShip, kind: AttackKind)
         .sum::<i64>() as f64
 }
 
+/// The accuracy the attacker's 装備ボーナス adds. The source keeps it off the ship's stats and
+/// adds it to day shelling alone (`kcsim.js` `shell`, `statsEqBonus.ACC`).
+fn bonus_accuracy(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+    ship_mst(codex, ship)
+        .and_then(|hull| codex.gear_bonus(hull, &bonus_gears(codex, ship)).ok())
+        .map_or(0.0, |bonus| bonus.houm as f64)
+}
+
 /// How far below three quarters the target's fuel is, in percent. A ship short
 /// of fuel dodges that much worse. Abyssal ships are always full.
 fn fuel_shortfall(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
@@ -579,6 +589,23 @@ impl Aim {
     }
 }
 
+/// The attacker's accuracy before the target's evasion (`hitRate`), in percent.
+fn hit_value(codex: &Codex, attacker: &BattleRuntimeShip, aim: Aim, formation_acc: f64) -> f64 {
+    let level = attacker.ship.api_lv.max(0) as f64;
+    let luck = attacker.ship.api_lucky[0].max(0) as f64;
+    (aim.base()
+        + 2.0 * level.sqrt()
+        + 1.5 * luck.sqrt()
+        + equipment_accuracy(codex, attacker, aim.kind)
+        + if aim.kind == AttackKind::Shelling { bonus_accuracy(codex, attacker) } else { 0.0 }
+        + aim.flat)
+        * attacker_morale(attacker, aim.kind)
+        * formation_acc
+        * aim.modifier
+        // `NBattack`: the attacker's fleet's searchlight adds 7 after every multiplier.
+        + if aim.searchlight && aim.kind == AttackKind::Night { 7.0 } else { 0.0 }
+}
+
 /// Roll a ship's attack on another ship.
 pub(crate) fn roll_attack(
     codex: &Codex,
@@ -604,18 +631,7 @@ pub(crate) fn roll_attack(
         (formation_ev, 0)
     };
 
-    let level = attacker.ship.api_lv.max(0) as f64;
-    let luck = attacker.ship.api_lucky[0].max(0) as f64;
-    let hit = (aim.base()
-        + 2.0 * level.sqrt()
-        + 1.5 * luck.sqrt()
-        + equipment_accuracy(codex, attacker, aim.kind)
-        + aim.flat)
-        * attacker_morale(attacker, aim.kind)
-        * formation_acc
-        * aim.modifier
-        // `NBattack`: the attacker's fleet's searchlight adds 7 after every multiplier.
-        + if aim.searchlight && aim.kind == AttackKind::Night { 7.0 } else { 0.0 };
+    let hit = hit_value(codex, attacker, aim, formation_acc);
     let dodge = evasion_term(
         defender.ship.api_kaihi[0],
         defender.ship.api_lucky[0],
@@ -838,6 +854,37 @@ mod tests {
             (0..200).all(|seed| roll(Some(7), aim.in_the_opening(), seed) == roll(None, aim, seed))
         );
         assert!((0..200).any(|seed| roll(Some(7), aim, seed) != roll(None, aim, seed)));
+    }
+
+    #[test]
+    fn the_equipment_bonus_accuracy_reaches_day_shelling_alone() {
+        use crate::test_utils::{sample_ship, slotitem_with_mst_id};
+        const SUZUYA_CARRIER_KAI_NI: i64 = 508;
+        // 天山一二型甲改(空六号電探改装備機): 命中 1 of its own, +1 a copy on her.
+        const TENZAN_RADAR: i64 = 373;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |gear: &[i64]| {
+            let mut ship = sample_ship(&codex, SUZUYA_CARRIER_KAI_NI, 99);
+            ship.ship.api_cond = 50;
+            ship.slot_items = gear.iter().copied().map(slotitem_with_mst_id).collect();
+            BattleRuntimeShip::new(ship, true, true)
+        };
+        let (bare, armed) = (ship(&[]), ship(&[TENZAN_RADAR, TENZAN_RADAR]));
+        // Sparkling (1.2, torpedo 1.3), a formation of 1.1 and a cut-in of 1.5 multiply it all.
+        let gain = |kind| {
+            let aim = Aim::new(kind, 1, 1).with_modifier(1.5);
+            hit_value(&codex, &armed, aim, 1.1) - hit_value(&codex, &bare, aim, 1.1)
+        };
+        // By day the two copies add 2 of their own and 2 of bonus.
+        assert!((gain(AttackKind::Shelling) - 4.0 * 1.2 * 1.1 * 1.5).abs() < 1e-9);
+        // At night and with torpedoes only their own 2; at a submarine nothing.
+        assert!((gain(AttackKind::Night) - 2.0 * 1.2 * 1.1 * 1.5).abs() < 1e-9);
+        assert!((gain(AttackKind::Torpedo) - 2.0 * 1.3 * 1.1 * 1.5).abs() < 1e-9);
+        assert_eq!(gain(AttackKind::Asw), 0.0);
+        // Night has the same morale, so the difference is the bonus alone.
+        let bonus = gain(AttackKind::Shelling) - gain(AttackKind::Night);
+        assert!((bonus - 2.0 * 1.2 * 1.1 * 1.5).abs() < 1e-9);
     }
 
     #[test]

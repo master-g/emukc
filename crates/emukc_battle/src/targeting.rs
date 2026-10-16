@@ -1,7 +1,7 @@
 //! Target selection, eligibility checks, and display helpers for battle phases.
 
 use emukc_model::{
-    codex::Codex,
+    codex::{Codex, gear_bonus::GearBonusGear},
     kc2::{
         KcApiSlotItem, KcShipType, KcSlotItemType3,
         start2::{ApiMstShip, ApiMstSlotitem},
@@ -418,6 +418,25 @@ pub(crate) fn ship_mst<'a>(
     ship: &'a BattleRuntimeShip,
 ) -> Option<&'a ApiMstShip> {
     codex.find::<ApiMstShip>(&ship.ship.api_ship_id).ok()
+}
+
+/// The ship's equipment as the 装備ボーナス table reads it, in slot order.
+pub(crate) fn bonus_gears(codex: &Codex, ship: &BattleRuntimeShip) -> Vec<GearBonusGear> {
+    ship.slot_items
+        .iter()
+        .filter_map(|item| {
+            let mst = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok()?;
+            Some(GearBonusGear {
+                id: mst.api_id,
+                type2: mst.api_type[2],
+                type3: mst.api_type[3],
+                stars: item.api_level,
+                saku: mst.api_saku,
+                tyku: mst.api_tyku,
+                houm: mst.api_houm,
+            })
+        })
+        .collect()
 }
 
 /// Get the ship type (stype) of a runtime ship.

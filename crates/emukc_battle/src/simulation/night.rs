@@ -425,27 +425,10 @@ const TORPEDO_BONUS_PAIR: [i64; 2] = [522, 523];
 /// list, then of the others with a bonus by id downwards. The crew bonus is the smallest of her
 /// aviation personnel's.
 fn carrier_torpedo_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
-    use emukc_model::codex::gear_bonus::GearBonusGear;
-    use emukc_model::kc2::start2::ApiMstSlotitem;
     let Some(hull) = crate::targeting::ship_mst(codex, ship) else {
         return 0.0;
     };
-    let carried: Vec<_> = ship
-        .slot_items
-        .iter()
-        .filter_map(|item| {
-            let mst = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok()?;
-            Some(GearBonusGear {
-                id: mst.api_id,
-                type2: mst.api_type[2],
-                type3: mst.api_type[3],
-                stars: item.api_level,
-                saku: mst.api_saku,
-                tyku: mst.api_tyku,
-                houm: mst.api_houm,
-            })
-        })
-        .collect();
+    let carried = crate::targeting::bonus_gears(codex, ship);
     let totals: Vec<i64> = (0..=carried.len())
         .map(|n| codex.gear_bonus(hull, &carried[..n]).map_or(0, |bonus| bonus.raig))
         .collect();
