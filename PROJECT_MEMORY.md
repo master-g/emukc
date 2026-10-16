@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-16 · branch `feat/shelling-bonus-accuracy`
+Last updated: 2026-10-16 · branch `fix/shipgraph-damaged-face-rect`
 
 ## Verified Facts
 
@@ -182,11 +182,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-16] #170 经 #174 合并。needs-info 清理：#138 关（常规图无 color 15）、#143/#145 关（以 `docs/solutions/` 为准），#150 改为实机采集任务（见 issue 评论）。
+- [2026-10-16] #168 经 PR #176 合并：补 `api_wedc`/`api_wedd` 与 `face_rect`，无头场景 `mutsu_broadside`、`richelieu_attack` 修复前后各跑一次比对截图；三道质量门全过。
 
 ## Next Session
 
-- [2026-10-16] 可做：#168（shipgraph 缺 `api_wedc`/`api_wedd`）；`GearBonusGear` 另两处手写构造可合并（见 PR #174）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
+- [2026-10-16] 可做：`GearBonusGear` 另两处手写构造可合并（见 PR #174）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
   #150 等用户按评论抓一次 `questlist`。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征：判定时机、kcanotify 字段语义与大発加成见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。

@@ -183,6 +183,17 @@ screen, pass steps on the command line and read the screenshots:
   to three hits, by day or, if the day did not make it, at night, and never a second; it
   fails when the attack does not come up (62 in 100 a turn). Six runs on 2026-10-12: five
   by day and one at night, without a page error.
+- `mutsu_broadside` is the same sortie led by 陸奥改二 with 長門改二 second at 40 of 91, never
+  hurt (`UNHURT`): in the broadside (102) the client draws a damaged second ship centred on her
+  `api_wedc`/`api_wedd`, and without them on (0,0), with no page error. The check wants the
+  two in getData, her start moderately damaged and a 102 by day (62 in 100 a turn). On
+  2026-10-16, one run each way: without the fields her face sat low in the middle of the
+  frame, in front of 陸奥 (`day27`); with them it is at the left, beside her (`day26`).
+- `richelieu_attack` is the same with Richelieu Deux and Jean Bart改 at 40 of 88 in 複縦陣 (the
+  second button, 870, 278): the Richelieu attack (105) draws its second ship the same way. One
+  run each way on 2026-10-16, the baseline taking two to make the attack: without the fields
+  her face sat low in the middle (`day20`); with them up at the left (`day60`). Both checks are
+  `damaged_partner_check`.
 - `enemy_night_carrier` sends 金剛 and three destroyers to 2-5, where a battleship with fewer
   than four destroyers is routed to C: its flagship 軽母ヌ級flagship attacks at night. The check
   wants an attack of hers in the night packet, not said to be flown (she has no night crew);
