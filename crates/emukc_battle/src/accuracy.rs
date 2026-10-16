@@ -139,13 +139,13 @@ pub(crate) fn plane_proficiency(codex: &Codex, ship: &BattleRuntimeShip) -> Plan
         };
         planes += 1;
         let mut level = item.api_alv.unwrap_or(0).clamp(0, 7) as usize;
-        if level == 0 {
+        let mut exp = ship.aircraft_exp.get(i).map_or(PROFICIENCY_EXP[level], |exp| *exp as f64);
+        if exp <= 0.0 {
             continue;
         }
-        let mut exp = PROFICIENCY_EXP[level];
         if patrol {
             exp *= PATROL_EXP_SHARE;
-            level -= 1;
+            level = level.saturating_sub(1);
         }
         let critical = PROFICIENCY_CRITICAL[level];
         let (rate, divisor) = if i == 0 {
@@ -813,6 +813,42 @@ mod tests {
             shelling_proficiency(&codex, &carrier(KcShipType::BBV, &[Some(7)])),
             PlaneProficiency::NONE
         );
+    }
+
+    #[test]
+    fn stored_experience_moves_proficiency_within_a_level() {
+        use crate::test_utils::{
+            first_ship_mst_by_type, first_slotitem_mst_by_type, sample_ship, slotitem_with_mst_id,
+        };
+        use emukc_model::kc2::KcShipType;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedTorpedoBomber);
+        let carrier = |alv: i64, exp: i64| {
+            let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CVL), 50);
+            let mut item = slotitem_with_mst_id(bomber);
+            item.api_alv = Some(alv);
+            ship.slot_items = vec![item];
+            ship.aircraft_exp = vec![exp];
+            plane_proficiency(&codex, &BattleRuntimeShip::from(ship))
+        };
+
+        // floor(√70 + 5) = 13, floor(√81 + 5) = 14.
+        assert_eq!(carrier(5, 70).critical_damage, 1.0 + 13.0 / 100.0);
+        assert_eq!(carrier(5, 81).critical_damage, 1.0 + 14.0 / 100.0);
+        assert_eq!(carrier(5, 70).accuracy, 7.0_f64.sqrt() + 4.0);
+        assert_eq!(carrier(5, 81).accuracy, 8.1_f64.sqrt() + 6.0);
+
+        // At the top level √100 and √120 floor alike; only the accuracy tells them apart.
+        assert_eq!(carrier(7, 100).critical_damage, carrier(7, 120).critical_damage);
+        assert_eq!(carrier(7, 100).accuracy, 10.0_f64.sqrt() + 9.0);
+        assert_eq!(carrier(7, 120).accuracy, 12.0_f64.sqrt() + 9.0);
+
+        // The source counts any experience, even below the first level.
+        let novice = carrier(0, 5);
+        assert_eq!(novice.critical_damage, 1.0 + 2.0 / 100.0);
+        assert_eq!(novice.critical_rate, 0.0);
+        assert_eq!(novice.average_exp, 5.0);
     }
 
     #[test]

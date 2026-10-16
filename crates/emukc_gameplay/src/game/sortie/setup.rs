@@ -424,13 +424,14 @@ where
 
     let mut result = Vec::with_capacity(friend_ships.len());
     for ship in friend_ships {
-        let slot_items =
+        let items: Vec<_> =
             [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
                 .into_iter()
                 .filter(|slot_id| *slot_id > 0)
                 .filter_map(|slot_id| all_slot_items.get(&slot_id).cloned())
-                .map(std::convert::Into::into)
                 .collect();
+        let aircraft_exp = items.iter().map(|item| item.aircraft_exp).collect();
+        let slot_items = items.into_iter().map(std::convert::Into::into).collect();
 
         // The battle pairs `slot_items` with `api_onslot` by position, and
         // `slot_items` has no gaps: close the same gaps in the counts.
@@ -442,6 +443,7 @@ where
         result.push(BattleShipInput {
             ship: api_ship,
             slot_items,
+            aircraft_exp,
             effect_list: vec![],
             married: ship.married,
         });

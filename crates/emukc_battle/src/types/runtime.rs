@@ -15,6 +15,9 @@ use crate::random::BattleRng;
 pub struct BattleShipInput {
     pub ship: KcApiShip,
     pub slot_items: Vec<KcApiSlotItem>,
+    /// The stored proficiency experience of each of `slot_items`, by position. Empty when
+    /// unknown (an enemy, a rival, a test): the level's representative experience stands in.
+    pub aircraft_exp: Vec<i64>,
     pub effect_list: Vec<i64>,
     pub married: bool,
 }
@@ -23,6 +26,8 @@ pub struct BattleShipInput {
 pub struct BattleRuntimeShip {
     pub ship: KcApiShip,
     pub slot_items: Vec<KcApiSlotItem>,
+    /// See [`BattleShipInput::aircraft_exp`].
+    pub aircraft_exp: Vec<i64>,
     pub effect_list: Vec<i64>,
     /// Current HP -- only mutable through [`apply_damage`](Self::apply_damage).
     pub(crate) current_hp: i64,
@@ -57,6 +62,7 @@ impl BattleRuntimeShip {
             damage_dealt: 0,
             ship: input.ship,
             slot_items: input.slot_items,
+            aircraft_exp: input.aircraft_exp,
             effect_list: input.effect_list,
             is_friendly,
             is_sortie,

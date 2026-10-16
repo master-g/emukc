@@ -104,6 +104,7 @@ pub(super) fn build_sortie_enemy_ship(
         return Ok(BattleShipInput {
             ship: api_ship,
             slot_items,
+            aircraft_exp: vec![],
             effect_list: vec![0],
             married: false,
         });
@@ -122,6 +123,7 @@ pub(super) fn build_sortie_enemy_ship(
         return Ok(BattleShipInput {
             ship: api_ship,
             slot_items,
+            aircraft_exp: vec![],
             effect_list: vec![0],
             married: false,
         });
@@ -213,6 +215,7 @@ fn build_manifest_only_sortie_enemy_ship(
     BattleShipInput {
         ship: api_ship,
         slot_items: Vec::<KcApiSlotItem>::new(),
+        aircraft_exp: vec![],
         effect_list: vec![0],
         married: false,
     }
@@ -804,6 +807,7 @@ mod tests {
         BattleShipInput {
             ship,
             slot_items,
+            aircraft_exp: vec![],
             effect_list: vec![0],
             married: false,
         }

@@ -106,6 +106,7 @@ mod tests {
         PracticeBattleShipInput {
             ship,
             slot_items,
+            aircraft_exp: vec![],
             effect_list: vec![0],
             married: false,
         }

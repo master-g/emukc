@@ -19,6 +19,7 @@ pub(crate) fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipI
     BattleShipInput {
         ship,
         slot_items,
+        aircraft_exp: vec![],
         effect_list: vec![0],
         married: false,
     }
@@ -95,6 +96,7 @@ pub(crate) fn make_test_ship_ctx(
         BattleShipInput {
             ship: test_api_ship(nowhp, maxhp),
             slot_items: vec![],
+            aircraft_exp: vec![],
             effect_list: vec![],
             married: false,
         },
