@@ -24,8 +24,8 @@ mod tests {
             .add_material(
                 pid,
                 &[
-                    (MaterialCategory::Ammo, 5000),
-                    (MaterialCategory::Steel, 5000),
+                    (MaterialCategory::Ammo, 20000),
+                    (MaterialCategory::Steel, 20000),
                     (MaterialCategory::DevMat, 100),
                     (MaterialCategory::Torch, 100),
                 ],
@@ -58,6 +58,30 @@ mod tests {
         context.remodel(pid, ship.api_id).await.unwrap();
         assert_eq!(mst_of(&context, ship.api_id).await, 173); // Bismarck zwei
         assert_eq!(use_item(&context, pid, KcUseItemType::Blueprint).await, 0);
+    }
+
+    /// The client counts 新型高温高圧缶 only; a turbine of the same equipment type stays.
+    #[tokio::test]
+    async fn yamato_kai_ni_takes_boilers_but_not_turbines() {
+        const TURBINE: i64 = 33;
+        let context = crate::TestContext::new().await;
+        let pid = new_profile(&context).await;
+        stock_up(&context, pid).await;
+        context.add_use_item(pid, KcUseItemType::Blueprint as i64, 3).await.unwrap();
+        context.add_use_item(pid, KcUseItemType::ActionReport as i64, 1).await.unwrap();
+        context.add_use_item(pid, KcUseItemType::NewArtilleryMaterial as i64, 3).await.unwrap();
+        for item in [TURBINE, TURBINE, BOILER, BOILER] {
+            context.add_slot_item(pid, item, 0, 0).await.unwrap();
+        }
+        let ship = context.add_ship(pid, 136).await.unwrap(); // 大和改
+
+        context.remodel(pid, ship.api_id).await.unwrap();
+        assert_eq!(mst_of(&context, ship.api_id).await, 911); // 大和改二
+        let items = context.get_slot_items(pid).await.unwrap();
+        let count = |id: i64| items.iter().filter(|item| item.api_slotitem_id == id).count();
+        assert_eq!((count(BOILER), count(TURBINE)), (0, 2));
+        // 911 needs 新型砲熕兵装資材 only when it comes from 136.
+        assert_eq!(use_item(&context, pid, KcUseItemType::NewArtilleryMaterial).await, 0);
     }
 
     /// A reverse conversion used to charge the target's own forward remodel.

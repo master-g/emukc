@@ -33,6 +33,8 @@ client's `ShipUpgradeModelHolder.getNextID` / `getRequires`:
   else `api_aftershipid`.
 - Level, ammo, steel: `api_afterlv`, `api_afterbull`, `api_afterfuel` of the ship **before**.
 - Use items: from the row (58, 65, 78, 77, 94, 100, boilers); none without a row.
+- Boilers are equipment: the client counts unequipped, unlocked 新型高温高圧缶 (87) only, not
+  the turbines and boilers that share its equipment type 17.
 - 開発資材, 高速建造材 (by before) and 新型砲熕兵装資材 75, 改修資材, 工廠資材 104 (by after,
   one entry narrowed to a single before) are hard-coded in the client. `main-decoder`
   (`src/remodel-tables.ts`) reads them into `crates/emukc_bootstrap/assets/remodel_tables.json`

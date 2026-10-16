@@ -183,7 +183,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-16] #178 → PR #181；#180 在 `feat/remodel-requirements-from-start2`（叠在 #181 上），质量门过（1550、0 ignored）；狭霧改二拆到 #182。
+- [2026-10-16] #178 → PR #181；#180 在 `feat/remodel-requirements-from-start2`（叠在 #181 上），质量门过（1551、0 ignored）；狭霧改二拆到 #182。
 
 ## Next Session
 

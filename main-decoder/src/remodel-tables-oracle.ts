@@ -13,14 +13,14 @@ import type { RemodelTableEntry, RemodelTablesAsset } from "./remodel-tables";
 
 const MAX_SHIP_ID = 1500;
 
-export function devkitFromAsset(asset: RemodelTablesAsset, ship: number, blueprint: number, steel: number): number {
+function devkitFromAsset(asset: RemodelTablesAsset, ship: number, blueprint: number, steel: number): number {
 	const listed = asset.devkit.byShip[String(ship)];
 	if (listed !== undefined) return listed;
 	if (blueprint !== 0 && !asset.devkit.blueprintGroup.includes(ship)) return 0;
 	return asset.devkit.steelTiers.find((tier) => steel < tier.below)?.count ?? asset.devkit.steelTop;
 }
 
-export function entryCount(entries: RemodelTableEntry[], before: number, after: number): number {
+function entryCount(entries: RemodelTableEntry[], before: number, after: number): number {
 	return entries.find((entry) => entry.after === after && (entry.before === undefined || entry.before === before))?.count ?? 0;
 }
 

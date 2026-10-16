@@ -17,6 +17,9 @@ use crate::{
     },
 };
 
+/// 新型高温高圧缶
+const NEW_HIGH_PRESSURE_BOILER: i64 = 87;
+
 pub(crate) async fn remodel_impl<C>(
     c: &C,
     codex: &Codex,
@@ -46,11 +49,12 @@ where
         .new_ship(after_mst.api_id)
         .ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ID {}", after_mst.api_id)))?;
 
-    // deduct boiler
+    // deduct boiler: the client counts 新型高温高圧缶 only, not the other engine parts
     {
-        let free_boiler =
+        let mut free_boiler =
             get_free_slot_item_by_type3_impl(c, profile_id, KcSlotItemType3::EngineBoost as i64)
                 .await?;
+        free_boiler.retain(|item| item.mst_id == NEW_HIGH_PRESSURE_BOILER);
         if free_boiler.len() < requirements.boiler as usize {
             return Err(GameplayError::Insufficient(format!(
                 "boiler (required: {}, available: {})",
