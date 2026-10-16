@@ -15,6 +15,8 @@ use std::collections::{BTreeMap, HashMap};
 
 use serde::{Deserialize, Serialize};
 
+use crate::prelude::ApiMstSlotitem;
+
 fn is_zero(value: &i64) -> bool {
     *value == 0
 }
@@ -504,6 +506,19 @@ impl GearBonusEntry {
 }
 
 impl GearBonusGear {
+    /// The equipment `mst` carried at `stars`.
+    pub fn new(mst: &ApiMstSlotitem, stars: i64) -> Self {
+        Self {
+            id: mst.api_id,
+            type2: mst.api_type[2],
+            type3: mst.api_type[3],
+            stars,
+            saku: mst.api_saku,
+            tyku: mst.api_tyku,
+            houm: mst.api_houm,
+        }
+    }
+
     /// The entry keys that cover this equipment.
     fn keys(&self) -> [String; 3] {
         [self.id.to_string(), format!("t2_{}", self.type2), format!("t3_{}", self.type3)]

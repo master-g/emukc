@@ -268,15 +268,7 @@ impl Codex {
             item_tais += item_mst.api_tais;
             item_houk += item_mst.api_houk;
             item_saku += item_mst.api_saku;
-            bonus_gears.push(GearBonusGear {
-                id: item_mst.api_id,
-                type2: item_mst.api_type[2],
-                type3: item_mst.api_type[3],
-                stars: slotitem.api_level,
-                saku: item_mst.api_saku,
-                tyku: item_mst.api_tyku,
-                houm: item_mst.api_houm,
-            });
+            bonus_gears.push(GearBonusGear::new(item_mst, slotitem.api_level));
         }
 
         // calculate ship status
