@@ -8,6 +8,7 @@ use emukc_model::{
     },
 };
 
+use crate::combined::CombinedFleetRole;
 use crate::random::BattleRng;
 use crate::simulation::installation_types::{
     INSTALLATION_BOMBERS, INSTALLATION_TYPES, LAST_SOURCE_ABYSSAL_ID,
@@ -147,12 +148,20 @@ pub(crate) fn target_candidates(
     }
 
     let shuns_land = phase == BattlePhase::DayShelling && shuns_installations(codex, attacker);
+    // A submarine shells nothing but land (`shellPhaseTarget`).
+    // ponytail: the source also leaves her out of the order when the other side has no land
+    // target (`orderByRange`'s `includeSubs`); with nothing here to fire at she fires nothing
+    // either, and only the random draws differ (the order's shuffle, and her deck roll against
+    // an enemy combined fleet).
+    let land_only =
+        phase == BattlePhase::DayShelling && target_class(codex, attacker).is_submarine();
     let surface_like_targets = alive_targets
         .iter()
         .copied()
         .filter(|idx| {
             let class = target_class(codex, &defenders[*idx]);
-            class.is_surface_like() && !(shuns_land && class == TargetClass::Installation)
+            let land = class == TargetClass::Installation;
+            class.is_surface_like() && !(shuns_land && land) && (land || !land_only)
         })
         .collect::<Vec<_>>();
     let submarine_targets = alive_targets
@@ -178,6 +187,59 @@ pub(crate) fn target_candidates(
                 surface_like_targets
             }
         }
+    }
+}
+
+/// [`target_candidates`], but against both decks of an enemy combined fleet an attack first
+/// picks a deck and draws from that deck alone (`kancolle-replay` `69097abc`):
+///
+/// - a shell (`doShellC`) goes for the escort deck first on a roll under 0.39 and the main
+///   deck first otherwise, and for the other deck when the first has nothing to fire at;
+/// - a closing torpedo (`torpedoPhase` with `combinedAll`) goes for the main deck on a roll
+///   under 0.35 and the escort deck otherwise, with no roll when one deck has nothing.
+///
+/// Anything else, or a single fleet, draws from them all.
+pub(crate) fn deck_candidates(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    attacker: &BattleRuntimeShip,
+    defenders: &[BattleRuntimeShip],
+    phase: BattlePhase,
+) -> Vec<usize> {
+    let escort_start =
+        defenders.iter().position(|ship| ship.enemy_deck == Some(CombinedFleetRole::Escort));
+    let Some(escort_start) = escort_start.filter(|&at| at > 0) else {
+        return target_candidates(codex, attacker, defenders, phase);
+    };
+    let main = || target_candidates(codex, attacker, &defenders[..escort_start], phase);
+    let escort = || {
+        let candidates = target_candidates(codex, attacker, &defenders[escort_start..], phase);
+        candidates.into_iter().map(|at| at + escort_start).collect::<Vec<_>>()
+    };
+    match phase {
+        BattlePhase::DayShelling => {
+            let (first, fallback) = if rng.random_f64_range(0.0, 1.0) < 0.39 {
+                (escort(), main())
+            } else {
+                (main(), escort())
+            };
+            if first.is_empty() {
+                fallback
+            } else {
+                first
+            }
+        }
+        BattlePhase::ClosingTorpedo => {
+            let (main, escort) = (main(), escort());
+            if main.is_empty() || escort.is_empty() {
+                [main, escort].concat()
+            } else if rng.random_f64_range(0.0, 1.0) < 0.35 {
+                main
+            } else {
+                escort
+            }
+        }
+        _ => target_candidates(codex, attacker, defenders, phase),
     }
 }
 
@@ -483,14 +545,19 @@ pub(crate) fn can_closing_torpedo_ship(_codex: &Codex, ship: &BattleRuntimeShip)
     true
 }
 
-/// Whether a single ship may fire in day shelling.
+/// Whether a single ship may fire in day shelling. A submarine may with WG42 or a 特型内火艇
+/// (`SS.canShell`: `numWG || hasDH3`, which is the source's `B_LC3`, the 特型内火艇 type, and
+/// 525/526, of that type too), and then only at a land target.
 pub(crate) fn can_shell_day_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     if ship.is_sunk() {
         return false;
     }
 
     match ship_type(codex, ship) {
-        Some(KcShipType::SS | KcShipType::SSV) => false,
+        Some(KcShipType::SS | KcShipType::SSV) => {
+            has_slotitem_id(ship, crate::installation::WG_ID)
+                || has_slotitem_type(codex, ship, KcSlotItemType3::SpecialTypeAmphibiousTank)
+        }
         Some(KcShipType::CV | KcShipType::CVL | KcShipType::CVB) => {
             total_attack_plane_count(codex, std::slice::from_ref(ship)) > 0
         }
@@ -942,6 +1009,80 @@ mod tests {
         fn roll_range_impl(&mut self, _min: i64, _max: i64) -> i64 {
             self.0.pop_front().expect("an unexpected roll")
         }
+    }
+
+    /// Hands out the rolls it was given, and panics on one more or on an index.
+    struct Rolls(std::collections::VecDeque<f64>);
+
+    impl BattleRng for Rolls {
+        fn random_f64_range(&mut self, _min: f64, _max: f64) -> f64 {
+            self.0.pop_front().expect("an unexpected roll")
+        }
+
+        fn roll_range_impl(&mut self, _min: i64, _max: i64) -> i64 {
+            panic!("an unexpected index")
+        }
+    }
+
+    /// An enemy combined fleet of two destroyers in each deck, and a destroyer to fire at it.
+    fn enemy_combined(codex: &Codex) -> (BattleRuntimeShip, Vec<BattleRuntimeShip>) {
+        use crate::combined::CombinedFleetRole::{Escort, Main};
+        let dd = first_ship_mst_by_type(codex, KcShipType::DD);
+        let ship = || BattleRuntimeShip::new(sample_ship(codex, dd, 50), false, true);
+        let decks = [Main, Main, Escort, Escort];
+        let defenders = decks.into_iter().map(|deck| ship().in_enemy_deck(deck)).collect();
+        (BattleRuntimeShip::from(sample_ship(codex, dd, 50)), defenders)
+    }
+
+    /// `doShellC`: against both decks of an enemy combined fleet a shell goes for the escort
+    /// deck first on a roll under 0.39 and the main deck first otherwise, and for the other
+    /// deck when the first has nothing to fire at.
+    #[test]
+    fn a_shell_at_an_enemy_combined_fleet_goes_for_the_escort_deck_39_times_in_100() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let (attacker, mut defenders) = enemy_combined(&codex);
+        let draw = |defenders: &[BattleRuntimeShip], rolls: &[f64]| {
+            let mut rng = Rolls(rolls.iter().copied().collect());
+            deck_candidates(&codex, &mut rng, &attacker, defenders, BattlePhase::DayShelling)
+        };
+        assert_eq!(draw(&defenders, &[0.38]), vec![2, 3]);
+        assert_eq!(draw(&defenders, &[0.39]), vec![0, 1]);
+        // One deck: no roll at all.
+        assert_eq!(draw(&defenders[..2], &[]), vec![0, 1]);
+
+        // The escort deck sunk, the escort-first roll still falls back on the main deck.
+        let mut sunk = defenders.clone();
+        sunk[2].current_hp = 0;
+        sunk[3].current_hp = 0;
+        assert_eq!(draw(&sunk, &[0.1]), vec![0, 1]);
+        defenders[0].current_hp = 0;
+        defenders[1].current_hp = 0;
+        assert_eq!(draw(&defenders, &[0.9]), vec![2, 3]);
+    }
+
+    /// `torpedoPhase` with `combinedAll`: a closing torpedo at an enemy combined fleet goes for
+    /// the main deck on a roll under 0.35 and the escort deck otherwise; with one deck left
+    /// there is no roll.
+    #[test]
+    fn a_closing_torpedo_at_an_enemy_combined_fleet_goes_for_the_main_deck_35_times_in_100() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let (attacker, defenders) = enemy_combined(&codex);
+        let draw = |defenders: &[BattleRuntimeShip], rolls: &[f64]| {
+            let mut rng = Rolls(rolls.iter().copied().collect());
+            deck_candidates(&codex, &mut rng, &attacker, defenders, BattlePhase::ClosingTorpedo)
+        };
+        assert_eq!(draw(&defenders, &[0.34]), vec![0, 1]);
+        assert_eq!(draw(&defenders, &[0.35]), vec![2, 3]);
+
+        let mut sunk = defenders.clone();
+        sunk[2].current_hp = 0;
+        sunk[3].current_hp = 0;
+        assert_eq!(draw(&sunk, &[]), vec![0, 1]);
+        // The opening torpedo picks from both.
+        let mut rng = Rolls([].into_iter().collect());
+        let opening =
+            deck_candidates(&codex, &mut rng, &attacker, &defenders, BattlePhase::OpeningTorpedo);
+        assert_eq!(opening, vec![0, 1, 2, 3]);
     }
 
     /// One draw from what `attacker` may fire at in `phase`, with no かばう (formation 0).

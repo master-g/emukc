@@ -1064,8 +1064,9 @@ mod combined_tests {
     };
 
     /// Deck 1 is submarines and deck 2 destroyers, so "which deck shelled" is
-    /// directly observable: `can_shell_day_ship` rejects submarines, therefore a
-    /// round with friendly attacks in it can only be deck 2's.
+    /// directly observable: a submarine shells nothing but a land target, which
+    /// this enemy has none of, therefore a round with friendly attacks in it can
+    /// only be deck 2's.
     /// 敵連合: each shelling round is fought against the deck it belongs to, and
     /// the packet speaks the client's index space — the enemy escort fleet at
     /// 6..=11 even though the main fleet here holds only three ships.

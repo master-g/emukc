@@ -118,13 +118,28 @@ the sky is the enemy's. Day shelling and the night battle both pass it that way.
   three. 101, 102, 105, 106: `floor(√Lv1 + √Lv2 + 1.5(√luck1 + √luck2)) + 25`.
 - Played in the client (`nagato_broadside`): 101 by day and at night.
 
+## Submarines and the two decks of an enemy combined fleet
+
+Plan `docs/plans/2026-10-17-005`, against `kancolle-replay` `69097abc`.
+
+- **A submarine shells** (`can_shell_day_ship`, `SS.canShell`) when she carries WG42 or a
+  特型内火艇, and then only at a land target (`target_candidates`, `shellPhaseTarget`). The
+  source also keeps her out of the order when the other side has no land target; here she is
+  in it and finds nothing to fire at, which differs only in the random draws (the order's
+  shuffle, and her deck roll against an enemy combined fleet).
+- **Which deck** (`deck_candidates`): when the ships fired at hold both decks of an enemy
+  combined fleet (the third round of `simulate_day_enemy_combined`), a shell goes for the
+  escort deck first on a roll under 0.39 and the main deck first otherwise, and for the other
+  deck when the first has nothing to fire at (`doShellC`). A closing torpedo goes for the main
+  deck on a roll under 0.35 and the escort deck otherwise, with no roll when one deck has
+  nothing (`torpedoPhase` with `combinedAll`). The candidates are found within the deck, so a
+  ship that would rather attack a submarine looks for one there. The opening torpedo and a
+  special attack's hits draw from both decks.
+
 ## Not modelled
 
-- Submarines joining the order when the other side has an installation.
-- The 39% split of a combined fleet's targets between main and escort.
-- Star shells, searchlights and night contact; the
-  order of the decks in a combined night battle; the 35% split of torpedo targets between a
-  combined fleet's main and escort.
+- Star shells, searchlights and night contact; the order of the decks in a combined night
+  battle.
 
 ## When a test breaks
 
