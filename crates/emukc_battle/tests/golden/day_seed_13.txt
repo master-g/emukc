@@ -6,7 +6,7 @@ BattlePacket {
     ],
     friendly_nowhps: [
         60,
-        60,
+        47,
     ],
     enemy_nowhps: [
         0,
@@ -96,7 +96,7 @@ BattlePacket {
                 ],
                 api_fdam: [
                     0,
-                    0,
+                    13.1,
                 ],
                 api_edam: [
                     0,
@@ -131,8 +131,8 @@ BattlePacket {
                 0,
             ],
             api_at_list: [
-                0,
                 1,
+                0,
             ],
             api_at_type: [
                 0,
@@ -163,15 +163,15 @@ BattlePacket {
                     1,
                 ],
                 [
-                    1,
+                    2,
                 ],
             ],
             api_damage: [
                 [
-                    114.1,
+                    117,
                 ],
                 [
-                    117,
+                    177,
                 ],
             ],
         },

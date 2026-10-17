@@ -67,8 +67,8 @@ BattlePacket {
                     -1,
                 ],
                 api_ebak: [
-                    0,
                     1,
+                    0,
                 ],
                 api_frai_flag: [
                     0,

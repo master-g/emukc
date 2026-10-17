@@ -296,7 +296,9 @@ fn execute_kouku(codex: &Codex, state: &mut BattleState, rng: &mut impl BattleRn
     if kouku::has_any_air_combat_planes(codex, &state.friendly)
         || kouku::has_any_air_combat_planes(codex, &state.enemy)
     {
-        let kouku = kouku::simulate_kouku(codex, &mut state.friendly, &mut state.enemy, rng);
+        let formations = [state.friendly_formation_id(), state.enemy_formation_id()];
+        let kouku =
+            kouku::simulate_kouku(codex, &mut state.friendly, &mut state.enemy, formations, rng);
         state.set_stage_flag([1, 1, 1]);
         state.set_kouku(kouku);
     }

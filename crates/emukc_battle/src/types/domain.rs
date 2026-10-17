@@ -231,7 +231,8 @@ pub(crate) struct ShellingParams<'a> {
 
 /// Mutable output buffers for an airstrike phase.
 pub(crate) struct AirstrikeOutput<'a> {
-    pub damage: &'a mut [i64],
+    /// Each target's damage, marked where she covered her flagship (かばう).
+    pub damage: &'a mut [super::DamageCell],
     pub bak_targets: &'a mut [i64],
     pub rai_targets: &'a mut [i64],
     pub bak_flags: &'a mut [i64],
