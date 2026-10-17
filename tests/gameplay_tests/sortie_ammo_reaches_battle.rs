@@ -1,7 +1,7 @@
 //! U3: verify a ship's remaining ammunition survives DB persistence into the
 //! `KcApiShip` the battle layer consumes.
 //!
-//! `build_sortie_friend_ships` turns each profile ship `Model` into a
+//! `build_friend_ships` turns each profile ship `Model` into a
 //! `BattleShipInput` via `From<Model> for KcApiShip` (which maps `ammo` ->
 //! `api_bull`). The battle-side ammo modifier then reads that `api_bull`. This
 //! guards the cross-layer seam so a low-ammo fleet does not silently fight at
@@ -35,7 +35,7 @@ mod tests {
         context.update_ship(&low).await.unwrap();
 
         // The KcApiShip rebuilt from the persisted model — the same `From<Model>`
-        // conversion `build_sortie_friend_ships` uses — must carry the reduced
+        // conversion `build_friend_ships` uses — must carry the reduced
         // ammo, so the battle-side `ammo_modifier` sees real remaining ammo.
         let reloaded = context.find_ship(ship.api_id).await.unwrap().unwrap();
         assert_eq!(

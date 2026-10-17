@@ -10,6 +10,7 @@ use enemy_ship::{
     select_random_enemy_composition,
 };
 use route::{SortieRoute, route_next_cell, route_start_cell};
+pub(in crate::game) use setup::build_friend_ships;
 use setup::{SortieBattleEndpoint, resolve_sortie_battle_setup_impl};
 
 use std::collections::BTreeSet;
