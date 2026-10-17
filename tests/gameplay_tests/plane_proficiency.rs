@@ -65,6 +65,33 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn the_battle_reads_each_aircrafts_stored_experience() {
+        use emukc_internal::db::{
+            entity::profile::item::slot_item,
+            sea_orm::{ActiveModelTrait, ActiveValue, EntityTrait, IntoActiveModel},
+        };
+
+        let context = crate::TestContext::new().await;
+        let pid = new_profile(&context).await;
+        apply_scenario(&context, pid, &Scenario::carrier_cutin()).await.unwrap();
+        let carrier = carrier(&context, pid).await;
+        // A second slot, so a misaligned read would show.
+        let item_id = carrier.api_slot[1];
+        let item = slot_item::Entity::find_by_id(item_id).one(&*context.db).await.unwrap().unwrap();
+        let mut am = item.into_active_model();
+        am.aircraft_exp = ActiveValue::Set(81);
+        am.update(&*context.db).await.unwrap();
+
+        context.start_sortie(pid, 1, 2, 1).await.unwrap();
+        context.sortie_battle(pid, 1).await.unwrap();
+        let battle = context.sortie_store().get_pending_battle(pid).unwrap();
+        let ship = battle.friendly.iter().find(|ship| ship.ship.api_id == carrier.api_id).unwrap();
+        let at = ship.slot_items.iter().position(|item| item.api_id == item_id).unwrap();
+        assert_eq!(ship.aircraft_exp.len(), ship.slot_items.len());
+        assert_eq!(ship.aircraft_exp[at], 81);
+    }
+
+    #[tokio::test]
     async fn fighters_gain_proficiency_and_show_it_once_back_in_port() {
         let context = crate::TestContext::new().await;
         let pid = new_profile(&context).await;

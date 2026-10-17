@@ -698,11 +698,13 @@ where
                 .filter(|slot_id| *slot_id > 0)
                 .collect::<Vec<_>>();
         let slot_items = find_slot_items_by_id_impl(c, &slot_ids).await?;
+        let aircraft_exp = slot_items.iter().map(|item| item.aircraft_exp).collect();
         let slot_items = slot_items.into_iter().map(std::convert::Into::into).collect();
 
         result.push(PracticeBattleShipInput {
             ship: (*ship).into(),
             slot_items,
+            aircraft_exp,
             effect_list: vec![],
             married: ship.married,
         });
@@ -731,6 +733,7 @@ fn build_practice_enemy_ships(
             Ok(PracticeBattleShipInput {
                 ship: api_ship,
                 slot_items,
+                aircraft_exp: vec![],
                 effect_list: vec![0],
                 married: false,
             })

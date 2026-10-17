@@ -411,6 +411,7 @@ mod tests {
         BattleShipInput {
             ship,
             slot_items,
+            aircraft_exp: vec![],
             effect_list,
             married: false,
         }
@@ -555,6 +556,7 @@ mod combined_tests {
         BattleShipInput {
             ship,
             slot_items,
+            aircraft_exp: vec![],
             effect_list: vec![0],
             married: false,
         }

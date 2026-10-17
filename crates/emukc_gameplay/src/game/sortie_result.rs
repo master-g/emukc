@@ -364,6 +364,7 @@ pub(super) fn calculate_sortie_deck_rewards(
             .map(|ship| emukc_battle::BattleShipInput {
                 ship: ship.ship.clone(),
                 slot_items: ship.slot_items.clone(),
+                aircraft_exp: ship.aircraft_exp.clone(),
                 effect_list: ship.effect_list.clone(),
                 married: ship.married,
             })

@@ -83,6 +83,7 @@ fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipInput {
     BattleShipInput {
         ship,
         slot_items,
+        aircraft_exp: vec![],
         effect_list: vec![0],
         married: false,
     }

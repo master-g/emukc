@@ -183,11 +183,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-16] #187 已合并。6.3.6.0 `make update`：漂移仅 `generatedAt`，oracle 全 0 差异，1551 过。
+- [2026-10-16] #202 分支 `fix/plane-stored-proficiency`：战斗读出港时存的飞机经验；三道门过，1553 过、0 ignored。
 
 ## Next Session
 
-- [2026-10-16] Known gap 已开 #193–#204；#193 已 ready（用 replay `getFit`，不用 KC3 `gunfit.json`），余待 triage。#182 等 kcwiki 补 902（用户定），补上后加 gameplay 测试（10-16 仍无）。季节＝某天的状态，非常规版；维护前缓存里没有的文件收不进历史。
+- [2026-10-16] #193–#201 已 ready，#201（共用 choiceWProtect）先做，原生依赖 #201→#207→#195/#198/#200；#203、#204、#206–#209 待 triage（#208 被 #201 阻塞）。#182 等 kcwiki 补 902（10-16 仍无）。季节＝某天的状态，非常规版。
   #150 needs-info：等低资源账号或他人抓包（见 issue 评论）。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
