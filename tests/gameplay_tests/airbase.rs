@@ -327,7 +327,7 @@ mod tests {
         am.update(&*context.db).await.unwrap();
         // A seed at which 6-4's first fleet shoots down the one aircraft of the first
         // attack and not that of the second; pick another if it stops.
-        emukc_internal::crypto::rng::seed(4);
+        emukc_internal::crypto::rng::seed(6);
 
         let start = context.start_sortie(pid, 1, AREA, 4).await.unwrap();
         context.start_air_base(pid, &[vec![start.cell_no, start.cell_no]]).await.unwrap();

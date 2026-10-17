@@ -277,6 +277,8 @@ fn simulate_day_enemy_combined(
 /// (wikiwiki 基地航空隊, 集中).
 fn execute_air_base_attacks(codex: &Codex, state: &mut BattleState, rng: &mut impl BattleRng) {
     let mut air_corps = std::mem::take(&mut state.air_corps);
+    let enemy_formation_id = state.enemy_formation_id();
+    let mut previous = air_base::PreviousWave::default();
     for corps in &mut air_corps {
         let set_out: Vec<i64> = corps.squadrons.iter().map(|squadron| squadron.count).collect();
         for _ in 0..corps.waves {
@@ -286,7 +288,14 @@ fn execute_air_base_attacks(codex: &Codex, state: &mut BattleState, rng: &mut im
             for (squadron, count) in corps.squadrons.iter_mut().zip(&set_out) {
                 squadron.count = *count;
             }
-            let attack = air_base::simulate_air_base_attack(codex, corps, &mut state.enemy, rng);
+            let attack = air_base::simulate_air_base_attack(
+                codex,
+                corps,
+                &mut state.enemy,
+                enemy_formation_id,
+                &mut previous,
+                rng,
+            );
             state.air_base_attack.push(attack);
         }
     }

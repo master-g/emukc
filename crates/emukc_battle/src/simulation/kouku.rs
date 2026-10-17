@@ -179,21 +179,28 @@ fn contact_divisors(air_state: AirState) -> Option<(f64, f64)> {
     }
 }
 
-/// The chance `carriers` make contact (触接) with the other side's fleet,
-/// seen from their own `air_state`, or `None` when they do not try: only under
-/// supremacy, superiority or denial (`getContact` and its caller). Every
-/// scout's slot adds ⌊√aircraft × 索敵⌋; torpedo bombers carry no weight here.
-fn contact_chance(
-    codex: &Codex,
-    carriers: &[&BattleRuntimeShip],
-    air_state: AirState,
-) -> Option<f64> {
-    let (divisor, _) = contact_divisors(air_state)?;
-    let power: f64 = carriers
+/// The aircraft of `carriers` in ship and slot order, as the contact roll
+/// takes them: equipment id and aircraft.
+pub(crate) fn carried_planes(carriers: &[&BattleRuntimeShip]) -> Vec<(i64, i64)> {
+    carriers
         .iter()
-        .flat_map(|ship| ship.slot_items.iter().zip(ship.ship.api_onslot))
-        .filter_map(|(item, count)| {
-            let mst = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok()?;
+        .flat_map(|ship| {
+            ship.slot_items.iter().map(|item| item.api_slotitem_id).zip(ship.ship.api_onslot)
+        })
+        .collect()
+}
+
+/// The chance `planes` (equipment id and aircraft) make contact (触接) with
+/// the other side's fleet, seen from their own `air_state`, or `None` when they
+/// do not try: only under supremacy, superiority or denial (`getContact` and
+/// its caller). Every scout's slot adds ⌊√aircraft × 索敵⌋; torpedo bombers
+/// carry no weight here.
+fn contact_chance(codex: &Codex, planes: &[(i64, i64)], air_state: AirState) -> Option<f64> {
+    let (divisor, _) = contact_divisors(air_state)?;
+    let power: f64 = planes
+        .iter()
+        .filter_map(|&(mst_id, count)| {
+            let mst = codex.find::<ApiMstSlotitem>(&mst_id).ok()?;
             let scout = can_contact(mst.api_type[2])
                 && KcSlotItemType3::n(mst.api_type[2])
                     != Some(KcSlotItemType3::CarrierBasedTorpedoBomber);
@@ -203,25 +210,25 @@ fn contact_chance(
     Some((1.0 + power) / divisor)
 }
 
-/// Roll contact for `carriers` (`getContact`): the multiplier their strike's
+/// Roll contact for `planes` (`getContact`): the multiplier their strike's
 /// power takes after the cap, and the aircraft that made it. Once the chance
-/// comes up, each scout in ship and slot order rolls 索敵 / 14, 16 or 18, and
-/// one no more accurate than the scout already holding contact does not roll.
+/// comes up, each scout in order rolls 索敵 / 14, 16 or 18, and one no more
+/// accurate than the scout already holding contact does not roll.
 pub(crate) fn roll_contact(
     codex: &Codex,
     rng: &mut impl BattleRng,
-    carriers: &[&BattleRuntimeShip],
+    planes: &[(i64, i64)],
     air_state: AirState,
 ) -> Option<Contact> {
-    let chance = contact_chance(codex, carriers, air_state)?;
+    let chance = contact_chance(codex, planes, air_state)?;
     if rng.random_f64_range(0.0, 1.0) >= chance {
         return None;
     }
     let (_, divisor) = contact_divisors(air_state)?;
     let mut contact: Option<&ApiMstSlotitem> = None;
     // The source counts no aircraft here: an emptied slot can still hold contact.
-    for item in carriers.iter().flat_map(|ship| ship.slot_items.iter()) {
-        let Ok(mst) = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id) else {
+    for (mst_id, _) in planes {
+        let Ok(mst) = codex.find::<ApiMstSlotitem>(mst_id) else {
             continue;
         };
         if !can_contact(mst.api_type[2]) || mst.api_saku <= 0 {
@@ -693,7 +700,7 @@ pub(crate) fn simulate_kouku(
     let touch = |rng: &mut _, ships: &[BattleRuntimeShip], flying: &[bool], state, struck: i64| {
         let carriers: Vec<&BattleRuntimeShip> =
             ships.iter().zip(flying).filter(|(_, flying)| **flying).map(|(ship, _)| ship).collect();
-        (struck > 0).then(|| roll_contact(codex, rng, &carriers, state)).flatten()
+        (struck > 0).then(|| roll_contact(codex, rng, &carried_planes(&carriers), state)).flatten()
     };
     let friendly_contact = touch(rng, friendly, &friendly_flying, air_state, stage2_f_count);
     let enemy_contact = touch(rng, enemy, &enemy_flying, air_state.reversed(), stage2_e_count);
@@ -1473,7 +1480,7 @@ mod tests {
             (AirState::Incapability, None),
         ] {
             assert_eq!(
-                contact_chance(&codex, &[&carrier], state),
+                contact_chance(&codex, &carried_planes(&[&carrier]), state),
                 divisor.map(|divisor| power / divisor),
                 "{state:?}"
             );
@@ -1583,12 +1590,15 @@ mod tests {
         carrier.slot_items = vec![slotitem_with_mst_id(54), slotitem_with_mst_id(61)];
         carrier.ship.api_onslot = [16, 16, 0, 0, 0];
         let carrier = BattleRuntimeShip::new(carrier, true, true);
-        assert!(contact_chance(&codex, &[&carrier], AirState::Supremacy).unwrap() > 1.0);
+        assert!(
+            contact_chance(&codex, &carried_planes(&[&carrier]), AirState::Supremacy).unwrap()
+                > 1.0
+        );
 
         let seen: Vec<Option<(f64, i64)>> = (0..60)
             .map(|seed| {
                 let mut rng = crate::random::SeededRng::new(seed);
-                roll_contact(&codex, &mut rng, &[&carrier], AirState::Supremacy)
+                roll_contact(&codex, &mut rng, &carried_planes(&[&carrier]), AirState::Supremacy)
                     .map(|contact| (contact.modifier, contact.plane))
             })
             .collect();

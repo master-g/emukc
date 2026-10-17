@@ -1,14 +1,14 @@
 //! An air corps' attack on the enemy fleet, flown before the fleets meet.
 //!
 //! The three stages are those of the carrier air battle in [`super::kouku`]
-//! and are kept at its level of detail where that does no harm: a target is
-//! any enemy still afloat. The anti-air stage is the
-//! source's own, one ship firing on each squadron, because the carrier battle's
-//! estimate (the whole fleet's anti-air over 400) empties a squadron against
-//! an ordinary six-ship fleet. What is
-//! particular to an air corps follows `KC3Kai/kancolle-replay`'s `kcsim.js`
-//! (`LBASPhase`, `airstrikeLBAS`) and `kcships.js` (`LandBase.airPower`); the
-//! plan `2026-10-08-006` lists each formula with its line and what was left out.
+//! and are kept at its level of detail where that does no harm. The anti-air
+//! stage is the source's own, one ship firing on each squadron, because the
+//! carrier battle's estimate (the whole fleet's anti-air over 400) empties a
+//! squadron against an ordinary six-ship fleet. What is particular to an air
+//! corps follows `KC3Kai/kancolle-replay`'s `kcsim.js` (`LBASPhase`,
+//! `airstrikeLBAS`) and `kcships.js` (`LandBase.airPower`); the plans
+//! `2026-10-08-006` and `2026-10-17-003` list each formula with its line and
+//! what was left out.
 
 use emukc_model::{
     codex::Codex,
@@ -18,7 +18,7 @@ use emukc_model::{
 use crate::accuracy::{HitOutcome, roll_strike, squadron_proficiency};
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
-use crate::targeting::{is_airstrike_attack_type, target_class};
+use crate::targeting::{choice_with_protect, is_airstrike_attack_type, target_class};
 use crate::types::{
     AirCorpsInput, AirState, BattleAirBaseAttack, BattleKouku, BattleKoukuStage1,
     BattleKoukuStage2, BattleKoukuStage3, BattleRuntimeShip, BattleSquadronPlane, DamageCell,
@@ -26,8 +26,8 @@ use crate::types::{
 };
 
 use super::kouku::{
-    apply_plane_losses, attack_plane_from, calculate_fighter_power, proficiency_fighter_power,
-    total_plane_count,
+    Contact, apply_plane_losses, attack_plane_from, calculate_fighter_power,
+    proficiency_fighter_power, roll_contact, total_plane_count,
 };
 
 /// Where an air corps strike stops growing linearly (`lbasDmgCap`).
@@ -46,10 +46,102 @@ fn is_land_attacker(type3: i64) -> bool {
     )
 }
 
-/// Whether a squadron of this equipment attacks ships at all; the rest only
-/// fight for the air.
+/// Whether a squadron of this equipment attacks ships at sea; the rest only
+/// fight for the air, unless they hunt submarines.
 fn strikes(type3: i64) -> bool {
     is_land_attacker(type3) || is_airstrike_attack_type(type3)
+}
+
+fn is_patrol(type3: i64) -> bool {
+    matches!(
+        KcSlotItemType3::n(type3),
+        Some(KcSlotItemType3::AutoGyro | KcSlotItemType3::AntiSubmarinePatrol)
+    )
+}
+
+/// What a squadron goes for (`LBASPhase`): ships at sea when it strikes them or
+/// is a patrol plane with bombs, submarines when its 対潜 is 7 or more.
+/// `None` for a squadron that stays out of the strike.
+// ponytail: the source also sends an aircraft with 対潜 7 that is no bomber
+// at all (a seaplane scout) after submarines, for no damage; it is left home.
+fn strike_targets(mst: &ApiMstSlotitem) -> Option<(bool, bool)> {
+    let type3 = mst.api_type[2];
+    let surface = strikes(type3) || (is_patrol(type3) && mst.api_baku > 0);
+    let submarines = mst.api_tais >= 7;
+    ((strikes(type3) || is_patrol(type3)) && (surface || submarines))
+        .then_some((surface, submarines))
+}
+
+/// What an air corps' earlier waves in this battle leave the next
+/// (`LandBase.airStatePrev`, `contactPrev`, cleared by `resetBattle`): the
+/// last air state that was not parity, and the last contact made.
+#[derive(Debug, Default, Clone, Copy)]
+pub(crate) struct PreviousWave {
+    air_state: Option<AirState>,
+    contact: Option<f64>,
+}
+
+impl PreviousWave {
+    /// The contact a wave flying under `air_state` strikes with, and the
+    /// aircraft that made it for `api_touch_plane`. Parity tries it under the
+    /// last wave's air state; incapability, or parity after it, takes the last
+    /// contact made without showing it. `roll` tries contact under a state.
+    fn contact(
+        &mut self,
+        air_state: AirState,
+        roll: impl FnOnce(AirState) -> Option<Contact>,
+    ) -> (f64, Option<i64>) {
+        let state = if air_state == AirState::Parity {
+            self.air_state
+        } else {
+            self.air_state = Some(air_state);
+            Some(air_state)
+        };
+        if let Some(contact) = state.and_then(roll) {
+            self.contact = Some(contact.modifier);
+            return (contact.modifier, Some(contact.plane));
+        }
+        let carried = self.contact.filter(|_| state == Some(AirState::Incapability));
+        (carried.unwrap_or(1.0), None)
+    }
+}
+
+/// The ships a squadron may be sent at, before かばう: those afloat of the
+/// kinds it goes for; against a combined fleet the main deck 45 times in a
+/// hundred, else the escort deck, unless one of them has none; and only the
+/// submarines, when it hunts them and there are any.
+fn strike_candidates(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    enemy: &[BattleRuntimeShip],
+    (surface, submarines): (bool, bool),
+) -> Vec<usize> {
+    let is_submarine = |index: usize| target_class(codex, &enemy[index]).is_submarine();
+    let afloat: Vec<usize> = (0..enemy.len())
+        .filter(|&index| {
+            enemy[index].is_alive()
+                && if is_submarine(index) {
+                    submarines
+                } else {
+                    surface
+                }
+        })
+        .collect();
+    let (escort, main): (Vec<usize>, Vec<usize>) =
+        afloat.into_iter().partition(|&index| enemy[index].is_escort_deck());
+    let targets = if escort.is_empty() {
+        main
+    } else if main.is_empty() || rng.random_f64_range(0.0, 1.0) >= 0.45 {
+        escort
+    } else {
+        main
+    };
+    let subs: Vec<usize> = targets.iter().copied().filter(|&index| is_submarine(index)).collect();
+    if submarines && !subs.is_empty() {
+        subs
+    } else {
+        targets
+    }
 }
 
 /// 制空値 of an air corps on a sortie: each squadron's anti-air, with a land
@@ -73,9 +165,14 @@ fn fighter_power(codex: &Codex, corps: &AirCorpsInput) -> i64 {
         .sum()
 }
 
-/// The figure a squadron strikes this target with: bombs or torpedoes,
-/// depending on what it flies and whether the target stands on land.
-fn strike_stat(mst: &ApiMstSlotitem, on_land: bool) -> f64 {
+/// The figure a squadron strikes this target with: 対潜 against a submarine,
+/// otherwise bombs or torpedoes, depending on what it flies and whether the
+/// target stands on land.
+fn strike_stat(mst: &ApiMstSlotitem, target: TargetClass) -> f64 {
+    if target.is_submarine() {
+        return mst.api_tais.max(0) as f64;
+    }
+    let on_land = target == TargetClass::Installation;
     let bombs = mst.api_baku.max(0) as f64;
     let torpedoes = mst.api_raig.max(0) as f64;
     if is_land_attacker(mst.api_type[2]) {
@@ -186,14 +283,32 @@ fn anti_air_kind(mst: &ApiMstSlotitem) -> AntiAirKind {
 }
 
 /// Attack power of one squadron before the target's armour:
-/// `25 + stat × √(1.8 × strength)`, a land attacker's taken at 0.8, capped at
-/// 220, and 陸上攻撃機's then multiplied by 1.8.
-fn strike_power(mst: &ApiMstSlotitem, count: i64, on_land: bool) -> f64 {
-    let mut power = 25.0 + strike_stat(mst, on_land) * (SLOT_MODIFIER * count as f64).sqrt();
-    if is_land_attacker(mst.api_type[2]) {
-        power *= LAND_ATTACKER_PRE_CAP;
-    }
-    let mut power = apply_cap(power, DAMAGE_CAP) as f64;
+/// `25 + stat × √(1.8 × strength)`, a land attacker's taken at 0.8 (against a
+/// submarine at 0.7 to 1 for 対潜 10 or more, else 0.35 to 0.8), times the
+/// land scouts' `scouting`, capped at 220, times `contact`, and 陸上攻撃機's
+/// then multiplied by 1.8.
+fn strike_power(
+    rng: &mut impl BattleRng,
+    mst: &ApiMstSlotitem,
+    count: i64,
+    target: TargetClass,
+    scouting: f64,
+    contact: f64,
+) -> f64 {
+    let stat = strike_stat(mst, target);
+    let pre = if target.is_submarine() {
+        if stat >= 10.0 {
+            rng.random_f64_range(0.7, 1.0)
+        } else {
+            rng.random_f64_range(0.35, 0.8)
+        }
+    } else if is_land_attacker(mst.api_type[2]) {
+        LAND_ATTACKER_PRE_CAP
+    } else {
+        1.0
+    };
+    let power = (25.0 + stat * (SLOT_MODIFIER * count as f64).sqrt()) * pre * scouting;
+    let mut power = apply_cap(power, DAMAGE_CAP) as f64 * contact;
     if KcSlotItemType3::n(mst.api_type[2]) == Some(KcSlotItemType3::LandBasedAttacker) {
         power *= LAND_ATTACKER_POST_CAP;
     }
@@ -205,6 +320,8 @@ pub(crate) fn simulate_air_base_attack(
     codex: &Codex,
     corps: &mut AirCorpsInput,
     enemy: &mut [BattleRuntimeShip],
+    enemy_formation_id: i64,
+    previous: &mut PreviousWave,
     rng: &mut impl BattleRng,
 ) -> BattleAirBaseAttack {
     let api_squadron_plane = corps
@@ -237,15 +354,38 @@ pub(crate) fn simulate_air_base_attack(
     let stage1_e_lost = (enemy_planes as f64 * e_ratio).floor() as i64;
     apply_plane_losses(codex, enemy, stage1_e_lost);
 
-    // Stage 2: each squadron that comes to strike is fired on by one enemy ship.
+    // Contact, and the land scouts that steer the strike (`contactModLB`).
+    let planes: Vec<(i64, i64)> =
+        corps.squadrons.iter().map(|squadron| (squadron.mst_id, squadron.count)).collect();
+    let (contact, touch_plane) =
+        previous.contact(air_state, |state| roll_contact(codex, rng, &planes, state));
+    let scouting = corps
+        .squadrons
+        .iter()
+        .filter_map(|squadron| codex.find::<ApiMstSlotitem>(&squadron.mst_id).ok())
+        .filter(|mst| KcSlotItemType3::n(mst.api_type[2]) == Some(KcSlotItemType3::LandBasedRecon))
+        .map(|mst| {
+            if mst.api_houm >= 3 {
+                1.15
+            } else {
+                1.12
+            }
+        })
+        .fold(1.0, f64::max);
+
+    // Stage 2: each squadron that comes to strike is fired on by one enemy
+    // ship, then picks its target from what it goes for.
     let fleet_aa = fleet_anti_air(codex, enemy);
     let mut stage2_f_count = 0;
     let mut stage2_f_lost = 0;
-    for squadron in &mut corps.squadrons {
-        let striking = codex
-            .find::<ApiMstSlotitem>(&squadron.mst_id)
-            .is_ok_and(|mst| strikes(mst.api_type[2]));
-        if !striking || squadron.count <= 0 {
+    let mut attacks = Vec::new();
+    for (index, squadron) in corps.squadrons.iter_mut().enumerate() {
+        let Some(kinds) =
+            codex.find::<ApiMstSlotitem>(&squadron.mst_id).ok().and_then(strike_targets)
+        else {
+            continue;
+        };
+        if squadron.count <= 0 {
             continue;
         }
         let afloat: Vec<usize> = enemy
@@ -271,45 +411,39 @@ pub(crate) fn simulate_air_base_attack(
         stage2_f_count += squadron.count;
         stage2_f_lost += lost;
         squadron.count -= lost;
-    }
-
-    // Stage 3: each striking squadron picks one enemy still afloat.
-    let mut api_edam = vec![0_i64; enemy.len()];
-    let mut api_erai_flag = vec![0_i64; enemy.len()];
-    let mut api_ebak_flag = vec![0_i64; enemy.len()];
-    let mut api_ecl_flag = vec![0_i64; enemy.len()];
-    let mut struck = false;
-    for squadron in &corps.squadrons {
         if squadron.count <= 0 {
             continue;
         }
+        let candidates = strike_candidates(codex, rng, enemy, kinds);
+        if candidates.is_empty() {
+            continue;
+        }
+        if let Some((target, shown)) =
+            choice_with_protect(codex, rng, enemy, &candidates, 0, false, enemy_formation_id)
+        {
+            attacks.push((index, target, shown));
+        }
+    }
+
+    // Stage 3: every target is drawn, then each strike lands; one sent at a
+    // ship sunk before it arrives is wasted.
+    let mut api_edam = vec![DamageCell::Plain(0); enemy.len()];
+    let mut api_erai_flag = vec![0_i64; enemy.len()];
+    let mut api_ebak_flag = vec![0_i64; enemy.len()];
+    let mut api_ecl_flag = vec![0_i64; enemy.len()];
+    let struck = !attacks.is_empty();
+    for (index, target, shown) in attacks {
+        let squadron = &corps.squadrons[index];
         let Ok(mst) = codex.find::<ApiMstSlotitem>(&squadron.mst_id) else {
             continue;
         };
-        if !strikes(mst.api_type[2]) {
-            continue;
-        }
-        let afloat: Vec<usize> = enemy
-            .iter()
-            .enumerate()
-            .filter(|(_, ship)| ship.is_alive())
-            .map(|(index, _)| index)
-            .collect();
-        let Some(pick) = rng.choose_index(afloat.len()) else {
-            break;
-        };
-        let target = afloat[pick];
-        let on_land = target_class(codex, &enemy[target]) == TargetClass::Installation;
-
-        if strike_stat(mst, on_land) <= 0.0 {
-            continue;
-        }
+        let class = target_class(codex, &enemy[target]);
         let land_attacker = is_land_attacker(mst.api_type[2]);
         // A land-based strike lands 90 times in a hundred plus 7 for each
         // point of the aircraft's 命中, and the target dodges it less well
         // than it dodges anything else: 0.86 of its evasion, 0.68 in a
         // combined fleet (`airstrikeLBAS`, `lbasEvaMod*`).
-        let planes = squadron_proficiency(mst.api_type[2], squadron.alv);
+        let planes = squadron_proficiency(mst.api_type[2], squadron.alv, squadron.exp);
         let outcome = roll_strike(
             codex,
             rng,
@@ -325,18 +459,26 @@ pub(crate) fn simulate_air_base_attack(
         if outcome == HitOutcome::Critical {
             api_ecl_flag[target] = 1;
         }
-        let power =
-            outcome.power_with(strike_power(mst, squadron.count, on_land), planes.critical_damage);
+        let power = outcome.power_with(
+            strike_power(rng, mst, squadron.count, class, scouting, contact),
+            planes.critical_damage,
+        );
         let defense = calculate_defense_power(rng, enemy[target].ship.api_soukou[0]);
         let damage = resolve_damage(rng, power, defense, enemy[target].hp(), 1.0);
-        struck = true;
-        if damage > 0 {
+        let display = if damage > 0 {
             let (raw, dealt) = enemy[target].apply_damage(rng, damage, target);
-            api_edam[target] += crate::targeting::display_damage(&enemy[target], raw, dealt);
-        }
+            crate::targeting::display_damage(&enemy[target], raw, dealt)
+        } else {
+            0
+        };
+        api_edam[target].accumulate(if shown {
+            DamageCell::Shielded(display)
+        } else {
+            DamageCell::Plain(display)
+        });
         // A land attacker drops bombs on what stands on land and torpedoes on
         // what floats; the client draws the one whose flag is set.
-        let torpedo = !on_land
+        let torpedo = matches!(class, TargetClass::SurfaceShip | TargetClass::PtBoat)
             && (land_attacker
                 || KcSlotItemType3::n(mst.api_type[2])
                     == Some(KcSlotItemType3::CarrierBasedTorpedoBomber));
@@ -369,7 +511,7 @@ pub(crate) fn simulate_air_base_attack(
                 api_e_count: enemy_planes,
                 api_e_lostcount: stage1_e_lost,
                 api_disp_seiku: air_state.api_disp_seiku(),
-                api_touch_plane: [-1, -1],
+                api_touch_plane: [touch_plane.unwrap_or(-1), -1],
             },
             api_stage2: BattleKoukuStage2 {
                 api_f_count: stage2_f_count,
@@ -390,7 +532,7 @@ pub(crate) fn simulate_air_base_attack(
                 api_fcl_flag: Vec::new(),
                 api_ecl_flag,
                 api_fdam: Vec::new(),
-                api_edam: api_edam.into_iter().map(DamageCell::Plain).collect(),
+                api_edam,
                 api_f_sp_list: Vec::new(),
                 api_e_sp_list: vec![None; enemy.len()],
             },
@@ -422,9 +564,20 @@ mod tests {
                     mst_id,
                     count,
                     alv: 0,
+                    exp: None,
                 })
                 .collect(),
         }
+    }
+
+    /// One attack in line formation, the first of its battle.
+    fn fly(
+        codex: &Codex,
+        corps: &mut AirCorpsInput,
+        enemy: &mut [BattleRuntimeShip],
+        rng: &mut impl BattleRng,
+    ) -> BattleAirBaseAttack {
+        simulate_air_base_attack(codex, corps, enemy, 1, &mut PreviousWave::default(), rng)
     }
 
     fn lone_enemy(codex: &Codex, ship_type: KcShipType) -> Vec<BattleRuntimeShip> {
@@ -443,12 +596,22 @@ mod tests {
         let mst = codex.manifest.find_slotitem(LAND_ATTACKER).unwrap();
         assert_eq!((mst.api_raig, mst.api_baku), (10, 12), "the figures below assume these");
 
+        let mut rng = crate::random::SeededRng::new(1);
+        let mut power = |count, target, scouting, contact| {
+            strike_power(&mut rng, mst, count, target, scouting, contact)
+        };
+        let sea = TargetClass::SurfaceShip;
+
         // 25 + 10 × √32.4 = 81.9, × 0.8 = 65.5 → 65, × 1.8.
-        assert!((strike_power(mst, 18, false) - 117.0).abs() < 1e-9);
+        assert!((power(18, sea, 1.0, 1.0) - 117.0).abs() < 1e-9);
         // On land it bombs: 25 + 12 × √32.4 = 93.3, × 0.8 = 74.6 → 74, × 1.8.
-        assert!((strike_power(mst, 18, true) - 133.2).abs() < 1e-9);
+        assert!((power(18, TargetClass::Installation, 1.0, 1.0) - 133.2).abs() < 1e-9);
         // Fewer aircraft strike less: 25 + 10 × √1.8 = 38.4, × 0.8 = 30.7 → 30, × 1.8.
-        assert!((strike_power(mst, 1, false) - 54.0).abs() < 1e-9);
+        assert!((power(1, sea, 1.0, 1.0) - 54.0).abs() < 1e-9);
+        // A land scout before the cap: 81.9 × 0.8 × 1.15 = 75.4 → 75, × 1.8.
+        assert!((power(18, sea, 1.15, 1.0) - 135.0).abs() < 1e-9);
+        // Contact after it: 65 × 1.2 × 1.8.
+        assert!((power(18, sea, 1.0, 1.2) - 140.4).abs() < 1e-9);
     }
 
     #[test]
@@ -498,7 +661,7 @@ mod tests {
                     let mut corps = corps(&[(LAND_ATTACKER, 18)]);
                     corps.squadrons[0].alv = alv;
                     let mut rng = crate::random::SeededRng::new(seed);
-                    let attack = simulate_air_base_attack(&codex, &mut corps, &mut enemy, &mut rng);
+                    let attack = fly(&codex, &mut corps, &mut enemy, &mut rng);
                     attack.kouku.api_stage3.api_ecl_flag[0] == 1
                 })
                 .count()
@@ -512,9 +675,9 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let mut enemy = lone_enemy(&codex, KcShipType::DD);
         let mut corps = corps(&[(LAND_ATTACKER, 18), (LOCAL_FIGHTER, 18)]);
-        let mut rng = crate::random::SeededRng::new(8);
+        let mut rng = crate::random::SeededRng::new(9);
 
-        let attack = simulate_air_base_attack(&codex, &mut corps, &mut enemy, &mut rng);
+        let attack = fly(&codex, &mut corps, &mut enemy, &mut rng);
 
         assert_eq!(attack.api_base_id, 1);
         assert_eq!(attack.api_squadron_plane.len(), 2);
@@ -555,7 +718,7 @@ mod tests {
             }
             let mut corps = corps(&[(LAND_ATTACKER, 18)]);
             let mut rng = crate::random::SeededRng::new(seed);
-            let attack = simulate_air_base_attack(&codex, &mut corps, &mut enemy, &mut rng);
+            let attack = fly(&codex, &mut corps, &mut enemy, &mut rng);
             worst = worst.max(attack.kouku.api_stage2.api_f_lostcount);
         }
         // √60 = 7: at most 18 × 7 / 200 = 0 by share and 7 × 0.1875 = 1 fixed.
@@ -569,10 +732,159 @@ mod tests {
         let mut corps = corps(&[(LOCAL_FIGHTER, 18)]);
         let mut rng = crate::random::SeededRng::new(7);
 
-        let attack = simulate_air_base_attack(&codex, &mut corps, &mut enemy, &mut rng);
+        let attack = fly(&codex, &mut corps, &mut enemy, &mut rng);
 
         assert_eq!(attack.api_stage_flag, [1, 0, 0]);
         assert_eq!(enemy[0].hp(), 500);
+    }
+
+    /// 東海(九〇一空): 対潜 11, 雷装 0.
+    const TOKAI: i64 = 270;
+
+    #[test]
+    fn contact_carries_over_from_the_earlier_waves() {
+        let made = Contact {
+            modifier: 1.17,
+            plane: 54,
+        };
+        let mut previous = PreviousWave::default();
+        // Each wave: its air state, what a roll would make, the state the
+        // roll is tried under and what the wave strikes with.
+        for (state, roll, tried, expected) in [
+            (AirState::Parity, Some(made), None, (1.0, None)),
+            (AirState::Supremacy, Some(made), Some(AirState::Supremacy), (1.17, Some(54))),
+            (AirState::Parity, None, Some(AirState::Supremacy), (1.0, None)),
+            (AirState::Incapability, None, Some(AirState::Incapability), (1.17, None)),
+            (AirState::Parity, None, Some(AirState::Incapability), (1.17, None)),
+            (AirState::Denial, None, Some(AirState::Denial), (1.0, None)),
+        ] {
+            let mut seen = None;
+            let got = previous.contact(state, |under| {
+                seen = Some(under);
+                roll
+            });
+            assert_eq!((seen, got), (tried, expected), "{state:?}");
+        }
+    }
+
+    #[test]
+    fn a_combined_fleets_main_deck_draws_45_in_a_hundred() {
+        use crate::combined::CombinedFleetRole;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let seeds = 400;
+        let main: i64 = (0..seeds)
+            .map(|seed| {
+                let mut enemy: Vec<BattleRuntimeShip> =
+                    [CombinedFleetRole::Main, CombinedFleetRole::Escort]
+                        .into_iter()
+                        .flat_map(|role| {
+                            lone_enemy(&codex, KcShipType::DD)
+                                .into_iter()
+                                .map(move |ship| ship.in_enemy_deck(role))
+                        })
+                        .collect();
+                let mut corps = corps(&[(LAND_ATTACKER, 18)]);
+                let mut rng = crate::random::SeededRng::new(seed);
+                let flags =
+                    fly(&codex, &mut corps, &mut enemy, &mut rng).kouku.api_stage3.api_erai_flag;
+                assert_eq!(flags[0] + flags[1], 1, "one strike, at one deck");
+                flags[0]
+            })
+            .sum();
+        let share = main as f64 / seeds as f64;
+        assert!((0.38..0.52).contains(&share), "the main deck drew {share}");
+    }
+
+    #[test]
+    fn an_anti_submarine_plane_goes_for_the_submarine() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        for seed in 0..30 {
+            let fleet = || {
+                let mut enemy = lone_enemy(&codex, KcShipType::DD);
+                enemy.extend(lone_enemy(&codex, KcShipType::SS));
+                enemy
+            };
+            let flown = |mst_id| {
+                let mut enemy = fleet();
+                let mut rng = crate::random::SeededRng::new(seed);
+                let stage3 =
+                    fly(&codex, &mut corps(&[(mst_id, 18)]), &mut enemy, &mut rng).kouku.api_stage3;
+                [stage3.api_erai_flag, stage3.api_ebak_flag]
+            };
+            assert_eq!(flown(TOKAI), [vec![0, 0], vec![0, 1]], "東海 bombs the submarine");
+            assert_eq!(flown(LAND_ATTACKER), [vec![1, 0], vec![0, 0]], "一式陸攻 leaves her be");
+        }
+    }
+
+    /// With no submarine about, 東海 strikes a ship with the 25 the formula
+    /// starts from: her torpedoes count for nothing, but she still attacks.
+    #[test]
+    fn tokai_strikes_a_ship_at_the_base_power_when_no_submarine_is_about() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mst = codex.manifest.find_slotitem(TOKAI).unwrap();
+        assert_eq!(mst.api_raig, 0, "the figure below assumes no torpedoes");
+        let mut rng = crate::random::SeededRng::new(1);
+        // 25 × 0.8 = 20, × 1.8.
+        let power = strike_power(&mut rng, mst, 18, TargetClass::SurfaceShip, 1.0, 1.0);
+        assert!((power - 36.0).abs() < 1e-9);
+
+        let hit = (0..20).any(|seed| {
+            let mut enemy = lone_enemy(&codex, KcShipType::DD);
+            let mut rng = crate::random::SeededRng::new(seed);
+            let attack = fly(&codex, &mut corps(&[(TOKAI, 18)]), &mut enemy, &mut rng);
+            assert_eq!(attack.kouku.api_stage3.api_erai_flag, [1]);
+            enemy[0].hp() < 500
+        });
+        assert!(hit, "東海 never landed a strike");
+    }
+
+    #[test]
+    fn a_flagship_can_be_covered_from_a_strike() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let covered = (0..60).any(|seed| {
+            let mut enemy: Vec<BattleRuntimeShip> =
+                (0..3).flat_map(|_| lone_enemy(&codex, KcShipType::DD)).collect();
+            let mut rng = crate::random::SeededRng::new(seed);
+            let attack = fly(&codex, &mut corps(&[(LAND_ATTACKER, 18)]), &mut enemy, &mut rng);
+            attack.kouku.api_stage3.api_edam[1..]
+                .iter()
+                .any(|cell| matches!(cell, DamageCell::Shielded(_)))
+        });
+        assert!(covered, "no ship ever covered her flagship");
+    }
+
+    /// Every target is drawn before any strike lands: two squadrons may both
+    /// go for a ship about to sink, and the one that arrives second is wasted
+    /// on her instead of turning on the ship left afloat. Drawn as each strike
+    /// lands, the second would find only the flagship.
+    #[test]
+    fn every_target_is_drawn_before_the_first_strike() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let seeds = 400;
+        let wasted = (0..seeds)
+            .filter(|&seed| {
+                let mut enemy = lone_enemy(&codex, KcShipType::DD);
+                let mut sinking = lone_enemy(&codex, KcShipType::DD);
+                // Too damaged to cover her flagship, and easy to hit.
+                sinking[0].ship.api_nowhp = 1;
+                sinking[0].current_hp = 1;
+                sinking[0].ship.api_kaihi[0] = 0;
+                enemy.extend(sinking);
+                let mut rng = crate::random::SeededRng::new(seed);
+                let mut corps = corps(&[(LAND_ATTACKER, 18), (LAND_ATTACKER, 18)]);
+                let stage3 = fly(&codex, &mut corps, &mut enemy, &mut rng).kouku.api_stage3;
+                // Both squadrons came through the anti-air fire, so both
+                // strikes went at her.
+                let both_flew = corps.squadrons.iter().all(|squadron| squadron.count > 0);
+                both_flew && !enemy[1].is_alive() && stage3.api_erai_flag == [0, 1]
+            })
+            .count();
+        // Both pick her a quarter of the time; she sinks unless both miss.
+        assert!(
+            wasted as u64 * 10 > seeds,
+            "both went for the sinking ship {wasted} times in {seeds}"
+        );
     }
 
     /// Pointed at one cell twice, an air corps attacks twice, the second time

@@ -106,9 +106,18 @@ the forty goldens unchanged when the phase was added (they gained the line
 
 ## Level of detail
 
-A target is any enemy afloat, drawn as each squadron resolves. The carrier air battle
-(`kouku.rs`) no longer works this way: it rolls contact and draws every target through
-`choice_with_protect` before the first strike (#207); bringing the corps to the same is #208.
+Each wave follows the source's `LBASPhase` (#208, plan `2026-10-17-003`). Contact is the
+carrier battle's roll (`kouku::roll_contact`) over the corps' squadrons; at parity it is tried
+under the last wave's air state, and at incapability the last contact made carries over
+unshown (`PreviousWave`, one per battle across every corps). A land scout adds ×1.15 (命中 3
+or more) or ×1.12 before the cap; contact multiplies after it. Each squadron that strikes
+ships, or has 対潜 7 or more, is fired on, then draws its target through `choice_with_protect`
+(no escort-deck cover): ships afloat of the kinds it goes for, against a combined fleet the
+main deck 45 times in a hundred, and only the submarines when it hunts them and there are
+any. A submarine is struck with 対潜, at 0.7–1 (対潜 10 or more) or 0.35–0.8 in place of a
+land attacker's 0.8. Every target is drawn before the first strike lands, so a strike sent at
+a ship already sunk is wasted. A squadron whose figure is 0 (東海 against a ship) still
+strikes at the formula's base 25, as the carrier battle's torpedo bombers do on land.
 The anti-air stage is not simplified the same way: one enemy ship fires on
 each squadron, as in the source, because the carrier battle's estimate (the whole fleet's
 anti-air over 400) empties a squadron against six ordinary ships.
@@ -118,10 +127,12 @@ air state, not the anti-air fire.
 
 ## Proficiency
 
-A squadron carries its equipment's level into the battle (`AirSquadronInput::alv`, plan
-`2026-10-10-008`). It adds to 制空値 on a sortie and in defence — `proficiency_fighter_power`
+A squadron carries its equipment's level and stored experience into the battle
+(`AirSquadronInput::alv` and `exp`, plans `2026-10-10-008` and `2026-10-17-003`); without a
+stored experience it reads the level's representative one. It adds to 制空値 on a sortie
+and in defence — `proficiency_fighter_power`
 with the land-base switch on, so every aircraft gets at least `sqrt(exp x 0.1)` — and each
-striking squadron hits and criticals with its own level alone (`squadron_proficiency`, the
+striking squadron hits and criticals with its own level and experience (`squadron_proficiency`, the
 source's `airstrikeLBAS`): `sqrt(exp x 0.1)` plus `0,0,1,2,3,4,6,9` to hit, the critical step
 times 0.8 to the rate, `floor(sqrt(exp) + step) / 100` to the damage. A critical sets
 `api_ecl_flag`, which the client reads as it does in the carrier air phase.
@@ -188,6 +199,8 @@ place in the area as a string.
   has no rule. A squadron emptied in one battle can still gain from a later battle or raid of
   the same sortie, where the source resets it on the way home. Land scouts lose only by being
   wiped out, like the other scouts. The base jet assault and its extra roll are not modelled.
+- The strike leaves out the source's ×1.1 against a combined fleet, and against an enemy
+  combined fleet its stage 3 is not split into `api_stage3_combined`.
 
 - A tired squadron fights as well as a fresh one. Upstream lowers its accuracy by an
   amount nobody has published. The hit roll itself is in

@@ -71,8 +71,7 @@ marks as estimates. Nothing here was read from the game.
 a submarine; the jet assault's extra roll; the escort fleet's growth (it needs an enemy
 combined fleet); scouts' gradual loss. A ship's battles read the experience her aircraft
 left port with (`BattleShipInput::aircraft_exp`), as they read the level, so a sortie's later
-battles do not see what its earlier ones settled; an air corps squadron still reads its level's
-representative experience. A night-start battle counts as a search like any other,
+battles do not see what its earlier ones settled. A night-start battle counts as a search like any other,
 which the sources do not settle. Practice settles no proficiency; the aircraft it costs were
 already kept, and resupplying them now charges for every slot.
 

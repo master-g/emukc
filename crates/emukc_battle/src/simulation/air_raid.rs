@@ -367,6 +367,7 @@ mod tests {
                     mst_id,
                     count,
                     alv: 0,
+                    exp: None,
                 })
                 .collect(),
         }
@@ -407,6 +408,7 @@ mod tests {
                 mst_id: LOCAL_FIGHTER,
                 count: 18,
                 alv: 0,
+                exp: None,
             }],
         };
         // (6 + 2 + 2 x 5) x sqrt(18) = 76.4; level 7 adds sqrt(12) + 22 = 25.5.
