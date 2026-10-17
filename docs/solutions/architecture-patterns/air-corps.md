@@ -106,11 +106,12 @@ the forty goldens unchanged when the phase was added (they gained the line
 
 ## Level of detail
 
-Every strike hits and a target is any enemy afloat, as in the carrier air battle
-(`kouku.rs`). The anti-air stage is not simplified the same way: one enemy ship fires on
+A target is any enemy afloat, drawn as each squadron resolves. The carrier air battle
+(`kouku.rs`) no longer works this way: it rolls contact and draws every target through
+`choice_with_protect` before the first strike (#207); bringing the corps to the same is #208.
+The anti-air stage is not simplified the same way: one enemy ship fires on
 each squadron, as in the source, because the carrier battle's estimate (the whole fleet's
-anti-air over 400) empties a squadron against six ordinary ships. Raising the rest (hit
-rolls, contact, per-equipment bonuses) should be done for both air battles together.
+anti-air over 400) empties a squadron against six ordinary ships.
 
 A corps of bombers without fighters loses heavily to an enemy with aircraft: that is the
 air state, not the anti-air fire.

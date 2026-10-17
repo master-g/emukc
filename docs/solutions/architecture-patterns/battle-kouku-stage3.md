@@ -37,6 +37,17 @@ The following invariants hold for `BattleKoukuStage3`:
 - **`api_fdam`/`api_edam` remain per-defender cumulative damage.** These are
   indexed by defender position and hold the *accumulated* damage across all
   attackers targeting that defender; they are NOT per-attacker.
+- **Every target is drawn before the first strike** (`execute_airstrike_phase`, the
+  source's `AADefenceBombersAndAirstrike`). Each bomber slot still flying, in ship and slot
+  order, draws a surface ship through `choice_with_protect` (no rerolls; a combined fleet's escort
+  fleet may cover its main fleet's flagship, `include_escort`);
+  then the strikes land. Two slots may pick one ship, and a strike on a ship an earlier one
+  sank is spent on her. A covering ship's damage is written `n.1` (`DamageCell::Shielded`).
+- **Contact multiplies after the cap.** A side whose bombers came to strike rolls contact
+  once (`roll_contact`, the source's `getContact`, under supremacy, superiority or denial);
+  the plane goes into `api_touch_plane` and its ×1.12/1.17/1.2 follows the 170 cap. A
+  torpedo bomber that hits rolls ×0.8 or ×1.5 before the cap, and brings no torpedo power
+  against a land target (the base 25 remains).
 - **Bomber-slot mapping is exact.** Each bomber slot's attacker ship index and
   its target defender index MUST map correctly to the entries above — a
   mismatch between the attacker slot and the reported target position corrupts

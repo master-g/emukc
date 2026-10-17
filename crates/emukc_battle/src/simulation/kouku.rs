@@ -15,10 +15,12 @@ use crate::accuracy::{HitOutcome, PROFICIENCY_EXP, plane_proficiency, roll_strik
 use crate::combined::CombinedFleetRole;
 use crate::damage::{ammo_modifier, apply_cap, calculate_defense_power, resolve_damage};
 use crate::random::BattleRng;
-use crate::targeting::{is_air_combat_type, is_airstrike_attack_type, ship_type};
+use crate::targeting::{
+    choice_with_protect, is_air_combat_type, is_airstrike_attack_type, ship_type, target_class,
+};
 use crate::types::{
     AirState, AirstrikeOutput, BattleAirFire, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
-    BattleKoukuStage3, BattleRuntimeShip, DamageCell,
+    BattleKoukuStage3, BattleRuntimeShip, DamageCell, TargetClass,
 };
 
 // ---------------------------------------------------------------------------
@@ -141,18 +143,104 @@ pub(crate) fn attack_plane_from(codex: &Codex, ships: &[BattleRuntimeShip]) -> V
         .collect()
 }
 
-fn first_touch_plane(codex: &Codex, ships: &[BattleRuntimeShip]) -> Option<i64> {
-    ships.iter().flat_map(|ship| ship.slot_items.iter()).find_map(|slot_item| {
-        codex
-            .find::<ApiMstSlotitem>(&slot_item.api_slotitem_id)
-            .ok()
-            .filter(|mst| {
-                matches!(
-                    KcSlotItemType3::n(mst.api_type[2]),
-                    Some(KcSlotItemType3::CarrierBasedRecon | KcSlotItemType3::CarrierBasedRecon2)
-                )
-            })
-            .map(|mst| mst.api_id)
+/// Aircraft that can make contact (`canContact` in `kcEQDATA.js`).
+fn can_contact(type3: i64) -> bool {
+    matches!(
+        KcSlotItemType3::n(type3),
+        Some(
+            KcSlotItemType3::CarrierBasedTorpedoBomber
+                | KcSlotItemType3::CarrierBasedRecon
+                | KcSlotItemType3::CarrierBasedRecon2
+                | KcSlotItemType3::SeaBasedRecon
+                | KcSlotItemType3::LargeFlyingBoat
+                | KcSlotItemType3::LandBasedRecon
+        )
+    )
+}
+
+/// Contact (触接) made by one side's scouts.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct Contact {
+    /// What the side's strikes take after the cap.
+    pub(crate) modifier: f64,
+    /// The aircraft in contact, for `api_touch_plane`.
+    pub(crate) plane: i64,
+}
+
+/// What contact is tried against under `air_state`: the divisor of the
+/// fleet's scouting power for the chance, and of each scout's 索敵 for her own
+/// roll. `None` under parity and incapability, where no contact is tried.
+fn contact_divisors(air_state: AirState) -> Option<(f64, f64)> {
+    match air_state {
+        AirState::Supremacy => Some((25.0, 14.0)),
+        AirState::Superiority => Some((40.0, 16.0)),
+        AirState::Denial => Some((55.0, 18.0)),
+        AirState::Parity | AirState::Incapability => None,
+    }
+}
+
+/// The chance `carriers` make contact (触接) with the other side's fleet,
+/// seen from their own `air_state`, or `None` when they do not try: only under
+/// supremacy, superiority or denial (`getContact` and its caller). Every
+/// scout's slot adds ⌊√aircraft × 索敵⌋; torpedo bombers carry no weight here.
+fn contact_chance(
+    codex: &Codex,
+    carriers: &[&BattleRuntimeShip],
+    air_state: AirState,
+) -> Option<f64> {
+    let (divisor, _) = contact_divisors(air_state)?;
+    let power: f64 = carriers
+        .iter()
+        .flat_map(|ship| ship.slot_items.iter().zip(ship.ship.api_onslot))
+        .filter_map(|(item, count)| {
+            let mst = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok()?;
+            let scout = can_contact(mst.api_type[2])
+                && KcSlotItemType3::n(mst.api_type[2])
+                    != Some(KcSlotItemType3::CarrierBasedTorpedoBomber);
+            scout.then(|| ((count.max(0) as f64).sqrt() * mst.api_saku.max(0) as f64).floor())
+        })
+        .sum();
+    Some((1.0 + power) / divisor)
+}
+
+/// Roll contact for `carriers` (`getContact`): the multiplier their strike's
+/// power takes after the cap, and the aircraft that made it. Once the chance
+/// comes up, each scout in ship and slot order rolls 索敵 / 14, 16 or 18, and
+/// one no more accurate than the scout already holding contact does not roll.
+pub(crate) fn roll_contact(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    carriers: &[&BattleRuntimeShip],
+    air_state: AirState,
+) -> Option<Contact> {
+    let chance = contact_chance(codex, carriers, air_state)?;
+    if rng.random_f64_range(0.0, 1.0) >= chance {
+        return None;
+    }
+    let (_, divisor) = contact_divisors(air_state)?;
+    let mut contact: Option<&ApiMstSlotitem> = None;
+    // The source counts no aircraft here: an emptied slot can still hold contact.
+    for item in carriers.iter().flat_map(|ship| ship.slot_items.iter()) {
+        let Ok(mst) = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id) else {
+            continue;
+        };
+        if !can_contact(mst.api_type[2]) || mst.api_saku <= 0 {
+            continue;
+        }
+        if contact.is_some_and(|held| held.api_houm >= mst.api_houm) {
+            continue;
+        }
+        if rng.random_f64_range(0.0, 1.0) < mst.api_saku as f64 / divisor {
+            contact = Some(mst);
+        }
+    }
+    contact.map(|mst| Contact {
+        modifier: match mst.api_houm {
+            3.. => 1.2,
+            2 => 1.17,
+            _ => 1.12,
+        },
+        plane: mst.api_id,
     })
 }
 
@@ -392,10 +480,11 @@ fn aerial_correction(defender: &BattleRuntimeShip) -> f64 {
 /// dodge, in percent (`kcsim.js` `airstrike`).
 pub(super) const AIRSTRIKE_HIT_PERCENT: f64 = 95.0;
 
-/// Calculate airstrike damage for a single bomber slot.
+/// Calculate airstrike damage for a single bomber slot (`kcsim.js` `airstrike`).
 ///
-/// Uses bomb/torpedo stat × √(onslot) + 25, capped at 170. `ammo` is the carrier's
-/// ammunition modifier.
+/// Bomb/torpedo stat × √(onslot) + 25; a torpedo bomber that hits takes ×0.8 or
+/// ×1.5 of it, then the cap at 170, then `contact` (触接). `ammo` is the carrier's
+/// ammunition modifier. A miss rolls nothing.
 #[expect(clippy::too_many_arguments)]
 fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
@@ -406,8 +495,9 @@ fn calculate_single_slot_airstrike_damage(
     outcome: HitOutcome,
     critical_damage: f64,
     ammo: f64,
+    contact: f64,
 ) -> i64 {
-    if onslot <= 0 {
+    if onslot <= 0 || outcome == HitOutcome::Miss {
         return 0;
     }
     let Ok(mst) = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) else {
@@ -418,17 +508,28 @@ fn calculate_single_slot_airstrike_damage(
     }
     let is_torpedo_bomber =
         KcSlotItemType3::n(mst.api_type[2]) == Some(KcSlotItemType3::CarrierBasedTorpedoBomber);
-    let stat = if is_torpedo_bomber {
-        mst.api_raig.max(0) as f64
-    } else {
+    // A torpedo does nothing to a land target, but the base 25 still strikes.
+    let stat = if !is_torpedo_bomber {
         mst.api_baku.max(0) as f64
+    } else if target_class(codex, defender) == TargetClass::Installation {
+        0.0
+    } else {
+        mst.api_raig.max(0) as f64
     };
     let bomb_power = stat * (onslot as f64).sqrt();
-    if bomb_power <= 0.0 {
-        return 0;
-    }
-    let raw_power = bomb_power + 25.0 + aerial_correction(defender);
-    let capped = outcome.power_with(apply_cap(raw_power, 170.0) as f64, critical_damage);
+    // ponytail: a jet's strike outside the jet phase (×0.7 + 0.5 in the source)
+    // is not modelled; add it with the jet phase.
+    let pre = if is_torpedo_bomber {
+        if rng.random_f64_range(0.0, 1.0) < 0.5 {
+            0.8
+        } else {
+            1.5
+        }
+    } else {
+        1.0
+    };
+    let raw_power = (bomb_power + 25.0 + aerial_correction(defender)) * pre;
+    let capped = outcome.power_with(apply_cap(raw_power, 170.0) as f64 * contact, critical_damage);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped, defense, defender.hp(), ammo)
 }
@@ -437,143 +538,108 @@ fn calculate_single_slot_airstrike_damage(
 // Airstrike phase execution
 // ---------------------------------------------------------------------------
 
+/// One side's strike (`kcsim.js` `AADefenceBombersAndAirstrike`): every bomber
+/// slot still flying draws its target through `choiceWProtect`, and only then
+/// do the strikes land, so several slots may pick one ship and a strike on a
+/// ship an earlier one sank is spent on her. `flying` marks the attackers
+/// afloat when the air battle began; the targets are the defenders' surface
+/// ships afloat now. `contact` is the side's 触接 multiplier.
+#[expect(clippy::too_many_arguments)]
 fn execute_airstrike_phase(
     codex: &Codex,
     rng: &mut impl BattleRng,
     attackers: &mut [BattleRuntimeShip],
+    flying: &[bool],
     defenders: &mut [BattleRuntimeShip],
+    defender_formation_id: i64,
+    contact: f64,
     is_enemy_side: bool,
     output: &mut AirstrikeOutput,
 ) {
-    // Phase 1: Dive bombing — iterate per bomber slot (non-torpedo types)
-    for (ship_idx, ship) in attackers.iter_mut().enumerate() {
-        let planes = plane_proficiency(codex, ship);
-        let ammo = ammo_modifier(codex, ship);
-        for (slot_idx, slot_item) in ship.slot_items.iter().enumerate() {
-            let onslot = ship.ship.api_onslot.get(slot_idx).copied().unwrap_or(0);
-            if onslot <= 0 {
+    let candidates: Vec<usize> = defenders
+        .iter()
+        .enumerate()
+        .filter(|(_, ship)| ship.is_alive() && !target_class(codex, ship).is_submarine())
+        .map(|(idx, _)| idx)
+        .collect();
+    let mut strikes = Vec::new();
+    for (ship_idx, ship) in attackers.iter().enumerate().filter(|(idx, _)| flying[*idx]) {
+        for (slot_idx, (item, count)) in
+            ship.slot_items.iter().zip(ship.ship.api_onslot).enumerate()
+        {
+            let bomber = codex
+                .find::<ApiMstSlotitem>(&item.api_slotitem_id)
+                .is_ok_and(|mst| is_airstrike_attack_type(mst.api_type[2]));
+            if count <= 0 || !bomber {
                 continue;
             }
-            let Ok(mst) = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) else {
-                continue;
-            };
-            let Some(type3) = KcSlotItemType3::n(mst.api_type[2]) else {
-                continue;
-            };
-            if !is_airstrike_attack_type(mst.api_type[2]) {
-                continue;
-            }
-            if type3 == KcSlotItemType3::CarrierBasedTorpedoBomber {
-                continue;
-            }
-
-            let alive_targets: Vec<usize> = defenders
-                .iter()
-                .enumerate()
-                .filter(|(_, s)| s.is_alive())
-                .map(|(i, _)| i)
-                .collect();
-            if alive_targets.is_empty() {
-                continue;
-            }
-            let target_idx = alive_targets[rng
-                .choose_index(alive_targets.len())
-                .expect("alive_targets non-empty by construction")];
-            let outcome =
-                roll_strike(codex, rng, &defenders[target_idx], AIRSTRIKE_HIT_PERCENT, 1.0, planes);
-            let damage = calculate_single_slot_airstrike_damage(
+            let Some((target_idx, shown)) = choice_with_protect(
                 codex,
                 rng,
-                slot_item,
-                onslot,
-                &defenders[target_idx],
-                outcome,
-                planes.critical_damage,
-                ammo,
-            );
-            if outcome == HitOutcome::Critical {
-                output.cl_flags[target_idx] = 1;
-            }
-            if damage > 0 {
-                let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
-                // display_damage returns dealt for friendly defenders (sinking protection),
-                // raw for enemy defenders. Must NOT accumulate raw_dmg directly.
-                let display =
-                    crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
-                output.damage[target_idx] += display;
-            }
-            // A strike that misses is still flown at its target: the client
-            // draws the run from the flag and the miss from the zero.
-            if damage > 0 || outcome == HitOutcome::Miss {
-                output.bak_targets[ship_idx] = target_idx as i64;
-                output.bak_flags[target_idx] = 1;
-            }
+                defenders,
+                &candidates,
+                0,
+                true,
+                defender_formation_id,
+            ) else {
+                break;
+            };
+            strikes.push((ship_idx, slot_idx, target_idx, shown));
         }
     }
 
-    // Phase 2: Torpedo bombing — iterate per torpedo bomber slot
-    for (ship_idx, ship) in attackers.iter_mut().enumerate() {
+    for (ship_idx, slot_idx, target_idx, shown) in strikes {
+        let ship = &attackers[ship_idx];
         let planes = plane_proficiency(codex, ship);
-        let ammo = ammo_modifier(codex, ship);
-        for (slot_idx, slot_item) in ship.slot_items.iter().enumerate() {
-            let onslot = ship.ship.api_onslot.get(slot_idx).copied().unwrap_or(0);
-            if onslot <= 0 {
-                continue;
-            }
-            let Ok(mst) = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id) else {
-                continue;
+        let slot_item = &ship.slot_items[slot_idx];
+        let torpedo = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id).is_ok_and(|mst| {
+            KcSlotItemType3::n(mst.api_type[2]) == Some(KcSlotItemType3::CarrierBasedTorpedoBomber)
+        });
+        let outcome =
+            roll_strike(codex, rng, &defenders[target_idx], AIRSTRIKE_HIT_PERCENT, 1.0, planes);
+        let damage = calculate_single_slot_airstrike_damage(
+            codex,
+            rng,
+            slot_item,
+            ship.ship.api_onslot[slot_idx],
+            &defenders[target_idx],
+            outcome,
+            planes.critical_damage,
+            ammo_modifier(codex, ship),
+            contact,
+        );
+        if outcome == HitOutcome::Critical {
+            output.cl_flags[target_idx] = 1;
+        }
+        let display = if damage > 0 {
+            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
+            // display_damage returns dealt for friendly defenders (sinking protection),
+            // raw for enemy defenders. Must NOT accumulate raw_dmg directly.
+            crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt)
+        } else {
+            0
+        };
+        output.damage[target_idx].accumulate(if shown {
+            DamageCell::Shielded(display)
+        } else {
+            DamageCell::Plain(display)
+        });
+        // A strike that misses is still flown at its target: the client
+        // draws the run from the flag and the miss from the zero.
+        if damage > 0 || outcome == HitOutcome::Miss {
+            let (targets, flags) = if torpedo {
+                (&mut *output.rai_targets, &mut *output.rai_flags)
+            } else {
+                (&mut *output.bak_targets, &mut *output.bak_flags)
             };
-            if KcSlotItemType3::n(mst.api_type[2])
-                != Some(KcSlotItemType3::CarrierBasedTorpedoBomber)
-            {
-                continue;
-            }
-
-            let alive_targets: Vec<usize> = defenders
-                .iter()
-                .enumerate()
-                .filter(|(_, s)| s.is_alive())
-                .map(|(i, _)| i)
-                .collect();
-            if alive_targets.is_empty() {
-                continue;
-            }
-            let target_idx = alive_targets[rng
-                .choose_index(alive_targets.len())
-                .expect("alive_targets non-empty by construction")];
-            let outcome =
-                roll_strike(codex, rng, &defenders[target_idx], AIRSTRIKE_HIT_PERCENT, 1.0, planes);
-            let damage = calculate_single_slot_airstrike_damage(
-                codex,
-                rng,
-                slot_item,
-                onslot,
-                &defenders[target_idx],
-                outcome,
-                planes.critical_damage,
-                ammo,
-            );
-            if outcome == HitOutcome::Critical {
-                output.cl_flags[target_idx] = 1;
-            }
-            if damage > 0 {
-                let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
-                // display_damage returns dealt for friendly defenders (sinking protection),
-                // raw for enemy defenders. Must NOT accumulate raw_dmg directly.
-                let display =
-                    crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
-                output.damage[target_idx] += display;
-            }
-            if damage > 0 || outcome == HitOutcome::Miss {
-                output.rai_targets[ship_idx] = target_idx as i64;
-                output.rai_flags[target_idx] = 1;
-            }
+            targets[ship_idx] = target_idx as i64;
+            flags[target_idx] = 1;
         }
     }
 
     // Attribute total damage to best bomber ship (for statistics)
     if !is_enemy_side && let Some(best_idx) = best_bomber_index(codex, attackers) {
-        let total: i64 = output.damage.iter().sum();
+        let total: i64 = output.damage.iter().map(|cell| cell.amount()).sum();
         attackers[best_idx].damage_dealt += total;
     }
 }
@@ -586,8 +652,13 @@ pub(crate) fn simulate_kouku(
     codex: &Codex,
     friendly: &mut [BattleRuntimeShip],
     enemy: &mut [BattleRuntimeShip],
+    formations: [i64; 2],
     rng: &mut impl BattleRng,
 ) -> BattleKouku {
+    // The ships afloat when the air battle begins fly it to the end: one the
+    // friendly strike sinks still sends her own.
+    let friendly_flying: Vec<bool> = friendly.iter().map(BattleRuntimeShip::is_alive).collect();
+    let enemy_flying: Vec<bool> = enemy.iter().map(BattleRuntimeShip::is_alive).collect();
     let friend_planes = total_plane_count(codex, friendly);
     let enemy_planes = total_plane_count(codex, enemy);
 
@@ -605,8 +676,8 @@ pub(crate) fn simulate_kouku(
         fly_through_anti_air(codex, rng, enemy, friendly);
 
     // Stage 3: bombing damage
-    let mut api_edam = vec![0i64; enemy.len()];
-    let mut api_fdam = vec![0i64; friendly.len()];
+    let mut api_edam = vec![DamageCell::Plain(0); enemy.len()];
+    let mut api_fdam = vec![DamageCell::Plain(0); friendly.len()];
     let mut api_erai = vec![-1i64; enemy.len()];
     let mut api_ebak = vec![-1i64; enemy.len()];
     let mut api_frai = vec![-1i64; friendly.len()];
@@ -618,13 +689,24 @@ pub(crate) fn simulate_kouku(
     let mut api_ecl_flag = vec![0i64; enemy.len()];
     let mut api_fcl_flag = vec![0i64; friendly.len()];
 
-    // Stage 3: Per-slot bombing — split into dive bombing and torpedo bombing phases
-    // Each bomber slot independently selects a random alive target.
+    // Contact is tried only by a side whose bombers came to strike.
+    let touch = |rng: &mut _, ships: &[BattleRuntimeShip], flying: &[bool], state, struck: i64| {
+        let carriers: Vec<&BattleRuntimeShip> =
+            ships.iter().zip(flying).filter(|(_, flying)| **flying).map(|(ship, _)| ship).collect();
+        (struck > 0).then(|| roll_contact(codex, rng, &carriers, state)).flatten()
+    };
+    let friendly_contact = touch(rng, friendly, &friendly_flying, air_state, stage2_f_count);
+    let enemy_contact = touch(rng, enemy, &enemy_flying, air_state.reversed(), stage2_e_count);
+
+    // Stage 3: each side draws every target, then strikes.
     execute_airstrike_phase(
         codex,
         rng,
         friendly,
+        &friendly_flying,
         enemy,
+        formations[1],
+        friendly_contact.map_or(1.0, |contact| contact.modifier),
         false,
         &mut AirstrikeOutput {
             damage: &mut api_edam,
@@ -639,7 +721,10 @@ pub(crate) fn simulate_kouku(
         codex,
         rng,
         enemy,
+        &enemy_flying,
         friendly,
+        formations[0],
+        enemy_contact.map_or(1.0, |contact| contact.modifier),
         true,
         &mut AirstrikeOutput {
             damage: &mut api_fdam,
@@ -660,8 +745,8 @@ pub(crate) fn simulate_kouku(
             api_e_lostcount: stage1_e_lost,
             api_disp_seiku: air_state.api_disp_seiku(),
             api_touch_plane: [
-                first_touch_plane(codex, friendly).unwrap_or(-1),
-                first_touch_plane(codex, enemy).unwrap_or(-1),
+                friendly_contact.map_or(-1, |contact| contact.plane),
+                enemy_contact.map_or(-1, |contact| contact.plane),
             ],
         },
         api_stage2: BattleKoukuStage2 {
@@ -683,8 +768,8 @@ pub(crate) fn simulate_kouku(
             // The client reads these as the critical flag (hit type = flag + 1).
             api_fcl_flag,
             api_ecl_flag,
-            api_fdam: api_fdam.into_iter().map(DamageCell::Plain).collect(),
-            api_edam: api_edam.into_iter().map(DamageCell::Plain).collect(),
+            api_fdam,
+            api_edam,
             api_f_sp_list: vec![None; friendly.len()],
             api_e_sp_list: vec![None; enemy.len()],
         },
@@ -791,7 +876,7 @@ mod tests {
         let mut enemies = vec![BattleRuntimeShip::from(enemy)];
         let mut rng = crate::random::SeededRng::new(42);
 
-        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
 
         assert!(kouku.api_stage1.api_f_count > 0);
         assert!(kouku.api_stage1.api_e_count > 0);
@@ -821,7 +906,7 @@ mod tests {
         let mut enemies = vec![BattleRuntimeShip::from(enemy)];
         let mut rng = crate::random::SeededRng::new(42);
 
-        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
 
         let remaining_enemy_planes = total_plane_count(&codex, &enemies);
         assert!(remaining_enemy_planes > 0, "enemy planes should not be fully wiped");
@@ -856,12 +941,14 @@ mod tests {
         let mut enemies = vec![BattleRuntimeShip::from(enemy)];
         let mut rng = crate::random::SeededRng::new(42);
 
-        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
         assert_eq!(kouku.api_stage1.api_disp_seiku, 1); // supremacy
     }
 
     /// Skilled bombers score criticals and flag their target; green ones never
-    /// do, and the proficiency costs no extra draw.
+    /// do. (Proficiency turns some misses into hits, and only a hit rolls its
+    /// damage, so the two streams part; `accuracy`'s `a_roll_draws_exactly_once`
+    /// pins the single draw.)
     #[test]
     fn skilled_bombers_score_criticals_and_flag_the_target() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
@@ -881,17 +968,14 @@ mod tests {
             let mut friendly = vec![BattleRuntimeShip::from(friend)];
             let mut enemies = vec![BattleRuntimeShip::from(enemy)];
             let mut rng = crate::random::SeededRng::new(seed);
-            let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
-            (kouku.api_stage3.api_ecl_flag[0], rng.roll_range(0, 1000))
+            let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
+            kouku.api_stage3.api_ecl_flag[0]
         };
 
         let mut criticals = 0;
         for seed in 0..200 {
-            let (green_flag, green_next) = fly(None, seed);
-            let (skilled_flag, skilled_next) = fly(Some(7), seed);
-            assert_eq!(green_flag, 0, "seed {seed}: a green squadron scored a critical");
-            assert_eq!(green_next, skilled_next, "seed {seed}: proficiency moved the stream");
-            criticals += skilled_flag;
+            assert_eq!(fly(None, seed), 0, "seed {seed}: a green squadron scored a critical");
+            criticals += fly(Some(7), seed);
         }
         // 8 in a hundred of the strikes that are flown.
         assert!((5..=30).contains(&criticals), "{criticals} criticals in 200 strikes");
@@ -942,7 +1026,7 @@ mod tests {
                 )
             };
             let mut rng = crate::random::SeededRng::new(seed);
-            let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+            let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
             let left = if friendly_side {
                 friendly[0].ship.api_onslot
             } else {
@@ -1090,7 +1174,7 @@ mod tests {
         }
         let mut rng = crate::random::SeededRng::new(42);
 
-        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
 
         let s3 = &kouku.api_stage3;
         assert_eq!(s3.api_frai_flag.len(), 3, "api_frai_flag should be friendly-sized (3)");
@@ -1122,9 +1206,9 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
         let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
-        let mut rng = crate::random::SeededRng::new(2);
+        let mut rng = crate::random::SeededRng::new(4);
 
-        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
 
         let fdam = kouku.api_stage3.api_fdam[0].amount();
         assert!(fdam > 0, "enemy CVL with bombers must deal airstrike damage");
@@ -1157,9 +1241,9 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
         let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
-        let mut rng = crate::random::SeededRng::new(2);
+        let mut rng = crate::random::SeededRng::new(4);
 
-        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
 
         let fdam = kouku.api_stage3.api_fdam[0].amount();
         let hp_after = friendly[0].hp();
@@ -1192,7 +1276,7 @@ mod tests {
         let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
-        simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+        simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
 
         assert!(
             friendly[0].hp() > 0,
@@ -1222,9 +1306,9 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
         let mut enemies = vec![BattleRuntimeShip::from(enemy)];
-        let mut rng = crate::random::SeededRng::new(42);
+        let mut rng = crate::random::SeededRng::new(4);
 
-        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, &mut rng);
+        let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
 
         let edam = kouku.api_stage3.api_edam[0].amount();
         let enemy_hp_after = enemies[0].hp();
@@ -1277,5 +1361,242 @@ mod tests {
         let result = attack_plane_from(&codex, &ships);
 
         assert_eq!(result, vec![1], "BBV with seaplane should be in plane_from");
+    }
+
+    /// A defender that cannot armour herself: the damage is the power itself.
+    fn bare_target(codex: &Codex, mst_id: i64) -> BattleRuntimeShip {
+        let mut target = sample_ship(codex, mst_id, 50);
+        target.ship.api_soukou[0] = 0;
+        target.ship.api_nowhp = 9999;
+        target.ship.api_maxhp = 9999;
+        BattleRuntimeShip::new(target, false, true)
+    }
+
+    /// A torpedo bomber that hits takes its power ×0.8 or ×1.5 before the cap
+    /// (`airstrike`, `preMod`); a dive bomber always ×1.
+    #[test]
+    fn a_torpedo_bomber_hits_for_0_8_or_1_5_of_its_power() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let target = bare_target(&codex, first_ship_mst_by_type(&codex, KcShipType::DD));
+        let damage = |kind: KcSlotItemType3| {
+            let item = slotitem_with_mst_id(first_slotitem_mst_by_type(&codex, kind));
+            let raw = codex.manifest.find_slotitem(item.api_slotitem_id).unwrap();
+            let stat = if kind == KcSlotItemType3::CarrierBasedTorpedoBomber {
+                raw.api_raig
+            } else {
+                raw.api_baku
+            };
+            let seen: std::collections::BTreeSet<i64> = (0..40)
+                .map(|seed| {
+                    let mut rng = crate::random::SeededRng::new(seed);
+                    calculate_single_slot_airstrike_damage(
+                        &codex,
+                        &mut rng,
+                        &item,
+                        16,
+                        &target,
+                        HitOutcome::Hit,
+                        1.0,
+                        1.0,
+                        1.0,
+                    )
+                })
+                .collect();
+            (25.0 + 4.0 * stat as f64, seen)
+        };
+
+        let (power, seen) = damage(KcSlotItemType3::CarrierBasedTorpedoBomber);
+        let expected = [(power * 0.8).floor() as i64, (power * 1.5).floor() as i64];
+        assert_eq!(seen.into_iter().collect::<Vec<_>>(), expected, "power {power}");
+        let (power, seen) = damage(KcSlotItemType3::CarrierBasedDiveBomber);
+        assert_eq!(seen.into_iter().collect::<Vec<_>>(), [power as i64]);
+    }
+
+    /// Against a land target a torpedo bomber's torpedo stat does not count, but
+    /// the base 25 does (`airstrike`: `planebase = isInstall ? 0 : TP`).
+    #[test]
+    fn a_torpedo_bomber_brings_only_the_base_power_against_land() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut land = bare_target(&codex, first_ship_mst_by_type(&codex, KcShipType::DD));
+        land.ship.api_ship_id = ship_mst_id_by_name(&codex, "砲台小鬼");
+        let item = slotitem_with_mst_id(first_slotitem_mst_by_type(
+            &codex,
+            KcSlotItemType3::CarrierBasedTorpedoBomber,
+        ));
+        let seen: std::collections::BTreeSet<i64> = (0..40)
+            .map(|seed| {
+                let mut rng = crate::random::SeededRng::new(seed);
+                calculate_single_slot_airstrike_damage(
+                    &codex,
+                    &mut rng,
+                    &item,
+                    16,
+                    &land,
+                    HitOutcome::Hit,
+                    1.0,
+                    1.0,
+                    1.0,
+                )
+            })
+            .collect();
+        assert_eq!(seen.into_iter().collect::<Vec<_>>(), [20, 37], "25 × 0.8 and 25 × 1.5");
+    }
+
+    /// A carrier with 16 scouts, 16 torpedo bombers and fighters to hold the
+    /// air: the scouts count toward the contact chance, the bombers do not
+    /// (`getContact`).
+    fn scouting_carrier(codex: &Codex) -> (BattleRuntimeShip, i64) {
+        let scout = first_slotitem_mst_by_type(codex, KcSlotItemType3::CarrierBasedRecon);
+        let bomber = first_slotitem_mst_by_type(codex, KcSlotItemType3::CarrierBasedTorpedoBomber);
+        let fighter = first_slotitem_mst_by_type(codex, KcSlotItemType3::CarrierBasedFighter);
+        let mut carrier = sample_ship(codex, first_ship_mst_by_type(codex, KcShipType::CV), 50);
+        carrier.slot_items = vec![
+            slotitem_with_mst_id(bomber),
+            slotitem_with_mst_id(scout),
+            slotitem_with_mst_id(fighter),
+        ];
+        carrier.ship.api_onslot = [16, 16, 16, 0, 0];
+        let los = codex.manifest.find_slotitem(scout).unwrap().api_saku;
+        (BattleRuntimeShip::new(carrier, true, true), los)
+    }
+
+    #[test]
+    fn contact_chance_follows_the_air_state() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let (carrier, los) = scouting_carrier(&codex);
+        let power = 1.0 + (4.0 * los as f64).floor();
+        for (state, divisor) in [
+            (AirState::Supremacy, Some(25.0)),
+            (AirState::Superiority, Some(40.0)),
+            (AirState::Denial, Some(55.0)),
+            (AirState::Parity, None),
+            (AirState::Incapability, None),
+        ] {
+            assert_eq!(
+                contact_chance(&codex, &[&carrier], state),
+                divisor.map(|divisor| power / divisor),
+                "{state:?}"
+            );
+        }
+    }
+
+    /// Every target is drawn before any damage: two bombers both aim at a
+    /// lone destroyer, and the second strikes her after the first has sunk her.
+    /// With one ship afloat no seed is needed to make them pick the same one.
+    #[test]
+    fn every_target_is_drawn_before_the_first_strike() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cv_mst = first_ship_mst_by_type(&codex, KcShipType::CV);
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let carrier = || {
+            let mut carrier = sample_ship(&codex, cv_mst, 50);
+            carrier.slot_items = vec![slotitem_with_mst_id(bomber)];
+            carrier.ship.api_onslot = [18, 0, 0, 0, 0];
+            BattleRuntimeShip::new(carrier, true, true)
+        };
+        let mut target = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        target.ship.api_nowhp = 1;
+        target.ship.api_taiku[0] = 0;
+
+        let mut sunk = 0;
+        for seed in 0..20 {
+            let mut friendly = vec![carrier(), carrier()];
+            let mut enemies = vec![BattleRuntimeShip::new(target.clone(), false, true)];
+            let mut rng = crate::random::SeededRng::new(seed);
+            let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
+            assert_eq!(kouku.api_stage3.api_fbak, [0, 0], "seed {seed}: both flew at her");
+            sunk += i64::from(enemies[0].is_sunk());
+        }
+        // Where she sank, the other strike still flew at her.
+        assert!(sunk > 0, "no strike ever sank her");
+    }
+
+    /// `api_touch_plane` names the aircraft that made contact, or -1; a side
+    /// with no bomber to strike never tries.
+    #[test]
+    fn touch_plane_reports_the_rolled_contact() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let scout = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedRecon);
+        let mut enemy = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        enemy.ship.api_nowhp = 9999;
+        enemy.ship.api_maxhp = 9999;
+
+        let fly = |carrier: &BattleRuntimeShip, seed: u64| {
+            let mut friendly = vec![carrier.clone()];
+            let mut enemies = vec![BattleRuntimeShip::new(enemy.clone(), false, true)];
+            let mut rng = crate::random::SeededRng::new(seed);
+            simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng)
+                .api_stage1
+                .api_touch_plane
+        };
+
+        let (striking, _) = scouting_carrier(&codex);
+        let seen: std::collections::BTreeSet<i64> = (0..40)
+            .map(|seed| fly(&striking, seed))
+            .inspect(|touch| assert_eq!(touch[1], -1))
+            .map(|touch| touch[0])
+            .collect();
+        assert!(seen.contains(&scout) && seen.contains(&-1), "{seen:?}");
+
+        let mut scouting = striking.clone();
+        scouting.slot_items.remove(0);
+        scouting.ship.api_onslot = [16, 16, 0, 0, 0];
+        for seed in 0..40 {
+            assert_eq!(fly(&scouting, seed), [-1, -1], "seed {seed}: no bomber, no contact");
+        }
+    }
+
+    /// A strike aimed at the flagship can be taken by a healthy ship beside
+    /// her (`choiceWProtect`), and the damage is marked as covered.
+    #[test]
+    fn a_flagship_can_be_covered_from_a_strike() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let mut carrier = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CV), 50);
+        carrier.slot_items = vec![slotitem_with_mst_id(bomber); 4];
+        carrier.ship.api_onslot = [18, 18, 18, 18, 0];
+        let mut target = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        target.ship.api_nowhp = 9999;
+        target.ship.api_maxhp = 9999;
+        target.ship.api_taiku[0] = 0;
+
+        let covered = (0..40).any(|seed| {
+            let mut friendly = vec![BattleRuntimeShip::new(carrier.clone(), true, true)];
+            let mut enemies = vec![
+                BattleRuntimeShip::new(target.clone(), false, true),
+                BattleRuntimeShip::new(target.clone(), false, true),
+            ];
+            let mut rng = crate::random::SeededRng::new(seed);
+            let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
+            matches!(kouku.api_stage3.api_edam[1], DamageCell::Shielded(_))
+        });
+        assert!(covered, "no strike on the flagship was ever covered");
+    }
+
+    /// Under supremacy 彩雲 (索敵 9, 命中 2) and 二式艦上偵察機 (索敵 7, 命中 3)
+    /// make contact for certain, (1 + 36 + 28) / 25; then 彩雲 rolls 9/14 for
+    /// ×1.17, and the more accurate 二式 rolls 7/14 for ×1.2 after her.
+    #[test]
+    fn contact_goes_to_the_most_accurate_scout_that_rolls_it() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut carrier = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CV), 50);
+        carrier.slot_items = vec![slotitem_with_mst_id(54), slotitem_with_mst_id(61)];
+        carrier.ship.api_onslot = [16, 16, 0, 0, 0];
+        let carrier = BattleRuntimeShip::new(carrier, true, true);
+        assert!(contact_chance(&codex, &[&carrier], AirState::Supremacy).unwrap() > 1.0);
+
+        let seen: Vec<Option<(f64, i64)>> = (0..60)
+            .map(|seed| {
+                let mut rng = crate::random::SeededRng::new(seed);
+                roll_contact(&codex, &mut rng, &[&carrier], AirState::Supremacy)
+                    .map(|contact| (contact.modifier, contact.plane))
+            })
+            .collect();
+        for outcome in [None, Some((1.17, 54)), Some((1.2, 61))] {
+            assert!(seen.contains(&outcome), "{outcome:?} never came up");
+        }
+        assert!(
+            seen.iter().all(|outcome| [None, Some((1.17, 54)), Some((1.2, 61))].contains(outcome))
+        );
     }
 }

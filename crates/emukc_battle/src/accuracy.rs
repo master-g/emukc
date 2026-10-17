@@ -1006,6 +1006,16 @@ mod tests {
         roll(&mut one, 50, 1.3, PlaneProficiency::NONE);
         two.roll_range(0, 100);
         assert_eq!(one.roll_range(0, 1000), two.roll_range(0, 1000));
+        // Proficiency moves the thresholds, not the number of draws.
+        let skilled = PlaneProficiency {
+            accuracy: 12.5,
+            critical_rate: 8.0,
+            critical_damage: 1.2,
+            average_exp: 120.0,
+        };
+        roll(&mut one, 50, 1.3, skilled);
+        two.roll_range(0, 100);
+        assert_eq!(one.roll_range(0, 1000), two.roll_range(0, 1000));
     }
 
     #[test]
