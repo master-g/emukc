@@ -6,8 +6,8 @@ use crate::accuracy::{Aim, AttackKind, PlaneProficiency, roll_attack};
 use crate::damage::calculate_asw_damage;
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
-use crate::simulation::shelling::firing_order;
-use crate::targeting::{can_opening_asw, select_submarine_target};
+use crate::simulation::shelling::{damage_cell, firing_order};
+use crate::targeting::{can_opening_asw, choice_with_protect, submarine_candidates};
 use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType};
 
 /// Simulate the opening ASW phase (先制対潜). The ships of both sides that can
@@ -63,7 +63,11 @@ fn asw_turn(
     if !can_opening_asw(codex, ship) {
         return;
     }
-    let Some(target_idx) = select_submarine_target(codex, rng, defenders) else {
+    // 旗艦援護 (かばう), the escort deck included (`shellPhaseTarget` with `isOASW`).
+    let candidates = submarine_candidates(codex, defenders);
+    let Some((target_idx, shield)) =
+        choice_with_protect(codex, rng, defenders, &candidates, 0, true, aim.defender_formation)
+    else {
         return;
     };
     let outcome = roll_attack(codex, rng, ship, &defenders[target_idx], aim);
@@ -90,7 +94,7 @@ fn asw_turn(
         attacker_is_enemy,
         idx,
         vec![target_idx as i64],
-        vec![shown.into()],
+        vec![damage_cell(shown, shield)],
         vec![outcome.cl()],
     );
 }
@@ -138,6 +142,47 @@ mod tests {
         // type. Depth charge vs. ASW-plane animation is the client's own call.
         assert_eq!(taisen.api_at_type, vec![0]);
         assert!(taisen.api_damage[0][0].amount() >= 1);
+    }
+
+    /// `shellPhaseTarget` draws the opening ASW through `choiceWProtect`, so a submarine
+    /// covers her submarine flagship.
+    #[test]
+    fn opening_asw_on_a_submarine_flagship_can_be_shielded() {
+        use crate::types::{BattleRuntimeShip, DamageCell, EngagementType};
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let sonar_mst_id = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Sonar);
+        let hunter = || {
+            let mut ship = sample_ship(&codex, dd_mst, 99);
+            ship.ship.api_taisen[0] = 100;
+            ship.slot_items = vec![slotitem_with_mst_id(sonar_mst_id)];
+            BattleRuntimeShip::new(ship, true, true)
+        };
+        let submarine = || BattleRuntimeShip::new(sample_ship(&codex, ss_mst, 80), false, true);
+
+        let shielded = (0..200u64).any(|seed| {
+            let mut friendly = vec![hunter(), hunter()];
+            let mut enemy = vec![submarine(), submarine()];
+            let mut rng = crate::random::SeededRng::new(seed);
+            let Some(hougeki) = super::simulate_opening_taisen(
+                &codex,
+                &mut rng,
+                &mut friendly,
+                &mut enemy,
+                1,
+                3,
+                EngagementType::SameCourse,
+            ) else {
+                return false;
+            };
+            hougeki.api_damage.iter().zip(&hougeki.api_df_list).any(|(cells, targets)| {
+                let shielded = cells.iter().any(|cell| matches!(cell, DamageCell::Shielded(_)));
+                assert!(!shielded || targets == &[1], "an intercepted attack hits the escort");
+                shielded
+            })
+        });
+        assert!(shielded, "expected an intercepted opening ASW attack on the flagship");
     }
 
     /// R1: the enemy side of the OASW loop reports the same attack type. An

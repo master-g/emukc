@@ -64,35 +64,31 @@ const INSTALLATION_TARGET_NAME_MARKERS: &[&str] =
 // Core targeting — random target selection
 // ---------------------------------------------------------------------------
 
-/// Select a random target index from `defenders` based on the attacker's
-/// [`AttackCapability`] in the given `phase`.
-pub(crate) fn select_random_target_index(
+/// Draw a target from `candidates` as `choiceWProtect` does (`kcsim.js:2295`): one draw,
+/// up to `rerolls` more while the ship drawn has no searchlight, then かばう
+/// ([`select_escort_shield`]). Returns the ship hit and whether the client shows かばう: an
+/// enemy escort-deck ship covering the main deck's flagship takes the hit unshown
+/// (`DIDPROTECT = false`). `include_escort` lets the escort deck protect, as the source's
+/// caller says.
+pub(crate) fn choice_with_protect(
     codex: &Codex,
     rng: &mut impl BattleRng,
-    attacker: &BattleRuntimeShip,
     defenders: &[BattleRuntimeShip],
-    phase: BattlePhase,
-) -> Option<usize> {
-    let candidates = target_candidates(codex, attacker, defenders, phase);
-    rng.choose_index(candidates.len()).map(|at| candidates[at])
-}
-
-/// Select a night target as [`select_random_target_index`] does, then draw a surface ship
-/// without a searchlight again, up to `rerolls` times, stopping on one that has one
-/// (`choiceWProtect`). A submarine is drawn once.
-pub(crate) fn select_night_target(
-    codex: &Codex,
-    rng: &mut impl BattleRng,
-    attacker: &BattleRuntimeShip,
-    defenders: &[BattleRuntimeShip],
+    candidates: &[usize],
     rerolls: u8,
-) -> Option<usize> {
-    let candidates = target_candidates(codex, attacker, defenders, BattlePhase::NightShelling);
+    include_escort: bool,
+    formation_id: i64,
+) -> Option<(usize, bool)> {
     let pick = candidates[rng.choose_index(candidates.len())?];
-    if target_class(codex, &defenders[pick]).is_submarine() {
-        return Some(pick);
-    }
-    Some(reroll_toward_searchlight(codex, rng, defenders, &candidates, pick, rerolls))
+    let pick = reroll_toward_searchlight(codex, rng, defenders, candidates, pick, rerolls);
+    // The 警戒陣 front-half redraw comes here (#195).
+    Some(match select_escort_shield(codex, rng, defenders, pick, include_escort, formation_id) {
+        Some(escort) => {
+            let ship = &defenders[escort];
+            (escort, ship.is_friendly || !ship.is_escort_deck())
+        }
+        None => (pick, false),
+    })
 }
 
 /// How many times the fleet a ship is in draws a night target again for her searchlight:
@@ -128,7 +124,7 @@ fn reroll_toward_searchlight(
 
 /// The ships an attacker may fire at in `phase`: the surface ships or the submarines,
 /// whichever she prefers and can reach.
-fn target_candidates(
+pub(crate) fn target_candidates(
     codex: &Codex,
     attacker: &BattleRuntimeShip,
     defenders: &[BattleRuntimeShip],
@@ -203,43 +199,28 @@ fn shuns_installations(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
         && flown().any(|(item, _)| is_bomber(item))
 }
 
-/// Select a random alive target that is not a submarine, whatever the attacker would
-/// rather fire at: the ships of a special attack take no other (`shellPhaseTarget` with no
-/// submarines to choose from). At night the defenders' searchlight draws them as it does any
-/// night attack (`rerolls`, 0 by day).
-pub(crate) fn select_surface_target(
-    codex: &Codex,
-    rng: &mut impl BattleRng,
-    defenders: &[BattleRuntimeShip],
-    rerolls: u8,
-) -> Option<usize> {
-    let surface: Vec<usize> = defenders
-        .iter()
-        .enumerate()
-        .filter(|(_, ship)| ship.is_alive() && !target_class(codex, ship).is_submarine())
-        .map(|(idx, _)| idx)
-        .collect();
-    let pick = surface[rng.choose_index(surface.len())?];
-    Some(reroll_toward_searchlight(codex, rng, defenders, &surface, pick, rerolls))
+/// The ships afloat that are not submarines, whatever the attacker would rather fire at:
+/// the ships of a special attack take no other (`shellPhaseTarget` with no submarines to
+/// choose from).
+pub(crate) fn surface_candidates(codex: &Codex, defenders: &[BattleRuntimeShip]) -> Vec<usize> {
+    afloat_where(defenders, |ship| !target_class(codex, ship).is_submarine())
 }
 
-/// Select a random alive submarine target.
-pub(crate) fn select_submarine_target(
-    codex: &Codex,
-    rng: &mut impl BattleRng,
+/// The submarines afloat.
+pub(crate) fn submarine_candidates(codex: &Codex, defenders: &[BattleRuntimeShip]) -> Vec<usize> {
+    afloat_where(defenders, |ship| target_class(codex, ship).is_submarine())
+}
+
+fn afloat_where(
     defenders: &[BattleRuntimeShip],
-) -> Option<usize> {
-    let subs: Vec<usize> = defenders
+    keep: impl Fn(&BattleRuntimeShip) -> bool,
+) -> Vec<usize> {
+    defenders
         .iter()
         .enumerate()
-        .filter(|(_, ship)| ship.is_alive() && target_class(codex, ship).is_submarine())
+        .filter(|(_, ship)| ship.is_alive() && keep(ship))
         .map(|(idx, _)| idx)
-        .collect();
-
-    if subs.is_empty() {
-        return None;
-    }
-    Some(subs[rng.choose_index(subs.len()).expect("subs non-empty by construction")])
+        .collect()
 }
 
 // ---------------------------------------------------------------------------
@@ -280,31 +261,29 @@ const COMBINED_SHIELD_RATE: i64 = 60;
 /// damage instead. Returns the interceptor's index, or `None` when no
 /// interception occurs.
 ///
-/// Eligibility (no RNG): the flagship must be the target and not a land target,
-/// the formation must have a defined rate, and at least one escort must be
-/// non-flagship, alive, in green health (小破未満, HP > 75%), not a land target,
-/// and of the flagship's category (ships at sea protect ships at sea, submarines
-/// protect submarine flagships).
+/// In the order `choiceWProtect` takes: the flagship must be the target and not
+/// a land target, and the formation must have a defined rate, before any draw.
+/// Then one `roll_range` for the rate, cast whether or not anyone could protect.
+/// Only on success are the protectors gathered: non-flagship, alive, in green
+/// health (小破未満, HP > 75%), not a land target, of the flagship's category
+/// (ships at sea protect ships at sea, submarines protect submarine flagships),
+/// and in the escort deck only when `include_escort`. None → no interception and
+/// no further draw; otherwise one `choose_index` picks the interceptor.
 /// The flagship's own HP does **not** gate — interception fires even when the
 /// flagship is 大破.
-///
-/// RNG draw order (deterministic): only when all eligibility holds does this draw
-/// one `roll_range` for the probability, then one `choose_index` for the
-/// interceptor on success. Eligibility-fail paths consume no RNG, mirroring
-/// `choose_index`'s "no draw when empty" invariant.
 pub(crate) fn select_escort_shield(
     codex: &Codex,
     rng: &mut impl BattleRng,
     defenders: &[BattleRuntimeShip],
     target_idx: usize,
+    include_escort: bool,
     defender_formation_id: i64,
 ) -> Option<usize> {
-    // Only a fleet flagship is shielded. In a combined fleet the two decks share
-    // one vector with deck 1 first, so deck 2's flagship sits at `escort_start`,
-    // never at 0 — which is exactly the game's rule that the escort deck's
-    // flagship is not protected (`kcsim.js:2309` returns early on
-    // `target.isescort`). No extra check is needed here; the index does it.
-    if target_idx != 0 {
+    // Only a fleet flagship is shielded, and never deck 2's (`kcsim.js:2309`
+    // returns early on `target.isescort`). By day the two decks share one vector
+    // with deck 1 first, so deck 2's flagship sits at `escort_start`; at night
+    // deck 2 fights alone and its flagship is at 0, which the deck tag catches.
+    if target_idx != 0 || defenders[0].is_escort_deck() {
         return None;
     }
     // A land target is neither shielded nor a shield (`kcsim.js:2309`, `:2317`).
@@ -313,6 +292,9 @@ pub(crate) fn select_escort_shield(
         return None;
     }
     let rate = escort_shield_rate(defender_formation_id)?;
+    if rng.roll_range(0, 100) >= rate {
+        return None;
+    }
 
     // A ship at sea (incl. PT) protects one at sea; submarine protects
     // submarine.
@@ -323,13 +305,12 @@ pub(crate) fn select_escort_shield(
         .enumerate()
         .skip(1)
         .filter(|(_, ship)| {
-            // Deck 2 does not shield deck 1's flagship: `choiceWProtect` builds
-            // its defender pool with `!targets[i].isescort` unless the caller
-            // opts in, and the day shelling / torpedo paths do not.
+            // Deck 2 shields deck 1's flagship only when the caller opts in
+            // (`includeEscort`: the opening ASW and night surface draws).
             // `is_escort_deck` is false for every ship in a single-fleet battle,
             // so this filter is a no-op there.
             let class = target_class(codex, ship);
-            !ship.is_escort_deck()
+            (include_escort || !ship.is_escort_deck())
                 && ship.is_alive()
                 && ship.hp() * 4 > ship.ship.api_maxhp * 3
                 && class != TargetClass::Installation
@@ -337,13 +318,6 @@ pub(crate) fn select_escort_shield(
         })
         .map(|(idx, _)| idx)
         .collect();
-    if eligible.is_empty() {
-        return None;
-    }
-
-    if rng.roll_range(0, 100) >= rate {
-        return None;
-    }
     let pick = rng.choose_index(eligible.len())?;
     Some(eligible[pick])
 }
@@ -964,6 +938,18 @@ mod tests {
         }
     }
 
+    /// One draw from what `attacker` may fire at in `phase`, with no かばう (formation 0).
+    fn draw(
+        codex: &Codex,
+        rng: &mut impl BattleRng,
+        attacker: &BattleRuntimeShip,
+        defenders: &[BattleRuntimeShip],
+        phase: BattlePhase,
+    ) -> Option<usize> {
+        let candidates = target_candidates(codex, attacker, defenders, phase);
+        choice_with_protect(codex, rng, defenders, &candidates, 0, false, 0).map(|(at, _)| at)
+    }
+
     #[test]
     fn a_searchlight_draws_fire_for_as_many_rerolls_as_its_fleet_has() {
         const SEARCHLIGHT: i64 = 74;
@@ -984,7 +970,10 @@ mod tests {
         let defenders = [ship(&[]), ship(&[SEARCHLIGHT]), ship(&[])];
         let pick = |rerolls, draws: &[i64]| {
             let mut rng = Picks(draws.iter().copied().collect());
-            select_night_target(&codex, &mut rng, &attacker, &defenders, rerolls)
+            let candidates =
+                target_candidates(&codex, &attacker, &defenders, BattlePhase::NightShelling);
+            choice_with_protect(&codex, &mut rng, &defenders, &candidates, rerolls, true, 0)
+                .map(|(at, _)| at)
         };
         // With no searchlight on the fleet the one draw stands.
         assert_eq!(pick(0, &[0]), Some(0));
@@ -996,7 +985,9 @@ mod tests {
         assert_eq!(pick(2, &[1]), Some(1));
         // A special attack's ships draw the same way.
         let mut rng = Picks([2, 1].into_iter().collect());
-        assert_eq!(select_surface_target(&codex, &mut rng, &defenders, 1), Some(1));
+        let surface = surface_candidates(&codex, &defenders);
+        let drawn = choice_with_protect(&codex, &mut rng, &defenders, &surface, 1, true, 0);
+        assert_eq!(drawn, Some((1, false)));
     }
 
     #[test]
@@ -1013,14 +1004,8 @@ mod tests {
         ];
         let mut rng = crate::random::SeededRng::new(7);
 
-        let target_idx = select_random_target_index(
-            &codex,
-            &mut rng,
-            &attacker,
-            &defenders,
-            BattlePhase::DayShelling,
-        )
-        .unwrap();
+        let target_idx =
+            draw(&codex, &mut rng, &attacker, &defenders, BattlePhase::DayShelling).unwrap();
 
         assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::Submarine);
     }
@@ -1039,14 +1024,8 @@ mod tests {
         ];
         let mut rng = crate::random::SeededRng::new(7);
 
-        let target_idx = select_random_target_index(
-            &codex,
-            &mut rng,
-            &attacker,
-            &defenders,
-            BattlePhase::DayShelling,
-        )
-        .unwrap();
+        let target_idx =
+            draw(&codex, &mut rng, &attacker, &defenders, BattlePhase::DayShelling).unwrap();
 
         assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::SurfaceShip);
     }
@@ -1143,14 +1122,8 @@ mod tests {
         ];
         let mut rng = crate::random::SeededRng::new(13);
 
-        let target_idx = select_random_target_index(
-            &codex,
-            &mut rng,
-            &attacker,
-            &defenders,
-            BattlePhase::DayShelling,
-        )
-        .unwrap();
+        let target_idx =
+            draw(&codex, &mut rng, &attacker, &defenders, BattlePhase::DayShelling).unwrap();
 
         assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::PtBoat);
     }
@@ -1188,13 +1161,8 @@ mod tests {
         // With only the land target left she does not fire, and draws nothing for it.
         assert_eq!(aims(&type99, std::slice::from_ref(&land)), Vec::<usize>::new());
         let mut rng = crate::random::SeededRng::new(5);
-        let drawn = select_random_target_index(
-            &codex,
-            &mut rng,
-            &type99,
-            std::slice::from_ref(&land),
-            BattlePhase::DayShelling,
-        );
+        let drawn =
+            draw(&codex, &mut rng, &type99, std::slice::from_ref(&land), BattlePhase::DayShelling);
         assert_eq!(drawn, None);
         assert_eq!(rng.roll_range(0, 1000), crate::random::SeededRng::new(5).roll_range(0, 1000));
         // A dive bomber the source lets attack land takes the land target back in.
@@ -1228,14 +1196,8 @@ mod tests {
         ];
         let mut rng = crate::random::SeededRng::new(17);
 
-        let target_idx = select_random_target_index(
-            &codex,
-            &mut rng,
-            &attacker,
-            &defenders,
-            BattlePhase::ClosingTorpedo,
-        )
-        .unwrap();
+        let target_idx =
+            draw(&codex, &mut rng, &attacker, &defenders, BattlePhase::ClosingTorpedo).unwrap();
 
         assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::Installation);
     }
@@ -1298,24 +1260,13 @@ mod tests {
         let submarine_only = vec![BattleRuntimeShip::from(sample_ship(&codex, ss_mst, 50))];
         let mut rng = crate::random::SeededRng::new(11);
 
-        let target_idx = select_random_target_index(
-            &codex,
-            &mut rng,
-            &attacker,
-            &mixed_defenders,
-            BattlePhase::ClosingTorpedo,
-        )
-        .unwrap();
+        let target_idx =
+            draw(&codex, &mut rng, &attacker, &mixed_defenders, BattlePhase::ClosingTorpedo)
+                .unwrap();
         assert_eq!(target_class(&codex, &mixed_defenders[target_idx]), TargetClass::SurfaceShip);
         assert!(
-            select_random_target_index(
-                &codex,
-                &mut rng,
-                &attacker,
-                &submarine_only,
-                BattlePhase::OpeningTorpedo,
-            )
-            .is_none()
+            draw(&codex, &mut rng, &attacker, &submarine_only, BattlePhase::OpeningTorpedo,)
+                .is_none()
         );
     }
 
@@ -1380,7 +1331,9 @@ mod tests {
 
         // Should always select index 1 (the submarine), never index 0 (the DD)
         for _ in 0..10 {
-            let idx = select_submarine_target(&codex, &mut rng, &defenders).unwrap();
+            let subs = submarine_candidates(&codex, &defenders);
+            let (idx, _) =
+                choice_with_protect(&codex, &mut rng, &defenders, &subs, 0, true, 0).unwrap();
             assert_eq!(idx, 1, "OASW should only target submarines");
         }
     }
@@ -1628,7 +1581,8 @@ mod tests {
             let mut rng = crate::random::SeededRng::new(7);
             (0..trials)
                 .filter(|_| {
-                    select_escort_shield(&codex, &mut rng, &defenders, 0, formation).is_some()
+                    select_escort_shield(&codex, &mut rng, &defenders, 0, false, formation)
+                        .is_some()
                 })
                 .count()
         };
@@ -1650,7 +1604,7 @@ mod tests {
         let defenders = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, dd, 50, 100)];
         for seed in [1u64, 7, 999] {
             let mut rng = crate::random::SeededRng::new(seed);
-            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, 3), None);
+            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, false, 3), None);
         }
     }
 
@@ -1673,8 +1627,75 @@ mod tests {
 
         for seed in [1u64, 7, 999] {
             let mut rng = crate::random::SeededRng::new(seed);
-            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, 11), None);
+            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, false, 11), None);
         }
+    }
+
+    /// At night a combined fleet fights with deck 2 alone, so its flagship sits at index 0;
+    /// she is still deck 2's flagship, whom `choiceWProtect` returns before the roll.
+    #[test]
+    fn deck_2_alone_at_night_leaves_its_flagship_uncovered_and_rolls_nothing() {
+        use crate::combined::{CombinedFleetRole, CombinedType};
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let deck_2 = || {
+            rt_ship(&codex, dd, 30, 30)
+                .in_combined_fleet(CombinedType::CarrierTaskForce, CombinedFleetRole::Escort)
+        };
+        let defenders = vec![deck_2(), deck_2()];
+        for include_escort in [true, false] {
+            let mut rng = Picks(Default::default());
+            assert_eq!(
+                select_escort_shield(&codex, &mut rng, &defenders, 0, include_escort, 11),
+                None
+            );
+        }
+    }
+
+    /// An enemy escort-deck ship covering the main deck's flagship takes the hit, but the
+    /// source shows no かばう for it; a friendly one is shown.
+    #[test]
+    fn an_enemy_escort_deck_cover_is_not_shown() {
+        use crate::combined::{CombinedFleetRole, CombinedType};
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        // Draw the flagship, roll under the rate, pick the one protector.
+        let cover = |defenders: &[BattleRuntimeShip]| {
+            let mut rng = Picks([0, 0, 0].into_iter().collect());
+            choice_with_protect(&codex, &mut rng, defenders, &[0], 0, true, 3)
+        };
+
+        let enemy = vec![
+            rt_ship(&codex, dd, 30, 30).in_enemy_deck(CombinedFleetRole::Main),
+            rt_ship(&codex, dd, 30, 30).in_enemy_deck(CombinedFleetRole::Escort),
+        ];
+        assert_eq!(cover(&enemy), Some((1, false)));
+
+        let friendly = [CombinedFleetRole::Main, CombinedFleetRole::Escort].map(|role| {
+            BattleRuntimeShip::new(sample_ship(&codex, dd, 50), true, true)
+                .in_combined_fleet(CombinedType::CarrierTaskForce, role)
+        });
+        assert_eq!(cover(&friendly), Some((1, true)));
+    }
+
+    /// A caller that passes `includeEscort` (the opening ASW, night surface draws) lets
+    /// deck 2 cover deck 1's flagship.
+    #[test]
+    fn escort_deck_shields_the_main_deck_flagship_when_included() {
+        use crate::combined::{CombinedFleetRole, CombinedType};
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let escort = rt_ship(&codex, dd, 30, 30)
+            .in_combined_fleet(CombinedType::CarrierTaskForce, CombinedFleetRole::Escort);
+        let flagship = rt_ship(&codex, dd, 30, 30)
+            .in_combined_fleet(CombinedType::CarrierTaskForce, CombinedFleetRole::Main);
+        let defenders = vec![flagship, escort];
+
+        let mut rng = crate::random::SeededRng::new(7);
+        let fired = (0..4000)
+            .filter(|_| select_escort_shield(&codex, &mut rng, &defenders, 0, true, 11) == Some(1))
+            .count();
+        assert!((2200..=2600).contains(&fired), "警戒航行序列 ~60%: got {fired}/4000");
     }
 
     /// Deck 2's own flagship is never shielded either — the two decks share one
@@ -1705,7 +1726,7 @@ mod tests {
         // Index 2 is deck 2's flagship.
         for seed in [1u64, 7, 999] {
             let mut rng = crate::random::SeededRng::new(seed);
-            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 2, 11), None);
+            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 2, false, 11), None);
         }
     }
 
@@ -1729,7 +1750,8 @@ mod tests {
             let mut rng = crate::random::SeededRng::new(7);
             let fired = (0..trials)
                 .filter(|_| {
-                    select_escort_shield(&codex, &mut rng, &defenders, 0, formation).is_some()
+                    select_escort_shield(&codex, &mut rng, &defenders, 0, false, formation)
+                        .is_some()
                 })
                 .count();
             assert!(
@@ -1748,7 +1770,7 @@ mod tests {
         let defenders = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, ss, 30, 30)];
         for seed in [1u64, 7, 999] {
             let mut rng = crate::random::SeededRng::new(seed);
-            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, 3), None);
+            assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, false, 3), None);
         }
     }
 
@@ -1761,13 +1783,13 @@ mod tests {
         // Exactly 75%: 75*4 = 300 == 100*3 → not strictly greater → ineligible.
         let at_75 = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, dd, 75, 100)];
         let mut rng = crate::random::SeededRng::new(7);
-        assert_eq!(select_escort_shield(&codex, &mut rng, &at_75, 0, 3), None);
+        assert_eq!(select_escort_shield(&codex, &mut rng, &at_75, 0, false, 3), None);
 
         // 76%: 76*4 = 304 > 300 → eligible → fires on some rolls.
         let at_76 = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, dd, 76, 100)];
         let mut rng = crate::random::SeededRng::new(7);
         let fired = (0..200)
-            .filter(|_| select_escort_shield(&codex, &mut rng, &at_76, 0, 3).is_some())
+            .filter(|_| select_escort_shield(&codex, &mut rng, &at_76, 0, false, 3).is_some())
             .count();
         assert!(fired > 0, "a 76% escort must be eligible and intercept on some rolls");
     }
@@ -1780,7 +1802,7 @@ mod tests {
         let defenders = vec![rt_ship(&codex, dd, 30, 30), rt_ship(&codex, dd, 30, 30)];
 
         let mut rng = crate::random::SeededRng::new(5);
-        assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 1, 1), None);
+        assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 1, false, 1), None);
         // No draw consumed: the next roll matches a fresh rng's first roll.
         let next = rng.roll_range(0, 1_000_000);
         let fresh = crate::random::SeededRng::new(5).roll_range(0, 1_000_000);
@@ -1801,13 +1823,31 @@ mod tests {
 
         // A land flagship is not covered, and no die is cast for it.
         let defenders = vec![land(), rt_ship(&codex, dd, 30, 30)];
-        assert_eq!(select_escort_shield(&codex, &mut picks(&[]), &defenders, 0, 3), None);
-        // A healthy land escort does not cover a ship.
+        assert_eq!(select_escort_shield(&codex, &mut picks(&[]), &defenders, 0, false, 3), None);
+        // A healthy land escort does not cover a ship (the roll is still cast).
         let defenders = vec![rt_ship(&codex, dd, 30, 30), land()];
-        assert_eq!(select_escort_shield(&codex, &mut picks(&[]), &defenders, 0, 3), None);
+        assert_eq!(select_escort_shield(&codex, &mut picks(&[0]), &defenders, 0, false, 3), None);
         // A ship beside it still does: the first eligible escort is the ship, not the land.
         let defenders = vec![rt_ship(&codex, dd, 30, 30), land(), rt_ship(&codex, dd, 30, 30)];
-        assert_eq!(select_escort_shield(&codex, &mut picks(&[0, 0]), &defenders, 0, 3), Some(2));
+        assert_eq!(
+            select_escort_shield(&codex, &mut picks(&[0, 0]), &defenders, 0, false, 3),
+            Some(2)
+        );
+    }
+
+    /// `choiceWProtect` casts the die for かばう before it looks for a protector, so a
+    /// flagship with none beside her still costs one roll.
+    #[test]
+    fn a_flagship_with_no_protector_still_costs_the_roll() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let mut land = rt_ship(&codex, dd, 30, 30);
+        land.ship.api_ship_id = ship_mst_id_by_name(&codex, "砲台小鬼");
+        let defenders = vec![rt_ship(&codex, dd, 30, 30), land];
+
+        let mut rng = Picks([0].into_iter().collect());
+        assert_eq!(select_escort_shield(&codex, &mut rng, &defenders, 0, false, 3), None);
+        assert!(rng.0.is_empty(), "the roll is cast whether or not anyone could protect");
     }
 
     /// R5: a submarine escort protects a submarine flagship.
@@ -1818,7 +1858,7 @@ mod tests {
         let defenders = vec![rt_ship(&codex, ss, 30, 30), rt_ship(&codex, ss, 30, 30)];
         let mut rng = crate::random::SeededRng::new(7);
         let fired = (0..200)
-            .filter(|_| select_escort_shield(&codex, &mut rng, &defenders, 0, 3).is_some())
+            .filter(|_| select_escort_shield(&codex, &mut rng, &defenders, 0, false, 3).is_some())
             .count();
         assert!(fired > 0, "a submarine escort must protect a submarine flagship");
     }
@@ -1839,7 +1879,7 @@ mod tests {
         let mut rng = crate::random::SeededRng::new(7);
         let mut seen = [false; 3];
         for _ in 0..4000 {
-            if let Some(idx) = select_escort_shield(&codex, &mut rng, &defenders, 0, 3) {
+            if let Some(idx) = select_escort_shield(&codex, &mut rng, &defenders, 0, false, 3) {
                 seen[idx] = true;
             }
         }

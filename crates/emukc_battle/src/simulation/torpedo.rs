@@ -6,8 +6,7 @@ use crate::accuracy::{Aim, AttackKind, roll_attack};
 use crate::damage::{calculate_torpedo_damage, torpedo_attack_power};
 use crate::random::BattleRng;
 use crate::targeting::{
-    can_closing_torpedo_ship, can_opening_torpedo_ship, select_escort_shield,
-    select_random_target_index,
+    can_closing_torpedo_ship, can_opening_torpedo_ship, choice_with_protect, target_candidates,
 };
 use crate::types::{
     BattleOpeningAttack, BattlePhase, BattleRaigeki, BattleRuntimeShip, EngagementType,
@@ -45,18 +44,12 @@ pub(crate) fn simulate_opening_torpedo(
         if !can_opening_torpedo_ship(codex, ship) {
             continue;
         }
-        let Some(mut target_idx) =
-            select_random_target_index(codex, rng, ship, enemy, BattlePhase::OpeningTorpedo)
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        let candidates = target_candidates(codex, ship, enemy, BattlePhase::OpeningTorpedo);
+        let Some((target_idx, shield)) =
+            choice_with_protect(codex, rng, enemy, &candidates, 0, false, enemy_formation_id)
         else {
             continue;
-        };
-        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let shield = match select_escort_shield(codex, rng, enemy, target_idx, enemy_formation_id) {
-            Some(escort) => {
-                target_idx = escort;
-                true
-            }
-            None => false,
         };
         // A fifth of the torpedo's power goes into its accuracy.
         let power = torpedo_attack_power(
@@ -105,20 +98,13 @@ pub(crate) fn simulate_opening_torpedo(
         if !can_opening_torpedo_ship(codex, ship) {
             continue;
         }
-        let Some(mut target_idx) =
-            select_random_target_index(codex, rng, ship, friendly, BattlePhase::OpeningTorpedo)
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        let candidates = target_candidates(codex, ship, friendly, BattlePhase::OpeningTorpedo);
+        let Some((target_idx, shield)) =
+            choice_with_protect(codex, rng, friendly, &candidates, 0, false, friendly_formation_id)
         else {
             continue;
         };
-        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let shield =
-            match select_escort_shield(codex, rng, friendly, target_idx, friendly_formation_id) {
-                Some(escort) => {
-                    target_idx = escort;
-                    true
-                }
-                None => false,
-            };
         // A fifth of the torpedo's power goes into its accuracy.
         let power = torpedo_attack_power(
             codex,
@@ -192,8 +178,10 @@ pub(crate) fn simulate_raigeki(
         if !can_closing_torpedo_ship(codex, ship) {
             continue;
         }
-        let Some(target_idx) =
-            select_random_target_index(codex, rng, ship, enemy, BattlePhase::ClosingTorpedo)
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        let candidates = target_candidates(codex, ship, enemy, BattlePhase::ClosingTorpedo);
+        let Some((target_idx, shield)) =
+            choice_with_protect(codex, rng, enemy, &candidates, 0, false, enemy_formation_id)
         else {
             continue;
         };
@@ -234,7 +222,7 @@ pub(crate) fn simulate_raigeki(
                 defender_index: target_idx,
                 damage: display,
                 cl: outcome.cl(),
-                shield: false, // closing torpedo is out of scope for かばう
+                shield,
             },
         );
         happened = true;
@@ -249,8 +237,10 @@ pub(crate) fn simulate_raigeki(
         if !can_closing_torpedo_ship(codex, ship) {
             continue;
         }
-        let Some(target_idx) =
-            select_random_target_index(codex, rng, ship, friendly, BattlePhase::ClosingTorpedo)
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        let candidates = target_candidates(codex, ship, friendly, BattlePhase::ClosingTorpedo);
+        let Some((target_idx, shield)) =
+            choice_with_protect(codex, rng, friendly, &candidates, 0, false, friendly_formation_id)
         else {
             continue;
         };
@@ -291,7 +281,7 @@ pub(crate) fn simulate_raigeki(
                 defender_index: target_idx,
                 damage: display,
                 cl: outcome.cl(),
-                shield: false, // closing torpedo is out of scope for かばう
+                shield,
             },
         );
         happened = true;
@@ -451,6 +441,45 @@ mod tests {
         assert_eq!(raigeki.api_eydam[0], DamageCell::Plain(dealt));
         assert_eq!(raigeki.api_fydam[0], DamageCell::Plain(0));
         assert_eq!(friendly[0].hp(), friendly[0].ship.api_nowhp - dealt);
+    }
+
+    /// `torpedoPhase` draws the closing torpedo through `choiceWProtect` as it does the
+    /// opening one, so an escort covers the flagship there too.
+    #[test]
+    fn closing_torpedo_flagship_can_be_shielded() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let clt = first_ship_mst_by_type(&codex, KcShipType::CLT);
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+
+        let shielded = (0..200u64).any(|seed| {
+            let mut friendly = vec![
+                BattleRuntimeShip::new(sample_ship(&codex, bb, 80), true, true),
+                BattleRuntimeShip::new(sample_ship(&codex, dd, 80), true, true),
+            ];
+            let mut enemy = vec![
+                BattleRuntimeShip::new(sample_ship(&codex, clt, 80), false, true),
+                BattleRuntimeShip::new(sample_ship(&codex, clt, 80), false, true),
+            ];
+            let mut rng = SeededRng::new(seed);
+            let Some(raigeki) = simulate_raigeki(
+                &codex,
+                &mut rng,
+                &mut friendly,
+                &mut enemy,
+                3,
+                1,
+                EngagementType::SameCourse,
+            ) else {
+                return false;
+            };
+            raigeki.api_eydam.iter().zip(&raigeki.api_erai).any(|(cell, &target)| {
+                let shielded = matches!(cell, DamageCell::Shielded(_));
+                assert!(!shielded || target == 1, "an intercepted torpedo hits the escort");
+                shielded
+            })
+        });
+        assert!(shielded, "expected an intercepted closing-torpedo hit on the flagship");
     }
 
     /// Covers AE5. An intercepted opening-torpedo hit on the friendly flagship

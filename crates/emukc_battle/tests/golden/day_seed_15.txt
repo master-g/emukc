@@ -6,7 +6,7 @@ BattlePacket {
     ],
     friendly_nowhps: [
         60,
-        52,
+        60,
     ],
     enemy_nowhps: [
         0,
@@ -120,7 +120,7 @@ BattlePacket {
     opening_attack: None,
     hourai_flag: [
         1,
-        1,
+        0,
         0,
         0,
     ],
@@ -129,17 +129,14 @@ BattlePacket {
             api_at_eflag: [
                 0,
                 0,
-                1,
             ],
             api_at_list: [
                 1,
-                0,
                 0,
             ],
             api_at_type: [
                 0,
                 0,
-                2,
             ],
             api_df_list: [
                 [
@@ -147,10 +144,6 @@ BattlePacket {
                 ],
                 [
                     0,
-                ],
-                [
-                    1,
-                    1,
                 ],
             ],
             api_si_list: [
@@ -164,24 +157,12 @@ BattlePacket {
                         7,
                     ),
                 ],
-                [
-                    Text(
-                        "105",
-                    ),
-                    Text(
-                        "8",
-                    ),
-                ],
             ],
             api_cl_list: [
                 [
                     1,
                 ],
                 [
-                    0,
-                ],
-                [
-                    1,
                     1,
                 ],
             ],
@@ -190,50 +171,12 @@ BattlePacket {
                     118,
                 ],
                 [
-                    0,
-                ],
-                [
-                    4.1,
-                    4.1,
+                    117,
                 ],
             ],
         },
     ),
-    hougeki2: Some(
-        BattleHougeki {
-            api_at_eflag: [
-                0,
-            ],
-            api_at_list: [
-                0,
-            ],
-            api_at_type: [
-                0,
-            ],
-            api_df_list: [
-                [
-                    0,
-                ],
-            ],
-            api_si_list: [
-                [
-                    Num(
-                        7,
-                    ),
-                ],
-            ],
-            api_cl_list: [
-                [
-                    1,
-                ],
-            ],
-            api_damage: [
-                [
-                    113,
-                ],
-            ],
-        },
-    ),
+    hougeki2: None,
     hougeki3: None,
     raigeki: None,
 }

@@ -10,7 +10,9 @@ use crate::accuracy::{Aim, AttackKind, roll_attack};
 use crate::damage::{calculate_shelling_damage, cut_in_hit};
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
-use crate::targeting::{has_slotitem_id, select_surface_target, ship_type, target_class};
+use crate::targeting::{
+    choice_with_protect, has_slotitem_id, ship_type, surface_candidates, target_class,
+};
 use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, EngagementType, ShellingParams};
 
 // ---------------------------------------------------------------------------
@@ -606,22 +608,18 @@ pub(crate) fn execute_special_attack(
             continue;
         }
 
-        let Some(mut target_idx) = select_surface_target(codex, rng, defenders, 0) else {
-            continue;
-        };
         // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let shield = match crate::targeting::select_escort_shield(
+        let candidates = surface_candidates(codex, defenders);
+        let Some((target_idx, shield)) = choice_with_protect(
             codex,
             rng,
             defenders,
-            target_idx,
+            &candidates,
+            0,
+            false,
             params.defender_formation_id,
-        ) {
-            Some(escort) => {
-                target_idx = escort;
-                true
-            }
-            None => false,
+        ) else {
+            continue;
         };
 
         let outcome = roll_attack(

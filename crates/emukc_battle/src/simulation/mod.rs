@@ -922,7 +922,7 @@ mod tests {
         enemy_dd.ship.api_raisou[0] = 0;
         enemy_dd.ship.api_soukou[0] = 200;
 
-        let mut rng = SeededRng::new(1);
+        let mut rng = SeededRng::new(0);
         let simulation = simulate_day(
             &codex,
             BattleContext::head_on(
@@ -969,7 +969,7 @@ mod tests {
         enemy.ship.api_raisou[0] = 80;
         enemy.ship.api_soukou[0] = 200;
 
-        let mut rng = SeededRng::new(7);
+        let mut rng = SeededRng::new(0);
         let simulation = simulate_day(
             &codex,
             BattleContext::head_on(BattleType::Normal, true, vec![friend], vec![enemy]),

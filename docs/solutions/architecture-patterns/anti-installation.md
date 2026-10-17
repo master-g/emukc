@@ -103,6 +103,3 @@ Where it is read (`damage.rs`):
   not take them, and the generator does not list them.
 - A carrier's day shelling of a land target (`CV.prototype.shellPower`) keeps the carrier formula
   without the multipliers.
-- `choiceWProtect` rolls for かばう before it gathers the protectors; `select_escort_shield` rolls
-  only when one is eligible. With nothing but healthy land targets beside a ship flagship, the
-  source draws once and this draws nothing, so a seed lines up differently after it.
