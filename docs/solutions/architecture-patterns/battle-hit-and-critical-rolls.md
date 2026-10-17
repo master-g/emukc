@@ -55,6 +55,29 @@ Transcribed from `KC3Kai/kancolle-replay` `kcsim.js` (`hitRate`, `accuracyAndCri
 A formation that is countered (複縦 against 単横, 梯形 against 単縦, 単横 against 梯形) gives
 shelling and ASW no accuracy multiplier; torpedo and night attacks always take theirs.
 
+## 警戒陣
+
+A fleet in 警戒陣 (formation 6) fights in two halves (#195, plan `2026-10-17-004`, `kcships.js`
+`getFormation`, `kcsim.js` `VANGUARD1`/`VANGUARD2`, `vanguardUseType` 2). Each ship carries
+her place (`BattleRuntimeShip::vanguard`, set by `BattleState::from_context`): her number from
+1 and the fleet's length; one sunk or sent home keeps hers. The front half is the first
+`floor(n / 2)`: 3 of 6 or 7, 2 of 5.
+
+- Attacker's accuracy by her own half: front shelling 0.8, torpedo 0.7, night 0.8, ASW 1;
+  rear 1.2, 0.9, 1.2, 1.1. Neither half dodges by its formation.
+- Attacker's power: the front half shells at 0.5 and attacks at night at half power before the
+  cap; the rear half attacks submarines by day at 0.6; torpedoes are 1 in both.
+- Target's place: when the target's fleet is in 警戒陣 the attacker's accuracy is multiplied
+  by her place's figure (`vanguard_dodge`), countered or not. Shelling, night and ASW: a
+  destroyer `.95 .95 .8 .8 .69 .64 .64`, any other ship `.95 .95 .95 .95 .86 .79 .7`;
+  torpedoes: `.9 .9 .65 .58 .5 .42 .42` and `.9 .9 .77 .67 .63 .55 .51`.
+- A fleet in 警戒陣 aims its torpedoes at a destroyer at 1.2 and its shelling and night
+  attacks at 1.1, whichever half fires.
+- `choice_with_protect` draws a target in the front half once more, after the searchlight
+  rerolls and before かばう; the second draw stands.
+
+The event-map rows (`*Event`) and the flat-evasion variant (`vanguardUseType` 1) are not used.
+
 ## Aircraft proficiency
 
 `plane_proficiency` sums a ship's 熟練度 the way `kcships.js` `updateProficiencyBonus` does and
@@ -112,8 +135,7 @@ roll only. How proficiency grows and falls is in `plane-losses-and-proficiency-g
 ## Not modelled
 
 Each is a correction the source applies on top: the first-slot terms of the carrier cut-in; gun fit,
-改修, the combined-fleet accuracy terms, 警戒陣 by position (the rear
-half's row is used for the whole fleet), star shells and night contact, AP-shell accuracy,
+改修, the combined-fleet accuracy terms, star shells and night contact, AP-shell accuracy,
 the accuracy multipliers of flagship special attacks, smoke, balloons, PT imps, event bonuses.
 A night attack on a submarine in a combined fleet after a day battle scratches where the source
 does real damage (see `carrier-night-air-attack.md`, "A submarine at night"). Abyssal ships fight at

@@ -188,6 +188,7 @@ pub(crate) fn calculate_shelling_damage(
         damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, BattlePhase::DayShelling);
     let pre_cap = (basic_power + light_gun_bonus(codex, attacker))
         * day_formation_modifier(formation_id, CombinedAttackClass::Shelling)
+        * vanguard_power(attacker, CombinedAttackClass::Shelling)
         * engagement.modifier()
         * dmg_state;
     let mut capped_power = apply_cap(pre_cap, SHELLING_CAP) as f64;
@@ -325,6 +326,12 @@ pub(crate) fn calculate_night_damage(
         Some(m) => basic_power * m,
         None => basic_power,
     };
+    // The front half of a fleet in 警戒陣 attacks at half power (`NBattack`).
+    let pre_cap = if attacker.in_vanguard_front() {
+        pre_cap * 0.5
+    } else {
+        pre_cap
+    };
     let capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64
         * post_cap_multiplier(codex, attacker, defender, false);
     let capped_power = if air_power.is_some() {
@@ -373,6 +380,7 @@ pub(crate) fn calculate_asw_damage(
     // (reference §Combined fleet corrections).
     let modified = raw_power
         * day_formation_modifier(formation_id, CombinedAttackClass::Asw)
+        * vanguard_power(attacker, CombinedAttackClass::Asw)
         * engagement.modifier()
         * dmg_state;
     let capped = outcome.power_with(apply_cap(modified, ASW_CAP) as f64, planes.critical_damage);
@@ -553,6 +561,20 @@ fn combined_correction(
         membership.role,
         attacker.is_friendly,
     )
+}
+
+/// What a ship's half of a fleet in 警戒陣 does to her daytime attack of
+/// `class` (`VANGUARD1`, `VANGUARD2`): the front half shells at 0.5, the rear
+/// half attacks submarines at 0.6. Torpedoes are 1 in both.
+pub(crate) fn vanguard_power(attacker: &BattleRuntimeShip, class: CombinedAttackClass) -> f64 {
+    let Some(place) = attacker.vanguard else {
+        return 1.0;
+    };
+    match (class, place.front()) {
+        (CombinedAttackClass::Shelling, true) => 0.5,
+        (CombinedAttackClass::Asw, false) => 0.6,
+        _ => 1.0,
+    }
 }
 
 /// ASW formation modifier: Diamond (3) = 1.2×, Echelon (4) = 1.1×, Line Abreast (5) = 1.3×
@@ -1121,6 +1143,70 @@ mod tests {
         );
         // 300 x 1.3 + 75 = 465, capped to 370, then x 1.25; not 465 x 1.25 capped to 374.
         assert_eq!(damage, 462);
+    }
+
+    #[test]
+    fn each_half_of_a_vanguard_strikes_by_its_own_multiplier() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |number| {
+            let input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 1);
+            BattleRuntimeShip::new(input, true, true).in_vanguard(number, 6)
+        };
+        let power = |number, class| vanguard_power(&ship(number), class);
+        assert_eq!(power(3, CombinedAttackClass::Shelling), 0.5);
+        assert_eq!(power(4, CombinedAttackClass::Shelling), 1.0);
+        assert_eq!(power(1, CombinedAttackClass::Asw), 1.0);
+        assert_eq!(power(6, CombinedAttackClass::Asw), 0.6);
+        assert_eq!(power(1, CombinedAttackClass::Torpedo), 1.0);
+        assert_eq!(power(6, CombinedAttackClass::Torpedo), 1.0);
+    }
+
+    /// The front half of a vanguard shells, and attacks at night, with half the
+    /// power the rear half would have.
+    #[test]
+    fn the_front_half_of_a_vanguard_strikes_at_half_power() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cl = first_ship_mst_by_type(&codex, KcShipType::CL);
+        let defender = || {
+            let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::BB), 1);
+            input.ship.api_soukou[0] = 0;
+            input.ship.api_nowhp = 9999;
+            input.ship.api_maxhp = 9999;
+            BattleRuntimeShip::new(input, false, true)
+        };
+        let attacker = |number| {
+            BattleRuntimeShip::new(sample_ship(&codex, cl, 99), true, true).in_vanguard(number, 6)
+        };
+        for seed in [1u64, 7, 42] {
+            let day = |number| {
+                calculate_shelling_damage(
+                    &codex,
+                    &mut crate::random::SeededRng::new(seed),
+                    &attacker(number),
+                    &defender(),
+                    6,
+                    EngagementType::SameCourse,
+                    None,
+                    HitOutcome::Hit,
+                )
+            };
+            let night = |number| {
+                calculate_night_damage(
+                    &codex,
+                    &mut crate::random::SeededRng::new(seed),
+                    &attacker(number),
+                    &defender(),
+                    None,
+                    None,
+                    None,
+                    HitOutcome::Hit,
+                )
+            };
+            for (front, rear) in [(day(1), day(6)), (night(1), night(6))] {
+                assert!(front > 0);
+                assert!((rear - 2 * front).abs() <= 1, "seed {seed}: {front} against {rear}");
+            }
+        }
     }
 
     #[test]

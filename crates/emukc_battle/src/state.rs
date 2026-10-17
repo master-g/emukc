@@ -5,7 +5,7 @@ use crate::types::CombinedMembership;
 use crate::types::{
     AirCorpsInput, BattleAirBaseAttack, BattleContext, BattleHougeki, BattleKouku,
     BattleOpeningAttack, BattleOutcome, BattlePacket, BattleRaigeki, BattleRuntimeShip,
-    BattleSimulation, BattleType, NightBattlePacket, NightBattleSimulation,
+    BattleSimulation, BattleType, NightBattlePacket, NightBattleSimulation, VanguardPlace,
 };
 
 /// Combined-fleet layout of [`BattleState::friendly`].
@@ -22,6 +22,20 @@ use crate::types::{
 pub(crate) struct CombinedLayout {
     pub(crate) combined_type: CombinedType,
     pub(crate) escort_start: usize,
+}
+
+/// Give each ship of a fleet in 警戒陣 (formation 6) her place in the line.
+fn place_in_vanguard(fleet: &mut [BattleRuntimeShip], formation_id: i64) {
+    if formation_id != 6 {
+        return;
+    }
+    let fleet_len = fleet.len();
+    for (index, ship) in fleet.iter_mut().enumerate() {
+        ship.vanguard = Some(VanguardPlace {
+            number: index + 1,
+            fleet_len,
+        });
+    }
 }
 
 /// All mutable state for a single battle simulation.
@@ -75,6 +89,7 @@ impl BattleState {
             .into_iter()
             .map(|s| BattleRuntimeShip::new(s, true, is_sortie))
             .collect::<Vec<_>>();
+        place_in_vanguard(&mut friendly, context.friendly_formation_id);
 
         // A combined fleet appends deck 2 to the same vector and tags both
         // decks. With no combined setup this loop does not run, `friendly` is
@@ -104,6 +119,7 @@ impl BattleState {
             .into_iter()
             .map(|s| BattleRuntimeShip::new(s, false, is_sortie))
             .collect::<Vec<_>>();
+        place_in_vanguard(&mut enemy, context.enemy_formation_id);
         // Same shape as the friendly side above, and the same guarantee: with
         // no escort fleet nothing is tagged and the vector is what it was.
         let enemy_escort_start = (!context.enemy_escort_ships.is_empty()).then(|| {
@@ -390,5 +406,44 @@ impl BattleState {
             packet,
             outcome,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::*;
+    use emukc_model::{codex::Codex, kc2::types::KcShipType};
+
+    #[test]
+    fn a_fleet_in_vanguard_splits_into_halves_rounded_down() {
+        let front = |fleet_len| {
+            (1..=fleet_len)
+                .map(|number| {
+                    VanguardPlace {
+                        number,
+                        fleet_len,
+                    }
+                    .front()
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(front(5), [true, true, false, false, false]);
+        assert_eq!(front(6), [true, true, true, false, false, false]);
+        assert_eq!(front(7), [true, true, true, false, false, false, false]);
+    }
+
+    #[test]
+    fn a_battle_places_the_ships_of_a_fleet_in_vanguard() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let fleet = |count| (0..count).map(|_| sample_ship(&codex, dd, 1)).collect::<Vec<_>>();
+        let mut context = BattleContext::head_on(BattleType::Normal, true, fleet(6), fleet(5));
+        context.friendly_formation_id = 6;
+        let state = BattleState::from_context(context);
+
+        let fronts = state.friendly.iter().map(BattleRuntimeShip::in_vanguard_front);
+        assert_eq!(fronts.collect::<Vec<_>>(), [true, true, true, false, false, false]);
+        assert!(state.enemy.iter().all(|ship| ship.vanguard.is_none()), "the enemy is in line");
     }
 }

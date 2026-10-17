@@ -9,8 +9,8 @@
 //! Aircraft proficiency follows `Ship.updateProficiencyBonus` in `kcships.js`.
 //!
 //! Left out, each a correction the source applies on top of what is here:
-//! gun fit, 改修, the combined-fleet accuracy terms, 警戒陣 by position, smoke,
-//! balloons, PT imps and event bonuses.
+//! gun fit, 改修, the combined-fleet accuracy terms, smoke, balloons, PT imps
+//! and event bonuses.
 
 use emukc_model::{
     codex::Codex,
@@ -323,22 +323,57 @@ const fn aim(
 }
 
 /// The source's formation table. Where it gives no `ASWacc` the shelling
-/// column stands in, as `ASW()` does there.
-fn formation_aim(formation_id: i64) -> FormationAim {
+/// column stands in, as `ASW()` does there. 警戒陣 has a row for each half
+/// of the fleet (`VANGUARD1`, `VANGUARD2`).
+fn formation_aim(formation_id: i64, front_half: bool) -> FormationAim {
     match formation_id {
         2 => aim(1.2, 0.8, 0.9, 1.2, 1.0, 1.0, 1.0, 1.0),
         3 => aim(1.0, 0.4, 0.7, 1.0, 1.1, 1.1, 1.0, 1.0),
         4 => aim(1.2, 0.75, 0.9, 1.2, 1.4, 1.3, 1.3, 1.3),
         5 => aim(1.2, 0.3, 0.8, 1.2, 1.3, 1.4, 1.2, 1.1),
-        // ponytail: 警戒陣 has one row for the front half of the fleet and one
-        // for the rear; this is the rear row. Split by position when a ship
-        // knows its place in the line.
+        6 if front_half => aim(0.8, 0.7, 0.8, 1.0, 1.0, 1.0, 1.0, 1.0),
         6 => aim(1.2, 0.9, 1.2, 1.1, 1.0, 1.0, 1.0, 1.0),
         11 => aim(0.9, 0.75, 0.8, 1.25, 1.1, 1.0, 1.0, 1.0),
         12 => aim(1.0, 1.0, 0.9, 1.0, 1.2, 1.0, 1.0, 1.0),
         13 => aim(0.8, 0.35, 0.7, 1.1, 1.1, 1.0, 1.1, 1.0),
         14 => aim(1.1, 1.2, 1.0, 0.7, 1.0, 1.0, 1.0, 1.0),
         _ => aim(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+    }
+}
+
+/// What a target's place in a fleet in 警戒陣 leaves of the attacker's
+/// accuracy, by whether she is a destroyer (`vanguardUseType` 2, the `*Mod`
+/// rows); 1 for a ship in any other formation. Torpedoes have rows of their
+/// own; shelling, night and anti-submarine attacks share one.
+fn vanguard_dodge(codex: &Codex, defender: &BattleRuntimeShip, kind: AttackKind) -> f64 {
+    let Some(place) = defender.vanguard else {
+        return 1.0;
+    };
+    let destroyer = ship_type(codex, defender) == Some(KcShipType::DD);
+    let row: [f64; 7] = match (kind == AttackKind::Torpedo, destroyer) {
+        (false, true) => [0.95, 0.95, 0.8, 0.8, 0.69, 0.64, 0.64],
+        (false, false) => [0.95, 0.95, 0.95, 0.95, 0.86, 0.79, 0.7],
+        (true, true) => [0.9, 0.9, 0.65, 0.58, 0.5, 0.42, 0.42],
+        (true, false) => [0.9, 0.9, 0.77, 0.67, 0.63, 0.55, 0.51],
+    };
+    row.get(place.number - 1).copied().unwrap_or(1.0)
+}
+
+/// A fleet in 警戒陣 aims its torpedoes at a destroyer at 1.2 times and its
+/// shelling and night attacks at 1.1 (`torpedoPhase`, `shell`, `NBattack`).
+fn vanguard_against_destroyers(
+    codex: &Codex,
+    attacker: &BattleRuntimeShip,
+    defender: &BattleRuntimeShip,
+    kind: AttackKind,
+) -> f64 {
+    if attacker.vanguard.is_none() || ship_type(codex, defender) != Some(KcShipType::DD) {
+        return 1.0;
+    }
+    match kind {
+        AttackKind::Torpedo => 1.2,
+        AttackKind::Shelling | AttackKind::Night => 1.1,
+        AttackKind::Asw => 1.0,
     }
 }
 
@@ -615,8 +650,8 @@ pub(crate) fn roll_attack(
     defender: &BattleRuntimeShip,
     aim: Aim,
 ) -> HitOutcome {
-    let own = formation_aim(aim.attacker_formation);
-    let theirs = formation_aim(aim.defender_formation);
+    let own = formation_aim(aim.attacker_formation, attacker.in_vanguard_front());
+    let theirs = formation_aim(aim.defender_formation, defender.in_vanguard_front());
     let countered = formation_countered(aim.attacker_formation, aim.defender_formation);
     let (formation_acc, formation_ev) = match aim.kind {
         AttackKind::Shelling if countered => (1.0, theirs.shell_ev),
@@ -632,6 +667,10 @@ pub(crate) fn roll_attack(
         (formation_ev, 0)
     };
 
+    // The target's place counts whatever counters the attacker's formation.
+    let formation_acc = formation_acc
+        * vanguard_dodge(codex, defender, aim.kind)
+        * vanguard_against_destroyers(codex, attacker, defender, aim.kind);
     let hit = hit_value(codex, attacker, aim, formation_acc);
     let dodge = evasion_term(
         defender.ship.api_kaihi[0],
@@ -726,6 +765,70 @@ mod tests {
         assert_eq!(squadron_proficiency(attacker, 5, Some(81)).accuracy, 8.1_f64.sqrt() + 4.0);
         // Without one it reads its level's 70.
         assert!((critical(None) - 1.13).abs() < 1e-9);
+    }
+
+    #[test]
+    fn each_half_of_a_vanguard_aims_by_its_own_row() {
+        let front = formation_aim(6, true);
+        let rear = formation_aim(6, false);
+        let row = |aim: &FormationAim| [aim.shell_acc, aim.torp_acc, aim.night_acc, aim.asw_acc];
+        assert_eq!(row(&front), [0.8, 0.7, 0.8, 1.0]);
+        assert_eq!(row(&rear), [1.2, 0.9, 1.2, 1.1]);
+        // Neither half dodges by its formation; its place does that.
+        assert_eq!([front.shell_ev, front.torp_ev, front.night_ev, front.asw_ev], [1.0; 4]);
+    }
+
+    #[test]
+    fn a_ship_in_vanguard_dodges_by_her_place() {
+        use crate::test_utils::{first_ship_mst_by_type, sample_ship};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |ship_type, number| {
+            let input = sample_ship(&codex, first_ship_mst_by_type(&codex, ship_type), 1);
+            BattleRuntimeShip::new(input, false, true).in_vanguard(number, 6)
+        };
+        let dodge =
+            |ship_type, number, kind| vanguard_dodge(&codex, &ship(ship_type, number), kind);
+
+        assert_eq!(dodge(KcShipType::DD, 5, AttackKind::Shelling), 0.69);
+        assert_eq!(dodge(KcShipType::CA, 5, AttackKind::Shelling), 0.86);
+        assert_eq!(dodge(KcShipType::DD, 5, AttackKind::Night), 0.69);
+        assert_eq!(dodge(KcShipType::DD, 5, AttackKind::Asw), 0.69);
+        assert_eq!(dodge(KcShipType::DD, 4, AttackKind::Torpedo), 0.58);
+        assert_eq!(dodge(KcShipType::CA, 4, AttackKind::Torpedo), 0.67);
+        assert_eq!(dodge(KcShipType::DD, 1, AttackKind::Shelling), 0.95);
+
+        let in_line = BattleRuntimeShip::new(
+            sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 1),
+            false,
+            true,
+        );
+        assert_eq!(vanguard_dodge(&codex, &in_line, AttackKind::Shelling), 1.0);
+    }
+
+    /// A fleet in 警戒陣 aims better at destroyers with its guns, its torpedoes
+    /// and at night, wherever the attacker stands.
+    #[test]
+    fn a_fleet_in_vanguard_aims_better_at_destroyers() {
+        use crate::test_utils::{first_ship_mst_by_type, sample_ship};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |ship_type| {
+            let input = sample_ship(&codex, first_ship_mst_by_type(&codex, ship_type), 1);
+            BattleRuntimeShip::new(input, true, true)
+        };
+        let attacker = ship(KcShipType::CL).in_vanguard(1, 6);
+        let (dd, ca) = (ship(KcShipType::DD), ship(KcShipType::CA));
+        let bonus = |attacker, defender, kind| {
+            vanguard_against_destroyers(&codex, attacker, defender, kind)
+        };
+
+        assert_eq!(bonus(&attacker, &dd, AttackKind::Torpedo), 1.2);
+        assert_eq!(bonus(&attacker, &dd, AttackKind::Night), 1.1);
+        assert_eq!(bonus(&attacker, &dd, AttackKind::Shelling), 1.1);
+        assert_eq!(bonus(&attacker, &dd, AttackKind::Asw), 1.0);
+        assert_eq!(bonus(&attacker, &ca, AttackKind::Torpedo), 1.0);
+        assert_eq!(bonus(&ship(KcShipType::CL), &dd, AttackKind::Torpedo), 1.0);
     }
 
     #[test]

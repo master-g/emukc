@@ -50,7 +50,27 @@ pub struct BattleRuntimeShip {
     /// ship and for an enemy single fleet. Kept apart from `combined` because
     /// an enemy fleet has no [`CombinedType`] to go with the deck.
     pub(crate) enemy_deck: Option<CombinedFleetRole>,
+    /// Her place in the line when her fleet is in 警戒陣, `None` in any other
+    /// formation.
+    pub(crate) vanguard: Option<VanguardPlace>,
     pub married: bool,
+}
+
+/// A ship's place in a fleet in 警戒陣 (`Ship.num`, `fleet.ships.length`).
+/// A ship sunk or sent home keeps her number.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct VanguardPlace {
+    /// 1-based.
+    pub(crate) number: usize,
+    pub(crate) fleet_len: usize,
+}
+
+impl VanguardPlace {
+    /// Whether she is in the front half (`VANGUARD1`): the first half of the
+    /// fleet, rounded down (`getFormation`).
+    pub(crate) fn front(self) -> bool {
+        self.number <= self.fleet_len / 2
+    }
 }
 
 impl BattleRuntimeShip {
@@ -68,6 +88,7 @@ impl BattleRuntimeShip {
             is_sortie,
             combined: None,
             enemy_deck: None,
+            vanguard: None,
             married: input.married,
         }
     }
@@ -93,6 +114,21 @@ impl BattleRuntimeShip {
     pub(crate) fn in_enemy_deck(mut self, role: CombinedFleetRole) -> Self {
         self.enemy_deck = Some(role);
         self
+    }
+
+    /// Place this ship at `number` of a fleet of `fleet_len` in 警戒陣.
+    #[cfg(test)]
+    pub(crate) fn in_vanguard(mut self, number: usize, fleet_len: usize) -> Self {
+        self.vanguard = Some(VanguardPlace {
+            number,
+            fleet_len,
+        });
+        self
+    }
+
+    /// Whether she is in the front half of a fleet in 警戒陣.
+    pub(crate) fn in_vanguard_front(&self) -> bool {
+        self.vanguard.is_some_and(VanguardPlace::front)
     }
 
     /// This ship's deck — on either side — or `None` in a single fleet.

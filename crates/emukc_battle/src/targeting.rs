@@ -65,7 +65,8 @@ const INSTALLATION_TARGET_NAME_MARKERS: &[&str] =
 // ---------------------------------------------------------------------------
 
 /// Draw a target from `candidates` as `choiceWProtect` does (`kcsim.js:2295`): one draw,
-/// up to `rerolls` more while the ship drawn has no searchlight, then かばう
+/// up to `rerolls` more while the ship drawn has no searchlight, one more when she stands in
+/// the front half of a fleet in 警戒陣, then かばう
 /// ([`select_escort_shield`]). Returns the ship hit and whether the client shows かばう: an
 /// enemy escort-deck ship covering the main deck's flagship takes the hit unshown
 /// (`DIDPROTECT = false`). `include_escort` lets the escort deck protect, as the source's
@@ -81,7 +82,12 @@ pub(crate) fn choice_with_protect(
 ) -> Option<(usize, bool)> {
     let pick = candidates[rng.choose_index(candidates.len())?];
     let pick = reroll_toward_searchlight(codex, rng, defenders, candidates, pick, rerolls);
-    // The 警戒陣 front-half redraw comes here (#195).
+    // A ship in the front half of a fleet in 警戒陣 is drawn again, once.
+    let pick = if defenders[pick].in_vanguard_front() {
+        candidates[rng.roll_range(0, candidates.len() as i64) as usize]
+    } else {
+        pick
+    };
     Some(match select_escort_shield(codex, rng, defenders, pick, include_escort, formation_id) {
         Some(escort) => {
             let ship = &defenders[escort];
@@ -988,6 +994,30 @@ mod tests {
         let surface = surface_candidates(&codex, &defenders);
         let drawn = choice_with_protect(&codex, &mut rng, &defenders, &surface, 1, true, 0);
         assert_eq!(drawn, Some((1, false)));
+    }
+
+    #[test]
+    fn a_target_in_the_front_half_of_a_vanguard_is_drawn_again_once() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let defenders: Vec<BattleRuntimeShip> = (1..=6)
+            .map(|number| {
+                BattleRuntimeShip::from(sample_ship(&codex, dd, 50)).in_vanguard(number, 6)
+            })
+            .collect();
+        let candidates: Vec<usize> = (0..6).collect();
+        // Formation 0 keeps かばう out of it.
+        let pick = |draws: &[i64]| {
+            let mut rng = Picks(draws.iter().copied().collect());
+            choice_with_protect(&codex, &mut rng, &defenders, &candidates, 0, true, 0)
+                .map(|(at, _)| at)
+        };
+        // The second ship stands in front: she is drawn again.
+        assert_eq!(pick(&[1, 4]), Some(4));
+        // Drawn again into the front, she stays.
+        assert_eq!(pick(&[0, 2]), Some(2));
+        // The fifth stands behind: one draw, no more.
+        assert_eq!(pick(&[4]), Some(4));
     }
 
     #[test]
