@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-16 · branch `fix/shipgraph-damaged-face-rect`
+Last updated: 2026-10-17 · branch `fix/practice-slot-order`
 
 ## Verified Facts
 
@@ -184,11 +184,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-17] #201 分支 `feat/choice-with-protect`：两份 golden 与 4 个定种子测试有意重冻；三门过，1559 过 0 ignored。
+- [2026-10-17] #209 分支 `fix/practice-slot-order`：演习共用 `build_friend_ships`，写回按 `occupied_slots`；三门过 0 ignored。
 
 ## Next Session
 
-- [2026-10-17] #193–#200 ready（依赖 #201→#207→#195/#198/#200）；#203、#204、#206–#209 待 triage（#207/#208 等 #201）。#182 等 kcwiki 补 902。季节＝某天的状态，非常规版。
+- [2026-10-17] #193–#200 ready（依赖 #201→#207→#195/#198/#200）；#203、#204、#206–#208 待 triage（#207/#208 等 #201）。#182 等 kcwiki 补 902。季节＝某天的状态，非常规版。
   #150 needs-info：等低资源账号或他人抓包。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。

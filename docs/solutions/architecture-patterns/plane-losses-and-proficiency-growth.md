@@ -92,10 +92,11 @@ costs them one or two.
 
 The battle walks `slot_items`, which skips empty slots, and pairs it with `api_onslot` by
 position. Equipping and unequipping through the API close any gap when the ship is
-recalculated, so the two normally line up. Should a ship reach a sortie with a gap anyway
-(`slot_1` empty, `slot_2` filled), `build_sortie_friend_ships` closes the same gap in the
-counts on the way in and the battle result puts each count back in the slot its equipment
-sits in (`occupied_slots`). No test builds such a ship: nothing public leaves one.
+recalculated, so the two normally line up. Should a ship reach a sortie or a practice battle
+with a gap anyway (`slot_1` empty, `slot_2` filled), `build_friend_ships` closes the same gap
+in the counts on the way in and the battle result puts each count back in the slot its
+equipment sits in (`occupied_slots`). Nothing public leaves such a ship; the practice test
+`practice_battle_result_puts_aircraft_counts_back_in_their_slots` builds one in the database.
 
 ## When something looks wrong
 

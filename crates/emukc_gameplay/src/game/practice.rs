@@ -34,7 +34,8 @@ use super::{
         exp::{calculate_admiral_exp, settle_ship_exp},
         update_ship_impl,
     },
-    slot_item::find_slot_items_by_id_impl,
+    sortie::build_friend_ships,
+    sortie_result::occupied_slots,
     sortie_store::PracticeStore,
 };
 
@@ -147,7 +148,7 @@ impl Ctx {
             )));
         }
 
-        let friend_ships = build_practice_friend_ships(&tx, &friend_ships).await?;
+        let friend_ships = build_friend_ships(&tx, &friend_ships).await?;
         let enemy_ships = build_practice_enemy_ships(codex, &rival)?;
         let input = PracticeBattleInput {
             profile_id,
@@ -683,36 +684,6 @@ fn cal_practice_entry_limit() -> Option<i64> {
     }
 }
 
-async fn build_practice_friend_ships<C>(
-    c: &C,
-    friend_ships: &[emukc_db::entity::profile::ship::Model],
-) -> Result<Vec<PracticeBattleShipInput>, GameplayError>
-where
-    C: ConnectionTrait,
-{
-    let mut result = Vec::with_capacity(friend_ships.len());
-    for ship in friend_ships {
-        let slot_ids =
-            [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5, ship.slot_ex]
-                .into_iter()
-                .filter(|slot_id| *slot_id > 0)
-                .collect::<Vec<_>>();
-        let slot_items = find_slot_items_by_id_impl(c, &slot_ids).await?;
-        let aircraft_exp = slot_items.iter().map(|item| item.aircraft_exp).collect();
-        let slot_items = slot_items.into_iter().map(std::convert::Into::into).collect();
-
-        result.push(PracticeBattleShipInput {
-            ship: (*ship).into(),
-            slot_items,
-            aircraft_exp,
-            effect_list: vec![],
-            married: ship.married,
-        });
-    }
-
-    Ok(result)
-}
-
 fn build_practice_enemy_ships(
     codex: &Codex,
     rival: &Rival,
@@ -787,7 +758,12 @@ where
         if let Some(session) = practice_repo.get_pending_battle(profile_id).as_ref()
             && let Some(runtime_ship) = session.friendly.get(idx)
         {
-            api_ship.api_onslot = runtime_ship.ship.api_onslot;
+            // The battle counted the aircraft with the gaps between equipment
+            // closed; put each count back in the slot its equipment sits in.
+            let slots = api_ship.api_slot;
+            for (slot, count) in occupied_slots(&slots).zip(runtime_ship.ship.api_onslot) {
+                api_ship.api_onslot[slot] = count;
+            }
         }
         update_ship_impl(c, codex, &api_ship).await?;
     }

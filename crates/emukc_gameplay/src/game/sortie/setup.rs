@@ -171,7 +171,7 @@ where
         )));
     }
 
-    let friend_ships = build_sortie_friend_ships(c, &fleet_ships).await?;
+    let friend_ships = build_friend_ships(c, &fleet_ships).await?;
 
     // 第2艦隊 sorties with 第1艦隊 but is a separate fleet row; an empty one means
     // the player disbanded it without clearing `combined_type`.
@@ -182,7 +182,7 @@ where
                 "combined sortie battle needs ships in fleet 2".to_string(),
             ));
         }
-        build_sortie_friend_ships(c, &escort_models).await?
+        build_friend_ships(c, &escort_models).await?
     } else {
         Vec::new()
     };
@@ -397,7 +397,7 @@ impl SortieBattleSetup {
     }
 }
 
-async fn build_sortie_friend_ships<C>(
+pub(in crate::game) async fn build_friend_ships<C>(
     c: &C,
     friend_ships: &[profile::ship::Model],
 ) -> Result<Vec<BattleShipInput>, GameplayError>

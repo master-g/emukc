@@ -617,3 +617,81 @@ async fn practice_base_exp_reads_the_rivals_first_two_ships() {
     };
     assert_eq!(result.api_get_base_exp, expected, "rank {}", result.api_win_rank);
 }
+
+#[tokio::test]
+async fn practice_battle_reads_equipment_in_slot_order() {
+    use emukc_db::entity::profile::item::slot_item;
+
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    let carrier_mst = first_ship_mst_by_type(context.codex.as_ref(), KcShipType::CV);
+    let carrier = context.add_ship(pid, carrier_mst).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[carrier.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+
+    // Swap the first and last held items, so their ids run against their slots,
+    // and give each its own experience.
+    let model =
+        ship::Entity::find_by_id(carrier.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
+    let mut slots: Vec<i64> =
+        [model.slot_1, model.slot_2, model.slot_3, model.slot_4, model.slot_5]
+            .into_iter()
+            .filter(|id| *id > 0)
+            .collect();
+    assert!(slots.len() >= 2, "the carrier comes with at least two items");
+    let last = slots.len() - 1;
+    slots.swap(0, last);
+    let mut am = model.into_active_model();
+    am.slot_1 = ActiveValue::Set(slots[0]);
+    am.slot_2 = ActiveValue::Set(slots.get(1).copied().unwrap_or(-1));
+    am.slot_3 = ActiveValue::Set(slots.get(2).copied().unwrap_or(-1));
+    am.slot_4 = ActiveValue::Set(slots.get(3).copied().unwrap_or(-1));
+    am.slot_5 = ActiveValue::Set(slots.get(4).copied().unwrap_or(-1));
+    am.update(context.db.as_ref()).await.unwrap();
+    for (idx, id) in slots.iter().enumerate() {
+        let item =
+            slot_item::Entity::find_by_id(*id).one(context.db.as_ref()).await.unwrap().unwrap();
+        let mut am = item.into_active_model();
+        am.aircraft_exp = ActiveValue::Set(10 + idx as i64);
+        am.update(context.db.as_ref()).await.unwrap();
+    }
+
+    let rivals = context.get_practice_rivals(pid).await.unwrap();
+    context.practice_battle(pid, 1, 1, rivals.rivals[0].id).await.unwrap();
+
+    let battle = context.practice_store().get_pending_battle(pid).unwrap();
+    let ship = &battle.friendly[0];
+    let ids: Vec<i64> = ship.slot_items.iter().map(|item| item.api_id).collect();
+    assert_eq!(ids, slots);
+    let exp: Vec<i64> = (0..slots.len()).map(|idx| 10 + idx as i64).collect();
+    assert_eq!(ship.aircraft_exp, exp);
+}
+
+#[tokio::test]
+async fn practice_battle_result_puts_aircraft_counts_back_in_their_slots() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    let carrier_mst = first_ship_mst_by_type(context.codex.as_ref(), KcShipType::CV);
+    let carrier = context.add_ship(pid, carrier_mst).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[carrier.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+
+    // Empty the first slot and leave the gap open: the battle closes it on the
+    // way in, and the result has to open it again.
+    let model =
+        ship::Entity::find_by_id(carrier.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
+    assert!(model.slot_2 > 0 && model.onslot_2 > 0, "the carrier holds aircraft in slot 2");
+    let mut am = model.into_active_model();
+    am.slot_1 = ActiveValue::Set(-1);
+    am.onslot_1 = ActiveValue::Set(0);
+    am.update(context.db.as_ref()).await.unwrap();
+
+    emukc_crypto::rng::seed(WIN_RANK_SEED);
+    let rivals = context.get_practice_rivals(pid).await.unwrap();
+    context.practice_battle(pid, 1, 1, rivals.rivals[0].id).await.unwrap();
+    context.practice_battle_result(pid).await.unwrap();
+    emukc_crypto::rng::reseed_from_entropy();
+
+    let after =
+        ship::Entity::find_by_id(carrier.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
+    assert_eq!(after.onslot_1, 0, "the empty slot holds no aircraft");
+    assert!(after.onslot_2 > 0, "slot 2 keeps its aircraft");
+}
