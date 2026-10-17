@@ -114,7 +114,7 @@ NightBattlePacket {
                     7,
                 ],
                 [
-                    278,
+                    279,
                     0,
                 ],
             ],

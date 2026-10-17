@@ -17,14 +17,14 @@ use crate::simulation::abyssal_night::{ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_
 use crate::simulation::night_attack_table::{NIGHT_ATTACKS, NightAttackRow, SPECIAL_TORPEDO_IDS};
 use crate::simulation::special_attack::{self, SpecialHit};
 use crate::targeting::{
-    any_alive, can_attack_night_ship, can_attack_submarine_night_shelling,
+    any_alive, can_attack_night_ship, can_attack_submarine_night_shelling, choice_with_protect,
     collect_matching_slot_ids, extend_limit, has_slotitem_id, is_day_surface_display_type,
     is_main_gun_type, is_radar_type, is_secondary_gun_type, is_torpedo_type, searchlight_rerolls,
-    select_night_target, select_submarine_target, ship_type, target_class,
+    ship_type, submarine_candidates, surface_candidates, target_candidates, target_class,
 };
 use crate::types::{
-    AirState, BattleNightHougeki, BattleRuntimeShip, DamageCell, EngagementType, NightBattleParams,
-    SiListId, SpecialAttacksMade, TargetClass,
+    AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, EngagementType,
+    NightBattleParams, SiListId, SpecialAttacksMade, TargetClass,
 };
 
 // ---------------------------------------------------------------------------
@@ -1431,24 +1431,13 @@ fn special_attack_row(
         if !ship.is_alive() {
             continue;
         }
+        // A night surface draw: the defenders' searchlights, and the escort deck protects.
         let rerolls = fleet_searchlight(codex, enemy);
-        let Some(mut target_idx) =
-            crate::targeting::select_surface_target(codex, rng, enemy, rerolls)
+        let candidates = surface_candidates(codex, enemy);
+        let Some((target_idx, shield)) =
+            choice_with_protect(codex, rng, enemy, &candidates, rerolls, true, enemy_formation)
         else {
             continue;
-        };
-        let shield = match crate::targeting::select_escort_shield(
-            codex,
-            rng,
-            enemy,
-            target_idx,
-            enemy_formation,
-        ) {
-            Some(escort) => {
-                target_idx = escort;
-                true
-            }
-            None => false,
         };
         let aim = Aim::new(AttackKind::Night, friendly_formation, enemy_formation)
             .with_modifier(hit.accuracy)
@@ -1612,30 +1601,35 @@ fn night_turn(
     // `nightPhaseTarget`: a carrier marked 3 takes a surface ship only while the fleet she
     // attacks has its searchlight lit. In the dark she is left the submarines, if she can
     // attack one.
-    let target = if abyssal_night_attack(ship) == 3 && theirs.searchlight == 0 {
+    let candidates = if abyssal_night_attack(ship) == 3 && theirs.searchlight == 0 {
         if !can_attack_submarine_night_shelling(codex, ship) {
             return;
         }
-        select_submarine_target(codex, rng, defenders)
+        submarine_candidates(codex, defenders)
     } else {
-        select_night_target(codex, rng, ship, defenders, theirs.searchlight)
+        target_candidates(codex, ship, defenders, BattlePhase::NightShelling)
     };
-    let Some(mut target_idx) = target else {
-        return;
+    // `nightPhaseTarget`: the candidates are of one kind. A submarine is drawn once and only
+    // her own deck covers her; a surface ship is drawn again for the searchlights, and the
+    // escort deck covers too.
+    let surface =
+        candidates.first().is_some_and(|&at| !target_class(codex, &defenders[at]).is_submarine());
+    let rerolls = if surface {
+        theirs.searchlight
+    } else {
+        0
     };
     // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-    let shield = match crate::targeting::select_escort_shield(
+    let Some((target_idx, shield)) = choice_with_protect(
         codex,
         rng,
         defenders,
-        target_idx,
+        &candidates,
+        rerolls,
+        surface,
         defender_formation,
-    ) {
-        Some(escort) => {
-            target_idx = escort;
-            true
-        }
-        None => false,
+    ) else {
+        return;
     };
     let target = target_class(codex, &defenders[target_idx]);
     let is_submarine = target.is_submarine();
@@ -1877,7 +1871,7 @@ mod tests {
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
         let mut enemies = vec![BattleRuntimeShip::from(enemy_ship)];
-        let mut rng = crate::random::SeededRng::new(42);
+        let mut rng = crate::random::SeededRng::new(0);
 
         let hougeki = simulate_night_hougeki(
             &codex,
@@ -3017,21 +3011,16 @@ mod tests {
             first_ship_mst_by_type(&codex, KcShipType::SS),
             50,
         ));
-        // Whom she picks over a run of seeds: `Some(0)` the destroyer, `Some(1)` the submarine.
+        // Whom she may fire at: `Some(0)` the destroyer, `Some(1)` the submarine, `None` neither.
         let picks = |attacker: &BattleRuntimeShip, defenders: &[BattleRuntimeShip]| {
-            let picked = (0..50)
-                .map(|seed| {
-                    crate::targeting::select_random_target_index(
-                        &codex,
-                        &mut crate::random::SeededRng::new(seed),
-                        attacker,
-                        defenders,
-                        crate::types::BattlePhase::NightShelling,
-                    )
-                })
-                .collect::<std::collections::BTreeSet<_>>();
-            assert_eq!(picked.len(), 1, "one choice whatever the draw");
-            picked.into_iter().next().unwrap()
+            let candidates = crate::targeting::target_candidates(
+                &codex,
+                attacker,
+                defenders,
+                crate::types::BattlePhase::NightShelling,
+            );
+            assert!(candidates.len() <= 1, "one choice, so no draw decides it");
+            candidates.first().copied()
         };
         let both = [dd.clone(), ss.clone()];
         let submarine = [ss.clone()];
@@ -3973,8 +3962,11 @@ mod abyssal_carrier_tests {
             air_state: None,
             night_start: false,
         };
-        let night =
-            crate::simulation::simulate_night(&codex, input, &mut crate::random::SeededRng::new(0));
+        let night = crate::simulation::simulate_night(
+            &codex,
+            input,
+            &mut crate::random::SeededRng::new(20),
+        );
         let hougeki = night.packet.hougeki.unwrap();
         let hers = hougeki.api_at_eflag.iter().position(|side| *side == 1).unwrap();
         assert_eq!(hougeki.api_cl_list[hers], [1]);

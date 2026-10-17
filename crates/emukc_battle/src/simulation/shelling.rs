@@ -6,7 +6,9 @@ use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
 use crate::simulation::day_cutin::{DayAttackType, day_accuracy_modifier, resolve_day_attack};
 use crate::simulation::special_attack;
-use crate::targeting::{any_alive, can_shell_day_ship, select_random_target_index, target_class};
+use crate::targeting::{
+    any_alive, can_shell_day_ship, choice_with_protect, target_candidates, target_class,
+};
 use crate::types::{
     AirState, BattleHougeki, BattlePhase, BattleRuntimeShip, DamageCell, EngagementType,
     ShellingParams,
@@ -225,24 +227,18 @@ fn shell_turn(
     if !can_shell_day_ship(codex, ship) {
         return hougeki;
     }
-    let Some(mut target_idx) =
-        select_random_target_index(codex, rng, ship, defenders, params.phase)
-    else {
-        return hougeki;
-    };
     // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-    let shield = match crate::targeting::select_escort_shield(
+    let candidates = target_candidates(codex, ship, defenders, params.phase);
+    let Some((target_idx, shield)) = choice_with_protect(
         codex,
         rng,
         defenders,
-        target_idx,
+        &candidates,
+        0,
+        false,
         params.defender_formation_id,
-    ) {
-        Some(escort) => {
-            target_idx = escort;
-            true
-        }
-        None => false,
+    ) else {
+        return hougeki;
     };
     let is_asw_attack = target_class(codex, &defenders[target_idx]).is_submarine();
 
@@ -374,7 +370,7 @@ fn shell_turn(
 }
 
 /// Wrap a display-damage value, flagging it as shield-intercepted when `shield`.
-fn damage_cell(value: i64, shield: bool) -> DamageCell {
+pub(super) fn damage_cell(value: i64, shield: bool) -> DamageCell {
     if shield {
         DamageCell::Shielded(value)
     } else {

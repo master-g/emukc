@@ -180,15 +180,16 @@ Current verification baseline:
 | [2026-10-15] 无头检查里到点的请求在点「進撃」时就发出，罗盘还要再点一下才转；不补点击，之后截图全停在罗盘上。新场景截图全相同时先查是否卡在等点击的界面。 | session 2026-10-15、`run.py` RECON_6_3 |
 | [2026-10-15] 照计划「没有做」节建 issue 会漏掉后来已修的（#137、#139 建时已修）：建前先 `git log -S`/读当前代码核对。 | triage 2026-10-15 |
 | [2026-10-16] codex 自比抓不到结构体丢字段（codex 由同一结构体写出）；要和原始 `.data/temp/start2.json` 比；新表丢字段时加进该测试的表名列表。 | `start2_keeps_every_field_kcwiki_sends` |
+| [2026-10-17] 逐种子跑 `--exact`：名字不匹配也退出 0，须判「1 passed」。 | #201 |
 
 ## Last Session
 
-- [2026-10-16] #202 分支 `fix/plane-stored-proficiency`：战斗读出港时存的飞机经验；三道门过，1553 过、0 ignored。
+- [2026-10-17] #201 分支 `feat/choice-with-protect`：两份 golden 与 4 个定种子测试有意重冻；三门过，1559 过 0 ignored。
 
 ## Next Session
 
-- [2026-10-16] #193–#201 已 ready，#201（共用 choiceWProtect）先做，原生依赖 #201→#207→#195/#198/#200；#203、#204、#206–#209 待 triage（#208 被 #201 阻塞）。#182 等 kcwiki 补 902（10-16 仍无）。季节＝某天的状态，非常规版。
-  #150 needs-info：等低资源账号或他人抓包（见 issue 评论）。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+- [2026-10-17] #193–#200 ready（依赖 #201→#207→#195/#198/#200）；#203、#204、#206–#209 待 triage（#207/#208 等 #201）。#182 等 kcwiki 补 902。季节＝某天的状态，非常规版。
+  #150 needs-info：等低资源账号或他人抓包。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   `kancolle-replay` 源按提交 `69097abc` 重取 `js/`；`en.kancollewiki.net` 有人机验证。
