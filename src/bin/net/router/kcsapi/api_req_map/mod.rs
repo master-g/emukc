@@ -210,7 +210,7 @@ mod tests {
     /// pays for exactly what it lost.
     #[tokio::test]
     async fn an_air_corps_attacks_its_cell_and_comes_home_short() {
-        const SEED: u64 = 20;
+        const SEED: u64 = 31;
 
         let context = new_test_context().await;
         // Seeded before the sortie starts: the enemy the fleet meets is rolled
