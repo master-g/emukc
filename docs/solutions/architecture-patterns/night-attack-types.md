@@ -72,7 +72,8 @@ A searchlight draws fire and costs its ship her evasion (`kcsim.js` `nightPhase`
   large one (`fleet_searchlight`, `searchlight_rerolls`). A night target of that fleet without a
   searchlight is drawn again up to that many times, stopping on one that has one
   (`choice_with_protect` over `target_candidates`; the special attacks' rows over
-  `surface_candidates`). A submarine is drawn once. Each redraw is one more roll, before かばう,
+  `surface_candidates`). A submarine is drawn once. Each redraw is one more roll, then one more
+  for a ship in the front half of 警戒陣 (`battle-hit-and-critical-rolls.md`), before かばう,
   which rolls for the flagship whether or not anyone can cover her and lets the escort deck cover
   a surface target.
 - A ship carrying a searchlight keeps a fifth of her formation's night evasion multiplier and of

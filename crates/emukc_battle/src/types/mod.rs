@@ -16,12 +16,12 @@ pub use packet::{
     BattleKoukuStage2, BattleKoukuStage3, BattleKoukuStage3Combined, BattleNightHougeki,
     BattleOpeningAttack, BattleRaigeki, BattleSquadronPlane, DamageCell, SquadronFlight,
 };
-pub(crate) use runtime::CombinedMembership;
 pub use runtime::{
     AirCorpsInput, AirSquadronInput, BattleContext, BattleOutcome, BattlePacket, BattleRuntimeShip,
     BattleShipInput, BattleSimulation, CombinedSetup, NightBattleInput, NightBattlePacket,
     NightBattleSimulation, SpecialAttacksMade,
 };
+pub(crate) use runtime::{CombinedMembership, VanguardPlace};
 
 #[cfg(test)]
 mod tests {

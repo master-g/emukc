@@ -184,11 +184,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-17] #208 分支 `fix/air-corps-strike-source`：golden 未动，三条定种子测试换种子；三门过 0 ignored。
+- [2026-10-17] #195 分支 `feat/vanguard-halves`：golden 未动（场景无警戒陣）；三门过 0 ignored。
 
 ## Next Session
 
-- [2026-10-17] #193–#200 ready；#203、#204、#206 待 triage。#182 等 kcwiki 补 902。季节＝某天的状态，非常规版。
+- [2026-10-17] #193、#194、#196–#200 ready；#203、#204、#206 待 triage。#182 等 kcwiki 补 902。季节＝某天的状态，非常规版。
   #150 needs-info：等低资源账号或他人抓包。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
