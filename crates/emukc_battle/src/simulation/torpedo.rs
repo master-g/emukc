@@ -6,7 +6,8 @@ use crate::accuracy::{Aim, AttackKind, roll_attack};
 use crate::damage::{calculate_torpedo_damage, torpedo_attack_power};
 use crate::random::BattleRng;
 use crate::targeting::{
-    can_closing_torpedo_ship, can_opening_torpedo_ship, choice_with_protect, target_candidates,
+    can_closing_torpedo_ship, can_opening_torpedo_ship, choice_with_protect, deck_candidates,
+    target_candidates,
 };
 use crate::types::{
     BattleOpeningAttack, BattlePhase, BattleRaigeki, BattleRuntimeShip, EngagementType,
@@ -179,7 +180,7 @@ pub(crate) fn simulate_raigeki(
             continue;
         }
         // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let candidates = target_candidates(codex, ship, enemy, BattlePhase::ClosingTorpedo);
+        let candidates = deck_candidates(codex, rng, ship, enemy, BattlePhase::ClosingTorpedo);
         let Some((target_idx, shield)) =
             choice_with_protect(codex, rng, enemy, &candidates, 0, false, enemy_formation_id)
         else {
@@ -238,7 +239,7 @@ pub(crate) fn simulate_raigeki(
             continue;
         }
         // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let candidates = target_candidates(codex, ship, friendly, BattlePhase::ClosingTorpedo);
+        let candidates = deck_candidates(codex, rng, ship, friendly, BattlePhase::ClosingTorpedo);
         let Some((target_idx, shield)) =
             choice_with_protect(codex, rng, friendly, &candidates, 0, false, friendly_formation_id)
         else {

@@ -47,7 +47,7 @@ const T4K_ID: i64 = 526;
 /// 大発動艇(R35&フランス兵).
 const R35_ID: i64 = 576;
 /// WG42 (Wurfgerät 42).
-const WG_ID: i64 = 126;
+pub(crate) const WG_ID: i64 = 126;
 /// 陸軍歩兵部隊, 九七式中戦車(チハ), 九七式中戦車 新砲塔(チハ改), 陸軍歩兵部隊+チハ改.
 const ARMY_INFANTRY_ID: i64 = 496;
 const ARMY_CHIHA_ID: i64 = 497;

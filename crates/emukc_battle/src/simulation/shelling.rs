@@ -7,7 +7,7 @@ use crate::simulation::day_attack::DayAttackKind;
 use crate::simulation::day_cutin::{DayAttackType, day_accuracy_modifier, resolve_day_attack};
 use crate::simulation::special_attack;
 use crate::targeting::{
-    any_alive, can_shell_day_ship, choice_with_protect, target_candidates, target_class,
+    any_alive, can_shell_day_ship, choice_with_protect, deck_candidates, target_class,
 };
 use crate::types::{
     AirState, BattleHougeki, BattlePhase, BattleRuntimeShip, DamageCell, EngagementType,
@@ -228,7 +228,7 @@ fn shell_turn(
         return hougeki;
     }
     // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-    let candidates = target_candidates(codex, ship, defenders, params.phase);
+    let candidates = deck_candidates(codex, rng, ship, defenders, params.phase);
     let Some((target_idx, shield)) = choice_with_protect(
         codex,
         rng,
@@ -988,5 +988,80 @@ mod tests {
             }
         }
         assert!(saw_attack, "no ASW shelling fired across 50 seeds; assertion unverified");
+    }
+
+    /// What a submarine with `gear` fires in day shelling over 50 seeds: the enemy indices of
+    /// her attacks, against destroyers standing in for the ships `enemy_ids` names, too strong to sink.
+    fn submarine_shots(codex: &Codex, gear: &[i64], enemy_ids: &[i64]) -> Vec<i64> {
+        use super::{ShellingRound, simulate_shelling_round};
+
+        let ss = first_ship_mst_by_type(codex, KcShipType::SS);
+        let dd = first_ship_mst_by_type(codex, KcShipType::DD);
+        (0..50u64)
+            .flat_map(|seed| {
+                let mut sub = sample_ship(codex, ss, 50);
+                sub.slot_items = gear.iter().copied().map(slotitem_with_mst_id).collect();
+                let mut friendly = vec![BattleRuntimeShip::from(sub)];
+                let mut enemy: Vec<BattleRuntimeShip> = enemy_ids
+                    .iter()
+                    .map(|&id| {
+                        let mut ship = sample_ship(codex, dd, 1);
+                        ship.ship.api_ship_id = id;
+                        ship.ship.api_nowhp = 4000;
+                        ship.ship.api_maxhp = 4000;
+                        ship.ship.api_karyoku[0] = 0;
+                        BattleRuntimeShip::new(ship, false, true)
+                    })
+                    .collect();
+                let round = ShellingRound {
+                    friendly_deck: 0..1,
+                    enemy_deck: 0..enemy.len(),
+                    by_range: true,
+                    friendly_formation: 1,
+                    enemy_formation: 1,
+                    engagement: EngagementType::SameCourse,
+                    air_state: None,
+                };
+                let hougeki = simulate_shelling_round(
+                    codex,
+                    &mut SeededRng::new(seed),
+                    &mut friendly,
+                    &mut enemy,
+                    &round,
+                    &mut [false; 2],
+                );
+                hougeki
+                    .map(|h| {
+                        h.api_at_eflag
+                            .iter()
+                            .zip(&h.api_df_list)
+                            .filter(|(eflag, _)| **eflag == 0)
+                            .flat_map(|(_, df)| df.clone())
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default()
+            })
+            .collect()
+    }
+
+    /// `SS.canShell`, `orderByRange`'s `includeSubs` and `shellPhaseTarget`: a submarine
+    /// shells only a fleet with a land target, only with WG42 or a 特型内火艇, and only at
+    /// the land targets.
+    #[test]
+    fn a_submarine_with_wg42_shells_only_the_land_target() {
+        const WG42: i64 = 126;
+        const TOKU2_UCHIBITEI: i64 = 167;
+        let codex = &Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(codex, KcShipType::DD);
+        let land = ship_mst_id_by_name(codex, "砲台小鬼");
+
+        let only_land = |gear: &[i64]| {
+            let shots = submarine_shots(codex, gear, &[dd, land, dd]);
+            !shots.is_empty() && shots.iter().all(|&at| at == 1)
+        };
+        assert!(only_land(&[WG42]), "WG42: she shells the land target and nothing else");
+        assert!(only_land(&[TOKU2_UCHIBITEI]), "so does a 特型内火艇");
+        assert!(submarine_shots(codex, &[], &[dd, land, dd]).is_empty(), "nothing to shell with");
+        assert!(submarine_shots(codex, &[WG42], &[dd, dd]).is_empty(), "no land target");
     }
 }
