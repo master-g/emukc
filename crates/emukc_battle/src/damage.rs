@@ -178,8 +178,9 @@ pub(crate) fn calculate_shelling_damage(
         // carrier branch as well, not just the gun branch.
         // ponytail: a carrier's power against a land target (`CV.prototype.shellPower`, its
         // multipliers on her firepower alone) is not modelled.
+        // The improvement sits inside the source's `1.5 × (…)` (`CV.prototype.shellPower`).
         planes
-            + improvement_bonus_day(codex, attacker)
+            + 1.5 * ship_improvement(codex, attacker).shell
             + combined_correction(attacker, defender, CombinedAttackClass::Shelling) as f64
     } else {
         day_gun_power(codex, attacker, defender)
@@ -210,7 +211,7 @@ fn day_gun_power(codex: &Codex, attacker: &BattleRuntimeShip, defender: &BattleR
     let firepower = attacker.ship.api_karyoku[0].max(0) as f64;
     let rest = 5.0
         + combined_correction(attacker, defender, CombinedAttackClass::Shelling) as f64
-        + improvement_bonus_day(codex, attacker);
+        + ship_improvement(codex, attacker).shell;
     match land_target(codex, defender) {
         Some(kind) => AntiInstallation::of(codex, attacker).power(
             kind,
@@ -241,7 +242,7 @@ pub(crate) fn torpedo_attack_power(
     phase: BattlePhase,
 ) -> f64 {
     let basic_power = attacker.ship.api_raisou[0].max(0) as f64
-        + improvement_bonus_torpedo(codex, attacker)
+        + ship_improvement(codex, attacker).torpedo
         + combined_correction(attacker, defender, CombinedAttackClass::Torpedo) as f64;
     let dmg_state = damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, phase);
     let pre_cap = basic_power
@@ -282,7 +283,7 @@ fn night_gun_power(
     defender: &BattleRuntimeShip,
 ) -> f64 {
     let firepower = attacker.ship.api_karyoku[0].max(0) as f64;
-    let improvement = improvement_bonus_night(codex, attacker);
+    let improvement = ship_improvement(codex, attacker).night;
     let torpedo = attacker.ship.api_raisou[0].max(0) as f64;
     match land_target(codex, defender) {
         // wikiwiki 「戦闘について」 夜戦: 「対陸上でも、素手(装備を一切装備していない)の場合に限り
@@ -373,7 +374,11 @@ pub(crate) fn calculate_asw_damage(
     };
 
     let synergy = asw_synergy_modifier(codex, attacker);
-    let raw_power = (base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + type_bonus) * synergy;
+    let raw_power = (base_asw.sqrt() * 2.0
+        + equip_asw.sqrt() * 1.5
+        + type_bonus
+        + ship_improvement(codex, attacker).asw)
+        * synergy;
     let dmg_state =
         damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, BattlePhase::DayShelling);
     // Daytime ASW takes the formation multiplier but no 連合艦隊補正 at all
@@ -591,59 +596,126 @@ pub(crate) fn asw_formation_modifier(formation_id: i64) -> f64 {
 // Improvement bonuses
 // ---------------------------------------------------------------------------
 
-/// Day shelling improvement bonus: sum of √(★) per weapon equipment.
-pub(crate) fn improvement_bonus_day(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
-    const WEAPON_TYPES: &[KcSlotItemType3] = &[
-        KcSlotItemType3::SmallCaliberMainGun,
-        KcSlotItemType3::MediumCaliberMainGun,
-        KcSlotItemType3::LargeCaliberMainGun,
-        KcSlotItemType3::SecondaryGun,
-        KcSlotItemType3::Torpedo,
-        KcSlotItemType3::CarrierBasedDiveBomber,
-        KcSlotItemType3::CarrierBasedTorpedoBomber,
-        KcSlotItemType3::SeaBasedBomber,
-        KcSlotItemType3::LargeCaliberMainGun2,
-        KcSlotItemType3::SecondaryGun2,
-    ];
-    ship.slot_items
-        .iter()
-        .filter_map(|si| {
-            if si.api_level <= 0 {
-                return None;
-            }
-            codex
-                .find::<ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                .filter(|t| WEAPON_TYPES.contains(t))
-                .map(|_| (si.api_level as f64).sqrt())
-        })
-        .sum()
+/// The flat power a ship's improved (★) equipment adds to each of her attacks, the source's
+/// `improves` (`KC3Kai/kancolle-replay` at `69097abc`: `Equip.prototype.setImprovement`,
+/// `kcships.js:2387-2491`; `EQTDATA[type].improve`, `kcEQDATA.js`). Each goes into basic power
+/// before the pre-cap modifiers.
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub(crate) struct Improvement {
+    /// Day shelling, a carrier's included (`Pshell`).
+    pub(crate) shell: f64,
+    /// Night attack (`Pnb`).
+    pub(crate) night: f64,
+    /// Torpedo (`Ptorp`).
+    pub(crate) torpedo: f64,
+    /// Anti-submarine (`Pasw`).
+    pub(crate) asw: f64,
 }
 
-/// Torpedo improvement bonus: sum of ★ × 1.2 per torpedo equipment.
-pub(crate) fn improvement_bonus_torpedo(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
-    const TORPEDO_TYPES: &[KcSlotItemType3] =
-        &[KcSlotItemType3::Torpedo, KcSlotItemType3::SubmarineTorpedo];
+/// What a ship's equipment adds, summed over it.
+pub(crate) fn ship_improvement(codex: &Codex, ship: &BattleRuntimeShip) -> Improvement {
     ship.slot_items
         .iter()
+        .filter(|si| si.api_level > 0)
         .filter_map(|si| {
-            if si.api_level <= 0 {
-                return None;
-            }
-            codex
-                .find::<ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                .filter(|t| TORPEDO_TYPES.contains(t))
-                .map(|_| si.api_level as f64 * 1.2)
+            let mst = codex.find::<ApiMstSlotitem>(&si.api_slotitem_id).ok()?;
+            Some(improvement(mst, si.api_level))
         })
-        .sum()
+        .fold(Improvement::default(), |sum, item| Improvement {
+            shell: sum.shell + item.shell,
+            night: sum.night + item.night,
+            torpedo: sum.torpedo + item.torpedo,
+            asw: sum.asw + item.asw,
+        })
 }
 
-/// Night battle improvement bonus: same formula as day (√★ per weapon).
-pub(crate) fn improvement_bonus_night(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
-    improvement_bonus_day(codex, ship)
+/// The coefficients of √★ for each client equipment type (`api_type[2]`), the source's
+/// `EQTDATA[type].improve`. The source types a few items apart from the client (128, 281 and
+/// 465 as `MAINGUNXL`, 142 and 460 as `RADARXL`, 151 as `CARRIERSCOUT2`), none of them to
+/// different coefficients; 467 is the one that differs, in [`improvement`].
+fn improvement_coefficients(kind: i64) -> Improvement {
+    let (shell, night, torpedo, asw) = match kind {
+        // Small and medium main guns, secondary guns, 三式弾, AP shells, landing craft,
+        // searchlights, FCF, SCAMP, anti-aircraft fire directors, WG42, picket, 特二式内火艇,
+        // army units and smoke screens.
+        1 | 2 | 4 | 18 | 19 | 24 | 29 | 34 | 35 | 36 | 37 | 39 | 42 | 46 | 52 | 54 => {
+            (1.0, 1.0, 0.0, 0.0)
+        }
+        // Large main guns.
+        3 | 38 => (1.5, 1.0, 0.0, 0.0),
+        5 => (0.0, 1.0, 1.2, 0.0),
+        // Anti-aircraft guns.
+        21 => (1.0, 0.0, 1.2, 0.0),
+        // Midget submarines.
+        22 => (0.0, 1.0, 0.0, 0.0),
+        // Sonars and depth charges.
+        14 | 15 | 40 => (0.75, 0.0, 0.0, 1.0),
+        _ => (0.0, 0.0, 0.0, 0.0),
+    };
+    Improvement {
+        shell,
+        night,
+        torpedo,
+        asw,
+    }
+}
+
+/// What one item at `stars` (> 0) adds.
+fn improvement(mst: &ApiMstSlotitem, stars: i64) -> Improvement {
+    /// The items the source marks `isFighterBomber`.
+    const FIGHTER_BOMBERS: [i64; 5] = [60, 154, 219, 447, 487];
+    let linear = stars as f64;
+    let root = linear.sqrt();
+    // Aircraft improve by the star; the table below has no weight for them.
+    let (shell, asw) = match mst.api_type[2] {
+        // Dive, torpedo and jet bombers.
+        7 | 8 | 57 if !FIGHTER_BOMBERS.contains(&mst.api_id) => (0.2, 0.2),
+        // Of the fighter-bombers, 487 alone.
+        7 | 8 | 57 if mst.api_id == 487 => (0.0, 0.2),
+        // Autogyros at 11 ASW or more and patrol planes at 8 take 0.3, the rest 0.2.
+        25 if mst.api_tais >= 11 => (0.0, 0.3),
+        26 if mst.api_tais >= 8 => (0.0, 0.3),
+        25 | 26 => (0.0, 0.2),
+        _ => (0.0, 0.0),
+    };
+    let table = improvement_coefficients(mst.api_type[2]);
+    let mut item = Improvement {
+        shell: shell * linear + table.shell * root,
+        night: table.night * root,
+        torpedo: table.torpedo * root,
+        asw: asw * linear + table.asw * root,
+    };
+    // An item weighted 1 by day takes 1.5 at 13 firepower or more; a large gun takes 1 below.
+    if table.shell == 1.0 && mst.api_houg >= 13 {
+        item.shell = 1.5 * root;
+    }
+    if table.shell == 1.5 && mst.api_houg < 13 {
+        item.shell = root;
+    }
+    // Secondary guns by the item. The source's 0.3 list also names 467, but types it
+    // `SECGUNL`, so the rule never reaches it and it keeps √★.
+    if mst.api_type[2] == 4 && mst.api_id != 467 {
+        let weight = if [12, 234, 247, 463].contains(&mst.api_id) {
+            Some(0.3)
+        } else if ![11, 77, 130, 134, 135].contains(&mst.api_id) {
+            Some(0.2)
+        } else {
+            None
+        };
+        if let Some(weight) = weight {
+            item.shell = weight * linear;
+            item.night = weight * linear;
+        }
+    }
+    // Submarine torpedoes.
+    if mst.api_type[2] == 32 {
+        item.torpedo = 0.2 * linear;
+        item.night = 0.2 * linear;
+    }
+    if [226, 227, 488].contains(&mst.api_id) {
+        item.shell = 0.0;
+    }
+    item
 }
 
 // ---------------------------------------------------------------------------
@@ -1620,5 +1692,96 @@ mod tests {
             PlaneProficiency::NONE,
         );
         assert!(dmg > 0, "ASW with both aircraft and depth charge should deal damage");
+    }
+
+    /// An item with the fields the improvement looks at.
+    fn gear(id: i64, kind: i64, firepower: i64, asw: i64) -> ApiMstSlotitem {
+        ApiMstSlotitem {
+            api_id: id,
+            api_type: [0, 0, kind, 0, 0],
+            api_houg: firepower,
+            api_tais: asw,
+            ..Default::default()
+        }
+    }
+
+    fn assert_improvement(item: &ApiMstSlotitem, stars: i64, want: [f64; 4]) {
+        let got = improvement(item, stars);
+        let got = [got.shell, got.night, got.torpedo, got.asw];
+        for (g, w) in got.iter().zip(want) {
+            assert!(
+                (g - w).abs() < 1e-9,
+                "item {} at ★{stars}: {got:?}, want {want:?}",
+                item.api_id
+            );
+        }
+    }
+
+    /// The source's figures (`setImprovement`, `EQTDATA[type].improve`), as
+    /// `[day, night, torpedo, ASW]`.
+    #[test]
+    fn improvement_follows_the_equipment_type() {
+        let root10 = 10f64.sqrt();
+        // A torpedo: 1.2√★ to its torpedo, √★ at night.
+        assert_improvement(&gear(13, 5, 0, 0), 10, [0.0, root10, 1.2 * root10, 0.0]);
+        // A sonar: 0.75√★ by day, √★ against a submarine.
+        assert_improvement(&gear(46, 14, 0, 6), 4, [1.5, 0.0, 0.0, 2.0]);
+        // An anti-aircraft gun: √★ by day, 1.2√★ to the torpedo, nothing at night.
+        assert_improvement(&gear(37, 21, 0, 0), 4, [2.0, 0.0, 2.4, 0.0]);
+    }
+
+    /// A gun's weight by day turns on its firepower: 1.5√★ at 13 or more, √★ below.
+    #[test]
+    fn a_guns_improvement_by_day_turns_on_its_firepower() {
+        assert_improvement(&gear(7, 3, 15, 0), 4, [3.0, 2.0, 0.0, 0.0]);
+        assert_improvement(&gear(7, 3, 12, 0), 4, [2.0, 2.0, 0.0, 0.0]);
+        assert_improvement(&gear(583, 2, 13, 0), 4, [3.0, 2.0, 0.0, 0.0]);
+    }
+
+    /// Secondary guns, submarine torpedoes and three depth charges go by the item.
+    #[test]
+    fn some_items_improve_by_their_own_rule() {
+        // The source's 0.3★ list, 0.2★ for the rest, √★ for five; 467 is typed apart in the
+        // source and keeps √★ though the list names it.
+        assert_improvement(&gear(12, 4, 7, 0), 10, [3.0, 3.0, 0.0, 0.0]);
+        assert_improvement(&gear(10, 4, 4, 0), 10, [2.0, 2.0, 0.0, 0.0]);
+        assert_improvement(&gear(11, 4, 2, 0), 9, [3.0, 3.0, 0.0, 0.0]);
+        assert_improvement(&gear(467, 4, 5, 0), 9, [3.0, 3.0, 0.0, 0.0]);
+        // A submarine torpedo: 0.2★ to its torpedo and at night.
+        assert_improvement(&gear(95, 32, 0, 0), 10, [0.0, 2.0, 2.0, 0.0]);
+        for id in [226, 227, 488] {
+            assert_improvement(&gear(id, 15, 0, 5), 4, [0.0, 0.0, 0.0, 2.0]);
+        }
+    }
+
+    /// Bombers, autogyros and patrol planes improve linearly.
+    #[test]
+    fn aircraft_improve_by_the_star() {
+        // A dive bomber: 0.2★ by day and against a submarine; a fighter-bomber nothing, but
+        // for 487's 0.2★ against a submarine.
+        assert_improvement(&gear(23, 7, 0, 0), 5, [1.0, 0.0, 0.0, 1.0]);
+        assert_improvement(&gear(60, 7, 0, 3), 5, [0.0, 0.0, 0.0, 0.0]);
+        assert_improvement(&gear(487, 7, 0, 0), 4, [0.0, 0.0, 0.0, 0.8]);
+        assert_improvement(&gear(93, 8, 0, 0), 5, [1.0, 0.0, 0.0, 1.0]);
+        // An autogyro: 0.3★ at 11 ASW or more, 0.2★ below; a patrol plane the same at 8.
+        assert_improvement(&gear(69, 25, 0, 11), 10, [0.0, 0.0, 0.0, 3.0]);
+        assert_improvement(&gear(69, 25, 0, 10), 10, [0.0, 0.0, 0.0, 2.0]);
+        assert_improvement(&gear(70, 26, 0, 8), 10, [0.0, 0.0, 0.0, 3.0]);
+        assert_improvement(&gear(70, 26, 0, 7), 10, [0.0, 0.0, 0.0, 2.0]);
+    }
+
+    /// Equipment at ★0 adds nothing, as an abyssal ship's always is; stars add up over the ship.
+    #[test]
+    fn a_ships_improvement_sums_her_stars() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        let gun = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallCaliberMainGun);
+        ship.slot_items = vec![slotitem_with_mst_id(gun), slotitem_with_mst_id(gun)];
+        let plain = BattleRuntimeShip::from(ship.clone());
+        assert_eq!(ship_improvement(&codex, &plain), Improvement::default());
+        ship.slot_items[0].api_level = 4;
+        ship.slot_items[1].api_level = 9;
+        let improved = ship_improvement(&codex, &BattleRuntimeShip::from(ship));
+        assert!((improved.shell - 5.0).abs() < 1e-9 && (improved.night - 5.0).abs() < 1e-9);
     }
 }
