@@ -6,10 +6,9 @@ use crate::accuracy::{Aim, AttackKind, roll_attack};
 use crate::config::BattlePhaseKind;
 use crate::damage::{calculate_torpedo_damage, torpedo_attack_power};
 use crate::random::BattleRng;
-use crate::simulation::volley::Volleys;
+use crate::simulation::volley::{Volley, Volleys};
 use crate::targeting::{
     can_closing_torpedo_ship, can_opening_torpedo_ship, choice_with_protect, deck_candidates,
-    target_candidates,
 };
 use crate::types::{
     BattleOpeningAttack, BattlePhase, BattleRaigeki, BattleRuntimeShip, EngagementType,
@@ -26,105 +25,20 @@ pub(crate) fn simulate_opening_torpedo(
     enemy_formation_id: i64,
     engagement: EngagementType,
 ) -> Option<BattleOpeningAttack> {
-    let fleet_size = friendly.len().max(enemy.len());
-    let mut payload = BattleOpeningAttack::blank(fleet_size);
-    let mut happened = false;
-
-    // Every ship that could fire when the phase began fires: what the enemy
-    // sends is settled from the enemy as it was, not as the friendly torpedoes
-    // resolved just before leave it.
-    let enemy_at_start = enemy.to_vec();
-
-    let volleys = Volleys::opening(BattlePhaseKind::OpeningTorpedo, friendly, enemy);
-    let (attackers, defenders) = volleys.friendly.split(friendly, enemy);
-    for (idx, ship) in attackers.iter_mut().enumerate() {
-        if !can_opening_torpedo_ship(codex, ship) {
-            continue;
-        }
-        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let candidates = target_candidates(codex, ship, defenders, BattlePhase::OpeningTorpedo);
-        let Some((target_idx, shield)) =
-            choice_with_protect(codex, rng, defenders, &candidates, 0, false, enemy_formation_id)
-        else {
-            continue;
-        };
-        // A fifth of the torpedo's power goes into its accuracy.
-        let power = torpedo_attack_power(
-            codex,
-            ship,
-            &defenders[target_idx],
-            friendly_formation_id,
-            engagement,
-            BattlePhase::OpeningTorpedo,
-        );
-        let outcome = roll_attack(
-            codex,
-            rng,
-            ship,
-            &defenders[target_idx],
-            Aim::new(AttackKind::Torpedo, friendly_formation_id, enemy_formation_id)
-                .with_flat((power / 5.0).floor()),
-        );
-        let raw =
-            calculate_torpedo_damage(codex, rng, ship, &defenders[target_idx], power, outcome);
-        let landed = defenders[target_idx].take_hit(rng, raw, shield);
-        ship.damage_dealt += landed.dealt;
-        payload.record_torpedo_hit(
-            TorpedoAttackerSide::Friendly,
-            TorpedoHit {
-                attacker_index: volleys.friendly.attacker_at(idx),
-                defender_index: volleys.friendly.target_at(target_idx),
-                damage: landed.cell,
-                cl: outcome.cl(),
-            },
-        );
-        happened = true;
+    let mut payload = BattleOpeningAttack::blank(friendly.len().max(enemy.len()));
+    let hits = torpedo_phase(
+        codex,
+        rng,
+        friendly,
+        enemy,
+        (friendly_formation_id, enemy_formation_id),
+        engagement,
+        BattlePhase::OpeningTorpedo,
+    );
+    let happened = !hits.is_empty();
+    for (side, hit) in hits {
+        payload.record_torpedo_hit(side, hit);
     }
-
-    let (attackers, targets) = volleys.enemy.split(enemy, friendly);
-    for (idx, ship) in volleys.enemy.attackers_in(&enemy_at_start).iter().enumerate() {
-        if !can_opening_torpedo_ship(codex, ship) {
-            continue;
-        }
-        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let candidates = target_candidates(codex, ship, targets, BattlePhase::OpeningTorpedo);
-        let Some((target_idx, shield)) =
-            choice_with_protect(codex, rng, targets, &candidates, 0, false, friendly_formation_id)
-        else {
-            continue;
-        };
-        // A fifth of the torpedo's power goes into its accuracy.
-        let power = torpedo_attack_power(
-            codex,
-            ship,
-            &targets[target_idx],
-            enemy_formation_id,
-            engagement,
-            BattlePhase::OpeningTorpedo,
-        );
-        let outcome = roll_attack(
-            codex,
-            rng,
-            ship,
-            &targets[target_idx],
-            Aim::new(AttackKind::Torpedo, enemy_formation_id, friendly_formation_id)
-                .with_flat((power / 5.0).floor()),
-        );
-        let raw = calculate_torpedo_damage(codex, rng, ship, &targets[target_idx], power, outcome);
-        let landed = targets[target_idx].take_hit(rng, raw, shield);
-        attackers[idx].damage_dealt += landed.dealt;
-        payload.record_torpedo_hit(
-            TorpedoAttackerSide::Enemy,
-            TorpedoHit {
-                attacker_index: volleys.enemy.attacker_at(idx),
-                defender_index: volleys.enemy.target_at(target_idx),
-                damage: landed.cell,
-                cl: outcome.cl(),
-            },
-        );
-        happened = true;
-    }
-
     happened.then_some(payload)
 }
 
@@ -138,70 +52,100 @@ pub(crate) fn simulate_raigeki(
     enemy_formation_id: i64,
     engagement: EngagementType,
 ) -> Option<BattleRaigeki> {
-    let fleet_size = friendly.len().max(enemy.len());
-    let mut payload = BattleRaigeki::blank(fleet_size);
-    let mut happened = false;
-
-    // Every ship that could fire when the phase began fires: what the enemy
-    // sends is settled from the enemy as it was, not as the friendly torpedoes
-    // resolved just before leave it.
-    let enemy_at_start = enemy.to_vec();
-
-    let volleys = Volleys::opening(BattlePhaseKind::ClosingTorpedo, friendly, enemy);
-    let (attackers, defenders) = volleys.friendly.split(friendly, enemy);
-    for (idx, ship) in attackers.iter_mut().enumerate() {
-        if !can_closing_torpedo_ship(codex, ship) {
-            continue;
-        }
-        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let candidates = deck_candidates(codex, rng, ship, defenders, BattlePhase::ClosingTorpedo);
-        let Some((target_idx, shield)) =
-            choice_with_protect(codex, rng, defenders, &candidates, 0, false, enemy_formation_id)
-        else {
-            continue;
-        };
-        // A fifth of the torpedo's power goes into its accuracy.
-        let power = torpedo_attack_power(
-            codex,
-            ship,
-            &defenders[target_idx],
-            friendly_formation_id,
-            engagement,
-            BattlePhase::ClosingTorpedo,
-        );
-        let outcome = roll_attack(
-            codex,
-            rng,
-            ship,
-            &defenders[target_idx],
-            Aim::new(AttackKind::Torpedo, friendly_formation_id, enemy_formation_id)
-                .with_flat((power / 5.0).floor()),
-        );
-        let raw =
-            calculate_torpedo_damage(codex, rng, ship, &defenders[target_idx], power, outcome);
-        let landed = defenders[target_idx].take_hit(rng, raw, shield);
-        ship.damage_dealt += landed.dealt;
-        payload.record_torpedo_hit(
-            TorpedoAttackerSide::Friendly,
-            TorpedoHit {
-                attacker_index: volleys.friendly.attacker_at(idx),
-                defender_index: volleys.friendly.target_at(target_idx),
-                damage: landed.cell,
-                cl: outcome.cl(),
-            },
-        );
-        happened = true;
+    let mut payload = BattleRaigeki::blank(friendly.len().max(enemy.len()));
+    let hits = torpedo_phase(
+        codex,
+        rng,
+        friendly,
+        enemy,
+        (friendly_formation_id, enemy_formation_id),
+        engagement,
+        BattlePhase::ClosingTorpedo,
+    );
+    let happened = !hits.is_empty();
+    for (side, hit) in hits {
+        payload.record_torpedo_hit(side, hit);
     }
+    happened.then_some(payload)
+}
 
-    let (attackers, targets) = volleys.enemy.split(enemy, friendly);
-    for (idx, ship) in volleys.enemy.attackers_in(&enemy_at_start).iter().enumerate() {
-        if !can_closing_torpedo_ship(codex, ship) {
+/// Both sides' torpedoes in `phase`, the friendly side's first. Every ship that
+/// could fire when the phase began fires: what the enemy sends is settled from
+/// the enemy as it was, not as the friendly torpedoes resolved just before
+/// leave it.
+fn torpedo_phase(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    friendly: &mut [BattleRuntimeShip],
+    enemy: &mut [BattleRuntimeShip],
+    (friendly_formation, enemy_formation): (i64, i64),
+    engagement: EngagementType,
+    phase: BattlePhase,
+) -> Vec<(TorpedoAttackerSide, TorpedoHit)> {
+    let (kind, can_fire): (_, fn(&Codex, &BattleRuntimeShip) -> bool) = match phase {
+        BattlePhase::OpeningTorpedo => (BattlePhaseKind::OpeningTorpedo, can_opening_torpedo_ship),
+        BattlePhase::ClosingTorpedo => (BattlePhaseKind::ClosingTorpedo, can_closing_torpedo_ship),
+        BattlePhase::DayShelling | BattlePhase::NightShelling => {
+            unreachable!("{phase:?} is not a torpedo phase")
+        }
+    };
+    let volleys = Volleys::opening(kind, friendly, enemy);
+    let friendly_at_start = volleys.friendly.attackers_in(friendly).to_vec();
+    let enemy_at_start = volleys.enemy.attackers_in(enemy).to_vec();
+
+    let friendly_hits = salvo(
+        codex,
+        rng,
+        &friendly_at_start,
+        (friendly, enemy),
+        &volleys.friendly,
+        Aim::new(AttackKind::Torpedo, friendly_formation, enemy_formation),
+        (engagement, phase, can_fire),
+    );
+    let enemy_hits = salvo(
+        codex,
+        rng,
+        &enemy_at_start,
+        (enemy, friendly),
+        &volleys.enemy,
+        Aim::new(AttackKind::Torpedo, enemy_formation, friendly_formation),
+        (engagement, phase, can_fire),
+    );
+    let mut hits: Vec<_> =
+        friendly_hits.into_iter().map(|hit| (TorpedoAttackerSide::Friendly, hit)).collect();
+    hits.extend(enemy_hits.into_iter().map(|hit| (TorpedoAttackerSide::Enemy, hit)));
+    hits
+}
+
+/// One side's torpedoes: each ship of `at_start` (the volley's attackers as the
+/// phase began) that `can_fire` fires at the volley's targets, and the damage is
+/// credited to the same ship in `afloat`. `aim` carries the two formations,
+/// the attacker's first.
+fn salvo(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    at_start: &[BattleRuntimeShip],
+    (afloat, defending): (&mut [BattleRuntimeShip], &mut [BattleRuntimeShip]),
+    volley: &Volley,
+    aim: Aim,
+    (engagement, phase, can_fire): (
+        EngagementType,
+        BattlePhase,
+        fn(&Codex, &BattleRuntimeShip) -> bool,
+    ),
+) -> Vec<TorpedoHit> {
+    let (attackers, targets) = volley.split(afloat, defending);
+    let mut hits = Vec::new();
+    for (idx, ship) in at_start.iter().enumerate() {
+        if !can_fire(codex, ship) {
             continue;
         }
+        // The closing torpedo picks an enemy combined fleet's deck first; the opening
+        // one draws from both decks, which `deck_candidates` does without a roll.
+        let candidates = deck_candidates(codex, rng, ship, targets, phase);
         // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let candidates = deck_candidates(codex, rng, ship, targets, BattlePhase::ClosingTorpedo);
         let Some((target_idx, shield)) =
-            choice_with_protect(codex, rng, targets, &candidates, 0, false, friendly_formation_id)
+            choice_with_protect(codex, rng, targets, &candidates, 0, false, aim.defender_formation)
         else {
             continue;
         };
@@ -210,34 +154,28 @@ pub(crate) fn simulate_raigeki(
             codex,
             ship,
             &targets[target_idx],
-            enemy_formation_id,
+            aim.attacker_formation,
             engagement,
-            BattlePhase::ClosingTorpedo,
+            phase,
         );
         let outcome = roll_attack(
             codex,
             rng,
             ship,
             &targets[target_idx],
-            Aim::new(AttackKind::Torpedo, enemy_formation_id, friendly_formation_id)
-                .with_flat((power / 5.0).floor()),
+            aim.with_flat((power / 5.0).floor()),
         );
         let raw = calculate_torpedo_damage(codex, rng, ship, &targets[target_idx], power, outcome);
         let landed = targets[target_idx].take_hit(rng, raw, shield);
         attackers[idx].damage_dealt += landed.dealt;
-        payload.record_torpedo_hit(
-            TorpedoAttackerSide::Enemy,
-            TorpedoHit {
-                attacker_index: volleys.enemy.attacker_at(idx),
-                defender_index: volleys.enemy.target_at(target_idx),
-                damage: landed.cell,
-                cl: outcome.cl(),
-            },
-        );
-        happened = true;
+        hits.push(TorpedoHit {
+            attacker_index: volley.attacker_at(idx),
+            defender_index: volley.target_at(target_idx),
+            damage: landed.cell,
+            cl: outcome.cl(),
+        });
     }
-
-    happened.then_some(payload)
+    hits
 }
 
 #[cfg(test)]
