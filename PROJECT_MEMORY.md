@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-18 · branch `refactor/battle-volleys`
+Last updated: 2026-10-18 · branch `refactor/battle-torpedo-salvo`
 
 ## Verified Facts
 
@@ -161,11 +161,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-18] 计划 009 U0（#235）、U1（#236）合并；U2 在 `refactor/battle-volleys`：开幕三阶段走 `Volleys::opening`，砲撃轮 `ShellingRound` 带 `Volleys`；fmt、clippy `-D warnings`、`test --workspace` 全过，全部 golden 未变。
+- [2026-10-18] 计划 009 U0（#235）、U1（#236）、U2（#237）合并；U3 在 `refactor/battle-torpedo-salvo`：两次雷撃共用 `torpedo_phase` 与 `salvo`；fmt、clippy `-D warnings`、`test --workspace` 全过，全部 golden 未变。
 
 ## Next Session
 
-- [2026-10-18] 战斗重构按计划 009 接着做 U3（折叠敌我镜像，保留开火方按阶段开始时快照）；基地航空队只在单对单出动（`simulate_day` 连合两条路径不调 `execute_air_base_attacks`），未开票；候选 5（夜战 deck 切分进 battle crate）与 2026-09-23 计划 KTD13 冲突，不做。
+- [2026-10-18] 战斗重构按计划 009 接着做 U4（夜战 `record_attack`、主炮副炮计数、特殊攻击执行的决策门）；基地航空队只在单对单出动（`simulate_day` 连合两条路径不调 `execute_air_base_attacks`），未开票；候选 5（夜战 deck 切分进 battle crate）与 2026-09-23 计划 KTD13 冲突，不做。
   #193–#204 未关均 ready；改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。对潜基础攻击力已按源码（#231）；协同倍率仍不分投射机与爆雷（源码 `isDCProjector`/`isDCOnly`），未开票。命中/回避取整直接 floor，源码先 `round(x*1e6)/1e4`，未修。季节＝某天的状态，非常规版。
   瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
