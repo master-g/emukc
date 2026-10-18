@@ -101,3 +101,62 @@ impl Volleys {
 pub(crate) fn escort_start(ships: &[BattleRuntimeShip]) -> Option<usize> {
     ships.iter().position(BattleRuntimeShip::is_escort_deck)
 }
+
+#[cfg(test)]
+mod tests {
+    use emukc_model::codex::Codex;
+    use emukc_model::kc2::types::KcShipType;
+
+    use super::*;
+    use crate::combined::CombinedType;
+    use crate::state::BattleState;
+    use crate::test_utils::{first_ship_mst_by_type, sample_ship};
+    use crate::types::{BattleContext, BattleType, CombinedSetup};
+
+    /// Fleets of destroyers, tagged as `BattleState` tags them.
+    fn state(main: usize, escort: usize, enemy_main: usize, enemy_escort: usize) -> BattleState {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ships = |n: usize| (0..n).map(|_| sample_ship(&codex, dd, 50)).collect::<Vec<_>>();
+        let mut context =
+            BattleContext::head_on(BattleType::Normal, true, ships(main), ships(enemy_main));
+        context.enemy_escort_ships = ships(enemy_escort);
+        context.combined = (escort > 0).then(|| CombinedSetup {
+            combined_type: CombinedType::CarrierTaskForce,
+            escort_ships: ships(escort),
+        });
+        BattleState::from_context(context)
+    }
+
+    fn opening(
+        state: &BattleState,
+        phase: BattlePhaseKind,
+    ) -> (Range<usize>, Range<usize>, Range<usize>, Range<usize>) {
+        let Volleys {
+            friendly,
+            enemy,
+        } = Volleys::opening(phase, &state.friendly, &state.enemy);
+        (friendly.attackers, friendly.targets, enemy.attackers, enemy.targets)
+    }
+
+    #[test]
+    fn the_opening_phases_follow_the_fleet_shape() {
+        use BattlePhaseKind::{ClosingTorpedo, OpeningAsw, OpeningTorpedo};
+        // (friendly fires, at, enemy fires, at) for each phase.
+        let single = state(6, 0, 6, 0);
+        for phase in [OpeningAsw, OpeningTorpedo, ClosingTorpedo] {
+            assert_eq!(opening(&single, phase), (0..6, 0..6, 0..6, 0..6), "{phase:?}");
+        }
+        // 第2艦隊 alone fires and is fired at, wherever 第1艦隊 ends.
+        let combined = state(2, 6, 6, 0);
+        for phase in [OpeningAsw, OpeningTorpedo, ClosingTorpedo] {
+            assert_eq!(opening(&combined, phase), (2..8, 0..6, 0..6, 2..8), "{phase:?}");
+        }
+        // Both enemy decks fire and are fired at, but only the escort fleet closes.
+        let enemy_combined = state(6, 0, 4, 6);
+        for phase in [OpeningAsw, OpeningTorpedo] {
+            assert_eq!(opening(&enemy_combined, phase), (0..6, 0..10, 0..10, 0..6), "{phase:?}");
+        }
+        assert_eq!(opening(&enemy_combined, ClosingTorpedo), (0..6, 0..10, 4..10, 0..6));
+    }
+}

@@ -94,17 +94,14 @@ deck 边界在本 crate 内有四种求法：`escort_deck_start`、`deck_candida
 - 编排器为每个阶段、每一方构造一个 `Volley`：开火方的 range、被打方的 range、双方阵形、`attacker_is_enemy`；拆借用与索引抬升也由它负责（`attacker_at`、`defender_at`）。阶段函数只消费 `Volley`，不再自己切片、不再自己抬索引。
 - `Volley` 由一个函数按“阶段 × 舰队形态”的表生成，舰队形态包括单对单、友方连合×3、对敌方连合。这张表是连合艦隊 deck 规则唯一的落脚点，d756a51c、b7a9d94b、a9623045、7f22d4c4 改的都是它的某一行。
 - 开幕雷撃的“第1艦隊不开火”这类按舰跳过的检查，改为在 `Volley` 的开火 range 里体现。遍历顺序与 RNG 顺序不变：原来是整支遍历、遇到主力 deck 跳过，现在是只遍历护卫 deck，二者抽取序列相同。
-- **把“旗舰”的两个含义分开命名。** 代码里实际有两个概念：
-  - deck 旗舰：`mark_flagship` 对每个 deck 的首舰都设 `is_flagship`，轰沉保护读它；
-  - 舰队旗舰：かばう只保护它，`select_escort_shield` 用 `target_idx != 0 || defenders[0].is_escort_deck()` 间接表达。
-
-  另外，夜战 cut-in 与瑞雲用 `idx == 0`（`night.rs:1330, 1517, 1637`），昼战 cut-in 用 `ship_index == 0`（`day_cutin.rs:425`）。它们指的是哪一种旗舰要对照来源逐处确认。U2 的第一步是把这几处调用点逐一归到这两个概念之一，在 `BattleRuntimeShip` 上给出两个谓词，各调用点改用谓词，不再依赖“切片从旗舰开始”。敌方舰船也要标上，因为 かばう对双方都生效。
-- 本 crate 内的 deck 边界只保留一个从舰船标签计算的函数。gameplay 的 `SortieBattleSession` 不动（见非目标）。
-- `ShellingRound` 的三个 range 换成两个 `Volley`。测试专用入口 `simulate_shelling_side` 在测试迁到真实回合 interface 后删除。
+- **旗舰：写成 `Volley` 的不变量，不加字段谓词。** 代码里的“旗舰”有两种用法：`is_flagship` 字段（`mark_flagship` 给每个 deck 的首舰设，轰沉保护读它），以及按位置的 `idx == 0`（昼夜 cut-in、特殊攻击、瑞雲，和 かばう 的 `target_idx != 0 || defenders[0].is_escort_deck()`）。实现时逐处核对：每个阶段拿到的切片都从某支 deck 的首舰开始，所以 `idx == 0` 就是“这支 deck 的旗舰”。这条写进 `volley.rs` 的模块注释。改成字段谓词需要在 `from_context` 和 `simulate_night` 里也给敌方标旗舰，并改所有直接调用相位函数、自己建舰的测试，输出不变，所以不做。
+- 相位用的 deck 边界只留 `volley::escort_start` 一个函数（删掉 `targeting::escort_deck_start`）。`deck_candidates` 的边界保持只认 `enemy_deck`：它写的是来源对敌方 deck 的掷骰（0.39 / 0.35），换成认双方标签只是因为现在没有调用方会把友方两支 deck 一起传进去才等价。`CombinedLayout.escort_start` 与 `state.enemy_escort_start` 在建舰时从同一个向量算出一次，供编排器和包翻译使用，也不动。gameplay 的 `SortieBattleSession` 不动（见非目标）。
+- `ShellingRound` 的三个 range 换成 `Volleys`。测试专用入口 `simulate_shelling_side` 保留：它只让一方开火，换成真实回合会让双方交替开火、改变这些测试的 RNG 序列；它是只供本模块测试的内部 seam。
+- 实现时 `Volley` 由相位函数开头调用表函数取得，而不是由编排器传入：表只有一处，调用位置不影响 locality，还省得改 13 个直接调用相位函数的测试。
 
 **测试。**
 - `combined_tests`（`simulation/mod.rs:1083` 起）原样保留，作为验收。
-- 新增表格测试，逐行断言“阶段 × 舰队形态 → 两个 `Volley`”。
+- 新增表格测试，逐行断言“阶段 × 舰队形态 → 两个 `Volley`”，覆盖开幕三阶段；砲撃轮的表在编排器里，由 `combined_tests` 和 golden 覆盖。
 
 **文档**：`combined-fleet-index-spaces.md` 的“切片编号”一节、`day-shelling-order.md`、`reconnaissance-and-escort-cells.md`（如涉及）改成按 `Volley` 写。
 

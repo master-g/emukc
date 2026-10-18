@@ -43,10 +43,16 @@ problem_type: architecture
 
 ## 切片编号：第三个坑
 
-`simulate_shelling_side` 按**交给它的切片**起点从 0 编号 attacker。联合舰队按 deck
-切片调用它，所以 第2艦隊 的攻击回来时是 0,1,2 —— 既不是模拟空间也不是客户端空间。
-`execute_combined_shelling` 必须先用 `shift_friendly_attackers` 抬回模拟空间，上面
-那次 remap 才能把它转成客户端空间。
+相位函数按**交给它的切片**从 0 编号。联合舰队按 deck 切片，所以 第2艦隊 的攻击在
+切片里是 0,1,2 —— 既不是模拟空间也不是客户端空间，必须先抬回模拟空间，上面那次
+remap 才能把它转成客户端空间。
+
+抬升只有一处：`simulation/volley.rs` 的 `Volley`。它记着一方开火的舰与被打的舰在
+各自整支舰队里的 range，相位用 `split` 取两段切片，用 `attacker_at` / `target_at`
+（砲撃轮里是 `append_turn`）把索引抬回模拟空间。哪个阶段由哪支 deck 参战也只写在
+这里：开幕对潜、开幕与闭幕雷撃走 `Volleys::opening` 的表，砲撃轮由编排器按轮次表
+`Volleys::between(...)` 构造。每个 range 都从某支 deck 的首舰开始，所以切片里的
+0 号就是那支 deck 的旗舰，相位里的 `idx == 0` 判断依赖这一点。
 
 两层平移缺任何一层，结果都是"第2艦隊 的炮击全部记在 第1艦隊 头上"。
 `escort_deck_attacks_reach_the_packet_in_client_index_space` 钉住这条。
