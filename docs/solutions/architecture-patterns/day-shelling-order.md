@@ -62,6 +62,10 @@ enemy did (plan `docs/plans/2026-10-10-002`):
 - **Torpedoes** (`torpedo.rs`) are in the water together. The friendly salvo is still resolved
   first, so the random stream keeps its order, but what the enemy fires is settled from a copy
   of the enemy taken when the phase began: a ship the friendly salvo sinks has fired already.
+  Neither torpedo is aimed at a land target (`target_candidates`; `torpedoPhase` leaves
+  `isInstall` out of both sides' targets, `kancolle-replay` `69097abc`, plan
+  `docs/plans/2026-10-18-001`), so a deck of land targets alone counts as empty for the
+  closing torpedo's deck draw below.
 
 ## Whose air state
 
