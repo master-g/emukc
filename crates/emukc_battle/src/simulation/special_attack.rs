@@ -643,7 +643,7 @@ pub(crate) fn execute_special_attack(
         );
         let (raw, cl) = cut_in_hit(rng, outcome, raw, defenders[target_idx].hp());
         hits.push(cl);
-        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
         if !is_enemy {
             attacker.damage_dealt += dealt;
         }

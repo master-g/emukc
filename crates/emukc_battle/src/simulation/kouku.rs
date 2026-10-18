@@ -619,7 +619,7 @@ fn execute_airstrike_phase(
             output.cl_flags[target_idx] = 1;
         }
         let display = if damage > 0 {
-            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage, target_idx);
+            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage);
             // display_damage returns dealt for friendly defenders (sinking protection),
             // raw for enemy defenders. Must NOT accumulate raw_dmg directly.
             crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt)
@@ -1268,7 +1268,7 @@ mod tests {
         let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
 
-        // Flagship (index 0) with low HP — must survive
+        // Flagship with low HP — must survive
         let mut friend = sample_ship(&codex, dd_mst, 50);
         friend.ship.api_soukou[0] = 0;
         friend.ship.api_nowhp = 5;
@@ -1280,15 +1280,13 @@ mod tests {
         enemy.ship.api_maxhp = 200;
 
         let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
+        friendly[0].is_flagship = true;
         let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
         simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
 
-        assert!(
-            friendly[0].hp() > 0,
-            "flagship (index 0) must survive airstrike under sinking protection"
-        );
+        assert!(friendly[0].hp() > 0, "flagship must survive airstrike under sinking protection");
     }
 
     #[test]

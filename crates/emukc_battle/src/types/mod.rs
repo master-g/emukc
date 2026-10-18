@@ -81,7 +81,7 @@ mod tests {
     fn sinking_protection_saves_non_taiha_ship_in_sortie() {
         let mut rng = crate::random::SeededRng::new(42);
         let mut ship = make_test_ship_ctx(30, 30, 30, 40, true, true);
-        let (raw, effective) = ship.apply_damage(&mut rng, 999, 1);
+        let (raw, effective) = ship.apply_damage(&mut rng, 999);
         assert!(ship.hp() >= 1, "ship must survive with sinking protection");
         assert!(effective < 30, "effective damage must be less than current HP");
         assert_eq!(raw, 999, "raw should show full input damage");
@@ -91,7 +91,8 @@ mod tests {
     fn flagship_always_survives_even_when_taiha() {
         let mut rng = crate::random::SeededRng::new(42);
         let mut ship = make_test_ship_ctx(5, 5, 5, 40, true, true);
-        let (raw, effective) = ship.apply_damage(&mut rng, 999, 0);
+        ship.is_flagship = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 999);
         assert!(ship.hp() >= 1, "flagship must always survive");
         assert!(effective < 5);
         assert_eq!(raw, 999);
@@ -101,7 +102,7 @@ mod tests {
     fn taiha_advance_ship_can_be_sunk() {
         let mut rng = crate::random::SeededRng::new(42);
         let mut ship = make_test_ship_ctx(5, 5, 5, 40, true, true);
-        let (raw, effective) = ship.apply_damage(&mut rng, 999, 1);
+        let (raw, effective) = ship.apply_damage(&mut rng, 999);
         assert_eq!(ship.hp(), 0, "taiha-advance ship should be sunk");
         assert_eq!(effective, 5);
         assert_eq!(raw, 999);
@@ -111,7 +112,7 @@ mod tests {
     fn practice_never_triggers_sinking_protection() {
         let mut rng = crate::random::SeededRng::new(42);
         let mut ship = make_test_ship_ctx(30, 30, 30, 40, true, false);
-        let (raw, effective) = ship.apply_damage(&mut rng, 999, 1);
+        let (raw, effective) = ship.apply_damage(&mut rng, 999);
         assert_eq!(ship.hp(), 0, "practice uses normal damage clamping");
         assert_eq!(effective, 30);
         assert_eq!(raw, 999);
@@ -121,7 +122,8 @@ mod tests {
     fn enemy_ships_never_get_sinking_protection() {
         let mut rng = crate::random::SeededRng::new(42);
         let mut ship = make_test_ship_ctx(30, 30, 30, 40, false, true);
-        let (raw, effective) = ship.apply_damage(&mut rng, 999, 0);
+        ship.is_flagship = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 999);
         // Enemy sortie ships get no protection AND no cap: HP goes negative to
         // render overkill, and effective == raw (U4.1 / battle-damage-foundation).
         assert!(ship.is_sunk(), "enemy ships should be sinkable");
@@ -134,7 +136,8 @@ mod tests {
     fn flagship_is_always_protected_from_sinking() {
         let mut ship = make_test_ship_ctx(10, 10, 10, 30, true, true);
         let mut rng = crate::random::SeededRng::new(42);
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        ship.is_flagship = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 100);
         assert!(effective > 0, "flagship should take proportional damage");
         assert!(ship.current_hp > 0, "flagship must survive");
         assert!(ship.current_hp < ship.entry_hp, "should be proportional, not full damage");
@@ -145,7 +148,8 @@ mod tests {
     fn flagship_at_1hp_survives_lethal_damage() {
         let mut ship = make_test_ship_ctx(1, 5, 1, 30, true, true);
         let mut rng = crate::random::SeededRng::new(42);
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        ship.is_flagship = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 100);
         assert_eq!(effective, 0, "at 1 HP, protection reduces damage to 0");
         assert_eq!(ship.current_hp, 1, "flagship must survive");
         assert_eq!(raw, 100);
@@ -155,7 +159,7 @@ mod tests {
     fn non_taiha_ship_is_protected_from_sinking() {
         let mut ship = make_test_ship_ctx(10, 20, 10, 30, true, true);
         let mut rng = crate::random::SeededRng::new(42);
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 2);
+        let (raw, effective) = ship.apply_damage(&mut rng, 100);
         assert!(effective > 0, "non-taiha ship should take proportional damage");
         assert!(ship.current_hp > 0, "non-taiha ship must survive");
         assert_eq!(raw, 100);
@@ -167,7 +171,7 @@ mod tests {
         let max_hp = 30;
         let mut ship = make_test_ship_ctx(entry_hp, entry_hp, entry_hp, max_hp, true, true);
         let mut rng = crate::random::SeededRng::new(42);
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 2);
+        let (raw, effective) = ship.apply_damage(&mut rng, 100);
         assert_eq!(ship.current_hp, 0, "taiha non-flagship should be sunk");
         assert_eq!(effective, 5);
         assert_eq!(raw, 100);
@@ -179,7 +183,7 @@ mod tests {
         for seed in 0..50 {
             let mut ship = make_test_ship_ctx(10, 30, 10, 40, true, true);
             let mut rng = crate::random::SeededRng::new(seed);
-            let (raw, effective) = ship.apply_damage(&mut rng, 100, 1);
+            let (raw, effective) = ship.apply_damage(&mut rng, 100);
             assert!((5..=7).contains(&effective), "seed {seed}: took {effective} of 10");
             assert_eq!(raw, 100);
         }
@@ -190,7 +194,8 @@ mod tests {
         // 69 at entry and 5 left: the hit that would sink her takes 2 or 3.
         for seed in 0..50 {
             let mut ship = make_test_ship_ctx(5, 69, 5, 69, true, true);
-            ship.apply_damage(&mut crate::random::SeededRng::new(seed), 100, 0);
+            ship.is_flagship = true;
+            ship.apply_damage(&mut crate::random::SeededRng::new(seed), 100);
             assert!((2..=3).contains(&ship.current_hp), "seed {seed}: left at {}", ship.current_hp);
         }
     }
@@ -199,7 +204,8 @@ mod tests {
     fn enemy_ships_get_no_protection() {
         let mut ship = make_test_ship_ctx(1, 1, 1, 30, false, true);
         let mut rng = crate::random::SeededRng::new(42);
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        ship.is_flagship = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 100);
         assert_eq!(effective, 100, "enemy sortie damage is uncapped (overkill)");
         assert_eq!(raw, 100, "raw should show overkill");
         assert_eq!(ship.current_hp, 1 - 100, "enemy sortie HP goes negative");
@@ -210,7 +216,8 @@ mod tests {
     fn practice_ships_get_no_protection() {
         let mut ship = make_test_ship_ctx(1, 1, 1, 30, true, false);
         let mut rng = crate::random::SeededRng::new(42);
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        ship.is_flagship = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 100);
         assert_eq!(effective, 1, "practice ship should take full effective damage");
         assert_eq!(raw, 100, "raw should show overkill");
         assert_eq!(ship.current_hp, 0, "practice ship should be sunk");
@@ -220,7 +227,8 @@ mod tests {
     fn overkill_shows_raw_damage() {
         let mut ship = make_test_ship_ctx(5, 5, 5, 30, false, true);
         let mut rng = crate::random::SeededRng::new(42);
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        ship.is_flagship = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 100);
         assert_eq!(raw, 100, "raw should show full input damage");
         assert_eq!(effective, 100, "enemy sortie effective is uncapped (overkill)");
         assert_eq!(ship.current_hp, 5 - 100, "enemy sortie HP goes negative for overkill");
@@ -233,7 +241,8 @@ mod tests {
     fn enemy_practice_damage_is_capped() {
         let mut ship = make_test_ship_ctx(5, 5, 5, 30, false, false);
         let mut rng = crate::random::SeededRng::new(42);
-        let (raw, effective) = ship.apply_damage(&mut rng, 100, 0);
+        ship.is_flagship = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 100);
         assert_eq!(raw, 100, "raw shows full input");
         assert_eq!(effective, 5, "practice enemy damage capped to current HP");
         assert_eq!(ship.current_hp, 0, "practice enemy HP clamps at 0, no overkill");
@@ -243,7 +252,8 @@ mod tests {
     fn protection_shows_raw_but_reduces_hp_proportionally() {
         let mut ship = make_test_ship_ctx(10, 10, 10, 30, true, true);
         let mut rng = crate::random::SeededRng::new(42);
-        let (raw, effective) = ship.apply_damage(&mut rng, 200, 0);
+        ship.is_flagship = true;
+        let (raw, effective) = ship.apply_damage(&mut rng, 200);
         assert_eq!(raw, 200, "raw should show full lethal input");
         assert!(effective < 10, "effective should be proportional, not lethal");
         assert!(ship.current_hp > 0, "flagship must survive");

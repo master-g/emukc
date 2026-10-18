@@ -1356,6 +1356,47 @@ mod combined_tests {
         assert!(torpedoed && depth_charged, "torpedoed {torpedoed}, depth charged {depth_charged}");
     }
 
+    /// The escort fleet's flagship is a flagship in the enemy's airstrike too, which is
+    /// flown at the whole friendly fleet (`kcships.js` `69097abc` `:45`, `:1825`).
+    #[test]
+    fn the_escort_flagship_survives_the_enemy_airstrike() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cv = first_ship_mst_by_type(&codex, KcShipType::CV);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        // At 1 HP of 30 a hit sinks a ship unless she is a flagship.
+        let wreck = || {
+            let mut ship = sample_ship(&codex, dd, 50);
+            ship.ship.api_maxhp = 30;
+            ship.ship.api_nowhp = 1;
+            ship
+        };
+
+        let mut escort_sunk = false;
+        for seed in 0..40 {
+            let context = BattleContext {
+                special_attacks_made: Default::default(),
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 11,
+                enemy_formation_id: 1,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![wreck(), wreck()],
+                enemy_ships: vec![sample_ship(&codex, cv, 99); 4],
+                enemy_escort_ships: Vec::new(),
+                air_corps: Vec::new(),
+                combined: Some(CombinedSetup {
+                    combined_type: CombinedType::CarrierTaskForce,
+                    escort_ships: vec![wreck(), wreck()],
+                }),
+            };
+            let sim = super::simulate_day(&codex, context, &mut SeededRng::new(seed));
+            assert!(sim.friendly[0].is_alive(), "seed {seed}: main flagship sunk");
+            assert!(sim.friendly[2].is_alive(), "seed {seed}: escort flagship sunk");
+            escort_sunk |= sim.friendly[3].is_sunk();
+        }
+        assert!(escort_sunk, "no hit was lethal");
+    }
+
     fn combined_sim(codex: &Codex, combined_type: CombinedType) -> BattleSimulation {
         let ss = first_ship_mst_by_type(codex, KcShipType::SS);
         let dd = first_ship_mst_by_type(codex, KcShipType::DD);
