@@ -53,12 +53,7 @@ Current verification baseline:
 - [2026-09-20] SeaORM 只当 struct↔row 映射器 + DDL 生成器用：195 处 `Entity::find()` 里 0 个 join /
   `group_by` / `find_with_related`，`Relation` 只喂 `create_table_from_entity`。换 sqlx/rusqlite 要重写
   ~450 处调用来省 25 个依赖，不值。
-- [2026-09-20] 跑完整的 `cache populate` 就是权威的 CDN 存在性探针：它请求每条非 hole 路径，失败清单即
-  「上游缺什么」，[2026-09-22] 但它只请求表内路径——`z/cache` 的 336 个
-  `btxt_flat` 与 `BTXT_FLAT_IDS` 条数相同，只证明「表内存在」，表外 id 必须单独探测。
-- [2026-09-20] hole 表的流向是 Rust → 资产而非 decoder → Rust：`main-decoder/src/path-rules.ts` 从 Rust 源码
-  反解 `EVENT_SHIP_HOLES` / `BTXT_FLAT_IDS` / `CHARACTER_HOLES` 写进 `cache_rules.json`。改 hole 要改 Rust
-  常量再 `make decode-main`。
+- [2026-10-18] 缓存、hole 表、下载、drift-check 与上游数据缺口的已定结论：`docs/solutions/best-practices/bootstrap-cache-facts.md`。
 - [2026-09-20] `start2` 里没有任何字段能把 5 条补给形态舰（743/744/745/748/749，名字以 補 结尾）与普通
   友军舰区分开——`api_sortno`/`api_backs`/`api_aftershipid`/`ship_picturebook.json` 都查过；友军舰队
   graph id 6299/6301/6303 同理。不要再找规则。
@@ -67,25 +62,6 @@ Current verification baseline:
 - [2026-09-22] 地图数据源：开放前置表对真实 `mapinfo` 逐 id 复现；`KC3Kai/edges.json` **不接**（唯一分歧是上游错）；
   `real_map_start_data/` 的 7-4/7-5 是错误页。证据见 `docs/map/data-dependencies.md`。
 
-- [2026-09-21] `emukc_network` 下载先读完 body 再开目标文件，失败的传输不写半截文件；真正的数据丢失来自
-  `bootstrap --force-update` 在下载前就删文件。
-- [2026-09-21] kccp 源里 11 条任务缺 name（256/615/616/622/627/628/630/632/633/648/652），游戏内显示
-  `n/a`。上游数据缺失，不是解析器问题，补标题需要另一个数据源。
-
-- [2026-09-21] 保序读 JSON 对象不要开 `serde_json/preserve_order`（feature unification 会改全工作区 `Map` 的顺序）；
-  `visit_map` 本就按文档顺序交付，用自定义 `Visitor`，见 `parser/kccp/quest.rs` 的 `OrderedEntries`。
-- [2026-09-21] `make_list` 的 "holes" 有两义：已删的 holes **report**（`HOLES_COLLECTOR` /
-  `holes_report.rs`，无写入方）与活着的 `ShipPathHoles` 跳过表（manifest 规则在用）。按词清理会误删后者。
-- [2026-09-21] `.html` 缓存无法内容嗅探：真实 `kcs2/hc.html` 仅 54 字节且与错误页同形，
-  所以 008 只给它留非空检查。
-- [2026-09-21] 需求解析失败：丢一个 `or` 分支只是更严格，丢一个 `and` 条件则白送；统一 `?` 传播会误杀
-  api_no 1019。以上三条的依据见 `docs/plans/2026-09-20-bootstrap-cache-audit/README.md` 的 006/008/010 段。
-- [2026-09-21] `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 在全部镜像上都是 200 + 空 body（4 个 w0* 主机实测）。
-  `Kache` 现在把「每个镜像都应答且都不可用」返回成 `InvalidFile` 而非 `FailedOnAllCdn`，populate 归入
-  missing 不再重试；注意 `exists_on_remote` 走 HEAD，仍判 `Present`。
-- [2026-09-23] drift-check 跟踪 `emukc_bootstrap::assets::REPO_ASSETS` 的全部 15 项（含不可再生的
-  `map_ship_drops`），基线 6.3.5.0，入口 `make drift-check` / `make drift-accept`。指纹按规范化后的
-  字节算，`_0x` 重命名即使解码知识没变也算漂移。
 - [2026-09-21] manifest 差集结案，**不要补**：
   `docs/solutions/best-practices/manifest-minus-rules-difference.md`。
 - [2026-09-21] `emukc_battle` 里的 `escort` 绝大多数指「旗艦援護/かばう」（旗舰护盾），
@@ -185,7 +161,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-18] #218、#219 合并；#225 已实现待合并。
+- [2026-10-18] #218、#219、#225 合并；记忆超限，缓存类事实搬入 `bootstrap-cache-facts.md`。
 
 ## Next Session
 
