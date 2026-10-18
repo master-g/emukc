@@ -7,11 +7,14 @@ use crate::damage::calculate_asw_damage;
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
 use crate::simulation::shelling::{damage_cell, firing_order};
-use crate::targeting::{can_opening_asw, choice_with_protect, submarine_candidates};
+use crate::targeting::{
+    can_opening_asw, choice_with_protect, escort_deck_start, submarine_candidates,
+};
 use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType};
 
 /// Simulate the opening ASW phase (先制対潜). The ships of both sides that can
 /// open with ASW fire in turn, longest range first, the friendly side first.
+/// The enemy fires at a friendly combined fleet's escort deck alone.
 pub(crate) fn simulate_opening_taisen(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -28,17 +31,30 @@ pub(crate) fn simulate_opening_taisen(
     });
     let enemy_order = firing_order(codex, rng, enemy, true, |ship| can_opening_asw(codex, ship));
 
+    let fired_at = escort_deck_start(friendly);
     let mut hougeki = BattleHougeki::default();
     for turn in 0..friendly_order.len().max(enemy_order.len()) {
         if let Some(&idx) = friendly_order.get(turn) {
             let aim = Aim::new(AttackKind::Asw, friendly_formation_id, enemy_formation_id)
                 .in_the_opening();
-            asw_turn(codex, rng, friendly, idx, enemy, aim, engagement, false, &mut hougeki);
+            asw_turn(codex, rng, friendly, idx, enemy, 0, aim, engagement, false, &mut hougeki);
         }
         if let Some(&idx) = enemy_order.get(turn) {
             let aim = Aim::new(AttackKind::Asw, enemy_formation_id, friendly_formation_id)
                 .in_the_opening();
-            asw_turn(codex, rng, enemy, idx, friendly, aim, engagement, true, &mut hougeki);
+            let targets = &mut friendly[fired_at..];
+            asw_turn(
+                codex,
+                rng,
+                enemy,
+                idx,
+                targets,
+                fired_at,
+                aim,
+                engagement,
+                true,
+                &mut hougeki,
+            );
         }
     }
 
@@ -46,7 +62,7 @@ pub(crate) fn simulate_opening_taisen(
 }
 
 /// One ship's opening ASW attack, if it is still afloat and has a submarine to
-/// attack.
+/// attack. `defenders` start at `defender_at` of their whole fleet.
 #[expect(clippy::too_many_arguments)]
 fn asw_turn(
     codex: &Codex,
@@ -54,6 +70,7 @@ fn asw_turn(
     attackers: &mut [BattleRuntimeShip],
     idx: usize,
     defenders: &mut [BattleRuntimeShip],
+    defender_at: usize,
     aim: Aim,
     engagement: EngagementType,
     attacker_is_enemy: bool,
@@ -93,7 +110,7 @@ fn asw_turn(
         DayAttackKind::Asw(codex, ship),
         attacker_is_enemy,
         idx,
-        vec![target_idx as i64],
+        vec![(defender_at + target_idx) as i64],
         vec![damage_cell(shown, shield)],
         vec![outcome.cl()],
     );

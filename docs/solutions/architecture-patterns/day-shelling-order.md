@@ -63,7 +63,9 @@ The same fault was in three more places, each letting the whole friendly side ac
 enemy did (plan `docs/plans/2026-10-10-002`):
 
 - **Opening ASW** (`asw.rs`) uses the shelling loop: the ships of each side that can open with
-  ASW, by range (`shelling::firing_order` takes the condition), in turn.
+  ASW, by range (`shelling::firing_order` takes the condition), in turn. Against a friendly
+  combined fleet the enemy fires at the escort fleet alone (`shellPhase(..., alive1C, ...)`,
+  `kcsimcombined.js` `69097abc` `:207-224`, plan `docs/plans/2026-10-18-004`).
 - **Night battle** (`night.rs`) goes down the two lines in turn: the ship at position `i` of
   the friendly fleet, then the enemy's, each checked when its turn comes. `night_turn` is the
   one attack both sides share.
@@ -73,9 +75,10 @@ enemy did (plan `docs/plans/2026-10-10-002`):
   Neither torpedo is aimed at a land target (`target_candidates`; `torpedoPhase` leaves
   `isInstall` out of both sides' targets, `kancolle-replay` `69097abc`, plan
   `docs/plans/2026-10-18-001`), so a deck of land targets alone counts as empty for the
-  closing torpedo's deck draw below. The enemy's closing torpedo at a friendly combined fleet
-  is aimed at the escort fleet alone (`torpedoPhase(alive1C, ...)`, plan
-  `docs/plans/2026-10-18-003`). Fired at as its own slice, that fleet's flagship sits at 0 and
+  closing torpedo's deck draw below. The enemy's opening and closing torpedoes at a friendly
+  combined fleet are aimed at the escort fleet alone (`torpedoPhase(alive1C, ...)`, `:228-231`,
+  `:298`, `:330`; plans `docs/plans/2026-10-18-003` and `-004`). Fired at as its own slice
+  (`escort_deck_start`), in these phases and in opening ASW, that fleet's flagship sits at 0 and
   is kept from sinking, as every fleet's flagship is in the source (`kcships.js` `:45`,
   `:1825`).
 
