@@ -51,6 +51,7 @@ U0 ──┬── U1 ──────────────┐
   - 友方单舰队对敌方连合艦隊（`ec_battle`），昼战；
   - 夜战：第2艦隊单独对敌方连合艦隊的一个 deck（`NightBattleInput` 直接传护卫 deck，与 `absorb_night` 之前 gameplay 交给本 crate 的输入一致）；
   - `execute_sp_midnight`；
+  - 单舰队出击带两支基地航空队（只有单对单会出动基地航空队，所以放在这里）；
   - 演习昼战与夜战（`is_sortie = false`：`apply_damage` 截断伤害，显示值规则不同）。
 - 建舰沿用 `simulation/mod.rs` `combined_tests` 的辅助；它们是 `#[cfg(test)]`，集成测试拿不到时，就在 `golden_transcript.rs` 里按同样写法建，不新增公共测试 API。
 - 已知漏洞：`tests/gameplay_tests/battle_golden.rs` 是单舰队、不进夜战，昼战后夜战的 gameplay 拼接不在任何 golden 里。本计划不改 gameplay 的切分，所以只记录。
