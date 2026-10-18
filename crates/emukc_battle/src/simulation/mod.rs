@@ -154,8 +154,15 @@ fn simulate_day_combined(
                 CombinedFleetRole::Escort => layout.escort_start..state.friendly.len(),
             };
             let enemy_deck = 0..state.enemy.len();
-            let hougeki =
-                shelling_round(codex, state, rng, friendly_deck, enemy_deck, !is_second_round);
+            let hougeki = shelling_round(
+                codex,
+                state,
+                rng,
+                friendly_deck,
+                enemy_deck.clone(),
+                enemy_deck,
+                !is_second_round,
+            );
             let happened = hougeki.is_some();
             match round {
                 0 => state.set_hougeki1(hougeki),
@@ -177,7 +184,8 @@ fn simulate_day_combined(
 }
 
 /// One round of shelling between part of each fleet, the first kind of round
-/// (`by_range`) or the second. `None` when either part has nobody left.
+/// (`by_range`) or the second. `None` when the friendly part or the enemy
+/// ships it fires at have nobody left.
 ///
 /// Both sides fire inside every round, ship by ship, into one `BattleHougeki`
 /// that tells them apart by `api_at_eflag`.
@@ -187,10 +195,11 @@ fn shelling_round(
     rng: &mut impl BattleRng,
     friendly_deck: std::ops::Range<usize>,
     enemy_deck: std::ops::Range<usize>,
+    enemy_targets: std::ops::Range<usize>,
     by_range: bool,
 ) -> Option<BattleHougeki> {
     if !any_alive(&state.friendly[friendly_deck.clone()])
-        || !any_alive(&state.enemy[enemy_deck.clone()])
+        || !any_alive(&state.enemy[enemy_targets.clone()])
     {
         return None;
     }
@@ -199,6 +208,7 @@ fn shelling_round(
     let round = ShellingRound {
         friendly_deck,
         enemy_deck,
+        enemy_targets,
         by_range,
         friendly_formation: state.friendly_formation_id(),
         enemy_formation: state.enemy_formation_id(),
@@ -221,7 +231,8 @@ fn shelling_round(
 /// Phase order from `docs/battle/combined-fleet-reference.md` §Friendly single
 /// vs enemy combined: the opening phases, then shelling against the enemy
 /// escort fleet, the torpedo phase, shelling against the enemy main fleet, and
-/// — battleship condition — one more round against everything. They land in
+/// — battleship condition — one more round in which the enemy main fleet fires
+/// and both enemy decks are fired at. They land in
 /// `hougeki1` → `raigeki` → `hougeki2` → `hougeki3`.
 ///
 /// Both enemy decks take part in the opening phases; the closing torpedo is the
@@ -249,12 +260,19 @@ fn simulate_day_enemy_combined(
         return;
     }
 
+    // Who fires and who is fired at: the battleship round is the main deck's
+    // alone against both decks (`kcsimcombined.js` `69097abc`, shelling 3).
     let enemy_len = state.enemy.len();
-    let rounds = [escort_start..enemy_len, 0..escort_start, 0..enemy_len];
-    for (round, deck) in rounds.into_iter().enumerate() {
+    let rounds = [
+        (escort_start..enemy_len, escort_start..enemy_len),
+        (0..escort_start, 0..escort_start),
+        (0..escort_start, 0..enemy_len),
+    ];
+    for (round, (deck, targets)) in rounds.into_iter().enumerate() {
         if round < 2 || state.has_bb_class_at_start() {
             let friendly_deck = 0..state.friendly.len();
-            let hougeki = shelling_round(codex, state, rng, friendly_deck, deck, round < 2);
+            let hougeki =
+                shelling_round(codex, state, rng, friendly_deck, deck, targets, round < 2);
             let happened = hougeki.is_some();
             match round {
                 0 => state.set_hougeki1(hougeki),
@@ -366,7 +384,15 @@ fn execute_shelling(
         return;
     }
     let (friendly_deck, enemy_deck) = (0..state.friendly.len(), 0..state.enemy.len());
-    let hougeki = shelling_round(codex, state, rng, friendly_deck, enemy_deck, first_round);
+    let hougeki = shelling_round(
+        codex,
+        state,
+        rng,
+        friendly_deck,
+        enemy_deck.clone(),
+        enemy_deck,
+        first_round,
+    );
     let slot = usize::from(!first_round);
     if hougeki.is_some() {
         state.set_hourai_flag(slot, 1);
@@ -1143,6 +1169,52 @@ mod combined_tests {
             "{:?}",
             raigeki.api_frai
         );
+    }
+
+    /// 敵連合, the battleship round: only the enemy main fleet fires back, but
+    /// the friendly fleet fires at both decks (`kcsimcombined.js` `69097abc`,
+    /// shelling 3: `order2` from `ships2`, targets `alive2` and `alive2C`).
+    #[test]
+    fn enemy_combined_third_round_fires_from_the_main_deck_at_both_decks() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        // Nobody can sink anybody, so every round happens.
+        let tank = |mst: i64| {
+            let mut ship = sample_ship(&codex, mst, 50);
+            ship.ship.api_karyoku[0] = 1;
+            ship.ship.api_raisou[0] = 1;
+            ship.ship.api_soukou[0] = 300;
+            ship
+        };
+
+        let mut escort_targeted = false;
+        for seed in 0..40 {
+            let context = BattleContext {
+                special_attacks_made: Default::default(),
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 13,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![tank(bb), tank(dd)],
+                enemy_ships: vec![tank(dd); 3],
+                enemy_escort_ships: vec![tank(dd); 2],
+                air_corps: Vec::new(),
+                combined: None,
+            };
+            let sim = super::simulate_day(&codex, context, &mut SeededRng::new(seed));
+            let round = sim.packet.hougeki3.as_ref().expect("battleship round");
+            for (entry, &eflag) in round.api_at_eflag.iter().enumerate() {
+                if eflag == 1 {
+                    let at = round.api_at_list[entry];
+                    assert!((0..3).contains(&at), "seed {seed}: escort deck fired: {at}");
+                } else {
+                    escort_targeted |= round.api_df_list[entry].iter().any(|d| *d >= 6);
+                }
+            }
+        }
+        assert!(escort_targeted, "the escort deck is never fired at in hougeki3");
     }
 
     fn combined_sim(codex: &Codex, combined_type: CombinedType) -> BattleSimulation {

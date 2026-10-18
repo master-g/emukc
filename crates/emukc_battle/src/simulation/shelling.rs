@@ -22,8 +22,12 @@ pub(crate) struct ShellingRound<'a> {
     /// The friendly ships that fire this round. The enemy fires at the whole
     /// friendly force whichever deck this is.
     pub friendly_deck: Range<usize>,
-    /// The enemy ships that fire this round and are fired at.
+    /// The enemy ships that fire this round.
     pub enemy_deck: Range<usize>,
+    /// The enemy ships the friendly side fires at: `enemy_deck` except in the
+    /// battleship round against an enemy combined fleet, where the main deck
+    /// fires and both decks are fired at (`kcsimcombined.js` `69097abc`).
+    pub enemy_targets: Range<usize>,
     /// Longest range first, as in a first round; fleet position otherwise.
     pub by_range: bool,
     pub friendly_formation: i64,
@@ -61,7 +65,8 @@ pub(crate) fn simulate_shelling_round(
         air_state: enemy_air.as_ref(),
         ..friendly_params
     };
-    let (friendly_at, enemy_at) = (round.friendly_deck.start, round.enemy_deck.start);
+    let (friendly_at, enemy_at, targets_at) =
+        (round.friendly_deck.start, round.enemy_deck.start, round.enemy_targets.start);
 
     let friendly_los = fleet_los(&friendly[round.friendly_deck.clone()]);
     let enemy_los = fleet_los(&enemy[round.enemy_deck.clone()]);
@@ -82,14 +87,14 @@ pub(crate) fn simulate_shelling_round(
                 rng,
                 &mut friendly[round.friendly_deck.clone()],
                 idx,
-                &mut enemy[round.enemy_deck.clone()],
+                &mut enemy[round.enemy_targets.clone()],
                 &friendly_params,
                 friendly_los,
                 friendly_special,
             );
-            append_turn(&mut hougeki, fired, friendly_at, enemy_at);
+            append_turn(&mut hougeki, fired, friendly_at, targets_at);
         }
-        if !any_alive(&enemy[round.enemy_deck.clone()]) {
+        if !any_alive(&enemy[round.enemy_targets.clone()]) {
             break;
         }
         if let Some(&idx) = enemy_order.get(turn) {
@@ -743,6 +748,7 @@ mod tests {
                     let round = ShellingRound {
                         friendly_deck: 0..1,
                         enemy_deck: 0..1,
+                        enemy_targets: 0..1,
                         by_range: true,
                         friendly_formation: 1,
                         enemy_formation: 1,
@@ -1016,6 +1022,7 @@ mod tests {
                 let round = ShellingRound {
                     friendly_deck: 0..1,
                     enemy_deck: 0..enemy.len(),
+                    enemy_targets: 0..enemy.len(),
                     by_range: true,
                     friendly_formation: 1,
                     enemy_formation: 1,

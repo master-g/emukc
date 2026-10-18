@@ -27,8 +27,12 @@ side fired before the other.
 ## What it is now
 
 `shelling::simulate_shelling_round` fights one round. `ShellingRound` says which friendly
-ships fire (`friendly_deck`), which enemy ships fire and are fired at (`enemy_deck`), and
-whether the order is by range.
+ships fire (`friendly_deck`), which enemy ships fire (`enemy_deck`), which enemy ships the
+friendly side fires at (`enemy_targets`), and whether the order is by range. The enemy
+always fires at the whole friendly force. The two enemy ranges are the same except in the
+battleship round against an enemy combined fleet: there the main deck fires and both decks
+are fired at (`kcsimcombined.js` `69097abc`, single vs enemy combined, shelling 3: `order2`
+from `ships2`, targets `alive2` and `alive2C`; plan `docs/plans/2026-10-18-002`).
 
 - The two orders are built when the round begins, from the ships that can shell then.
 - They are walked together: friendly first, then the enemy's ship of the same turn, and so on.
@@ -44,7 +48,9 @@ whether the order is by range.
 
 `simulation/mod.rs` only decides which round is which: `execute_shelling` for a single fleet,
 and the two combined orchestrators, where a deck's second consecutive round goes down the
-line and the enemy combined fleet's third round does too.
+line and the enemy combined fleet's third round does too. Against an enemy combined fleet
+the rounds are escort deck against the friendly fleet, main deck against it, then the main
+deck firing while the friendly fleet fires at both decks.
 
 Source: `KC3Kai/kancolle-replay` `kcsim.js`: `shellPhase`, `shellPhaseC`, `orderByRangeOld`,
 and the two shelling blocks of `sim`. The plan `docs/plans/2026-10-10-001` lists the lines.
