@@ -181,14 +181,14 @@ impl BattleRuntimeShip {
     /// An enemy shows the raw damage, so the client plays the overkill; a friendly
     /// ship shows what she lost, so the client's HP bar stays true. `shield` marks
     /// a hit an escort took for the flagship (かばう).
-    pub(crate) fn take_hit(&mut self, rng: &mut impl BattleRng, raw: i64, shield: bool) -> Hit {
+    pub(crate) fn take_hit(&mut self, rng: &mut impl BattleRng, raw: i64, shield: bool) -> Landing {
         let (raw, dealt) = self.apply_damage(rng, raw);
         let shown = if self.is_friendly {
             dealt
         } else {
             raw
         };
-        Hit {
+        Landing {
             cell: if shield {
                 DamageCell::Shielded(shown)
             } else {
@@ -199,8 +199,9 @@ impl BattleRuntimeShip {
     }
 
     /// Whether a lethal hit is turned into proportional damage instead: a
-    /// friendly ship in a sortie that is her fleet's flagship, or was not in
-    /// taiha (HP <= 25% max) when the battle node began.
+    /// friendly ship in a sortie that is the flagship of her deck (`is_flagship`,
+    /// the escort deck's included), or was not in taiha (HP <= 25% max) when the
+    /// battle node began.
     pub(crate) fn protected_from_sinking(&self) -> bool {
         let was_taiha_at_entry = self.entry_hp * 4 <= self.ship.api_maxhp;
         self.is_friendly && self.is_sortie && (self.is_flagship || !was_taiha_at_entry)
@@ -256,7 +257,7 @@ impl BattleRuntimeShip {
 
 /// What a hit left on the ship it struck: see [`BattleRuntimeShip::take_hit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct Hit {
+pub(crate) struct Landing {
     /// What the battle log shows for the hit.
     pub(crate) cell: DamageCell,
     /// The hit points the ship lost.

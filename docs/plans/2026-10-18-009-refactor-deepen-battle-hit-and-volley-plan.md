@@ -68,7 +68,7 @@ U0 ──┬── U1 ──────────────┐
 - **seam 放在“落地”这一步，不放在整次攻击。** 命中判定和伤害公式在各阶段确实不同：6 个伤害函数、夜战与特殊攻击夹着 `cut_in_hit`、鱼雷火力同时进 `Aim` 和伤害、航空用 `roll_strike`。把它们收进一个 `strike` 需要公式选择器，interface 会和 implementation 一样宽。落地这一步在 13 处完全相同，删掉它会让复杂度重现在 13 个调用者里，符合 deletion test。
 - interface 大致是 `BattleRuntimeShip::take_hit(&mut self, rng, raw, shield) -> Hit`，`Hit` 带 `cell: DamageCell` 与 `dealt: i64`。名字实现时可以再定，形状不变。
 - **伤害记账统一为无条件 `attacker.damage_dealt += hit.dealt`，留在调用方。** 唯一的读者 `outcome::calculate_mvp` 只读友方，所以对输出没有影响，还能删掉两个分支。记账不放进 `Hit`，因为调用方有三种形状：每次命中记一次、夜战按次累加后记一次、航空攻击没有攻击舰。
-- `display_damage` 与 `shelling::damage_cell` 并入 `take_hit` 后删除，`apply_damage` 改为 `runtime.rs` 私有。
+- `display_damage` 与 `shelling::damage_cell` 并入 `take_hit` 后删除，`apply_damage` 收到 `types` 模块内（`pub(super)`），`types/mod.rs` 的保护测试照旧直接测它。返回值类型实现时定名 `Landing`，避开 `HitOutcome::Hit`。
 - 航空两处去掉 `if damage > 0` 守卫：`apply_damage(0)` 不抽 RNG，返回 `(0, 0)`（沉没舰提前返回，`effective = 0` 时达不到保护条件），显示值为 0，输出相同。golden 会核对这一点；若有差异，航空两处退回原写法，单独记录。
 - 轰沉保护的判定（`is_flagship || !was_taiha_at_entry`）在 `runtime.rs:211` 与 `outcome.rs:68` 的校验里各写一遍，收成 `BattleRuntimeShip` 的一个私有方法，两处共用。
 - 鱼雷火力每次命中算两次（`torpedo.rs` 算一次给 `Aim`，`calculate_torpedo_damage` 内部又算一次）。改为把算好的火力传进伤害函数。`torpedo_attack_power` 不抽 RNG，输出不变。

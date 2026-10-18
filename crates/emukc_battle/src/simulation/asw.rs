@@ -98,15 +98,15 @@ fn asw_turn(
         outcome,
         PlaneProficiency::NONE,
     );
-    let hit = defenders[target_idx].take_hit(rng, raw, shield);
-    ship.damage_dealt += hit.dealt;
+    let landed = defenders[target_idx].take_hit(rng, raw, shield);
+    ship.damage_dealt += landed.dealt;
 
     hougeki.record_day_attack(
         DayAttackKind::Asw(codex, ship),
         attacker_is_enemy,
         idx,
         vec![(defender_at + target_idx) as i64],
-        vec![hit.cell],
+        vec![landed.cell],
         vec![outcome.cl()],
     );
 }

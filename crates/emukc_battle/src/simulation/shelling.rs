@@ -265,15 +265,15 @@ fn shell_turn(
             outcome,
             asw_proficiency(codex, ship),
         );
-        let hit = defenders[target_idx].take_hit(rng, raw, shield);
-        ship.damage_dealt += hit.dealt;
+        let landed = defenders[target_idx].take_hit(rng, raw, shield);
+        ship.damage_dealt += landed.dealt;
 
         hougeki.record_day_attack(
             DayAttackKind::Asw(codex, ship),
             params.attacker_is_enemy,
             idx,
             vec![target_idx as i64],
-            vec![hit.cell],
+            vec![landed.cell],
             vec![outcome.cl()],
         );
     } else {
@@ -307,9 +307,9 @@ fn shell_turn(
                 );
                 let (raw, cl) = cut_in_hit(rng, outcome, raw, defenders[target_idx].hp());
                 cls.push(cl);
-                let hit = defenders[target_idx].take_hit(rng, raw, shield);
-                ship.damage_dealt += hit.dealt;
-                damages.push(hit.cell);
+                let landed = defenders[target_idx].take_hit(rng, raw, shield);
+                ship.damage_dealt += landed.dealt;
+                damages.push(landed.cell);
             }
             hougeki.record_day_attack(
                 DayAttackKind::Shelling {
@@ -342,8 +342,8 @@ fn shell_turn(
             } else {
                 cut_in_hit(rng, outcome, raw, defenders[target_idx].hp())
             };
-            let hit = defenders[target_idx].take_hit(rng, raw, shield);
-            ship.damage_dealt += hit.dealt;
+            let landed = defenders[target_idx].take_hit(rng, raw, shield);
+            ship.damage_dealt += landed.dealt;
             hougeki.record_day_attack(
                 DayAttackKind::Shelling {
                     codex,
@@ -354,7 +354,7 @@ fn shell_turn(
                 params.attacker_is_enemy,
                 idx,
                 vec![target_idx as i64],
-                vec![hit.cell],
+                vec![landed.cell],
                 vec![cl],
             );
         }

@@ -27,7 +27,7 @@ pub(crate) use runtime::{CombinedMembership, VanguardPlace};
 mod tests {
     use super::domain::*;
     use super::packet::*;
-    use super::runtime::Hit;
+    use super::runtime::Landing;
     use crate::test_utils::make_test_ship_ctx;
 
     // ── AirState tests ──────────────────────────────────────────────
@@ -259,7 +259,7 @@ mod tests {
         let hit = enemy.take_hit(&mut rng, 200, false);
         assert_eq!(
             hit,
-            Hit {
+            Landing {
                 cell: DamageCell::Plain(200),
                 dealt: 200
             }
@@ -272,7 +272,7 @@ mod tests {
         let mut enemy = make_test_ship_ctx(50, 50, 50, 50, false, false);
         assert_eq!(
             enemy.take_hit(&mut rng, 200, false),
-            Hit {
+            Landing {
                 cell: DamageCell::Plain(200),
                 dealt: 50
             }
@@ -280,7 +280,7 @@ mod tests {
         let mut friendly = make_test_ship_ctx(80, 80, 80, 100, true, false);
         assert_eq!(
             friendly.take_hit(&mut rng, 100, false),
-            Hit {
+            Landing {
                 cell: DamageCell::Plain(80),
                 dealt: 80
             }
@@ -293,7 +293,7 @@ mod tests {
         let mut ship = make_test_ship_ctx(50, 50, 50, 50, false, true);
         assert_eq!(
             ship.take_hit(&mut rng, 20, true),
-            Hit {
+            Landing {
                 cell: DamageCell::Shielded(20),
                 dealt: 20
             }
@@ -306,7 +306,7 @@ mod tests {
         let mut ship = make_test_ship_ctx(0, 10, 0, 40, false, true);
         assert_eq!(
             ship.take_hit(&mut rng, 20, false),
-            Hit {
+            Landing {
                 cell: DamageCell::Plain(0),
                 dealt: 0
             }

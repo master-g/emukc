@@ -94,7 +94,7 @@ the shield redirects enemy night hits onto non-flagship escorts, which drew
 attention to the enemy-attack loop and exposed the long-standing `raw_dmg` push.
 
 The display-damage invariant was already documented *and* regression-tested in
-`kouku.rs` (`kouku_fdam_uses_display_damage_not_raw_under_protection`), yet a
+`kouku.rs` (`kouku_fdam_shows_what_a_protected_ship_lost`, formerly `kouku_fdam_uses_display_damage_not_raw_under_protection`), yet a
 sibling phase loop reintroduced the same class. The lesson: a per-phase invariant
 enforced by a shared helper (`display_damage`) is only as good as every call
 site remembering to use it — a new or edited damage-display loop is a
@@ -113,7 +113,7 @@ high-recurrence spot.
 
 - [Battle damage foundation](../architecture-patterns/battle-damage-foundation.md) — the invariant this bug violated.
 - [Night battle sinking protection](../architecture-patterns/night-battle-sinking-protection.md) — produces the proportional `dealt` value that must be displayed.
-- `crates/emukc_battle/src/targeting.rs` — `display_damage` (the friendly/enemy chokepoint).
+- `crates/emukc_battle/src/types/runtime.rs` — `take_hit` (the friendly/enemy chokepoint since 2026-10-18; `display_damage` in `targeting.rs` before).
 
 ## Update (2026-10-18)
 

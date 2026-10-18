@@ -26,7 +26,7 @@ HP state. This spec codifies the invariant that every damage array reports the
 
 Every attack lands through one method, `BattleRuntimeShip::take_hit(rng, raw, shield)`
 (`crates/emukc_battle/src/types/runtime.rs`). It applies sinking protection, subtracts
-the HP, and returns a `Hit` with the `DamageCell` the battle log shows and the HP the
+the HP, and returns a `Landing` with the `DamageCell` the battle log shows and the HP the
 ship lost (`dealt`), which the caller credits to the attacker. A phase computes the
 raw damage and records the cell; it never chooses what to show. `apply_damage` is
 private to the `types` module, so no phase can skip `take_hit`.
@@ -95,4 +95,4 @@ hougeki.api_damage.push(vec![hit.cell]);      // reports 25, NOT 80
 
 - `docs/solutions/architecture-patterns/night-battle-sinking-protection.md` — the sinking-protection policy that produces the proportional values reported here.
 - `docs/solutions/logic-errors/night-enemy-attack-display-damage-2026-06-24.md` — a concrete violation of this invariant (the night enemy-attack loop reported raw instead of effective damage) and its fix.
-- `crates/emukc_battle/src/types/runtime.rs` — `take_hit`, `Hit` and `apply_damage`.
+- `crates/emukc_battle/src/types/runtime.rs` — `take_hit`, `Landing` and `apply_damage`.

@@ -70,14 +70,14 @@ pub(crate) fn simulate_opening_torpedo(
                 .with_flat((power / 5.0).floor()),
         );
         let raw = calculate_torpedo_damage(codex, rng, ship, &enemy[target_idx], power, outcome);
-        let hit = enemy[target_idx].take_hit(rng, raw, shield);
-        ship.damage_dealt += hit.dealt;
+        let landed = enemy[target_idx].take_hit(rng, raw, shield);
+        ship.damage_dealt += landed.dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Friendly,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: hit.cell,
+                damage: landed.cell,
                 cl: outcome.cl(),
             },
         );
@@ -115,14 +115,14 @@ pub(crate) fn simulate_opening_torpedo(
                 .with_flat((power / 5.0).floor()),
         );
         let raw = calculate_torpedo_damage(codex, rng, ship, &targets[target_idx], power, outcome);
-        let hit = targets[target_idx].take_hit(rng, raw, shield);
-        enemy[idx].damage_dealt += hit.dealt;
+        let landed = targets[target_idx].take_hit(rng, raw, shield);
+        enemy[idx].damage_dealt += landed.dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: fired_at + target_idx,
-                damage: hit.cell,
+                damage: landed.cell,
                 cl: outcome.cl(),
             },
         );
@@ -184,14 +184,14 @@ pub(crate) fn simulate_raigeki(
                 .with_flat((power / 5.0).floor()),
         );
         let raw = calculate_torpedo_damage(codex, rng, ship, &enemy[target_idx], power, outcome);
-        let hit = enemy[target_idx].take_hit(rng, raw, shield);
-        ship.damage_dealt += hit.dealt;
+        let landed = enemy[target_idx].take_hit(rng, raw, shield);
+        ship.damage_dealt += landed.dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Friendly,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: hit.cell,
+                damage: landed.cell,
                 cl: outcome.cl(),
             },
         );
@@ -234,14 +234,14 @@ pub(crate) fn simulate_raigeki(
                 .with_flat((power / 5.0).floor()),
         );
         let raw = calculate_torpedo_damage(codex, rng, ship, &targets[target_idx], power, outcome);
-        let hit = targets[target_idx].take_hit(rng, raw, shield);
-        enemy[idx].damage_dealt += hit.dealt;
+        let landed = targets[target_idx].take_hit(rng, raw, shield);
+        enemy[idx].damage_dealt += landed.dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: fired_at + target_idx,
-                damage: hit.cell,
+                damage: landed.cell,
                 cl: outcome.cl(),
             },
         );

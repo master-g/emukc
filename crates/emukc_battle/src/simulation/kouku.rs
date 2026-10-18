@@ -1180,7 +1180,7 @@ mod tests {
     }
 
     #[test]
-    fn kouku_fdam_uses_display_damage_not_raw_under_protection() {
+    fn kouku_fdam_shows_what_a_protected_ship_lost() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
