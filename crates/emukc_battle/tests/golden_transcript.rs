@@ -14,6 +14,12 @@
 //!
 //! Re-bless after an intentional logic change:
 //! `env EMUKC_BLESS_GOLDEN=1 cargo test -p emukc_battle --test golden_transcript`
+//!
+//! The setups read real ships, their stock equipment and the abyssal data from
+//! `.data/codex`, so rebuilding the codex (`make update`, `make gear-bonus-update`,
+//! `cargo run -- bootstrap --codex-only`) can turn these red with no code
+//! change. After a rebuild, re-bless on `main` in a commit of its own that says
+//! the data changed, before any other work; a refactor must never need one.
 
 use std::fs;
 use std::path::{Path, PathBuf};

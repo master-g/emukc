@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-18 · branch `refactor/battle-night-sharing`
+Last updated: 2026-10-18 · branch `docs/golden-codex-drift`
 
 ## Verified Facts
 
@@ -158,10 +158,11 @@ Current verification baseline:
 | [2026-10-15] 照计划「没有做」节建 issue 会漏掉后来已修的（#137、#139 建时已修）：建前先 `git log -S`/读当前代码核对。 | triage 2026-10-15 |
 | [2026-10-16] codex 自比抓不到结构体丢字段（codex 由同一结构体写出）；要和原始 `.data/temp/start2.json` 比；新表丢字段时加进该测试的表名列表。 | `start2_keeps_every_field_kcwiki_sends` |
 | [2026-10-17] 逐种子跑 `--exact`：名字不匹配也退出 0，须判「1 passed」。 | #201 |
+| [2026-10-18] 战斗 golden 读 `.data/codex` 的真实舰船、初始装备与深海数据：重建 codex 后代码不变也会红。先在 `main` 单独提交重冻、写明是数据变化，再做别的；重构不应需要重冻。 | `golden_transcript.rs` 头注释 |
 
 ## Last Session
 
-- [2026-10-18] 计划 009 完成：U0–U3 已合并（#235–#238）；U4 在 `refactor/battle-night-sharing`：U4a（`record_night_attack`）、U4b（`count_slotitems`）已做，U4c 按决策门不合并，理由见计划与 `night-attack-types.md`。fmt、clippy `-D warnings`、`test --workspace` 全过，全部 golden 未变。
+- [2026-10-18] 计划 009 完成，U0–U4 已合并（#235–#239），全部 golden 未变；`main` 上 fmt、clippy `-D warnings`、`test --workspace` 48 套件 1613 通过 0 失败 0 忽略。在 `docs/golden-codex-drift` 补写 codex 重建与 golden 重冻的规则。
 
 ## Next Session
 
