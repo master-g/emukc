@@ -26,10 +26,12 @@ side fired before the other.
 
 ## What it is now
 
-`shelling::simulate_shelling_round` fights one round. `ShellingRound` says which friendly
-ships fire (`friendly_deck`), which enemy ships fire (`enemy_deck`), which enemy ships the
-friendly side fires at (`enemy_targets`), and whether the order is by range. The enemy
-fires at `friendly_deck`: the whole of a single fleet, and the deck whose round it is of a
+`shelling::simulate_shelling_round` fights one round. `ShellingRound` carries the round's
+`Volleys` (`simulation/volley.rs`): which friendly ships fire, which enemy ships fire,
+which enemy ships the friendly side fires at; and whether the order is by range. The round
+shapes are `Volleys::whole`, `Volleys::friendly_deck_round` and
+`Volleys::enemy_combined_round`. The enemy fires back at the
+friendly ships that fire: the whole of a single fleet, and the deck whose round it is of a
 combined fleet (`kcsimcombined.js` `69097abc`, `shellRange`/`shellOrder` pass that deck's
 `alive1f`; plan `docs/plans/2026-10-18-003`). The two enemy ranges are the same except in the
 battleship round against an enemy combined fleet: there the main deck fires and both decks
@@ -45,8 +47,8 @@ from `ships2`, targets `alive2` and `alive2C`; plan `docs/plans/2026-10-18-002`)
 - A second round goes down the line.
 - The flagship's special attack is decided when the flagship's turn comes and takes that
   turn only: the ships that join it still fire on their own (below).
-- Every index written is a position in the whole fleet (`append_turn` lifts them), so the
-  combined paths need no shifting afterwards.
+- Every index written is a position in the whole fleet (`append_turn` lifts them through
+  the side's `Volley`), so the combined paths need no shifting afterwards.
 
 `simulation/mod.rs` only decides which round is which: `execute_shelling` for a single fleet,
 and the two combined orchestrators, where a deck's second consecutive round goes down the

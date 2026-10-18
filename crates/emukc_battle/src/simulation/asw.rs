@@ -3,13 +3,13 @@
 use emukc_model::codex::Codex;
 
 use crate::accuracy::{Aim, AttackKind, PlaneProficiency, roll_attack};
+use crate::config::BattlePhaseKind;
 use crate::damage::calculate_asw_damage;
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
 use crate::simulation::shelling::firing_order;
-use crate::targeting::{
-    can_opening_asw, choice_with_protect, escort_deck_start, submarine_candidates,
-};
+use crate::simulation::volley::{Volley, Volleys};
+use crate::targeting::{can_opening_asw, choice_with_protect, submarine_candidates};
 use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType};
 
 /// Simulate the opening ASW phase (先制対潜). The ships of both sides that can
@@ -25,31 +25,43 @@ pub(crate) fn simulate_opening_taisen(
     engagement: EngagementType,
 ) -> Option<BattleHougeki> {
     // 第1艦隊 does not open with ASW in a combined battle; only the escort
-    // deck does. `is_main_deck` is false for every single-fleet ship.
-    let friendly_order = firing_order(codex, rng, friendly, true, |ship| {
-        !ship.is_main_deck() && can_opening_asw(codex, ship)
-    });
-    let enemy_order = firing_order(codex, rng, enemy, true, |ship| can_opening_asw(codex, ship));
+    // deck does, and it is the deck the enemy fires at.
+    let volleys = Volleys::opening(BattlePhaseKind::OpeningAsw, friendly, enemy);
+    let can_fire = |ship: &BattleRuntimeShip| can_opening_asw(codex, ship);
+    let friendly_order =
+        firing_order(codex, rng, volleys.friendly.attackers_in(friendly), true, can_fire);
+    let enemy_order = firing_order(codex, rng, volleys.enemy.attackers_in(enemy), true, can_fire);
 
-    let fired_at = escort_deck_start(friendly);
     let mut hougeki = BattleHougeki::default();
     for turn in 0..friendly_order.len().max(enemy_order.len()) {
         if let Some(&idx) = friendly_order.get(turn) {
             let aim = Aim::new(AttackKind::Asw, friendly_formation_id, enemy_formation_id)
                 .in_the_opening();
-            asw_turn(codex, rng, friendly, idx, enemy, 0, aim, engagement, false, &mut hougeki);
+            let (attackers, defenders) = volleys.friendly.split(friendly, enemy);
+            asw_turn(
+                codex,
+                rng,
+                attackers,
+                defenders,
+                &volleys.friendly,
+                idx,
+                aim,
+                engagement,
+                false,
+                &mut hougeki,
+            );
         }
         if let Some(&idx) = enemy_order.get(turn) {
             let aim = Aim::new(AttackKind::Asw, enemy_formation_id, friendly_formation_id)
                 .in_the_opening();
-            let targets = &mut friendly[fired_at..];
+            let (attackers, defenders) = volleys.enemy.split(enemy, friendly);
             asw_turn(
                 codex,
                 rng,
-                enemy,
+                attackers,
+                defenders,
+                &volleys.enemy,
                 idx,
-                targets,
-                fired_at,
                 aim,
                 engagement,
                 true,
@@ -62,15 +74,15 @@ pub(crate) fn simulate_opening_taisen(
 }
 
 /// One ship's opening ASW attack, if it is still afloat and has a submarine to
-/// attack. `defenders` start at `defender_at` of their whole fleet.
+/// attack. `attackers` and `defenders` are the slices of `volley`.
 #[expect(clippy::too_many_arguments)]
 fn asw_turn(
     codex: &Codex,
     rng: &mut impl BattleRng,
     attackers: &mut [BattleRuntimeShip],
-    idx: usize,
     defenders: &mut [BattleRuntimeShip],
-    defender_at: usize,
+    volley: &Volley,
+    idx: usize,
     aim: Aim,
     engagement: EngagementType,
     attacker_is_enemy: bool,
@@ -104,8 +116,8 @@ fn asw_turn(
     hougeki.record_day_attack(
         DayAttackKind::Asw(codex, ship),
         attacker_is_enemy,
-        idx,
-        vec![(defender_at + target_idx) as i64],
+        volley.attacker_at(idx),
+        vec![volley.target_at(target_idx) as i64],
         vec![landed.cell],
         vec![outcome.cl()],
     );

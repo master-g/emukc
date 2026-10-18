@@ -195,13 +195,6 @@ pub(crate) fn target_candidates(
     }
 }
 
-/// Where a friendly combined fleet's escort deck begins: the part the enemy fires at in the
-/// opening ASW, the opening torpedo and the closing torpedo (`kcsimcombined.js` `69097abc`
-/// gives those phases `alive1C`). 0 for a single fleet, which is fired at whole.
-pub(crate) fn escort_deck_start(ships: &[BattleRuntimeShip]) -> usize {
-    ships.iter().position(BattleRuntimeShip::is_escort_deck).unwrap_or(0)
-}
-
 /// [`target_candidates`], but against both decks of an enemy combined fleet an attack first
 /// picks a deck and draws from that deck alone (`kancolle-replay` `69097abc`):
 ///

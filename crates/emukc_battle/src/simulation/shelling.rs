@@ -6,6 +6,7 @@ use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
 use crate::simulation::day_cutin::{DayAttackType, day_accuracy_modifier, resolve_day_attack};
 use crate::simulation::special_attack;
+use crate::simulation::volley::{Volley, Volleys};
 use crate::targeting::{
     any_alive, can_shell_day_ship, choice_with_protect, deck_candidates, target_class,
 };
@@ -14,20 +15,15 @@ use crate::types::{
 };
 use emukc_model::codex::Codex;
 use emukc_model::kc2::start2::ApiMstSlotitem;
-use std::ops::Range;
 
 /// One round of day shelling: who fires, at whom, and in what order.
 pub(crate) struct ShellingRound<'a> {
-    /// The friendly ships that fire this round and that the enemy fires at: a
-    /// combined fleet's round is one deck's against the enemy (`kcsimcombined.js`
-    /// `69097abc`, `shellRange`/`shellOrder` pass that deck's `alive1f`).
-    pub friendly_deck: Range<usize>,
-    /// The enemy ships that fire this round.
-    pub enemy_deck: Range<usize>,
-    /// The enemy ships the friendly side fires at: `enemy_deck` except in the
-    /// battleship round against an enemy combined fleet, where the main deck
-    /// fires and both decks are fired at (`kcsimcombined.js` `69097abc`).
-    pub enemy_targets: Range<usize>,
+    /// Who fires at whom. A combined fleet's round is one deck's against the
+    /// enemy, which fires back at that deck (`kcsimcombined.js` `69097abc`,
+    /// `shellRange`/`shellOrder` pass that deck's `alive1f`); in the battleship
+    /// round against an enemy combined fleet its main deck fires and both its
+    /// decks are fired at.
+    pub volleys: Volleys,
     /// Longest range first, as in a first round; fleet position otherwise.
     pub by_range: bool,
     pub friendly_formation: i64,
@@ -65,52 +61,56 @@ pub(crate) fn simulate_shelling_round(
         air_state: enemy_air.as_ref(),
         ..friendly_params
     };
-    let (friendly_at, enemy_at, targets_at) =
-        (round.friendly_deck.start, round.enemy_deck.start, round.enemy_targets.start);
+    let Volleys {
+        friendly: friendly_volley,
+        enemy: enemy_volley,
+    } = &round.volleys;
 
-    let friendly_los = fleet_los(&friendly[round.friendly_deck.clone()]);
-    let enemy_los = fleet_los(&enemy[round.enemy_deck.clone()]);
+    let friendly_los = fleet_los(friendly_volley.attackers_in(friendly));
+    let enemy_los = fleet_los(enemy_volley.attackers_in(enemy));
     // The orders are fixed when the round begins; a ship sunk before its turn
     // comes loses it.
     let can_shell = |ship: &BattleRuntimeShip| can_shell_day_ship(codex, ship);
     let friendly_order =
-        firing_order(codex, rng, &friendly[round.friendly_deck.clone()], round.by_range, can_shell);
+        firing_order(codex, rng, friendly_volley.attackers_in(friendly), round.by_range, can_shell);
     let enemy_order =
-        firing_order(codex, rng, &enemy[round.enemy_deck.clone()], round.by_range, can_shell);
+        firing_order(codex, rng, enemy_volley.attackers_in(enemy), round.by_range, can_shell);
 
     let mut hougeki = BattleHougeki::default();
     let [friendly_special, enemy_special] = special_attack_used;
     for turn in 0..friendly_order.len().max(enemy_order.len()) {
         if let Some(&idx) = friendly_order.get(turn) {
+            let (attackers, defenders) = friendly_volley.split(friendly, enemy);
             let fired = shell_turn(
                 codex,
                 rng,
-                &mut friendly[round.friendly_deck.clone()],
+                attackers,
                 idx,
-                &mut enemy[round.enemy_targets.clone()],
+                defenders,
                 &friendly_params,
                 friendly_los,
                 friendly_special,
             );
-            append_turn(&mut hougeki, fired, friendly_at, targets_at);
+            append_turn(&mut hougeki, fired, friendly_volley);
         }
-        if !any_alive(&enemy[round.enemy_targets.clone()]) {
+        if !any_alive(friendly_volley.targets_in(enemy)) {
             break;
         }
         if let Some(&idx) = enemy_order.get(turn) {
+            let (attackers, defenders) = enemy_volley.split(enemy, friendly);
             let fired = shell_turn(
                 codex,
                 rng,
-                &mut enemy[round.enemy_deck.clone()],
+                attackers,
                 idx,
-                &mut friendly[round.friendly_deck.clone()],
+                defenders,
                 &enemy_params,
                 enemy_los,
                 enemy_special,
             );
-            append_turn(&mut hougeki, fired, enemy_at, friendly_at);
+            append_turn(&mut hougeki, fired, enemy_volley);
         }
-        if !any_alive(&friendly[round.friendly_deck.clone()]) {
+        if !any_alive(enemy_volley.targets_in(friendly)) {
             break;
         }
     }
@@ -153,17 +153,12 @@ fn shelling_range(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
 
 /// Add what one ship fired to the round, lifting the indices of its own slice
 /// and of its targets' slice to positions in the whole fleets.
-fn append_turn(
-    round: &mut BattleHougeki,
-    mut fired: BattleHougeki,
-    attacker_at: usize,
-    defender_at: usize,
-) {
+fn append_turn(round: &mut BattleHougeki, mut fired: BattleHougeki, volley: &Volley) {
     for attacker in &mut fired.api_at_list {
-        *attacker += attacker_at as i64;
+        *attacker = volley.attacker_at(*attacker as usize) as i64;
     }
     for defender in fired.api_df_list.iter_mut().flatten().filter(|d| **d >= 0) {
-        *defender += defender_at as i64;
+        *defender = volley.target_at(*defender as usize) as i64;
     }
     round.api_at_eflag.extend(fired.api_at_eflag);
     round.api_at_list.extend(fired.api_at_list);
@@ -184,11 +179,15 @@ pub(crate) fn simulate_shelling_side(
     params: &ShellingParams,
 ) -> Option<BattleHougeki> {
     let los = fleet_los(attackers);
+    let whole = Volley {
+        attackers: 0..attackers.len(),
+        targets: 0..defenders.len(),
+    };
     let mut hougeki = BattleHougeki::default();
     let mut special = false;
     for idx in 0..attackers.len() {
         let fired = shell_turn(codex, rng, attackers, idx, defenders, params, los, &mut special);
-        append_turn(&mut hougeki, fired, 0, 0);
+        append_turn(&mut hougeki, fired, &whole);
     }
     (!hougeki.api_at_list.is_empty()).then_some(hougeki)
 }
@@ -366,6 +365,7 @@ fn shell_turn(
 mod tests {
     use super::simulate_shelling_side;
     use crate::random::SeededRng;
+    use crate::simulation::volley::Volleys;
     use crate::test_utils::*;
     use crate::types::{
         BattleContext, BattlePhase, BattleRuntimeShip, BattleType, DamageCell, EngagementType,
@@ -725,9 +725,7 @@ mod tests {
                     let mut friendly = vec![BattleRuntimeShip::from(dd)];
                     let mut enemy = vec![BattleRuntimeShip::new(bbv, false, true)];
                     let round = ShellingRound {
-                        friendly_deck: 0..1,
-                        enemy_deck: 0..1,
-                        enemy_targets: 0..1,
+                        volleys: Volleys::between(0..1, 0..1, 0..1),
                         by_range: true,
                         friendly_formation: 1,
                         enemy_formation: 1,
@@ -999,9 +997,7 @@ mod tests {
                     })
                     .collect();
                 let round = ShellingRound {
-                    friendly_deck: 0..1,
-                    enemy_deck: 0..enemy.len(),
-                    enemy_targets: 0..enemy.len(),
+                    volleys: Volleys::between(0..1, 0..enemy.len(), 0..enemy.len()),
                     by_range: true,
                     friendly_formation: 1,
                     enemy_formation: 1,

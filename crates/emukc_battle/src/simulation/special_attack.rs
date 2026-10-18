@@ -669,6 +669,7 @@ pub(crate) fn execute_special_attack(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::simulation::volley::Volleys;
     use crate::test_utils::*;
     use crate::types::BattleRuntimeShip;
     use emukc_model::codex::Codex;
@@ -926,9 +927,7 @@ mod tests {
                     ship.ship.api_ship_id = id;
                 }
                 let round = ShellingRound {
-                    friendly_deck: 0..6,
-                    enemy_deck: 0..3,
-                    enemy_targets: 0..3,
+                    volleys: Volleys::between(0..6, 0..3, 0..3),
                     by_range: true,
                     friendly_formation: 4,
                     enemy_formation: 1,
@@ -1096,9 +1095,7 @@ mod tests {
             let mut used = [false; 2];
             let mut round = |by_range| {
                 let round = ShellingRound {
-                    friendly_deck: 0..6,
-                    enemy_deck: 0..2,
-                    enemy_targets: 0..2,
+                    volleys: Volleys::between(0..6, 0..2, 0..2),
                     by_range,
                     friendly_formation: FORMATION_ECHELON,
                     enemy_formation: 1,
@@ -1194,9 +1191,7 @@ mod tests {
             let mut enemy =
                 vec![sample_bb_at(&codex, bb_mst, 99), sample_bb_at(&codex, bb_mst, 99)];
             let round = ShellingRound {
-                friendly_deck: 6..12,
-                enemy_deck: 0..2,
-                enemy_targets: 0..2,
+                volleys: Volleys::between(6..12, 0..2, 0..2),
                 by_range: true,
                 friendly_formation: 12,
                 enemy_formation: 1,
