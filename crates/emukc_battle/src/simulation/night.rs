@@ -18,9 +18,10 @@ use crate::simulation::night_attack_table::{NIGHT_ATTACKS, NightAttackRow, SPECI
 use crate::simulation::special_attack::{self, SpecialHit};
 use crate::targeting::{
     any_alive, can_attack_night_ship, can_attack_submarine_night_shelling, choice_with_protect,
-    collect_matching_slot_ids, extend_limit, has_slotitem_id, is_day_surface_display_type,
-    is_main_gun_type, is_radar_type, is_secondary_gun_type, is_torpedo_type, searchlight_rerolls,
-    ship_type, submarine_candidates, surface_candidates, target_candidates, target_class,
+    collect_matching_slot_ids, count_slotitems, extend_limit, has_slotitem_id,
+    is_day_surface_display_type, is_main_gun_type, is_radar_type, is_secondary_gun_type,
+    is_torpedo_type, searchlight_rerolls, ship_type, submarine_candidates, surface_candidates,
+    target_candidates, target_class,
 };
 use crate::types::{
     AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, EngagementType,
@@ -140,47 +141,6 @@ impl NightAttackType {
 // ---------------------------------------------------------------------------
 // Equipment counting helpers
 // ---------------------------------------------------------------------------
-
-fn count_equipment_type(codex: &Codex, ship: &BattleRuntimeShip, wanted: KcSlotItemType3) -> usize {
-    ship.slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                == Some(wanted)
-        })
-        .count()
-}
-
-fn count_main_guns(codex: &Codex, ship: &BattleRuntimeShip) -> usize {
-    ship.slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                .is_some_and(is_main_gun_type)
-        })
-        .count()
-}
-
-fn count_secondary_guns(codex: &Codex, ship: &BattleRuntimeShip) -> usize {
-    ship.slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                .is_some_and(|t| {
-                    matches!(t, KcSlotItemType3::SecondaryGun | KcSlotItemType3::SecondaryGun2)
-                })
-        })
-        .count()
-}
 
 // ---------------------------------------------------------------------------
 // Carrier night CI
@@ -630,12 +590,11 @@ impl NightGear {
                 })
         });
         Self {
-            main_guns: count_main_guns(codex, ship),
-            sec_guns: count_secondary_guns(codex, ship),
-            torps: count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
-                + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo),
+            main_guns: count_slotitems(codex, ship, is_main_gun_type),
+            sec_guns: count_slotitems(codex, ship, is_secondary_gun_type),
+            torps: count_slotitems(codex, ship, is_torpedo_type),
             surface_radar,
-            lookout: count_equipment_type(codex, ship, KcSlotItemType3::SeaplanePersonnel) > 0,
+            lookout: count_slotitems(codex, ship, |t| t == KcSlotItemType3::SeaplanePersonnel) > 0,
             skilled_lookout: has_slotitem_id(ship, SKILLED_LOOKOUT_ID),
             drum: has_slotitem_id(ship, DRUM_ID),
             special_torps: ship
@@ -643,7 +602,8 @@ impl NightGear {
                 .iter()
                 .filter(|slot_item| SPECIAL_TORPEDO_IDS.contains(&slot_item.api_slotitem_id))
                 .count(),
-            sub_radar: count_equipment_type(codex, ship, KcSlotItemType3::SubmarineEquipment) > 0,
+            sub_radar: count_slotitems(codex, ship, |t| t == KcSlotItemType3::SubmarineEquipment)
+                > 0,
         }
     }
 }
@@ -994,7 +954,7 @@ pub(crate) fn roll_star_shells(
             .iter()
             .position(|ship| {
                 ship.hp() > 4
-                    && count_equipment_type(codex, ship, KcSlotItemType3::Flare) > 0
+                    && count_slotitems(codex, ship, |t| t == KcSlotItemType3::Flare) > 0
                     && rng.random_f64_range(0.0, 1.0) < 0.7
             })
             .map_or(-1, |position| position as i64)
@@ -1108,7 +1068,7 @@ fn kongou_assault_rate(
     if has_radar {
         rate += radar;
     }
-    if count_equipment_type(codex, flagship, KcSlotItemType3::LargeSearchlight) > 0 {
+    if count_slotitems(codex, flagship, |t| t == KcSlotItemType3::LargeSearchlight) > 0 {
         rate += searchlight;
     }
     Some((rate.floor() / 100.0).clamp(0.0, 1.0))
