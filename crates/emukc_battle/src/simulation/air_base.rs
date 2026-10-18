@@ -465,17 +465,7 @@ pub(crate) fn simulate_air_base_attack(
         );
         let defense = calculate_defense_power(rng, enemy[target].ship.api_soukou[0]);
         let damage = resolve_damage(rng, power, defense, enemy[target].hp(), 1.0);
-        let display = if damage > 0 {
-            let (raw, dealt) = enemy[target].apply_damage(rng, damage);
-            crate::targeting::display_damage(&enemy[target], raw, dealt)
-        } else {
-            0
-        };
-        api_edam[target].accumulate(if shown {
-            DamageCell::Shielded(display)
-        } else {
-            DamageCell::Plain(display)
-        });
+        api_edam[target].accumulate(enemy[target].take_hit(rng, damage, shown).cell);
         // A land attacker drops bombs on what stands on land and torpedoes on
         // what floats; the client draws the one whose flag is set.
         let torpedo = matches!(class, TargetClass::SurfaceShip | TargetClass::PtBoat)

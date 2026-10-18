@@ -61,12 +61,7 @@ pub fn calculate_win_rank(
 /// Panics in debug builds, logs error in release builds.
 pub(crate) fn verify_protected_ships_alive(ships: &[BattleRuntimeShip]) {
     for (idx, ship) in ships.iter().enumerate() {
-        if !ship.is_friendly || !ship.is_sortie {
-            continue;
-        }
-        let was_taiha = ship.entry_hp * 4 <= ship.ship.api_maxhp;
-        let is_protected = ship.is_flagship || !was_taiha;
-        if is_protected && ship.hp() < 1 {
+        if ship.protected_from_sinking() && ship.hp() < 1 {
             let msg = format!(
                 "BUG: protected ship at index {} has hp={}, entry_hp={}, maxhp={}",
                 idx,

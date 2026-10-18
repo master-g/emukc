@@ -13,7 +13,7 @@ use crate::simulation::day_attack::DayAttackKind;
 use crate::targeting::{
     choice_with_protect, has_slotitem_id, ship_type, surface_candidates, target_class,
 };
-use crate::types::{BattleHougeki, BattleRuntimeShip, DamageCell, EngagementType, ShellingParams};
+use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType, ShellingParams};
 
 // ---------------------------------------------------------------------------
 // Ship ID constants
@@ -643,17 +643,10 @@ pub(crate) fn execute_special_attack(
         );
         let (raw, cl) = cut_in_hit(rng, outcome, raw, defenders[target_idx].hp());
         hits.push(cl);
-        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
-        if !is_enemy {
-            attacker.damage_dealt += dealt;
-        }
-        let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+        let landed = defenders[target_idx].take_hit(rng, raw, shield);
+        attacker.damage_dealt += landed.dealt;
         targets.push(target_idx as i64);
-        damages.push(if shield {
-            DamageCell::Shielded(display)
-        } else {
-            DamageCell::Plain(display)
-        });
+        damages.push(landed.cell);
     }
 
     if !targets.is_empty() {

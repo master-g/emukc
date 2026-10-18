@@ -114,3 +114,11 @@ high-recurrence spot.
 - [Battle damage foundation](../architecture-patterns/battle-damage-foundation.md) — the invariant this bug violated.
 - [Night battle sinking protection](../architecture-patterns/night-battle-sinking-protection.md) — produces the proportional `dealt` value that must be displayed.
 - `crates/emukc_battle/src/targeting.rs` — `display_damage` (the friendly/enemy chokepoint).
+
+## Update (2026-10-18)
+
+The choice between `dealt` and `raw` no longer sits at each call site. Plan 009 U1
+folded `display_damage` into `BattleRuntimeShip::take_hit`, which every phase calls to
+land a hit, and made `apply_damage` private to the `types` module; a phase can no
+longer push a raw value for a friendly defender. See
+[Battle damage foundation](../architecture-patterns/battle-damage-foundation.md).

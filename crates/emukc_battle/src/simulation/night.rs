@@ -23,7 +23,7 @@ use crate::targeting::{
     ship_type, submarine_candidates, surface_candidates, target_candidates, target_class,
 };
 use crate::types::{
-    AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, EngagementType,
+    AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, EngagementType,
     NightBattleParams, SiListId, SpecialAttacksMade, TargetClass,
 };
 
@@ -1456,16 +1456,11 @@ fn special_attack_row(
             outcome,
         );
         let (raw, cl) = cut_in_hit(rng, outcome, raw, enemy[target_idx].hp());
-        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw);
-        ship.damage_dealt += dealt;
-        let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
+        let landed = enemy[target_idx].take_hit(rng, raw, shield);
+        ship.damage_dealt += landed.dealt;
         targets.push(target_idx as i64);
         cls.push(cl);
-        damages.push(if shield {
-            DamageCell::Shielded(display)
-        } else {
-            DamageCell::Plain(display)
-        });
+        damages.push(landed.cell);
     }
     if targets.is_empty() {
         return;
@@ -1699,10 +1694,9 @@ fn night_turn(
         } else {
             cut_in_hit(rng, outcome, raw, defenders[target_idx].hp())
         };
-        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
-        total_dealt += dealt;
-        let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
-        hit_damages.push(display);
+        let landed = defenders[target_idx].take_hit(rng, raw, shield);
+        total_dealt += landed.dealt;
+        hit_damages.push(landed.cell);
         hit_cls.push(cl);
     }
     ship.damage_dealt += total_dealt;
@@ -1718,25 +1712,16 @@ fn night_turn(
     hougeki.api_si_list.push(night_si_entry(codex, ship, attack_type));
     hougeki.api_cl_list.push(hit_cls);
     hougeki.api_sp_list.push(attack_type.api_sp_list());
-    hougeki.api_damage.push(
-        hit_damages
-            .into_iter()
-            .map(|d| {
-                if shield {
-                    DamageCell::Shielded(d)
-                } else {
-                    DamageCell::Plain(d)
-                }
-            })
-            .collect(),
-    );
+    hougeki.api_damage.push(hit_damages);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::test_utils::*;
-    use crate::types::{BattleRuntimeShip, EngagementType, NightBattleParams, SiListId};
+    use crate::types::{
+        BattleRuntimeShip, DamageCell, EngagementType, NightBattleParams, SiListId,
+    };
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
@@ -3415,7 +3400,7 @@ mod tests {
 
     /// Regression (plan 002 U4): in the night enemy-attack loop, a friendly
     /// defender's displayed damage must be the capped/protected `dealt` (via
-    /// `display_damage`), never the uncapped lethal `raw_dmg`. Reporting the
+    /// `take_hit`), never the uncapped lethal raw damage. Reporting the
     /// pre-protection value desyncs the client's HP reconstruction.
     #[test]
     fn sortie_night_enemy_attack_displays_capped_damage() {

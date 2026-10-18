@@ -252,21 +252,17 @@ pub(crate) fn torpedo_attack_power(
     apply_cap(pre_cap, TORPEDO_CAP) as f64
 }
 
-/// Calculate torpedo damage for a single attack.
-#[expect(clippy::too_many_arguments)]
+/// Calculate torpedo damage for a single attack, from the
+/// [`torpedo_attack_power`] the attacker already settled for its accuracy.
 pub(crate) fn calculate_torpedo_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
     attacker: &BattleRuntimeShip,
     defender: &BattleRuntimeShip,
-    formation_id: i64,
-    engagement: EngagementType,
-    phase: BattlePhase,
+    power: f64,
     outcome: HitOutcome,
 ) -> i64 {
-    let capped_power =
-        torpedo_attack_power(codex, attacker, defender, formation_id, engagement, phase)
-            * post_cap_multiplier(codex, attacker, defender, true);
+    let capped_power = power * post_cap_multiplier(codex, attacker, defender, true);
     let capped_power = outcome.power(capped_power);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp(), ammo_modifier(codex, attacker))
@@ -1434,9 +1430,14 @@ mod tests {
                 &mut rng,
                 &atk,
                 &def,
-                1,
-                EngagementType::SameCourse,
-                BattlePhase::OpeningTorpedo,
+                torpedo_attack_power(
+                    &codex,
+                    &atk,
+                    &def,
+                    1,
+                    EngagementType::SameCourse,
+                    BattlePhase::OpeningTorpedo,
+                ),
                 HitOutcome::Hit,
             );
             let (atk, def) = build(bull_max / 10);
@@ -1446,9 +1447,14 @@ mod tests {
                 &mut rng,
                 &atk,
                 &def,
-                1,
-                EngagementType::SameCourse,
-                BattlePhase::OpeningTorpedo,
+                torpedo_attack_power(
+                    &codex,
+                    &atk,
+                    &def,
+                    1,
+                    EngagementType::SameCourse,
+                    BattlePhase::OpeningTorpedo,
+                ),
                 HitOutcome::Hit,
             );
             assert!(torp_low <= torp_full, "torpedo seed {seed}: {torp_low} > {torp_full}");
@@ -1628,9 +1634,14 @@ mod tests {
             &mut rng,
             &attacker,
             &defender,
-            1,
-            EngagementType::SameCourse,
-            BattlePhase::OpeningTorpedo,
+            torpedo_attack_power(
+                &codex,
+                &attacker,
+                &defender,
+                1,
+                EngagementType::SameCourse,
+                BattlePhase::OpeningTorpedo,
+            ),
             HitOutcome::Hit,
         );
         // Basic power = 100 (NOT 105). After formation (1.0) and engagement (1.0), capped at 100.
@@ -1654,9 +1665,14 @@ mod tests {
             &mut rng,
             &attacker,
             &defender,
-            1,
-            EngagementType::SameCourse,
-            BattlePhase::OpeningTorpedo,
+            torpedo_attack_power(
+                &codex,
+                &attacker,
+                &defender,
+                1,
+                EngagementType::SameCourse,
+                BattlePhase::OpeningTorpedo,
+            ),
             HitOutcome::Hit,
         );
         assert_eq!(dmg, 0, "taiha torpedo should deal 0 damage, got {dmg}");
