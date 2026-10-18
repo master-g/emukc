@@ -65,7 +65,7 @@ pub(crate) fn verify_protected_ships_alive(ships: &[BattleRuntimeShip]) {
             continue;
         }
         let was_taiha = ship.entry_hp * 4 <= ship.ship.api_maxhp;
-        let is_protected = idx == 0 || !was_taiha;
+        let is_protected = ship.is_flagship || !was_taiha;
         if is_protected && ship.hp() < 1 {
             let msg = format!(
                 "BUG: protected ship at index {} has hp={}, entry_hp={}, maxhp={}",

@@ -77,10 +77,17 @@ enemy did (plan `docs/plans/2026-10-10-002`):
   `docs/plans/2026-10-18-001`), so a deck of land targets alone counts as empty for the
   closing torpedo's deck draw below. The enemy's opening and closing torpedoes at a friendly
   combined fleet are aimed at the escort fleet alone (`torpedoPhase(alive1C, ...)`, `:228-231`,
-  `:298`, `:330`; plans `docs/plans/2026-10-18-003` and `-004`). Fired at as its own slice
-  (`escort_deck_start`), in these phases and in opening ASW, that fleet's flagship sits at 0 and
-  is kept from sinking, as every fleet's flagship is in the source (`kcships.js` `:45`,
-  `:1825`).
+  `:298`, `:330`; plans `docs/plans/2026-10-18-003` and `-004`).
+
+## Flagships
+
+Each friendly fleet's flagship, the escort fleet's included, is kept from sinking in every
+phase, as in the source (`kcships.js` `69097abc` `:45`, `:1825`). `BattleState::from_context`
+marks the first ship of the fleet and of the escort deck (`is_flagship`) and `apply_damage`
+reads the mark, so it no longer matters which slice a phase fires at: before, a flagship was
+the ship at index 0 of the slice, and the enemy's airstrike, flown at the whole combined
+fleet, could sink the escort flagship (plan `docs/plans/2026-10-18-005`). A test that builds
+its ships by hand marks its flagship itself.
 
 ## Whose air state
 

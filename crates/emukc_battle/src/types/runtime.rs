@@ -40,6 +40,9 @@ pub struct BattleRuntimeShip {
     /// Whether this battle is a sortie (true) or practice (false).
     /// Sinking protection only applies during sorties.
     pub(crate) is_sortie: bool,
+    /// Whether she leads a friendly fleet: the first ship of a single fleet or of either deck of a
+    /// combined fleet, which a sortie never loses (`kcships.js` `69097abc` `:45`, `:1825`).
+    pub(crate) is_flagship: bool,
     /// This ship's place in a combined fleet, or `None` in an ordinary
     /// single-fleet battle. Phase functions read the role to decide who
     /// participates (deck 1 never opens with ASW or torpedoes, and a shelling
@@ -86,6 +89,7 @@ impl BattleRuntimeShip {
             effect_list: input.effect_list,
             is_friendly,
             is_sortie,
+            is_flagship: false,
             combined: None,
             enemy_deck: None,
             vanguard: None,
@@ -178,17 +182,12 @@ impl BattleRuntimeShip {
     ///   proportional damage: `floor(0.5 * H + 0.3 * rand(0..H))`, `H` being
     ///   the hit points the ship has when it is hit. That is always less than
     ///   `H`, and nothing at 1.
-    /// - The flagship (index 0) can **never** be sunk regardless of HP state.
+    /// - A flagship (`is_flagship`) can **never** be sunk regardless of HP state.
     /// - Protection only applies to friendly ships during sorties (not practice).
     ///
     /// Returns `(raw_damage, effective_damage)` where raw is the input damage
     /// and effective is the HP actually subtracted (after clamping/protection).
-    pub(crate) fn apply_damage(
-        &mut self,
-        rng: &mut impl BattleRng,
-        raw_damage: i64,
-        ship_index: usize,
-    ) -> (i64, i64) {
+    pub(crate) fn apply_damage(&mut self, rng: &mut impl BattleRng, raw_damage: i64) -> (i64, i64) {
         if self.is_sunk() {
             return (0, 0);
         }
@@ -207,10 +206,9 @@ impl BattleRuntimeShip {
 
         // Sinking protection only applies to friendly ships during sorties.
         if self.is_friendly && self.is_sortie && effective >= self.current_hp {
-            let is_flagship = ship_index == 0;
             // Taiha threshold: HP <= 25% of max at node entry.
             let was_taiha_at_entry = self.entry_hp * 4 <= self.ship.api_maxhp;
-            let is_protected = is_flagship || !was_taiha_at_entry;
+            let is_protected = self.is_flagship || !was_taiha_at_entry;
 
             if is_protected {
                 // Replace lethal damage with proportional damage (割合ダメージ),

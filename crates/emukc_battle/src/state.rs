@@ -24,6 +24,13 @@ pub(crate) struct CombinedLayout {
     pub(crate) escort_start: usize,
 }
 
+/// Mark the first ship of a friendly fleet, or of one deck of it, as its flagship.
+fn mark_flagship(fleet: &mut [BattleRuntimeShip]) {
+    if let Some(flagship) = fleet.first_mut() {
+        flagship.is_flagship = true;
+    }
+}
+
 /// Give each ship of a fleet in 警戒陣 (formation 6) her place in the line.
 fn place_in_vanguard(fleet: &mut [BattleRuntimeShip], formation_id: i64) {
     if formation_id != 6 {
@@ -90,6 +97,7 @@ impl BattleState {
             .map(|s| BattleRuntimeShip::new(s, true, is_sortie))
             .collect::<Vec<_>>();
         place_in_vanguard(&mut friendly, context.friendly_formation_id);
+        mark_flagship(&mut friendly);
 
         // A combined fleet appends deck 2 to the same vector and tags both
         // decks. With no combined setup this loop does not run, `friendly` is
@@ -109,6 +117,7 @@ impl BattleState {
                 BattleRuntimeShip::new(s, true, is_sortie)
                     .in_combined_fleet(combined_type, CombinedFleetRole::Escort)
             }));
+            mark_flagship(&mut friendly[escort_start..]);
             CombinedLayout {
                 combined_type,
                 escort_start,

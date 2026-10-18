@@ -1456,7 +1456,7 @@ fn special_attack_row(
             outcome,
         );
         let (raw, cl) = cut_in_hit(rng, outcome, raw, enemy[target_idx].hp());
-        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw);
         ship.damage_dealt += dealt;
         let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
         targets.push(target_idx as i64);
@@ -1699,7 +1699,7 @@ fn night_turn(
         } else {
             cut_in_hit(rng, outcome, raw, defenders[target_idx].hp())
         };
-        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
         total_dealt += dealt;
         let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
         hit_damages.push(display);

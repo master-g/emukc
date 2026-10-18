@@ -79,7 +79,7 @@ pub(crate) fn simulate_opening_torpedo(
             BattlePhase::OpeningTorpedo,
             outcome,
         );
-        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw);
         ship.damage_dealt += dealt;
         let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(
@@ -135,7 +135,7 @@ pub(crate) fn simulate_opening_torpedo(
             BattlePhase::OpeningTorpedo,
             outcome,
         );
-        let (raw_dmg, dealt) = targets[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = targets[target_idx].apply_damage(rng, raw);
         enemy[idx].damage_dealt += dealt;
         let display = crate::targeting::display_damage(&targets[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(
@@ -215,7 +215,7 @@ pub(crate) fn simulate_raigeki(
             BattlePhase::ClosingTorpedo,
             outcome,
         );
-        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw);
         ship.damage_dealt += dealt;
         let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(
@@ -276,7 +276,7 @@ pub(crate) fn simulate_raigeki(
             BattlePhase::ClosingTorpedo,
             outcome,
         );
-        let (raw_dmg, dealt) = targets[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = targets[target_idx].apply_damage(rng, raw);
         enemy[idx].damage_dealt += dealt;
         let display = crate::targeting::display_damage(&targets[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(

@@ -266,7 +266,7 @@ fn shell_turn(
             outcome,
             asw_proficiency(codex, ship),
         );
-        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
         if !params.attacker_is_enemy {
             ship.damage_dealt += dealt;
         }
@@ -311,7 +311,7 @@ fn shell_turn(
                 );
                 let (raw, cl) = cut_in_hit(rng, outcome, raw, defenders[target_idx].hp());
                 cls.push(cl);
-                let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+                let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
                 if !params.attacker_is_enemy {
                     ship.damage_dealt += dealt;
                 }
@@ -352,7 +352,7 @@ fn shell_turn(
             } else {
                 cut_in_hit(rng, outcome, raw, defenders[target_idx].hp())
             };
-            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
             if !params.attacker_is_enemy {
                 ship.damage_dealt += dealt;
             }

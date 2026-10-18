@@ -161,7 +161,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-18] #218、#219、#225 合并；记忆超限，缓存类事实搬入 `bootstrap-cache-facts.md`。
+- [2026-10-18] #226 在 `fix/escort-flagship-protection` 已提交、未推送；fmt、clippy `-D warnings`、`test --workspace` 48 套件 0 失败 0 忽略，golden 未动。
 
 ## Next Session
 

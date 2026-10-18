@@ -98,7 +98,7 @@ fn asw_turn(
         outcome,
         PlaneProficiency::NONE,
     );
-    let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw, target_idx);
+    let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
     ship.damage_dealt += dealt;
     let shown = if attacker_is_enemy {
         dealt
