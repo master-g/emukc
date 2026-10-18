@@ -131,8 +131,8 @@ deck 边界在本 crate 内有四种求法：`escort_deck_start`、`deck_candida
 - **U4c（决策门）**：U1、U2 完成后再比较 `special_attack_row` 与 `execute_special_attack`。剩下的差异如果只有 `Aim` 的构造和伤害函数，就合成一个执行函数，由调用方传入这两项。如果还有别的分叉（重抽次数、第二舰队能否かばう、记录器类型），合并后 interface 会和 implementation 一样宽，那就不合，把理由记进 `night-attack-types.md`。
 
 **实现结果。**
-- U4b 已做：`targeting::count_slotitems` 接收类型谓词，替换了昼夜各三份计数函数；夜战的鱼雷数直接用 `is_torpedo_type`。
-- U4a 不做：夜战的内联写入只有两处，而且各自的 `at`、`si`、`sp` 来源都不同。写成方法要 8 个参数，interface 和 implementation 一样宽，过不了 deletion test。
+- U4b 已做：`targeting::count_slotitems` 接收类型谓词，替换了昼夜各三份计数函数；夜战的鱼雷数直接用 `is_torpedo_type`，只问“有没有”的几处改用现成的 `has_slotitem_type`。
+- U4a 已做：照昼战 `record_day_attack` 的写法，`BattleNightHougeki::record_night_attack` 接收 `NightAttackKind`（特殊攻击行，或某舰自己的攻击），由它推出 `api_si_list`、`api_sp_list` 和 `api_n_mother_list`。两处内联写入改用它，8 个向量只在一处保持对齐。
 - U4c 不合并：差异除了 `Aim` 和伤害函数，还有重抽次数（夜战读探照灯）、第二舰队能否かばう、记录器类型，正是本节写明“不合”的情形。理由写进 `night-attack-types.md`。
 
 **测试。** 夜战按攻击种类的测试保持不变；U4b 的计数函数直接沿用现有的昼战 cut-in 测试。

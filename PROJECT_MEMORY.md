@@ -161,7 +161,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-18] 计划 009 完成：U0–U3 已合并（#235–#238）；U4 在 `refactor/battle-night-sharing`，只做了 U4b（`count_slotitems`），U4a、U4c 按决策门不做，理由见计划与 `night-attack-types.md`。fmt、clippy `-D warnings`、`test --workspace` 全过，全部 golden 未变。
+- [2026-10-18] 计划 009 完成：U0–U3 已合并（#235–#238）；U4 在 `refactor/battle-night-sharing`：U4a（`record_night_attack`）、U4b（`count_slotitems`）已做，U4c 按决策门不合并，理由见计划与 `night-attack-types.md`。fmt、clippy `-D warnings`、`test --workspace` 全过，全部 golden 未变。
 
 ## Next Session
 

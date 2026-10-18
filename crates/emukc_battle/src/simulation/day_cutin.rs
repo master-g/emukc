@@ -4,7 +4,9 @@ use emukc_model::{codex::Codex, kc2::start2::ApiMstSlotitem, kc2::types::KcSlotI
 
 use crate::damage::is_cv_type;
 use crate::random::BattleRng;
-use crate::targeting::{count_slotitems, is_main_gun_type, is_secondary_gun_type};
+use crate::targeting::{
+    count_slotitems, is_ap_shell_type, is_main_gun_type, is_secondary_gun_type,
+};
 
 use crate::types::AirState;
 use crate::types::BattleRuntimeShip;
@@ -151,7 +153,7 @@ pub(crate) fn detect_day_attack_type(
 
     let main = count_slotitems(codex, ship, is_main_gun_type);
     let sec = count_slotitems(codex, ship, is_secondary_gun_type);
-    let ap = count_slotitems(codex, ship, |t| t == KcSlotItemType3::ArmorPiercingShell);
+    let ap = count_slotitems(codex, ship, is_ap_shell_type);
     let radar = has_radar(codex, ship);
 
     // Priority order: highest first
