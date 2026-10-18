@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-17 · branch `fix/opening-airstrike-source`
+Last updated: 2026-10-18 · branch `docs/battle-deepening-plan`
 
 ## Verified Facts
 
@@ -161,11 +161,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-18] #231 在 `fix/asw-power` 已提交、未推送（#206、#194 已合并为 PR #230、#232）；fmt、clippy `-D warnings`、`test --workspace` 48 套件 1604 通过 0 失败 0 忽略，golden 未动。源码 `SHIPDATA.type` 与 `api_stype` 在飞机对潜舰种与補給艦上零差异。
+- [2026-10-18] `/improve-codebase-architecture` 审查 `emukc_battle`，在 `docs/battle-deepening-plan` 写了计划 `2026-10-18-009-refactor-deepen-battle-hit-and-volley-plan.md`（U0–U4，纯重构，golden 不得重冻）；未提交，没有代码改动，未跑检查。
 
 ## Next Session
 
-- [2026-10-18] #193–#204 未关均 ready；改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。对潜基础攻击力已按源码（#231）；协同倍率仍不分投射机与爆雷（源码 `isDCProjector`/`isDCOnly`），未开票。命中/回避取整直接 floor，源码先 `round(x*1e6)/1e4`，未修。季节＝某天的状态，非常规版。
+- [2026-10-18] 战斗重构按计划 009 从 U0（扩大 golden）开始；候选 5（夜战 deck 切分进 battle crate）与 2026-09-23 计划 KTD13 冲突，不做。
+  #193–#204 未关均 ready；改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。对潜基础攻击力已按源码（#231）；协同倍率仍不分投射机与爆雷（源码 `isDCProjector`/`isDCOnly`），未开票。命中/回避取整直接 floor，源码先 `round(x*1e6)/1e4`，未修。季节＝某天的状态，非常规版。
   瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
