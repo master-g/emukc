@@ -50,8 +50,8 @@ remap 才能把它转成客户端空间。
 抬升只有一处：`simulation/volley.rs` 的 `Volley`。它记着一方开火的舰与被打的舰在
 各自整支舰队里的 range，相位用 `split` 取两段切片，用 `attacker_at` / `target_at`
 （砲撃轮里是 `append_turn`）把索引抬回模拟空间。哪个阶段由哪支 deck 参战也只写在
-这里：开幕对潜、开幕与闭幕雷撃走 `Volleys::opening` 的表，砲撃轮由编排器按轮次表
-`Volleys::between(...)` 构造。每个 range 都从某支 deck 的首舰开始，所以切片里的
+这里：开幕对潜、开幕与闭幕雷撃走 `Volleys::opening`，砲撃轮走 `Volleys::whole`、
+`friendly_deck_round`、`enemy_combined_round`；编排器只决定哪一轮何时打。每个 range 都从某支 deck 的首舰开始，所以切片里的
 0 号就是那支 deck 的旗舰，相位里的 `idx == 0` 判断依赖这一点。
 
 两层平移缺任何一层，结果都是"第2艦隊 的炮击全部记在 第1艦隊 头上"。

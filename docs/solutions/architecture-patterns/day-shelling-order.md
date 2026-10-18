@@ -27,9 +27,10 @@ side fired before the other.
 ## What it is now
 
 `shelling::simulate_shelling_round` fights one round. `ShellingRound` carries the round's
-`Volleys` (`simulation/volley.rs`), built with `Volleys::between(friendly, enemy,
-enemy_targets)`: which friendly ships fire, which enemy ships fire, which enemy ships the
-friendly side fires at; and whether the order is by range. The enemy fires back at the
+`Volleys` (`simulation/volley.rs`): which friendly ships fire, which enemy ships fire,
+which enemy ships the friendly side fires at; and whether the order is by range. The round
+shapes are `Volleys::whole`, `Volleys::friendly_deck_round` and
+`Volleys::enemy_combined_round`. The enemy fires back at the
 friendly ships that fire: the whole of a single fleet, and the deck whose round it is of a
 combined fleet (`kcsimcombined.js` `69097abc`, `shellRange`/`shellOrder` pass that deck's
 `alive1f`; plan `docs/plans/2026-10-18-003`). The two enemy ranges are the same except in the

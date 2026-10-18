@@ -82,7 +82,7 @@ pub(crate) fn simulate_opening_torpedo(
     }
 
     let (attackers, targets) = volleys.enemy.split(enemy, friendly);
-    for (idx, ship) in enemy_at_start[volleys.enemy.attackers.clone()].iter().enumerate() {
+    for (idx, ship) in volleys.enemy.attackers_in(&enemy_at_start).iter().enumerate() {
         if !can_opening_torpedo_ship(codex, ship) {
             continue;
         }
@@ -194,7 +194,7 @@ pub(crate) fn simulate_raigeki(
     }
 
     let (attackers, targets) = volleys.enemy.split(enemy, friendly);
-    for (idx, ship) in enemy_at_start[volleys.enemy.attackers.clone()].iter().enumerate() {
+    for (idx, ship) in volleys.enemy.attackers_in(&enemy_at_start).iter().enumerate() {
         if !can_closing_torpedo_ship(codex, ship) {
             continue;
         }

@@ -29,9 +29,8 @@ pub(crate) fn simulate_opening_taisen(
     let volleys = Volleys::opening(BattlePhaseKind::OpeningAsw, friendly, enemy);
     let can_fire = |ship: &BattleRuntimeShip| can_opening_asw(codex, ship);
     let friendly_order =
-        firing_order(codex, rng, &friendly[volleys.friendly.attackers.clone()], true, can_fire);
-    let enemy_order =
-        firing_order(codex, rng, &enemy[volleys.enemy.attackers.clone()], true, can_fire);
+        firing_order(codex, rng, volleys.friendly.attackers_in(friendly), true, can_fire);
+    let enemy_order = firing_order(codex, rng, volleys.enemy.attackers_in(enemy), true, can_fire);
 
     let mut hougeki = BattleHougeki::default();
     for turn in 0..friendly_order.len().max(enemy_order.len()) {

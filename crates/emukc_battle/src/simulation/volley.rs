@@ -3,16 +3,20 @@
 //!
 //! Every phase works in slices of the two fleets, and every index it writes must
 //! be a position in the whole fleet. A [`Volley`] holds both ranges, so a phase
-//! takes its slices from it and lifts its indices through it; the rules for
-//! which deck of a combined fleet takes part live in one table here
-//! ([`Volleys::opening`]) and in the shelling round tables of the orchestrator.
+//! takes its slices from it and lifts its indices through it. Which deck of a
+//! combined fleet takes part, and which deck the other side fires at, is written
+//! here and nowhere else: [`Volleys::opening`] for the opening ASW and the two
+//! torpedo phases, and one constructor for each shape of shelling round. When
+//! each round comes, and into which packet slot, is the orchestrator's.
 //!
 //! Every range starts at a deck's first ship (index 0, or where the escort deck
 //! begins), so the ship at index 0 of a slice is that deck's flagship: the
-//! phases' `idx == 0` checks rely on this.
+//! phases' `idx == 0` checks rely on this, and [`Volley::split`] asserts it in
+//! debug builds.
 
 use std::ops::Range;
 
+use crate::combined::CombinedFleetRole;
 use crate::config::BattlePhaseKind;
 use crate::types::BattleRuntimeShip;
 
@@ -32,7 +36,22 @@ impl Volley {
         attacking: &'a mut [BattleRuntimeShip],
         defending: &'a mut [BattleRuntimeShip],
     ) -> (&'a mut [BattleRuntimeShip], &'a mut [BattleRuntimeShip]) {
+        debug_assert!(starts_a_deck(attacking, self.attackers.start), "{self:?}");
+        debug_assert!(starts_a_deck(defending, self.targets.start), "{self:?}");
         (&mut attacking[self.attackers.clone()], &mut defending[self.targets.clone()])
+    }
+
+    /// The ships of `fleet` that fire.
+    pub(crate) fn attackers_in<'a>(
+        &self,
+        fleet: &'a [BattleRuntimeShip],
+    ) -> &'a [BattleRuntimeShip] {
+        &fleet[self.attackers.clone()]
+    }
+
+    /// The ships of `fleet` that are fired at.
+    pub(crate) fn targets_in<'a>(&self, fleet: &'a [BattleRuntimeShip]) -> &'a [BattleRuntimeShip] {
+        &fleet[self.targets.clone()]
     }
 
     /// The position in its whole fleet of the attacker at `idx` of the slice.
@@ -67,14 +86,50 @@ impl Volleys {
         enemy: &[BattleRuntimeShip],
     ) -> Self {
         let enemy_fires = match phase {
-            BattlePhaseKind::ClosingTorpedo => escort_start(enemy).unwrap_or(0)..enemy.len(),
+            BattlePhaseKind::ClosingTorpedo => escort_start(enemy)..enemy.len(),
             _ => 0..enemy.len(),
         };
-        Self::between(
-            escort_start(friendly).unwrap_or(0)..friendly.len(),
-            enemy_fires,
-            0..enemy.len(),
-        )
+        Self::between(escort_start(friendly)..friendly.len(), enemy_fires, 0..enemy.len())
+    }
+
+    /// A shelling round between two single fleets: all of each fires at all of
+    /// the other.
+    pub(crate) fn whole(friendly: &[BattleRuntimeShip], enemy: &[BattleRuntimeShip]) -> Self {
+        Self::between(0..friendly.len(), 0..enemy.len(), 0..enemy.len())
+    }
+
+    /// A shelling round of a friendly combined fleet: one `deck` fires at the
+    /// whole enemy, which fires back at that deck (`kcsimcombined.js` `69097abc`,
+    /// `shellRange`/`shellOrder` pass that deck's `alive1f`).
+    pub(crate) fn friendly_deck_round(
+        deck: CombinedFleetRole,
+        friendly: &[BattleRuntimeShip],
+        enemy: &[BattleRuntimeShip],
+    ) -> Self {
+        let escort = escort_start(friendly);
+        let friendly_deck = match deck {
+            CombinedFleetRole::Main => 0..escort,
+            CombinedFleetRole::Escort => escort..friendly.len(),
+        };
+        Self::between(friendly_deck, 0..enemy.len(), 0..enemy.len())
+    }
+
+    /// Shelling round `round` (0, 1 or 2) of a single fleet against an enemy
+    /// combined fleet: against the escort fleet, then the main fleet, then the
+    /// battleship round, in which the main fleet alone fires and both its decks
+    /// are fired at (`kcsimcombined.js` `69097abc`, shelling 3).
+    pub(crate) fn enemy_combined_round(
+        round: usize,
+        friendly: &[BattleRuntimeShip],
+        enemy: &[BattleRuntimeShip],
+    ) -> Self {
+        let escort = escort_start(enemy);
+        let (fires, fired_at) = match round {
+            0 => (escort..enemy.len(), escort..enemy.len()),
+            1 => (0..escort, 0..escort),
+            _ => (0..escort, 0..enemy.len()),
+        };
+        Self::between(0..friendly.len(), fires, fired_at)
     }
 
     /// `friendly` fires at `enemy_targets`, and `enemy` fires back at `friendly`.
@@ -97,9 +152,14 @@ impl Volleys {
 }
 
 /// Where a fleet's escort deck begins: 第2艦隊 of a friendly combined fleet, or
-/// the escort fleet of an enemy one. `None` for a single fleet.
-pub(crate) fn escort_start(ships: &[BattleRuntimeShip]) -> Option<usize> {
-    ships.iter().position(BattleRuntimeShip::is_escort_deck)
+/// the escort fleet of an enemy one. 0 for a single fleet, which is one deck.
+fn escort_start(ships: &[BattleRuntimeShip]) -> usize {
+    ships.iter().position(BattleRuntimeShip::is_escort_deck).unwrap_or(0)
+}
+
+/// Whether a range starting `at` starts at a deck's first ship, or is empty.
+fn starts_a_deck(fleet: &[BattleRuntimeShip], at: usize) -> bool {
+    at == 0 || at == fleet.len() || at == escort_start(fleet)
 }
 
 #[cfg(test)]
@@ -128,21 +188,24 @@ mod tests {
         BattleState::from_context(context)
     }
 
-    fn opening(
-        state: &BattleState,
-        phase: BattlePhaseKind,
-    ) -> (Range<usize>, Range<usize>, Range<usize>, Range<usize>) {
+    type Ranges = (Range<usize>, Range<usize>, Range<usize>, Range<usize>);
+
+    /// (friendly fires, at, enemy fires, at).
+    fn ranges(volleys: Volleys) -> Ranges {
         let Volleys {
             friendly,
             enemy,
-        } = Volleys::opening(phase, &state.friendly, &state.enemy);
+        } = volleys;
         (friendly.attackers, friendly.targets, enemy.attackers, enemy.targets)
+    }
+
+    fn opening(state: &BattleState, phase: BattlePhaseKind) -> Ranges {
+        ranges(Volleys::opening(phase, &state.friendly, &state.enemy))
     }
 
     #[test]
     fn the_opening_phases_follow_the_fleet_shape() {
         use BattlePhaseKind::{ClosingTorpedo, OpeningAsw, OpeningTorpedo};
-        // (friendly fires, at, enemy fires, at) for each phase.
         let single = state(6, 0, 6, 0);
         for phase in [OpeningAsw, OpeningTorpedo, ClosingTorpedo] {
             assert_eq!(opening(&single, phase), (0..6, 0..6, 0..6, 0..6), "{phase:?}");
@@ -158,5 +221,24 @@ mod tests {
             assert_eq!(opening(&enemy_combined, phase), (0..6, 0..10, 0..10, 0..6), "{phase:?}");
         }
         assert_eq!(opening(&enemy_combined, ClosingTorpedo), (0..6, 0..10, 4..10, 0..6));
+    }
+
+    #[test]
+    fn the_shelling_rounds_follow_the_fleet_shape() {
+        let single = state(6, 0, 6, 0);
+        let whole = Volleys::whole(&single.friendly, &single.enemy);
+        assert_eq!(ranges(whole), (0..6, 0..6, 0..6, 0..6));
+        // A combined fleet's round is one deck's, and the enemy fires back at that deck.
+        let combined = state(2, 6, 6, 0);
+        let round = |deck| Volleys::friendly_deck_round(deck, &combined.friendly, &combined.enemy);
+        assert_eq!(ranges(round(CombinedFleetRole::Main)), (0..2, 0..6, 0..6, 0..2));
+        assert_eq!(ranges(round(CombinedFleetRole::Escort)), (2..8, 0..6, 0..6, 2..8));
+        // Against the escort fleet, the main fleet, then the main fleet against both.
+        let enemy_combined = state(6, 0, 4, 6);
+        let round =
+            |n| Volleys::enemy_combined_round(n, &enemy_combined.friendly, &enemy_combined.enemy);
+        assert_eq!(ranges(round(0)), (0..6, 4..10, 4..10, 0..6));
+        assert_eq!(ranges(round(1)), (0..6, 0..4, 0..4, 0..6));
+        assert_eq!(ranges(round(2)), (0..6, 0..10, 0..4, 0..6));
     }
 }

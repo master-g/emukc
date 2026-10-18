@@ -64,8 +64,8 @@ pub(crate) fn simulate_day(
     }
 
     // Likewise an enemy combined fleet, which is fought one deck at a time.
-    if let Some(escort_start) = state.enemy_escort_start() {
-        simulate_day_enemy_combined(codex, &mut state, rng, escort_start);
+    if state.enemy_escort_start().is_some() {
+        simulate_day_enemy_combined(codex, &mut state, rng);
         return state.finalize_day();
     }
 
@@ -103,8 +103,8 @@ pub(crate) fn simulate_day(
 ///
 /// Deck 1 takes no part in the opening ASW, opening torpedo or closing torpedo
 /// phases, and the enemy fires at deck 2 alone in them: those phases take their
-/// slices from [`Volleys::opening`]. In each shelling
-/// round the enemy fires at that round's deck.
+/// slices from [`Volleys::opening`]. In each shelling round the enemy fires at
+/// that round's deck ([`Volleys::friendly_deck_round`]).
 fn simulate_day_combined(
     codex: &Codex,
     state: &mut BattleState,
@@ -152,12 +152,7 @@ fn simulate_day_combined(
         // being present exactly as the single-fleet path gates `hougeki2`.
         let is_second_round = round > 0 && deck == rounds[round - 1];
         if !is_second_round || state.has_bb_class_at_start() {
-            let friendly_deck = match deck {
-                CombinedFleetRole::Main => 0..layout.escort_start,
-                CombinedFleetRole::Escort => layout.escort_start..state.friendly.len(),
-            };
-            let enemy = 0..state.enemy.len();
-            let volleys = Volleys::between(friendly_deck, enemy.clone(), enemy);
+            let volleys = Volleys::friendly_deck_round(deck, &state.friendly, &state.enemy);
             let hougeki = shelling_round(codex, state, rng, volleys, !is_second_round);
             let happened = hougeki.is_some();
             match round {
@@ -192,8 +187,8 @@ fn shelling_round(
     volleys: Volleys,
     by_range: bool,
 ) -> Option<BattleHougeki> {
-    if !any_alive(&state.friendly[volleys.friendly.attackers.clone()])
-        || !any_alive(&state.enemy[volleys.friendly.targets.clone()])
+    if !any_alive(volleys.friendly.attackers_in(&state.friendly))
+        || !any_alive(volleys.friendly.targets_in(&state.enemy))
     {
         return None;
     }
@@ -228,13 +223,8 @@ fn shelling_round(
 /// `hougeki1` → `raigeki` → `hougeki2` → `hougeki3`.
 ///
 /// Both enemy decks take part in the opening phases; the closing torpedo is the
-/// escort fleet's alone, which `torpedo::simulate_raigeki` enforces per ship.
-fn simulate_day_enemy_combined(
-    codex: &Codex,
-    state: &mut BattleState,
-    rng: &mut impl BattleRng,
-    escort_start: usize,
-) {
+/// escort fleet's alone ([`Volleys::opening`]).
+fn simulate_day_enemy_combined(codex: &Codex, state: &mut BattleState, rng: &mut impl BattleRng) {
     let flow = BattleFlow::for_battle_type(state.battle_type());
     let runs = |kind: BattlePhaseKind| flow.phases.contains(&kind);
 
@@ -252,17 +242,9 @@ fn simulate_day_enemy_combined(
         return;
     }
 
-    // Who fires and who is fired at: the battleship round is the main deck's
-    // alone against both decks (`kcsimcombined.js` `69097abc`, shelling 3).
-    let enemy_len = state.enemy.len();
-    let rounds = [
-        (escort_start..enemy_len, escort_start..enemy_len),
-        (0..escort_start, 0..escort_start),
-        (0..escort_start, 0..enemy_len),
-    ];
-    for (round, (deck, targets)) in rounds.into_iter().enumerate() {
+    for round in 0..3 {
         if round < 2 || state.has_bb_class_at_start() {
-            let volleys = Volleys::between(0..state.friendly.len(), deck, targets);
+            let volleys = Volleys::enemy_combined_round(round, &state.friendly, &state.enemy);
             let hougeki = shelling_round(codex, state, rng, volleys, round < 2);
             let happened = hougeki.is_some();
             match round {
@@ -374,8 +356,7 @@ fn execute_shelling(
     if !first_round && !state.has_bb_class_at_start() {
         return;
     }
-    let enemy = 0..state.enemy.len();
-    let volleys = Volleys::between(0..state.friendly.len(), enemy.clone(), enemy);
+    let volleys = Volleys::whole(&state.friendly, &state.enemy);
     let hougeki = shelling_round(codex, state, rng, volleys, first_round);
     let slot = usize::from(!first_round);
     if hougeki.is_some() {

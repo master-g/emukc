@@ -66,20 +66,15 @@ pub(crate) fn simulate_shelling_round(
         enemy: enemy_volley,
     } = &round.volleys;
 
-    let friendly_los = fleet_los(&friendly[friendly_volley.attackers.clone()]);
-    let enemy_los = fleet_los(&enemy[enemy_volley.attackers.clone()]);
+    let friendly_los = fleet_los(friendly_volley.attackers_in(friendly));
+    let enemy_los = fleet_los(enemy_volley.attackers_in(enemy));
     // The orders are fixed when the round begins; a ship sunk before its turn
     // comes loses it.
     let can_shell = |ship: &BattleRuntimeShip| can_shell_day_ship(codex, ship);
-    let friendly_order = firing_order(
-        codex,
-        rng,
-        &friendly[friendly_volley.attackers.clone()],
-        round.by_range,
-        can_shell,
-    );
+    let friendly_order =
+        firing_order(codex, rng, friendly_volley.attackers_in(friendly), round.by_range, can_shell);
     let enemy_order =
-        firing_order(codex, rng, &enemy[enemy_volley.attackers.clone()], round.by_range, can_shell);
+        firing_order(codex, rng, enemy_volley.attackers_in(enemy), round.by_range, can_shell);
 
     let mut hougeki = BattleHougeki::default();
     let [friendly_special, enemy_special] = special_attack_used;
@@ -98,7 +93,7 @@ pub(crate) fn simulate_shelling_round(
             );
             append_turn(&mut hougeki, fired, friendly_volley);
         }
-        if !any_alive(&enemy[friendly_volley.targets.clone()]) {
+        if !any_alive(friendly_volley.targets_in(enemy)) {
             break;
         }
         if let Some(&idx) = enemy_order.get(turn) {
@@ -115,7 +110,7 @@ pub(crate) fn simulate_shelling_round(
             );
             append_turn(&mut hougeki, fired, enemy_volley);
         }
-        if !any_alive(&friendly[enemy_volley.targets.clone()]) {
+        if !any_alive(enemy_volley.targets_in(friendly)) {
             break;
         }
     }
@@ -370,6 +365,7 @@ fn shell_turn(
 mod tests {
     use super::simulate_shelling_side;
     use crate::random::SeededRng;
+    use crate::simulation::volley::Volleys;
     use crate::test_utils::*;
     use crate::types::{
         BattleContext, BattlePhase, BattleRuntimeShip, BattleType, DamageCell, EngagementType,
@@ -729,7 +725,7 @@ mod tests {
                     let mut friendly = vec![BattleRuntimeShip::from(dd)];
                     let mut enemy = vec![BattleRuntimeShip::new(bbv, false, true)];
                     let round = ShellingRound {
-                        volleys: crate::simulation::volley::Volleys::between(0..1, 0..1, 0..1),
+                        volleys: Volleys::between(0..1, 0..1, 0..1),
                         by_range: true,
                         friendly_formation: 1,
                         enemy_formation: 1,
@@ -1001,11 +997,7 @@ mod tests {
                     })
                     .collect();
                 let round = ShellingRound {
-                    volleys: crate::simulation::volley::Volleys::between(
-                        0..1,
-                        0..enemy.len(),
-                        0..enemy.len(),
-                    ),
+                    volleys: Volleys::between(0..1, 0..enemy.len(), 0..enemy.len()),
                     by_range: true,
                     friendly_formation: 1,
                     enemy_formation: 1,

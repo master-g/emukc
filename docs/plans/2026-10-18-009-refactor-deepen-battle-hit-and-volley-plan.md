@@ -91,17 +91,17 @@ U0 ──┬── U1 ──────────────┐
 deck 边界在本 crate 内有四种求法：`escort_deck_start`、`deck_candidates` 自己的 `position`、`CombinedLayout.escort_start`、`state.enemy_escort_start`。`combined-fleet-index-spaces.md` 的“切片编号：第三个坑”就是这种结构造成的。
 
 **决策。**
-- 编排器为每个阶段、每一方构造一个 `Volley`：开火方的 range、被打方的 range、双方阵形、`attacker_is_enemy`；拆借用与索引抬升也由它负责（`attacker_at`、`defender_at`）。阶段函数只消费 `Volley`，不再自己切片、不再自己抬索引。
-- `Volley` 由一个函数按“阶段 × 舰队形态”的表生成，舰队形态包括单对单、友方连合×3、对敌方连合。这张表是连合艦隊 deck 规则唯一的落脚点，d756a51c、b7a9d94b、a9623045、7f22d4c4 改的都是它的某一行。
+- 每个阶段、每一方一个 `Volley`：开火方的 range 与被打方的 range；拆借用与只读切片（`split`、`attackers_in`、`targets_in`）、索引抬升（`attacker_at`、`target_at`）都由它负责。阶段函数不再自己写 range、不再自己抬索引。阵形和 `attacker_is_enemy` 仍由阶段自己传：它们不随 deck 变化，放进 `Volley` 只会加宽 interface。
+- “谁打谁”的规则全部写在 `simulation/volley.rs`：开幕三阶段走 `Volleys::opening`，砲撃轮按形态有 `Volleys::whole`、`friendly_deck_round`、`enemy_combined_round`。b7a9d94b、a9623045、7f22d4c4 改的都是其中某一行；哪一轮何时打、落进哪个包槽仍由编排器决定。
 - 开幕雷撃的“第1艦隊不开火”这类按舰跳过的检查，改为在 `Volley` 的开火 range 里体现。遍历顺序与 RNG 顺序不变：原来是整支遍历、遇到主力 deck 跳过，现在是只遍历护卫 deck，二者抽取序列相同。
-- **旗舰：写成 `Volley` 的不变量，不加字段谓词。** 代码里的“旗舰”有两种用法：`is_flagship` 字段（`mark_flagship` 给每个 deck 的首舰设，轰沉保护读它），以及按位置的 `idx == 0`（昼夜 cut-in、特殊攻击、瑞雲，和 かばう 的 `target_idx != 0 || defenders[0].is_escort_deck()`）。实现时逐处核对：每个阶段拿到的切片都从某支 deck 的首舰开始，所以 `idx == 0` 就是“这支 deck 的旗舰”。这条写进 `volley.rs` 的模块注释。改成字段谓词需要在 `from_context` 和 `simulate_night` 里也给敌方标旗舰，并改所有直接调用相位函数、自己建舰的测试，输出不变，所以不做。
+- **旗舰：写成 `Volley` 的不变量，不加字段谓词。** 实现时逐处核对了“旗舰”的用法。`is_flagship` 字段由 `mark_flagship` 设给每个 deck 的首舰，轰沉保护读它。其余都按位置判断：昼夜 cut-in、特殊攻击、瑞雲的 `idx == 0` 指“这支 deck 的旗舰”；かばう 的 `target_idx != 0 || defenders[0].is_escort_deck()` 指“舰队旗舰”，即非护卫 deck 的首舰。两者都依赖“每段切片都从某支 deck 的首舰开始”，这条写进 `volley.rs` 的模块注释，`Volley::split` 在 debug 构建里断言它。改成字段谓词，需要在 `from_context` 和 `simulate_night` 里也给敌方标旗舰，还要改所有直接调用相位函数、自己建舰的测试，而输出不变，所以不做。
 - 相位用的 deck 边界只留 `volley::escort_start` 一个函数（删掉 `targeting::escort_deck_start`）。`deck_candidates` 的边界保持只认 `enemy_deck`：它写的是来源对敌方 deck 的掷骰（0.39 / 0.35），换成认双方标签只是因为现在没有调用方会把友方两支 deck 一起传进去才等价。`CombinedLayout.escort_start` 与 `state.enemy_escort_start` 在建舰时从同一个向量算出一次，供编排器和包翻译使用，也不动。gameplay 的 `SortieBattleSession` 不动（见非目标）。
 - `ShellingRound` 的三个 range 换成 `Volleys`。测试专用入口 `simulate_shelling_side` 保留：它只让一方开火，换成真实回合会让双方交替开火、改变这些测试的 RNG 序列；它是只供本模块测试的内部 seam。
 - 实现时 `Volley` 由相位函数开头调用表函数取得，而不是由编排器传入：表只有一处，调用位置不影响 locality，还省得改 13 个直接调用相位函数的测试。
 
 **测试。**
 - `combined_tests`（`simulation/mod.rs:1083` 起）原样保留，作为验收。
-- 新增表格测试，逐行断言“阶段 × 舰队形态 → 两个 `Volley`”，覆盖开幕三阶段；砲撃轮的表在编排器里，由 `combined_tests` 和 golden 覆盖。
+- 新增表格测试，逐行断言“阶段 × 舰队形态 → 两个 `Volley`”，开幕三阶段和三种砲撃轮都覆盖。
 
 **文档**：`combined-fleet-index-spaces.md` 的“切片编号”一节、`day-shelling-order.md`、`reconnaissance-and-escort-cells.md`（如涉及）改成按 `Volley` 写。
 

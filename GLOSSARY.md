@@ -63,5 +63,5 @@ _Avoid_: 匹配类型、RivalType 组
 _Avoid_: 扣血、display damage、伤害应用
 
 **Volley（交战面）**:
-一个阶段里一方的开火面：哪些舰开火、打对方的哪些舰，两者都按各自整支舰队的位置记。连合艦隊哪支 deck 参战、敌方打哪支 deck 都由它表达，每段都从某支 deck 的首舰开始。
+一个阶段里一方的开火面：哪些舰开火、打对方的哪些舰，两者都按各自整支舰队的位置记。连合艦隊哪支 deck 参战、敌方打哪支 deck 都由它表达。
 _Avoid_: 切片、deck range、targets slice
