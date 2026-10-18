@@ -102,7 +102,7 @@ let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
 **Gaps** (status re-audited 2026-06-09 against `damage.rs`):
 | # | Item | Status |
 |---|------|--------|
-| S1 | Improvement bonus `Σ k_eq × √★` | Implemented — `improvement_bonus_day` |
+| S1 | Improvement bonus (√★ or ★ by item) | Implemented — `ship_improvement(..).shell` |
 | S2 | CV special formula | Implemented (simplified) — `1.5 × bombers + 55` in `calculate_shelling_damage` |
 | S3 | CL fit gun bonus `√単装 + 2√連装` | Implemented — `light_gun_bonus` |
 | S4 | Damage state modifier (chuuha×0.7, taiha×0.4) | Implemented — `damage_state_modifier` |
@@ -386,7 +386,7 @@ Where `k_eq` varies by equipment type and attack phase:
 | Sonar | — | — | — | 1.0 |
 | Depth Charge | — | — | — | 1.0 |
 
-**Current code**: Not implemented.
+**Current code**: `ship_improvement` in `damage.rs`, after `KC3Kai/kancolle-replay` rather than this table; see `docs/solutions/architecture-patterns/equipment-improvement-bonus.md`.
 
 ### 3.6 Artillery Spotting (弾着観測射撃)
 
@@ -502,7 +502,7 @@ is authoritative and supersedes the per-section "Current code" snippets above.
 |-----|-------|
 | Defense randomization | `calculate_defense_power` |
 | Damage state modifier (shelling/torpedo/ASW) | `damage_state_modifier` |
-| Improvement bonus (day/torpedo/night) | `improvement_bonus_day` / `_torpedo` / `_night` |
+| Improvement bonus (day/torpedo/night/ASW) | `ship_improvement` |
 | Scratch damage trigger (attack < defense) | `resolve_damage` |
 | Ammo modifier | `ammo_modifier` (friendly, post-cap; shelling/torpedo/night) |
 | CV special shelling (simplified) | `1.5 × bombers + 55` in `calculate_shelling_damage` |
