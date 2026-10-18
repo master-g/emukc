@@ -193,16 +193,18 @@ let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.6;
 
 ### 2.4 Anti-Submarine Warfare (対潜攻撃)
 
-**Wiki formula:**
+**Formula:**
 
 ```
-F₀ = (√(base_asw) × 2 + √(equip_asw) × 1.5 + type_bonus) × synergy × armor_pen
+F₀ = (√(base_asw) × 2 + equip_asw × 1.5 + type_bonus) × synergy × armor_pen
 ```
 
-Where:
-- `base_asw` = ship ASW − equipment ASW (modernization + innate)
-- `equip_asw` = Σ(equipment ASW stats)
-- `type_bonus` = +13 (depth charge) or +8 (aircraft ASW)
+Where (as `KC3Kai/kancolle-replay` at `69097abc` has it, `ASWPower`, `kcships.js:1598-1615`):
+- `base_asw` = ship ASW − equipment ASW − equipment bonus ASW (level + modernization)
+- `equip_asw` = Σ ASW of sonars, depth charges, torpedo and dive bombers, seaplane bombers,
+  autogyros and patrol planes (`canASWDamage`), plus the equipment bonus ASW
+- `type_bonus` = 8 for a class that attacks with aircraft (CAV, BBV, AV, LHA, CVL, an oiler
+  that flies a bomber), else 13; never both
 - `synergy` = ASW synergy modifier (see §3.4)
 - `armor_pen` = `1 + √(specific_DC_asw − 2) × 0.25` for Hedgehog/T3 DC, etc.
 
@@ -218,9 +220,9 @@ Post-cap: critical, ammo
 - BBV: ASW ≥ 100 + large sonar + ASW aircraft
 - **Missing**: Isuzu K2, Tatsuta K2 unconditional OASW
 
-**Current code** (`calculate_asw_damage`, core.rs:1368):
+**Current code** (`calculate_asw_damage`, `damage.rs`):
 ```rust
-let raw_power = (base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + type_bonus) * synergy;
+let raw_power = asw_basic_power(codex, attacker) * asw_synergy_modifier(codex, attacker);
 let modified = raw_power * asw_formation_modifier(formation_id) * engagement.modifier();
 let capped = apply_cap(modified, 170.0) as f64;
 let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
@@ -237,7 +239,7 @@ let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
 | W6 | Ammo modifier | Not implemented |
 
 **Already correct:**
-- Basic power formula `√base×2 + √equip×1.5 + bonus` ✓
+- Basic power formula `√base×2 + equip×1.5 + class` ✓ (#231; it had `√equip` and summed 8 and 13)
 - ASW synergy values (1.4375, 1.265, 1.15, 1.1) ✓
 - Formation modifiers (diamond 1.2, echelon 1.1, abreast 1.3) ✓
 - OASW threshold conditions for standard ship types ✓

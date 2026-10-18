@@ -22,7 +22,7 @@ use crate::combined::{
 use crate::installation::{AntiInstallation, land_target, post_cap_multiplier};
 use crate::random::BattleRng;
 use crate::targeting::{
-    abyssal_carrier_asw, has_active_asw_aircraft, has_slotitem_type, is_airstrike_attack_type,
+    abyssal_carrier_asw, bonus_gears, has_slotitem_type, is_airstrike_attack_type, ship_mst,
     ship_type, target_class,
 };
 use crate::types::{BattlePhase, BattleRuntimeShip, EngagementType};
@@ -357,28 +357,7 @@ pub(crate) fn calculate_asw_damage(
     outcome: HitOutcome,
     planes: PlaneProficiency,
 ) -> i64 {
-    let equip_asw = equipment_asw_total(codex, attacker);
-    let base_asw = base_asw(codex, attacker);
-
-    // Attack type bonus: +8 for ASW aircraft, +13 for depth charge projector (cumulative)
-    let has_asw_aircraft = has_active_asw_aircraft(codex, attacker);
-    let has_dc_projector = has_slotitem_type(codex, attacker, KcSlotItemType3::DepthCharge);
-    let type_bonus = if has_asw_aircraft {
-        8.0
-    } else {
-        0.0
-    } + if has_dc_projector {
-        13.0
-    } else {
-        0.0
-    };
-
-    let synergy = asw_synergy_modifier(codex, attacker);
-    let raw_power = (base_asw.sqrt() * 2.0
-        + equip_asw.sqrt() * 1.5
-        + type_bonus
-        + ship_improvement(codex, attacker).asw)
-        * synergy;
+    let raw_power = asw_basic_power(codex, attacker) * asw_synergy_modifier(codex, attacker);
     let dmg_state =
         damage_state_modifier(attacker.hp(), attacker.ship.api_maxhp, BattlePhase::DayShelling);
     // Daytime ASW takes the formation multiplier but no 連合艦隊補正 at all
@@ -857,14 +836,76 @@ pub(crate) fn depth_charge_armor_reduction(codex: &Codex, ship: &BattleRuntimeSh
         .sum()
 }
 
-/// A ship's own anti-submarine for her attack on a submarine: her total less her equipment's
-/// (modernization and innate). An abyssal carrier the source lets attack one takes the source's
-/// figure, the codex giving her none (`ABYSSAL_CARRIER_ASW`).
+/// A ship's attack power on a submarine before the synergy multiplier, the source's `ASWPower`
+/// (`kcships.js:1598-1615`): `2√base + 1.5 × equipment + class + improvement`.
+pub(crate) fn asw_basic_power(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+    2.0 * base_asw(codex, ship).sqrt()
+        + 1.5 * asw_attack_equipment(codex, ship)
+        + asw_class_constant(codex, ship)
+        + ship_improvement(codex, ship).asw
+}
+
+/// A ship's own anti-submarine for her attack on a submarine (`statsBase.ASW`): her total less
+/// her equipment's and what its 装備ボーナス grants, leaving level and modernization. An abyssal
+/// carrier the source lets attack one takes the source's figure, the codex giving her none
+/// (`ABYSSAL_CARRIER_ASW`).
 pub(crate) fn base_asw(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
     if let Some(asw) = abyssal_carrier_asw(ship.ship.api_ship_id) {
         return asw as f64;
     }
-    (ship.ship.api_taisen[0].max(0) as f64 - equipment_asw_total(codex, ship)).max(0.0)
+    (ship.ship.api_taisen[0].max(0) as f64
+        - equipment_asw_total(codex, ship)
+        - bonus_asw(codex, ship))
+    .max(0.0)
+}
+
+/// The equipment a ship attacks a submarine with (`equipASW`): the 対潜 of her sonars, depth
+/// charges, torpedo and dive bombers, seaplane bombers, autogyros and patrol planes (the
+/// source's `canASWDamage` types), and what her 装備ボーナス grants (`MECHANICS.eqBonusASW`).
+fn asw_attack_equipment(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+    // Sonars 14 and 40, depth charges 15, torpedo and dive bombers 8 and 7, seaplane bombers 11,
+    // autogyros 25, patrol planes 26.
+    const ASW_DAMAGE_TYPES: [i64; 8] = [14, 40, 15, 8, 7, 11, 25, 26];
+    let items: i64 = ship
+        .slot_items
+        .iter()
+        .filter_map(|si| codex.find::<ApiMstSlotitem>(&si.api_slotitem_id).ok())
+        .filter(|mst| ASW_DAMAGE_TYPES.contains(&mst.api_type[2]))
+        .map(|mst| mst.api_tais.max(0))
+        .sum();
+    items as f64 + bonus_asw(codex, ship)
+}
+
+/// The 対潜 a ship's 装備ボーナス grants.
+fn bonus_asw(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+    ship_mst(codex, ship)
+        .and_then(|hull| codex.gear_bonus(hull, &bonus_gears(codex, ship)).ok())
+        .map_or(0.0, |bonus| bonus.tais as f64)
+}
+
+/// The source's `classASW`: 8 for a class that attacks submarines with aircraft (`planeasw`:
+/// aviation cruisers and battleships, seaplane tenders, amphibious ships, light carriers, and
+/// an oiler the source lets fly an air attack once she carries a torpedo or dive bomber), 13
+/// for any other.
+fn asw_class_constant(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+    /// 速吸改, 山汐丸改 and しまね丸改 (`kcSHIPDATA.js` `canAirAttack`).
+    const FLYING_OILERS: [i64; 3] = [352, 717, 1008];
+    let flies = match ship_type(codex, ship) {
+        Some(
+            KcShipType::CAV | KcShipType::BBV | KcShipType::AV | KcShipType::LHA | KcShipType::CVL,
+        ) => true,
+        Some(KcShipType::AO) => {
+            FLYING_OILERS.contains(&ship.ship.api_ship_id)
+                && (has_slotitem_type(codex, ship, KcSlotItemType3::CarrierBasedTorpedoBomber)
+                    || has_slotitem_type(codex, ship, KcSlotItemType3::CarrierBasedDiveBomber))
+        }
+        _ => false,
+    };
+    if flies {
+        8.0
+    } else {
+        13.0
+    }
 }
 
 /// Calculate equipment ASW from all equipped items.
@@ -1631,7 +1672,7 @@ mod tests {
     }
 
     #[test]
-    fn asw_damage_formula_uses_sqrt_base_and_equipment() {
+    fn asw_damage_formula_uses_the_sources_asw_power() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
         let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
@@ -1662,11 +1703,11 @@ mod tests {
 
         // Verify damage is positive and uses the ASW formula (not shelling formula)
         assert!(dmg >= 1);
-        // raw_power = (√(80 - equip_asw) * 2 + √equip_asw * 1.5 + 13) * synergy
+        // raw_power = (√(80 - equip_asw) * 2 + equip_asw * 1.5 + 13) * synergy
         // With a single depth charge: projector=true, dc=true → synergy = 1.1
         let base_asw = (80.0 - equip_asw).max(0.0);
         let synergy = 1.1; // single DepthCharge counts as both projector and charge
-        let expected_raw = (base_asw.sqrt() * 2.0 + equip_asw.sqrt() * 1.5 + 13.0) * synergy;
+        let expected_raw = (base_asw.sqrt() * 2.0 + equip_asw * 1.5 + 13.0) * synergy;
         let expected_capped = apply_cap(expected_raw, ASW_CAP) as f64;
         // Defense is now randomized; just verify damage is positive and reasonable
         // With armor 10, defense range is [7, 13] so damage should be in a range
@@ -1916,5 +1957,64 @@ mod tests {
         ship.slot_items[1].api_level = 9;
         let improved = ship_improvement(&codex, &BattleRuntimeShip::from(ship));
         assert!((improved.shell - 5.0).abs() < 1e-9 && (improved.night - 5.0).abs() < 1e-9);
+    }
+
+    /// ASW basic power before synergy of the ship `mst_id` carrying `items`, her total 対潜
+    /// set to `taisen`.
+    fn asw_power_of(codex: &Codex, mst_id: i64, taisen: i64, items: &[i64]) -> f64 {
+        let mut ship = sample_ship(codex, mst_id, 50);
+        ship.slot_items = items.iter().copied().map(slotitem_with_mst_id).collect();
+        ship.ship.api_onslot = [18; 5];
+        ship.ship.api_taisen[0] = taisen;
+        asw_basic_power(codex, &BattleRuntimeShip::from(ship))
+    }
+
+    fn assert_close(got: f64, want: f64) {
+        assert!((got - want).abs() < 1e-9, "{got} vs {want}");
+    }
+
+    /// The source's `ASWPower`: `2√base + 1.5 × equipment + 13` for a ship that does not attack
+    /// submarines with aircraft, whatever she carries.
+    #[test]
+    fn asw_power_takes_the_equipment_linearly() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        // Type124 ASDIC (11) and Mk.32 対潜魚雷(Mk.2落射機) (19), on 50 of her own.
+        assert_close(asw_power_of(&codex, dd, 80, &[260, 472]), 2.0 * 50f64.sqrt() + 45.0 + 13.0);
+        // A sonar alone, 三式水中探信儀 (10): still 13.
+        assert_close(asw_power_of(&codex, dd, 60, &[47]), 2.0 * 50f64.sqrt() + 15.0 + 13.0);
+        // A seaplane recon's 対潜 (零式水上偵察機, 2) leaves her base and adds nothing.
+        assert_close(asw_power_of(&codex, dd, 62, &[47, 25]), 2.0 * 50f64.sqrt() + 15.0 + 13.0);
+    }
+
+    /// A class that attacks submarines with aircraft takes 8, never 8 and 13 together.
+    #[test]
+    fn asw_power_takes_one_class_constant() {
+        const HAYASUI_KAI: i64 = 352;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let cvl = first_ship_mst_by_type(&codex, KcShipType::CVL);
+        let av = first_ship_mst_by_type(&codex, KcShipType::AV);
+        let ao = first_ship_mst_by_type(&codex, KcShipType::AO);
+        // 九七式艦攻 (対潜 4) on a light carrier.
+        assert_close(asw_power_of(&codex, cvl, 44, &[16]), 2.0 * 40f64.sqrt() + 6.0 + 8.0);
+        // 瑞雲 (4) and 九四式爆雷投射機 (5) on a seaplane tender: 8, not 21.
+        assert_close(asw_power_of(&codex, av, 49, &[26, 44]), 2.0 * 40f64.sqrt() + 13.5 + 8.0);
+        // 速吸改 flies her torpedo bombers, and takes 8 with one aboard; an oiler without, 13.
+        assert_close(asw_power_of(&codex, HAYASUI_KAI, 44, &[16]), 2.0 * 40f64.sqrt() + 6.0 + 8.0);
+        assert_close(asw_power_of(&codex, ao, 45, &[44]), 2.0 * 40f64.sqrt() + 7.5 + 13.0);
+    }
+
+    /// The 対潜 an equipment bonus grants counts as equipment, at 1.5, not in her base.
+    #[test]
+    fn an_equipment_bonus_counts_as_equipment_against_a_submarine() {
+        const KATORI: i64 = 154;
+        // 九四式爆雷投射機: 対潜 5, and 3 more on a 香取型.
+        const TYPE94_DC: i64 = 44;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 40 of her own, 5 of the projector's and 3 of the bonus.
+        assert_close(
+            asw_power_of(&codex, KATORI, 48, &[TYPE94_DC]),
+            2.0 * 40f64.sqrt() + 1.5 * 8.0 + 13.0,
+        );
     }
 }
