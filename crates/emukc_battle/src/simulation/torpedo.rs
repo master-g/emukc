@@ -82,9 +82,12 @@ fn torpedo_phase(
     engagement: EngagementType,
     phase: BattlePhase,
 ) -> Vec<(TorpedoAttackerSide, TorpedoHit)> {
-    let kind = match phase {
-        BattlePhase::OpeningTorpedo => BattlePhaseKind::OpeningTorpedo,
-        _ => BattlePhaseKind::ClosingTorpedo,
+    let (kind, can_fire): (_, fn(&Codex, &BattleRuntimeShip) -> bool) = match phase {
+        BattlePhase::OpeningTorpedo => (BattlePhaseKind::OpeningTorpedo, can_opening_torpedo_ship),
+        BattlePhase::ClosingTorpedo => (BattlePhaseKind::ClosingTorpedo, can_closing_torpedo_ship),
+        BattlePhase::DayShelling | BattlePhase::NightShelling => {
+            unreachable!("{phase:?} is not a torpedo phase")
+        }
     };
     let volleys = Volleys::opening(kind, friendly, enemy);
     let friendly_at_start = volleys.friendly.attackers_in(friendly).to_vec();
@@ -96,9 +99,8 @@ fn torpedo_phase(
         &friendly_at_start,
         (friendly, enemy),
         &volleys.friendly,
-        (friendly_formation, enemy_formation),
-        engagement,
-        phase,
+        Aim::new(AttackKind::Torpedo, friendly_formation, enemy_formation),
+        (engagement, phase, can_fire),
     );
     let enemy_hits = salvo(
         codex,
@@ -106,9 +108,8 @@ fn torpedo_phase(
         &enemy_at_start,
         (enemy, friendly),
         &volleys.enemy,
-        (enemy_formation, friendly_formation),
-        engagement,
-        phase,
+        Aim::new(AttackKind::Torpedo, enemy_formation, friendly_formation),
+        (engagement, phase, can_fire),
     );
     let mut hits: Vec<_> =
         friendly_hits.into_iter().map(|hit| (TorpedoAttackerSide::Friendly, hit)).collect();
@@ -117,33 +118,34 @@ fn torpedo_phase(
 }
 
 /// One side's torpedoes: each ship of `at_start` (the volley's attackers as the
-/// phase began) that can fire in `phase` fires at the volley's targets, and the
-/// damage is credited to the same ship afloat in `attacking`.
-#[expect(clippy::too_many_arguments)]
+/// phase began) that `can_fire` fires at the volley's targets, and the damage is
+/// credited to the same ship in `afloat`. `aim` carries the two formations,
+/// the attacker's first.
 fn salvo(
     codex: &Codex,
     rng: &mut impl BattleRng,
     at_start: &[BattleRuntimeShip],
-    (attacking, defending): (&mut [BattleRuntimeShip], &mut [BattleRuntimeShip]),
+    (afloat, defending): (&mut [BattleRuntimeShip], &mut [BattleRuntimeShip]),
     volley: &Volley,
-    (attacker_formation, defender_formation): (i64, i64),
-    engagement: EngagementType,
-    phase: BattlePhase,
+    aim: Aim,
+    (engagement, phase, can_fire): (
+        EngagementType,
+        BattlePhase,
+        fn(&Codex, &BattleRuntimeShip) -> bool,
+    ),
 ) -> Vec<TorpedoHit> {
-    let can_fire = match phase {
-        BattlePhase::OpeningTorpedo => can_opening_torpedo_ship,
-        _ => can_closing_torpedo_ship,
-    };
-    let (attackers, targets) = volley.split(attacking, defending);
+    let (attackers, targets) = volley.split(afloat, defending);
     let mut hits = Vec::new();
     for (idx, ship) in at_start.iter().enumerate() {
         if !can_fire(codex, ship) {
             continue;
         }
-        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
+        // The closing torpedo picks an enemy combined fleet's deck first; the opening
+        // one draws from both decks, which `deck_candidates` does without a roll.
         let candidates = deck_candidates(codex, rng, ship, targets, phase);
+        // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
         let Some((target_idx, shield)) =
-            choice_with_protect(codex, rng, targets, &candidates, 0, false, defender_formation)
+            choice_with_protect(codex, rng, targets, &candidates, 0, false, aim.defender_formation)
         else {
             continue;
         };
@@ -152,7 +154,7 @@ fn salvo(
             codex,
             ship,
             &targets[target_idx],
-            attacker_formation,
+            aim.attacker_formation,
             engagement,
             phase,
         );
@@ -161,8 +163,7 @@ fn salvo(
             rng,
             ship,
             &targets[target_idx],
-            Aim::new(AttackKind::Torpedo, attacker_formation, defender_formation)
-                .with_flat((power / 5.0).floor()),
+            aim.with_flat((power / 5.0).floor()),
         );
         let raw = calculate_torpedo_damage(codex, rng, ship, &targets[target_idx], power, outcome);
         let landed = targets[target_idx].take_hit(rng, raw, shield);
