@@ -147,7 +147,12 @@ pub(crate) fn target_candidates(
         return Vec::new();
     }
 
-    let shuns_land = phase == BattlePhase::DayShelling && shuns_installations(codex, attacker);
+    let shuns_land = match phase {
+        BattlePhase::DayShelling => shuns_installations(codex, attacker),
+        // Neither torpedo is aimed at land (`torpedoPhase`: `if (!alive[i].isInstall)`).
+        BattlePhase::OpeningTorpedo | BattlePhase::ClosingTorpedo => true,
+        BattlePhase::NightShelling => false,
+    };
     // A submarine shells nothing but land (`shellPhaseTarget`).
     // ponytail: the source also leaves her out of the order when the other side has no land
     // target (`orderByRange`'s `includeSubs`); with nothing here to fire at she fires nothing
@@ -1085,6 +1090,28 @@ mod tests {
         assert_eq!(opening, vec![0, 1, 2, 3]);
     }
 
+    /// A deck of nothing but land targets has nothing for a torpedo, so the closing torpedo
+    /// goes for the other deck with no roll.
+    #[test]
+    fn a_closing_torpedo_passes_over_a_deck_of_land_targets() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let (attacker, defenders) = enemy_combined(&codex);
+        let land = ship_mst_id_by_name(&codex, "砲台小鬼");
+        let draw = |defenders: &[BattleRuntimeShip]| {
+            let mut rng = Rolls([].into_iter().collect());
+            deck_candidates(&codex, &mut rng, &attacker, defenders, BattlePhase::ClosingTorpedo)
+        };
+        let on_land = |decks: &[usize]| {
+            let mut fleet = defenders.clone();
+            for &at in decks {
+                fleet[at].ship.api_ship_id = land;
+            }
+            fleet
+        };
+        assert_eq!(draw(&on_land(&[0, 1])), vec![2, 3]);
+        assert_eq!(draw(&on_land(&[2, 3])), vec![0, 1]);
+    }
+
     /// One draw from what `attacker` may fire at in `phase`, with no かばう (formation 0).
     fn draw(
         codex: &Codex,
@@ -1350,8 +1377,9 @@ mod tests {
         assert_eq!(aims(&carrier(&[(attack_plane, 18)]), &fleet), vec![0, 1]);
     }
 
+    /// A torpedo goes neither for a submarine nor for land (`torpedoPhase`).
     #[test]
-    fn torpedo_targeting_keeps_installations_in_surface_bucket_for_now() {
+    fn a_torpedo_at_a_submarine_and_a_land_target_has_nothing_to_aim_at() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let clt_mst = first_ship_mst_by_type(&codex, KcShipType::CLT);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
@@ -1367,10 +1395,9 @@ mod tests {
         ];
         let mut rng = crate::random::SeededRng::new(17);
 
-        let target_idx =
-            draw(&codex, &mut rng, &attacker, &defenders, BattlePhase::ClosingTorpedo).unwrap();
+        let drawn = draw(&codex, &mut rng, &attacker, &defenders, BattlePhase::ClosingTorpedo);
 
-        assert_eq!(target_class(&codex, &defenders[target_idx]), TargetClass::Installation);
+        assert_eq!(drawn, None);
     }
 
     #[test]

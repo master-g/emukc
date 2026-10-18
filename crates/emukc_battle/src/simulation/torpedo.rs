@@ -572,4 +572,58 @@ mod tests {
         }
         assert!(sunk > 0, "no seed sank the enemy, so nothing was tested");
     }
+
+    /// A ship of `mst`, standing in for `ship_id` with a hull nothing here sinks.
+    fn stand_in(codex: &Codex, mst: i64, ship_id: i64) -> BattleRuntimeShip {
+        let mut ship = sample_ship(codex, mst, 50);
+        ship.ship.api_ship_id = ship_id;
+        ship.ship.api_nowhp = 4000;
+        ship.ship.api_maxhp = 4000;
+        BattleRuntimeShip::from(ship)
+    }
+
+    /// `torpedoPhase` leaves land targets out of both sides' targets, opening and closing
+    /// alike (`if (!alive[i].isInstall)`): only the torpedo cruiser beside one is aimed at.
+    #[test]
+    fn a_torpedo_never_goes_for_a_land_target() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let clt = first_ship_mst_by_type(&codex, KcShipType::CLT);
+        let land = ship_mst_id_by_name(&codex, "砲台小鬼");
+        let mut gun_battery = stand_in(&codex, clt, land);
+        // It fires no torpedoes of its own, so only the cruisers' are counted.
+        gun_battery.ship.api_raisou[0] = 0;
+        let fleet = || vec![gun_battery.clone(), stand_in(&codex, clt, clt)];
+        let eng = EngagementType::SameCourse;
+        let mut aimed = 0;
+        for seed in 0..30 {
+            let (mut friendly, mut enemy) = (fleet(), fleet());
+            let rng = &mut SeededRng::new(seed);
+            let opening =
+                simulate_opening_torpedo(&codex, rng, &mut friendly, &mut enemy, 1, 1, eng)
+                    .unwrap();
+            let raigeki =
+                simulate_raigeki(&codex, rng, &mut friendly, &mut enemy, 1, 1, eng).unwrap();
+            let targets = opening
+                .api_frai_list_items
+                .iter()
+                .chain(&opening.api_erai_list_items)
+                .flatten()
+                .flatten()
+                .chain(raigeki.api_frai.iter().chain(&raigeki.api_erai).filter(|&&at| at >= 0));
+            for &at in targets {
+                assert_eq!(at, 1, "seed {seed}: a torpedo went for the land target");
+                aimed += 1;
+            }
+        }
+        assert_eq!(aimed, 30 * 4, "each torpedo cruiser fires in both phases");
+
+        // At land targets alone there is nothing to fire at.
+        let mut friendly = vec![stand_in(&codex, clt, clt)];
+        let mut enemy = vec![gun_battery];
+        let rng = &mut SeededRng::new(1);
+        assert!(
+            simulate_opening_torpedo(&codex, rng, &mut friendly, &mut enemy, 1, 1, eng).is_none()
+        );
+        assert!(simulate_raigeki(&codex, rng, &mut friendly, &mut enemy, 1, 1, eng).is_none());
+    }
 }
