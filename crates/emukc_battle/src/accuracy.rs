@@ -9,7 +9,7 @@
 //! Aircraft proficiency follows `Ship.updateProficiencyBonus` in `kcships.js`.
 //!
 //! Left out, each a correction the source applies on top of what is here:
-//! gun fit, 改修, the combined-fleet accuracy terms, smoke, balloons, PT imps
+//! gun fit, the combined-fleet accuracy terms, smoke, balloons, PT imps
 //! and event bonuses.
 
 use emukc_model::{
@@ -20,7 +20,7 @@ use emukc_model::{
     },
 };
 
-use crate::damage::is_cv_type;
+use crate::damage::{is_cv_type, ship_improvement};
 use crate::random::BattleRng;
 use crate::targeting::{
     bonus_gears, has_slotitem_type, is_radar_type, searchlight_rerolls, ship_mst, ship_type,
@@ -625,6 +625,43 @@ impl Aim {
     }
 }
 
+/// The accuracy the attacker's improved equipment adds to an attack of `kind` (`ACCshell`,
+/// `ACCnb`, `floor(ACCtorp)`, `ACCasw`).
+fn improvement_accuracy(codex: &Codex, ship: &BattleRuntimeShip, kind: AttackKind) -> f64 {
+    let improvement = ship_improvement(codex, ship);
+    match kind {
+        AttackKind::Shelling => improvement.shell_accuracy,
+        AttackKind::Night => improvement.night_accuracy,
+        AttackKind::Torpedo => improvement.torpedo_accuracy.floor(),
+        AttackKind::Asw => improvement.asw_accuracy,
+    }
+}
+
+/// The percentage the target dodges an attack of `kind` by: her evasion through the curve, the
+/// flat evasion after it and, against shelling and torpedoes, what her improved equipment adds
+/// (`EVshell`, `EVtorp`), rounded down together (`accuracyAndCrit`).
+fn dodge(
+    codex: &Codex,
+    defender: &BattleRuntimeShip,
+    kind: AttackKind,
+    formation_ev: f64,
+    evasion_flat: i64,
+) -> i64 {
+    let improvement = ship_improvement(codex, defender);
+    let improved = match kind {
+        AttackKind::Shelling => improvement.shell_evasion,
+        AttackKind::Torpedo => improvement.torpedo_evasion,
+        AttackKind::Night | AttackKind::Asw => 0.0,
+    };
+    let curve = evasion_term(
+        defender.ship.api_kaihi[0],
+        defender.ship.api_lucky[0],
+        formation_ev,
+        fuel_shortfall(codex, defender),
+    );
+    (curve as f64 + evasion_flat as f64 + improved).floor() as i64
+}
+
 /// The attacker's accuracy before the target's evasion (`hitRate`), in percent.
 fn hit_value(codex: &Codex, attacker: &BattleRuntimeShip, aim: Aim, formation_acc: f64) -> f64 {
     let level = attacker.ship.api_lv.max(0) as f64;
@@ -634,6 +671,7 @@ fn hit_value(codex: &Codex, attacker: &BattleRuntimeShip, aim: Aim, formation_ac
         + 1.5 * luck.sqrt()
         + equipment_accuracy(codex, attacker, aim.kind)
         + if aim.kind == AttackKind::Shelling { bonus_accuracy(codex, attacker) } else { 0.0 }
+        + improvement_accuracy(codex, attacker, aim.kind)
         + aim.flat)
         * attacker_morale(attacker, aim.kind)
         * formation_acc
@@ -672,13 +710,8 @@ pub(crate) fn roll_attack(
         * vanguard_dodge(codex, defender, aim.kind)
         * vanguard_against_destroyers(codex, attacker, defender, aim.kind);
     let hit = hit_value(codex, attacker, aim, formation_acc);
-    let dodge = evasion_term(
-        defender.ship.api_kaihi[0],
-        defender.ship.api_lucky[0],
-        formation_ev,
-        fuel_shortfall(codex, defender),
-    ) + evasion_flat;
-    let chance = hit_chance(hit, dodge, target_morale(defender));
+    let dodged = dodge(codex, defender, aim.kind, formation_ev, evasion_flat);
+    let chance = hit_chance(hit, dodged, target_morale(defender));
     let planes = match aim.kind {
         AttackKind::Shelling if aim.carrier_cut_in => {
             shelling_proficiency(codex, attacker).for_carrier_cut_in()
@@ -1151,5 +1184,75 @@ mod tests {
         assert!(formation_countered(4, 1));
         assert!(formation_countered(5, 4));
         assert!(!formation_countered(1, 4));
+    }
+
+    /// A destroyer with a gun, a torpedo and a sonar at `stars`.
+    fn improved_destroyer(codex: &Codex, stars: [i64; 3]) -> BattleRuntimeShip {
+        use crate::test_utils::{
+            first_ship_mst_by_type, first_slotitem_mst_by_type, sample_ship, slotitem_with_mst_id,
+        };
+        let mut ship = sample_ship(codex, first_ship_mst_by_type(codex, KcShipType::DD), 50);
+        ship.ship.api_cond = 49;
+        let gear = [
+            KcSlotItemType3::SmallCaliberMainGun,
+            KcSlotItemType3::Torpedo,
+            KcSlotItemType3::Sonar,
+        ];
+        ship.slot_items = gear
+            .iter()
+            .zip(stars)
+            .map(|(&kind, stars)| {
+                let mut item = slotitem_with_mst_id(first_slotitem_mst_by_type(codex, kind));
+                item.api_level = stars;
+                item
+            })
+            .collect();
+        BattleRuntimeShip::new(ship, true, true)
+    }
+
+    /// Each attack takes its own improvement accuracy into the flat accuracy, before the
+    /// multipliers; the torpedo takes it rounded down.
+    #[test]
+    fn improved_equipment_aims_better() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let (plain, improved) =
+            (improved_destroyer(&codex, [0, 0, 0]), improved_destroyer(&codex, [10, 3, 9]));
+        let gain = |kind| {
+            let aim = Aim::new(kind, 1, 1).with_modifier(1.5);
+            hit_value(&codex, &improved, aim, 1.1) - hit_value(&codex, &plain, aim, 1.1)
+        };
+        let root10 = 10f64.sqrt();
+        assert!((gain(AttackKind::Shelling) - root10 * 1.1 * 1.5).abs() < 1e-9);
+        let night = 1.3 * root10 + 1.3 * 3f64.sqrt();
+        assert!((gain(AttackKind::Night) - night * 1.1 * 1.5).abs() < 1e-9);
+        // 2√3 ≈ 3.46 counts 3.
+        assert!((gain(AttackKind::Torpedo) - 3.0 * 1.1 * 1.5).abs() < 1e-9);
+        assert!((gain(AttackKind::Asw) - 3.9 * 1.1 * 1.5).abs() < 1e-9);
+    }
+
+    /// An improved engine dodges shelling better, an improved sonar torpedoes, after the curve.
+    #[test]
+    fn improved_equipment_dodges_better() {
+        use crate::test_utils::{first_slotitem_mst_by_type, slotitem_with_mst_id};
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // A sonar and an engine at the stars given.
+        let ship = |sonar, engine_stars| {
+            let mut ship = improved_destroyer(&codex, [0, 0, sonar]);
+            let mut engine = slotitem_with_mst_id(first_slotitem_mst_by_type(
+                &codex,
+                KcSlotItemType3::EngineBoost,
+            ));
+            engine.api_level = engine_stars;
+            ship.slot_items.push(engine);
+            ship
+        };
+        let (plain, improved) = (ship(0, 0), ship(9, 6));
+        let gain =
+            |kind| dodge(&codex, &improved, kind, 1.0, 0) - dodge(&codex, &plain, kind, 1.0, 0);
+        // 1.5√6 ≈ 3.67 and 1.5·3 = 4.5, on an evasion that is a whole number.
+        assert_eq!(gain(AttackKind::Shelling), 3);
+        assert_eq!(gain(AttackKind::Torpedo), 4);
+        assert_eq!(gain(AttackKind::Night), 0);
+        assert_eq!(gain(AttackKind::Asw), 0);
     }
 }

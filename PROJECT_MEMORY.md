@@ -161,11 +161,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-18] #206 在 `fix/improvement-firepower`，PR #230 待合并；fmt、clippy `-D warnings`、`test --workspace` 48 套件 1597 通过 0 失败 0 忽略，golden 未动。对拍：源码 `setImprovement` 对 start2 584 件 ★1–10 零差异（方法见 `equipment-improvement-bonus.md`）。
+- [2026-10-18] #194 在 `feat/improvement-accuracy` 已提交、未推送（#206 已合并为 PR #230）；fmt、clippy `-D warnings`、`test --workspace` 48 套件 1601 通过 0 失败 0 忽略，golden 未动。对拍：命中/回避六项与火力四项对 start2 584 件 ★1–10 均零差异。
 
 ## Next Session
 
-- [2026-10-18] #193–#204 未关均 ready；#206 先于 #194 建了改修表 `improvement_coefficients`（只有火力键），#194 票面已改为往里加命中/回避键。对潜公式与源码不符（装备对潜开方、种别常数叠加）见 #231。季节＝某天的状态，非常规版。
+- [2026-10-18] #193–#204 未关均 ready；改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。对潜公式与源码不符见 #231（ready）。命中/回避取整直接 floor，源码先 `round(x*1e6)/1e4`，未修。季节＝某天的状态，非常规版。
   瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。

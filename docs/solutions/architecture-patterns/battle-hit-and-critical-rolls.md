@@ -9,7 +9,7 @@ severity: medium
 tags: [battle, accuracy, evasion, critical, formation, morale, kouku]
 applies_when:
   - "A battle phase starts or stops rolling for a hit"
-  - "An accuracy or evasion correction is added (proficiency, gun fit, 改修, combined fleet)"
+  - "An accuracy or evasion correction is added (proficiency, gun fit, combined fleet)"
   - "A cut-in or special attack is added and needs its own accuracy multiplier"
   - "A seeded battle test or a golden transcript starts failing after a battle change"
 ---
@@ -41,9 +41,12 @@ Transcribed from `KC3Kai/kancolle-replay` `kcsim.js` (`hitRate`, `accuracyAndCri
 
 - Attacker: `(base + 2 sqrt(level) + 1.5 sqrt(運) + equipment 命中 + phase extra) x morale x formation x cut-in`.
   Bases are 90 shelling, 85 torpedo, 80 ASW, 69 night. The torpedo's extra is a fifth of its
-  capped attack power; against submarines only sonar counts, at twice its 対潜.
+  capped attack power; against submarines only sonar counts, at twice its 対潜. Improved (★)
+  equipment adds its accuracy for the attack (the torpedo's rounded down) to the flat terms
+  (`equipment-improvement-bonus.md`).
 - Target: `floor((回避 + sqrt(2 x 運)) x formation)`, bent at 40 and 65, less the points its
-  fuel is short of 75%.
+  fuel is short of 75%. Her improved engines (against shelling) and sonars (against torpedoes)
+  add their evasion after the curve, and the sum is rounded down.
 - Chance: `max(attacker - target, 10) x target morale`, floored, at most 96.
 - One draw in 0..=99: at or under `floor(sqrt(chance) x factor)` is a critical, at or under the
   chance is a hit. The factor is 1.3 for shelling and ASW, 1.5 for torpedo and night, 0 for
@@ -135,7 +138,7 @@ roll only. How proficiency grows and falls is in `plane-losses-and-proficiency-g
 ## Not modelled
 
 Each is a correction the source applies on top: the first-slot terms of the carrier cut-in; gun fit,
-改修, the combined-fleet accuracy terms, star shells and night contact, AP-shell accuracy,
+the combined-fleet accuracy terms, star shells and night contact, AP-shell accuracy,
 the accuracy multipliers of flagship special attacks, smoke, balloons, PT imps, event bonuses.
 A night attack on a submarine in a combined fleet after a day battle scratches where the source
 does real damage (see `carrier-night-air-attack.md`, "A submarine at night"). Abyssal ships fight at
