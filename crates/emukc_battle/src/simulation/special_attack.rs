@@ -935,6 +935,7 @@ mod tests {
                 let round = ShellingRound {
                     friendly_deck: 0..6,
                     enemy_deck: 0..3,
+                    enemy_targets: 0..3,
                     by_range: true,
                     friendly_formation: 4,
                     enemy_formation: 1,
@@ -1104,6 +1105,7 @@ mod tests {
                 let round = ShellingRound {
                     friendly_deck: 0..6,
                     enemy_deck: 0..2,
+                    enemy_targets: 0..2,
                     by_range,
                     friendly_formation: FORMATION_ECHELON,
                     enemy_formation: 1,
@@ -1201,6 +1203,7 @@ mod tests {
             let round = ShellingRound {
                 friendly_deck: 6..12,
                 enemy_deck: 0..2,
+                enemy_targets: 0..2,
                 by_range: true,
                 friendly_formation: 12,
                 enemy_formation: 1,
