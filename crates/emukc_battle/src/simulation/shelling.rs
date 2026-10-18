@@ -19,8 +19,9 @@ use std::ops::Range;
 
 /// One round of day shelling: who fires, at whom, and in what order.
 pub(crate) struct ShellingRound<'a> {
-    /// The friendly ships that fire this round. The enemy fires at the whole
-    /// friendly force whichever deck this is.
+    /// The friendly ships that fire this round and that the enemy fires at: a
+    /// combined fleet's round is one deck's against the enemy (`kcsimcombined.js`
+    /// `69097abc`, `shellRange`/`shellOrder` pass that deck's `alive1f`).
     pub friendly_deck: Range<usize>,
     /// The enemy ships that fire this round.
     pub enemy_deck: Range<usize>,
@@ -103,14 +104,14 @@ pub(crate) fn simulate_shelling_round(
                 rng,
                 &mut enemy[round.enemy_deck.clone()],
                 idx,
-                friendly,
+                &mut friendly[round.friendly_deck.clone()],
                 &enemy_params,
                 enemy_los,
                 enemy_special,
             );
-            append_turn(&mut hougeki, fired, enemy_at, 0);
+            append_turn(&mut hougeki, fired, enemy_at, friendly_at);
         }
-        if !any_alive(friendly) {
+        if !any_alive(&friendly[round.friendly_deck.clone()]) {
             break;
         }
     }
