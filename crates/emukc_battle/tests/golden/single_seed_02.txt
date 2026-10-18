@@ -1,0 +1,866 @@
+BattlePacket {
+    formation: [
+        1,
+        1,
+        1,
+    ],
+    friendly_nowhps: [
+        84,
+        68,
+        44,
+        43,
+        43,
+        31,
+    ],
+    enemy_nowhps: [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ],
+    smoke_type: 0,
+    balloon_cell: 0,
+    atoll_cell: 0,
+    midnight_flag: 0,
+    search: [
+        1,
+        1,
+    ],
+    stage_flag: [
+        1,
+        1,
+        1,
+    ],
+    air_base_attack: [
+        BattleAirBaseAttack {
+            api_base_id: 1,
+            api_stage_flag: [
+                1,
+                1,
+                1,
+            ],
+            api_squadron_plane: [
+                BattleSquadronPlane {
+                    api_mst_id: 169,
+                    api_count: 18,
+                },
+                BattleSquadronPlane {
+                    api_mst_id: 169,
+                    api_count: 18,
+                },
+                BattleSquadronPlane {
+                    api_mst_id: 169,
+                    api_count: 18,
+                },
+                BattleSquadronPlane {
+                    api_mst_id: 169,
+                    api_count: 18,
+                },
+            ],
+            kouku: BattleKouku {
+                api_plane_from: [
+                    [],
+                    [
+                        2,
+                    ],
+                ],
+                api_stage1: BattleKoukuStage1 {
+                    api_f_count: 72,
+                    api_f_lostcount: 0,
+                    api_e_count: 87,
+                    api_e_lostcount: 30,
+                    api_disp_seiku: 1,
+                    api_touch_plane: [
+                        -1,
+                        -1,
+                    ],
+                },
+                api_stage2: BattleKoukuStage2 {
+                    api_f_count: 72,
+                    api_f_lostcount: 2,
+                    api_e_count: 0,
+                    api_e_lostcount: 0,
+                    api_air_fire: None,
+                },
+                api_stage3: BattleKoukuStage3 {
+                    api_frai: [],
+                    api_erai: [],
+                    api_fbak: [],
+                    api_ebak: [],
+                    api_frai_flag: [],
+                    api_erai_flag: [
+                        0,
+                        1,
+                        1,
+                        1,
+                        0,
+                        0,
+                    ],
+                    api_fbak_flag: [],
+                    api_ebak_flag: [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ],
+                    api_fcl_flag: [],
+                    api_ecl_flag: [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ],
+                    api_fdam: [],
+                    api_edam: [
+                        0,
+                        86,
+                        185,
+                        98,
+                        0,
+                        0,
+                    ],
+                    api_f_sp_list: [],
+                    api_e_sp_list: [
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                    ],
+                },
+                api_stage3_combined: None,
+            },
+            flights: [
+                SquadronFlight {
+                    squadron_id: 1,
+                    before: 18,
+                    after: 17,
+                },
+                SquadronFlight {
+                    squadron_id: 2,
+                    before: 18,
+                    after: 18,
+                },
+                SquadronFlight {
+                    squadron_id: 3,
+                    before: 18,
+                    after: 17,
+                },
+                SquadronFlight {
+                    squadron_id: 4,
+                    before: 18,
+                    after: 18,
+                },
+            ],
+        },
+        BattleAirBaseAttack {
+            api_base_id: 2,
+            api_stage_flag: [
+                1,
+                1,
+                1,
+            ],
+            api_squadron_plane: [
+                BattleSquadronPlane {
+                    api_mst_id: 187,
+                    api_count: 18,
+                },
+                BattleSquadronPlane {
+                    api_mst_id: 187,
+                    api_count: 18,
+                },
+                BattleSquadronPlane {
+                    api_mst_id: 187,
+                    api_count: 18,
+                },
+                BattleSquadronPlane {
+                    api_mst_id: 187,
+                    api_count: 18,
+                },
+            ],
+            kouku: BattleKouku {
+                api_plane_from: [
+                    [],
+                    [
+                        2,
+                    ],
+                ],
+                api_stage1: BattleKoukuStage1 {
+                    api_f_count: 72,
+                    api_f_lostcount: 0,
+                    api_e_count: 57,
+                    api_e_lostcount: 15,
+                    api_disp_seiku: 1,
+                    api_touch_plane: [
+                        -1,
+                        -1,
+                    ],
+                },
+                api_stage2: BattleKoukuStage2 {
+                    api_f_count: 72,
+                    api_f_lostcount: 1,
+                    api_e_count: 0,
+                    api_e_lostcount: 0,
+                    api_air_fire: None,
+                },
+                api_stage3: BattleKoukuStage3 {
+                    api_frai: [],
+                    api_erai: [],
+                    api_fbak: [],
+                    api_ebak: [],
+                    api_frai_flag: [],
+                    api_erai_flag: [
+                        1,
+                        1,
+                        0,
+                        0,
+                        0,
+                        1,
+                    ],
+                    api_fbak_flag: [],
+                    api_ebak_flag: [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ],
+                    api_fcl_flag: [],
+                    api_ecl_flag: [
+                        0,
+                        1,
+                        0,
+                        0,
+                        0,
+                        1,
+                    ],
+                    api_fdam: [],
+                    api_edam: [
+                        64,
+                        228,
+                        0,
+                        0,
+                        0,
+                        257,
+                    ],
+                    api_f_sp_list: [],
+                    api_e_sp_list: [
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                    ],
+                },
+                api_stage3_combined: None,
+            },
+            flights: [
+                SquadronFlight {
+                    squadron_id: 1,
+                    before: 18,
+                    after: 18,
+                },
+                SquadronFlight {
+                    squadron_id: 2,
+                    before: 18,
+                    after: 17,
+                },
+                SquadronFlight {
+                    squadron_id: 3,
+                    before: 18,
+                    after: 18,
+                },
+                SquadronFlight {
+                    squadron_id: 4,
+                    before: 18,
+                    after: 18,
+                },
+            ],
+        },
+        BattleAirBaseAttack {
+            api_base_id: 2,
+            api_stage_flag: [
+                1,
+                1,
+                1,
+            ],
+            api_squadron_plane: [
+                BattleSquadronPlane {
+                    api_mst_id: 187,
+                    api_count: 18,
+                },
+                BattleSquadronPlane {
+                    api_mst_id: 187,
+                    api_count: 18,
+                },
+                BattleSquadronPlane {
+                    api_mst_id: 187,
+                    api_count: 18,
+                },
+                BattleSquadronPlane {
+                    api_mst_id: 187,
+                    api_count: 18,
+                },
+            ],
+            kouku: BattleKouku {
+                api_plane_from: [
+                    [],
+                    [
+                        2,
+                    ],
+                ],
+                api_stage1: BattleKoukuStage1 {
+                    api_f_count: 72,
+                    api_f_lostcount: 0,
+                    api_e_count: 42,
+                    api_e_lostcount: 13,
+                    api_disp_seiku: 1,
+                    api_touch_plane: [
+                        -1,
+                        -1,
+                    ],
+                },
+                api_stage2: BattleKoukuStage2 {
+                    api_f_count: 72,
+                    api_f_lostcount: 2,
+                    api_e_count: 0,
+                    api_e_lostcount: 0,
+                    api_air_fire: None,
+                },
+                api_stage3: BattleKoukuStage3 {
+                    api_frai: [],
+                    api_erai: [],
+                    api_fbak: [],
+                    api_ebak: [],
+                    api_frai_flag: [],
+                    api_erai_flag: [
+                        1,
+                        0,
+                        1,
+                        1,
+                        0,
+                        0,
+                    ],
+                    api_fbak_flag: [],
+                    api_ebak_flag: [
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ],
+                    api_fcl_flag: [],
+                    api_ecl_flag: [
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                        0,
+                    ],
+                    api_fdam: [],
+                    api_edam: [
+                        84,
+                        0,
+                        128,
+                        128,
+                        0,
+                        0,
+                    ],
+                    api_f_sp_list: [],
+                    api_e_sp_list: [
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                    ],
+                },
+                api_stage3_combined: None,
+            },
+            flights: [
+                SquadronFlight {
+                    squadron_id: 1,
+                    before: 18,
+                    after: 18,
+                },
+                SquadronFlight {
+                    squadron_id: 2,
+                    before: 18,
+                    after: 17,
+                },
+                SquadronFlight {
+                    squadron_id: 3,
+                    before: 18,
+                    after: 17,
+                },
+                SquadronFlight {
+                    squadron_id: 4,
+                    before: 18,
+                    after: 18,
+                },
+            ],
+        },
+    ],
+    kouku: Some(
+        BattleKouku {
+            api_plane_from: [
+                [
+                    2,
+                ],
+                [
+                    2,
+                ],
+            ],
+            api_stage1: BattleKoukuStage1 {
+                api_f_count: 75,
+                api_f_lostcount: 1,
+                api_e_count: 29,
+                api_e_lostcount: 14,
+                api_disp_seiku: 1,
+                api_touch_plane: [
+                    -1,
+                    -1,
+                ],
+            },
+            api_stage2: BattleKoukuStage2 {
+                api_f_count: 51,
+                api_f_lostcount: 2,
+                api_e_count: 8,
+                api_e_lostcount: 2,
+                api_air_fire: None,
+            },
+            api_stage3: BattleKoukuStage3 {
+                api_frai: [
+                    -1,
+                    0,
+                    -1,
+                    -1,
+                    -1,
+                    -1,
+                ],
+                api_erai: [
+                    -1,
+                    1,
+                    -1,
+                    -1,
+                    -1,
+                    -1,
+                ],
+                api_fbak: [
+                    -1,
+                    1,
+                    -1,
+                    -1,
+                    -1,
+                    -1,
+                ],
+                api_ebak: [
+                    -1,
+                    0,
+                    -1,
+                    -1,
+                    -1,
+                    -1,
+                ],
+                api_frai_flag: [
+                    0,
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                ],
+                api_erai_flag: [
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                ],
+                api_fbak_flag: [
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                ],
+                api_ebak_flag: [
+                    0,
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                ],
+                api_fcl_flag: [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                ],
+                api_ecl_flag: [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                ],
+                api_fdam: [
+                    6,
+                    9,
+                    0,
+                    0,
+                    0,
+                    0,
+                ],
+                api_edam: [
+                    2,
+                    15,
+                    0,
+                    0,
+                    0,
+                    0,
+                ],
+                api_f_sp_list: [
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                ],
+                api_e_sp_list: [
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                ],
+            },
+            api_stage3_combined: None,
+        },
+    ),
+    opening_taisen_flag: 1,
+    opening_taisen: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                0,
+            ],
+            api_at_list: [
+                2,
+            ],
+            api_at_type: [
+                0,
+            ],
+            api_df_list: [
+                [
+                    4,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Num(
+                        -1,
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
+                    1,
+                ],
+            ],
+            api_damage: [
+                [
+                    111,
+                ],
+            ],
+        },
+    ),
+    opening_flag: 1,
+    opening_attack: Some(
+        BattleOpeningAttack {
+            api_frai_list_items: [
+                None,
+                None,
+                None,
+                Some(
+                    [
+                        0,
+                    ],
+                ),
+                Some(
+                    [
+                        1,
+                    ],
+                ),
+                None,
+            ],
+            api_fcl_list_items: [
+                None,
+                None,
+                None,
+                Some(
+                    [
+                        2,
+                    ],
+                ),
+                Some(
+                    [
+                        2,
+                    ],
+                ),
+                None,
+            ],
+            api_fdam: [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            api_fydam_list_items: [
+                None,
+                None,
+                None,
+                Some(
+                    [
+                        85,
+                    ],
+                ),
+                Some(
+                    [
+                        106,
+                    ],
+                ),
+                None,
+            ],
+            api_erai_list_items: [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            api_ecl_list_items: [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+            api_edam: [
+                85,
+                106,
+                0,
+                0,
+                0,
+                0,
+            ],
+            api_eydam_list_items: [
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+            ],
+        },
+    ),
+    hourai_flag: [
+        1,
+        0,
+        0,
+        0,
+    ],
+    hougeki1: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                0,
+                1,
+                0,
+                0,
+                0,
+            ],
+            api_at_list: [
+                0,
+                0,
+                4,
+                3,
+                1,
+            ],
+            api_at_type: [
+                2,
+                0,
+                0,
+                0,
+                0,
+            ],
+            api_df_list: [
+                [
+                    0,
+                    0,
+                ],
+                [
+                    1,
+                ],
+                [
+                    0,
+                ],
+                [
+                    0,
+                ],
+                [
+                    0,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Text(
+                        "8",
+                    ),
+                    Text(
+                        "8",
+                    ),
+                ],
+                [
+                    Num(
+                        1509,
+                    ),
+                ],
+                [
+                    Num(
+                        10,
+                    ),
+                ],
+                [
+                    Num(
+                        10,
+                    ),
+                ],
+                [
+                    Num(
+                        -1,
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
+                    1,
+                    1,
+                ],
+                [
+                    0,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    2,
+                ],
+            ],
+            api_damage: [
+                [
+                    63,
+                    41,
+                ],
+                [
+                    0,
+                ],
+                [
+                    2,
+                ],
+                [
+                    1,
+                ],
+                [
+                    118,
+                ],
+            ],
+        },
+    ),
+    hougeki2: None,
+    hougeki3: None,
+    raigeki: None,
+}
+BattleOutcome {
+    win_rank: S,
+    mvp: 2,
+    can_midnight: false,
+}
+NightBattlePacket {
+    formation: [
+        1,
+        1,
+        1,
+    ],
+    friendly_nowhps: [
+        84,
+        68,
+        44,
+        43,
+        43,
+        31,
+    ],
+    friendly_maxhps: [
+        90,
+        77,
+        44,
+        43,
+        43,
+        31,
+    ],
+    enemy_nowhps: [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+    ],
+    enemy_maxhps: [
+        360,
+        340,
+        232,
+        192,
+        76,
+        80,
+    ],
+    touch_plane: [
+        -1,
+        -1,
+    ],
+    flare_pos: [
+        -1,
+        -1,
+    ],
+    hougeki: None,
+}
+BattleOutcome {
+    win_rank: S,
+    mvp: 2,
+    can_midnight: false,
+}
