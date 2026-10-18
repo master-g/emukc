@@ -29,7 +29,9 @@ side fired before the other.
 `shelling::simulate_shelling_round` fights one round. `ShellingRound` says which friendly
 ships fire (`friendly_deck`), which enemy ships fire (`enemy_deck`), which enemy ships the
 friendly side fires at (`enemy_targets`), and whether the order is by range. The enemy
-always fires at the whole friendly force. The two enemy ranges are the same except in the
+fires at `friendly_deck`: the whole of a single fleet, and the deck whose round it is of a
+combined fleet (`kcsimcombined.js` `69097abc`, `shellRange`/`shellOrder` pass that deck's
+`alive1f`; plan `docs/plans/2026-10-18-003`). The two enemy ranges are the same except in the
 battleship round against an enemy combined fleet: there the main deck fires and both decks
 are fired at (`kcsimcombined.js` `69097abc`, single vs enemy combined, shelling 3: `order2`
 from `ships2`, targets `alive2` and `alive2C`; plan `docs/plans/2026-10-18-002`).
@@ -71,7 +73,11 @@ enemy did (plan `docs/plans/2026-10-10-002`):
   Neither torpedo is aimed at a land target (`target_candidates`; `torpedoPhase` leaves
   `isInstall` out of both sides' targets, `kancolle-replay` `69097abc`, plan
   `docs/plans/2026-10-18-001`), so a deck of land targets alone counts as empty for the
-  closing torpedo's deck draw below.
+  closing torpedo's deck draw below. The enemy's closing torpedo at a friendly combined fleet
+  is aimed at the escort fleet alone (`torpedoPhase(alive1C, ...)`, plan
+  `docs/plans/2026-10-18-003`). Fired at as its own slice, that fleet's flagship sits at 0 and
+  is kept from sinking, as every fleet's flagship is in the source (`kcships.js` `:45`,
+  `:1825`).
 
 ## Whose air state
 

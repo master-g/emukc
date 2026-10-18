@@ -101,7 +101,11 @@ pub(crate) fn simulate_day(
 ///
 /// Deck 1 takes no part in the opening ASW, opening torpedo or closing torpedo
 /// phases; that is enforced per ship inside those phase functions rather than by
-/// slicing here, because the enemy still fires at *both* decks in them.
+/// slicing here, because the enemy here still fires at *both* decks in the
+/// opening ones — the source has it fire at deck 2 alone there too
+/// (`kcsimcombined.js` `69097abc` `:212`, `:231`), which is not modelled. In the
+/// closing torpedo it fires at deck 2 alone (`simulate_raigeki`), and in each
+/// shelling round at that round's deck.
 fn simulate_day_combined(
     codex: &Codex,
     state: &mut BattleState,
@@ -1215,6 +1219,73 @@ mod combined_tests {
             }
         }
         assert!(escort_targeted, "the escort deck is never fired at in hougeki3");
+    }
+
+    /// 連合 vs a single enemy fleet: the enemy fires at the deck whose round it
+    /// is, and closes with torpedoes at the escort fleet alone (`kcsimcombined.js`
+    /// `69097abc`: `shellRange`/`shellOrder` pass `alive1f`, the closing
+    /// `torpedoPhase` `alive1C`).
+    #[test]
+    fn the_enemy_fires_at_the_friendly_deck_whose_round_it_is() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bb = first_ship_mst_by_type(&codex, KcShipType::BB);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        // Nobody can sink anybody, so every round and the torpedo phase happen.
+        let tank = |mst: i64| {
+            let mut ship = sample_ship(&codex, mst, 50);
+            ship.ship.api_karyoku[0] = 1;
+            ship.ship.api_raisou[0] = 1;
+            ship.ship.api_soukou[0] = 300;
+            ship
+        };
+        // Main deck at 0..2, escort deck at 6..8 in the client's indices.
+        let main = |i: &i64| (0..2).contains(i);
+        let escort = |i: &i64| (6..8).contains(i);
+
+        for (combined_type, decks) in [
+            (CombinedType::CarrierTaskForce, [escort, main, main]),
+            (CombinedType::SurfaceTaskForce, [main, main, escort]),
+        ] {
+            let mut torpedoed = false;
+            for seed in 0..20 {
+                let context = BattleContext {
+                    special_attacks_made: Default::default(),
+                    battle_type: BattleType::Normal,
+                    is_sortie: true,
+                    friendly_formation_id: 11,
+                    enemy_formation_id: 1,
+                    engagement: EngagementType::SameCourse,
+                    friend_ships: vec![tank(bb), tank(dd)],
+                    enemy_ships: vec![tank(dd); 4],
+                    enemy_escort_ships: Vec::new(),
+                    air_corps: Vec::new(),
+                    combined: Some(CombinedSetup {
+                        combined_type,
+                        escort_ships: vec![tank(dd); 2],
+                    }),
+                };
+                let sim = super::simulate_day(&codex, context, &mut SeededRng::new(seed));
+                let rounds = [&sim.packet.hougeki1, &sim.packet.hougeki2, &sim.packet.hougeki3];
+                for (round, in_deck) in rounds.into_iter().zip(decks) {
+                    let round = round.as_ref().expect("every round happens");
+                    assert!(round.api_at_eflag.contains(&1), "{combined_type:?}: enemy idle");
+                    for (entry, &eflag) in round.api_at_eflag.iter().enumerate() {
+                        let df = &round.api_df_list[entry];
+                        if eflag == 1 {
+                            assert!(
+                                df.iter().all(in_deck),
+                                "{combined_type:?} seed {seed}: {df:?}"
+                            );
+                        }
+                    }
+                }
+                let raigeki = sim.packet.raigeki.as_ref().expect("closing torpedo");
+                let erai = &raigeki.api_erai;
+                assert!(erai.iter().all(|t| *t < 0 || escort(t)), "{combined_type:?}: {erai:?}");
+                torpedoed |= erai.iter().any(escort);
+            }
+            assert!(torpedoed, "{combined_type:?}: the enemy never torpedoed");
+        }
     }
 
     fn combined_sim(codex: &Codex, combined_type: CombinedType) -> BattleSimulation {
