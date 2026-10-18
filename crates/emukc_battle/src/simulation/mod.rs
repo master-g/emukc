@@ -10,6 +10,7 @@ use crate::combined::{CombinedFleetRole, CombinedType};
 use crate::config::{BattleFlow, BattlePhaseKind};
 use crate::random::BattleRng;
 use crate::simulation::shelling::ShellingRound;
+use crate::simulation::volley::Volleys;
 use crate::state::{BattleState, CombinedLayout};
 use crate::targeting::{any_alive, can_closing_torpedo, can_opening_torpedo, fleet_has_bb_class};
 use crate::types::{
@@ -102,7 +103,7 @@ pub(crate) fn simulate_day(
 ///
 /// Deck 1 takes no part in the opening ASW, opening torpedo or closing torpedo
 /// phases, and the enemy fires at deck 2 alone in them: those phases take their
-/// slices from [`Volleys::opening`](volley::Volleys::opening). In each shelling
+/// slices from [`Volleys::opening`]. In each shelling
 /// round the enemy fires at that round's deck.
 fn simulate_day_combined(
     codex: &Codex,
@@ -155,16 +156,9 @@ fn simulate_day_combined(
                 CombinedFleetRole::Main => 0..layout.escort_start,
                 CombinedFleetRole::Escort => layout.escort_start..state.friendly.len(),
             };
-            let enemy_deck = 0..state.enemy.len();
-            let hougeki = shelling_round(
-                codex,
-                state,
-                rng,
-                friendly_deck,
-                enemy_deck.clone(),
-                enemy_deck,
-                !is_second_round,
-            );
+            let enemy = 0..state.enemy.len();
+            let volleys = Volleys::between(friendly_deck, enemy.clone(), enemy);
+            let hougeki = shelling_round(codex, state, rng, volleys, !is_second_round);
             let happened = hougeki.is_some();
             match round {
                 0 => state.set_hougeki1(hougeki),
@@ -195,22 +189,18 @@ fn shelling_round(
     codex: &Codex,
     state: &mut BattleState,
     rng: &mut impl BattleRng,
-    friendly_deck: std::ops::Range<usize>,
-    enemy_deck: std::ops::Range<usize>,
-    enemy_targets: std::ops::Range<usize>,
+    volleys: Volleys,
     by_range: bool,
 ) -> Option<BattleHougeki> {
-    if !any_alive(&state.friendly[friendly_deck.clone()])
-        || !any_alive(&state.enemy[enemy_targets.clone()])
+    if !any_alive(&state.friendly[volleys.friendly.attackers.clone()])
+        || !any_alive(&state.enemy[volleys.friendly.targets.clone()])
     {
         return None;
     }
     let air_state =
         state.kouku().and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
     let round = ShellingRound {
-        friendly_deck,
-        enemy_deck,
-        enemy_targets,
+        volleys,
         by_range,
         friendly_formation: state.friendly_formation_id(),
         enemy_formation: state.enemy_formation_id(),
@@ -272,9 +262,8 @@ fn simulate_day_enemy_combined(
     ];
     for (round, (deck, targets)) in rounds.into_iter().enumerate() {
         if round < 2 || state.has_bb_class_at_start() {
-            let friendly_deck = 0..state.friendly.len();
-            let hougeki =
-                shelling_round(codex, state, rng, friendly_deck, deck, targets, round < 2);
+            let volleys = Volleys::between(0..state.friendly.len(), deck, targets);
+            let hougeki = shelling_round(codex, state, rng, volleys, round < 2);
             let happened = hougeki.is_some();
             match round {
                 0 => state.set_hougeki1(hougeki),
@@ -385,16 +374,9 @@ fn execute_shelling(
     if !first_round && !state.has_bb_class_at_start() {
         return;
     }
-    let (friendly_deck, enemy_deck) = (0..state.friendly.len(), 0..state.enemy.len());
-    let hougeki = shelling_round(
-        codex,
-        state,
-        rng,
-        friendly_deck,
-        enemy_deck.clone(),
-        enemy_deck,
-        first_round,
-    );
+    let enemy = 0..state.enemy.len();
+    let volleys = Volleys::between(0..state.friendly.len(), enemy.clone(), enemy);
+    let hougeki = shelling_round(codex, state, rng, volleys, first_round);
     let slot = usize::from(!first_round);
     if hougeki.is_some() {
         state.set_hourai_flag(slot, 1);

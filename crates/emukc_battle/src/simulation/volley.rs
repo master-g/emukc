@@ -66,19 +66,31 @@ impl Volleys {
         friendly: &[BattleRuntimeShip],
         enemy: &[BattleRuntimeShip],
     ) -> Self {
-        let friendly_deck = escort_start(friendly).unwrap_or(0)..friendly.len();
         let enemy_fires = match phase {
             BattlePhaseKind::ClosingTorpedo => escort_start(enemy).unwrap_or(0)..enemy.len(),
             _ => 0..enemy.len(),
         };
+        Self::between(
+            escort_start(friendly).unwrap_or(0)..friendly.len(),
+            enemy_fires,
+            0..enemy.len(),
+        )
+    }
+
+    /// `friendly` fires at `enemy_targets`, and `enemy` fires back at `friendly`.
+    pub(crate) fn between(
+        friendly: Range<usize>,
+        enemy: Range<usize>,
+        enemy_targets: Range<usize>,
+    ) -> Self {
         Self {
             friendly: Volley {
-                attackers: friendly_deck.clone(),
-                targets: 0..enemy.len(),
+                attackers: friendly.clone(),
+                targets: enemy_targets,
             },
             enemy: Volley {
-                attackers: enemy_fires,
-                targets: friendly_deck,
+                attackers: enemy,
+                targets: friendly,
             },
         }
     }
