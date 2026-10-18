@@ -4,6 +4,9 @@ use emukc_model::{codex::Codex, kc2::start2::ApiMstSlotitem, kc2::types::KcSlotI
 
 use crate::damage::is_cv_type;
 use crate::random::BattleRng;
+use crate::targeting::{
+    count_slotitems, is_ap_shell_type, is_main_gun_type, is_secondary_gun_type,
+};
 
 use crate::types::AirState;
 use crate::types::BattleRuntimeShip;
@@ -89,55 +92,6 @@ pub(crate) fn day_ci_damage_multiplier(at_type: DayAttackType) -> f64 {
 // Equipment counting helpers
 // ---------------------------------------------------------------------------
 
-fn count_type(codex: &Codex, ship: &BattleRuntimeShip, wanted: KcSlotItemType3) -> usize {
-    ship.slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                == Some(wanted)
-        })
-        .count()
-}
-
-fn count_main_guns(codex: &Codex, ship: &BattleRuntimeShip) -> usize {
-    ship.slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                .is_some_and(|t| {
-                    matches!(
-                        t,
-                        KcSlotItemType3::SmallCaliberMainGun
-                            | KcSlotItemType3::MediumCaliberMainGun
-                            | KcSlotItemType3::LargeCaliberMainGun
-                            | KcSlotItemType3::LargeCaliberMainGun2
-                    )
-                })
-        })
-        .count()
-}
-
-fn count_secondary_guns(codex: &Codex, ship: &BattleRuntimeShip) -> usize {
-    ship.slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                .is_some_and(|t| {
-                    matches!(t, KcSlotItemType3::SecondaryGun | KcSlotItemType3::SecondaryGun2)
-                })
-        })
-        .count()
-}
-
 fn has_radar(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     ship.slot_items.iter().any(|si| {
         codex
@@ -197,9 +151,9 @@ pub(crate) fn detect_day_attack_type(
         return None;
     }
 
-    let main = count_main_guns(codex, ship);
-    let sec = count_secondary_guns(codex, ship);
-    let ap = count_type(codex, ship, KcSlotItemType3::ArmorPiercingShell);
+    let main = count_slotitems(codex, ship, is_main_gun_type);
+    let sec = count_slotitems(codex, ship, is_secondary_gun_type);
+    let ap = count_slotitems(codex, ship, is_ap_shell_type);
     let radar = has_radar(codex, ship);
 
     // Priority order: highest first
@@ -238,9 +192,11 @@ pub(crate) fn detect_carrier_ci(
         return None;
     }
 
-    let fighters = count_type(codex, ship, KcSlotItemType3::CarrierBasedFighter);
-    let dive_bombers = count_type(codex, ship, KcSlotItemType3::CarrierBasedDiveBomber);
-    let torpedo_bombers = count_type(codex, ship, KcSlotItemType3::CarrierBasedTorpedoBomber);
+    let fighters = count_slotitems(codex, ship, |t| t == KcSlotItemType3::CarrierBasedFighter);
+    let dive_bombers =
+        count_slotitems(codex, ship, |t| t == KcSlotItemType3::CarrierBasedDiveBomber);
+    let torpedo_bombers =
+        count_slotitems(codex, ship, |t| t == KcSlotItemType3::CarrierBasedTorpedoBomber);
 
     // Need at least 1 dive bomber + 1 torpedo bomber
     if dive_bombers == 0 || torpedo_bombers == 0 {
@@ -319,7 +275,7 @@ pub(crate) fn can_double_attack(
     if !has_active_seaplane(codex, ship) {
         return false;
     }
-    count_main_guns(codex, ship) >= 2
+    count_slotitems(codex, ship, is_main_gun_type) >= 2
 }
 
 /// Per-type `base_attack` denominator for trigger rate formula.

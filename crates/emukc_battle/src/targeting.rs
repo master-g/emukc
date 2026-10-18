@@ -502,6 +502,20 @@ pub(crate) fn has_slotitem_type(
     })
 }
 
+/// How many of the ship's equipment pieces have a type `keep` accepts.
+pub(crate) fn count_slotitems(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    keep: impl Fn(KcSlotItemType3) -> bool,
+) -> usize {
+    ship.slot_items
+        .iter()
+        .filter_map(|slot_item| slotitem_mst(codex, slot_item))
+        .filter_map(|mst| KcSlotItemType3::n(mst.api_type[2]))
+        .filter(|&slot_type| keep(slot_type))
+        .count()
+}
+
 /// Check whether the ship carries a specific equipment by master ID.
 pub(crate) fn has_slotitem_id(ship: &BattleRuntimeShip, wanted: i64) -> bool {
     ship.slot_items.iter().any(|slot_item| slot_item.api_slotitem_id == wanted)

@@ -18,12 +18,13 @@ use crate::simulation::night_attack_table::{NIGHT_ATTACKS, NightAttackRow, SPECI
 use crate::simulation::special_attack::{self, SpecialHit};
 use crate::targeting::{
     any_alive, can_attack_night_ship, can_attack_submarine_night_shelling, choice_with_protect,
-    collect_matching_slot_ids, extend_limit, has_slotitem_id, is_day_surface_display_type,
-    is_main_gun_type, is_radar_type, is_secondary_gun_type, is_torpedo_type, searchlight_rerolls,
-    ship_type, submarine_candidates, surface_candidates, target_candidates, target_class,
+    collect_matching_slot_ids, count_slotitems, extend_limit, has_slotitem_id, has_slotitem_type,
+    is_day_surface_display_type, is_main_gun_type, is_radar_type, is_secondary_gun_type,
+    is_torpedo_type, searchlight_rerolls, ship_type, submarine_candidates, surface_candidates,
+    target_candidates, target_class,
 };
 use crate::types::{
-    AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, EngagementType,
+    AirState, BattleNightHougeki, BattlePhase, BattleRuntimeShip, DamageCell, EngagementType,
     NightBattleParams, SiListId, SpecialAttacksMade, TargetClass,
 };
 
@@ -135,51 +136,6 @@ impl NightAttackType {
     fn is_destroyer_cut_in(self) -> bool {
         (7..=14).contains(&self.api_sp_list())
     }
-}
-
-// ---------------------------------------------------------------------------
-// Equipment counting helpers
-// ---------------------------------------------------------------------------
-
-fn count_equipment_type(codex: &Codex, ship: &BattleRuntimeShip, wanted: KcSlotItemType3) -> usize {
-    ship.slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                == Some(wanted)
-        })
-        .count()
-}
-
-fn count_main_guns(codex: &Codex, ship: &BattleRuntimeShip) -> usize {
-    ship.slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                .is_some_and(is_main_gun_type)
-        })
-        .count()
-}
-
-fn count_secondary_guns(codex: &Codex, ship: &BattleRuntimeShip) -> usize {
-    ship.slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                .is_some_and(|t| {
-                    matches!(t, KcSlotItemType3::SecondaryGun | KcSlotItemType3::SecondaryGun2)
-                })
-        })
-        .count()
 }
 
 // ---------------------------------------------------------------------------
@@ -630,12 +586,11 @@ impl NightGear {
                 })
         });
         Self {
-            main_guns: count_main_guns(codex, ship),
-            sec_guns: count_secondary_guns(codex, ship),
-            torps: count_equipment_type(codex, ship, KcSlotItemType3::Torpedo)
-                + count_equipment_type(codex, ship, KcSlotItemType3::SubmarineTorpedo),
+            main_guns: count_slotitems(codex, ship, is_main_gun_type),
+            sec_guns: count_slotitems(codex, ship, is_secondary_gun_type),
+            torps: count_slotitems(codex, ship, is_torpedo_type),
             surface_radar,
-            lookout: count_equipment_type(codex, ship, KcSlotItemType3::SeaplanePersonnel) > 0,
+            lookout: has_slotitem_type(codex, ship, KcSlotItemType3::SeaplanePersonnel),
             skilled_lookout: has_slotitem_id(ship, SKILLED_LOOKOUT_ID),
             drum: has_slotitem_id(ship, DRUM_ID),
             special_torps: ship
@@ -643,7 +598,7 @@ impl NightGear {
                 .iter()
                 .filter(|slot_item| SPECIAL_TORPEDO_IDS.contains(&slot_item.api_slotitem_id))
                 .count(),
-            sub_radar: count_equipment_type(codex, ship, KcSlotItemType3::SubmarineEquipment) > 0,
+            sub_radar: has_slotitem_type(codex, ship, KcSlotItemType3::SubmarineEquipment),
         }
     }
 }
@@ -980,6 +935,53 @@ fn night_si_entry(
     }
 }
 
+/// What made a night attack, which settles how the client is told of it.
+enum NightAttackKind<'a> {
+    /// A friendly special attack's row: the pieces it shows and its `api_sp_list`.
+    Special(&'a SpecialRow),
+    /// A ship's own attack of `attack_type`, flown as aircraft (`yasen_kubo`) when
+    /// `by_air`.
+    Own {
+        codex: &'a Codex,
+        ship: &'a BattleRuntimeShip,
+        attack_type: NightAttackType,
+        by_air: bool,
+    },
+}
+
+impl BattleNightHougeki {
+    /// Record one night attack by `attacker_idx` of the side `attacker_is_enemy`
+    /// names: each hit lands on the matching entry of `targets` for the matching
+    /// entries of `cl` and `damage`.
+    fn record_night_attack(
+        &mut self,
+        kind: NightAttackKind<'_>,
+        attacker_is_enemy: bool,
+        attacker_idx: usize,
+        targets: Vec<i64>,
+        cl: Vec<i64>,
+        damage: Vec<DamageCell>,
+    ) {
+        let (shown, sp, by_air) = match kind {
+            NightAttackKind::Special(row) => (SiListId::text_from_i64(&row.shown), row.sp, false),
+            NightAttackKind::Own {
+                codex,
+                ship,
+                attack_type,
+                by_air,
+            } => (night_si_entry(codex, ship, attack_type), attack_type.api_sp_list(), by_air),
+        };
+        self.api_at_eflag.push(i64::from(attacker_is_enemy));
+        self.api_at_list.push(attacker_idx as i64);
+        self.api_n_mother_list.push(i64::from(by_air));
+        self.api_df_list.push(targets);
+        self.api_si_list.push(shown);
+        self.api_cl_list.push(cl);
+        self.api_sp_list.push(sp);
+        self.api_damage.push(damage);
+    }
+}
+
 /// Fire the star shells as the night begins (`nightPhase`): in each fleet the first ship afloat
 /// that carries one, has more than 4 HP and rolls under 70%. Returns who fired in the friendly
 /// and in the enemy fleet, -1 for nobody.
@@ -994,7 +996,7 @@ pub(crate) fn roll_star_shells(
             .iter()
             .position(|ship| {
                 ship.hp() > 4
-                    && count_equipment_type(codex, ship, KcSlotItemType3::Flare) > 0
+                    && has_slotitem_type(codex, ship, KcSlotItemType3::Flare)
                     && rng.random_f64_range(0.0, 1.0) < 0.7
             })
             .map_or(-1, |position| position as i64)
@@ -1108,7 +1110,7 @@ fn kongou_assault_rate(
     if has_radar {
         rate += radar;
     }
-    if count_equipment_type(codex, flagship, KcSlotItemType3::LargeSearchlight) > 0 {
+    if has_slotitem_type(codex, flagship, KcSlotItemType3::LargeSearchlight) {
         rate += searchlight;
     }
     Some((rate.floor() / 100.0).clamp(0.0, 1.0))
@@ -1465,14 +1467,14 @@ fn special_attack_row(
     if targets.is_empty() {
         return;
     }
-    hougeki.api_at_eflag.push(0);
-    hougeki.api_at_list.push(row.at as i64);
-    hougeki.api_n_mother_list.push(0);
-    hougeki.api_df_list.push(targets);
-    hougeki.api_si_list.push(SiListId::text_from_i64(&row.shown));
-    hougeki.api_cl_list.push(cls);
-    hougeki.api_sp_list.push(row.sp);
-    hougeki.api_damage.push(damages);
+    hougeki.record_night_attack(
+        NightAttackKind::Special(&row),
+        false,
+        row.at,
+        targets,
+        cls,
+        damages,
+    );
 }
 
 /// Simulate the night battle hougeki phase. The two fleets fire in turn down
@@ -1701,18 +1703,21 @@ fn night_turn(
     }
     ship.damage_dealt += total_dealt;
 
-    hougeki.api_at_eflag.push(i64::from(attacker_is_enemy));
-    hougeki.api_at_list.push(idx as i64);
-    // The client flies the attack as aircraft when this is set (`yasen_kubo`); the source
-    // leaves it off for a double attack and for an attack on a submarine.
-    hougeki
-        .api_n_mother_list
-        .push(i64::from(attack_type != NightAttackType::DoubleAttack && air_power.is_some()));
-    hougeki.api_df_list.push(vec![target_idx as i64; hits]);
-    hougeki.api_si_list.push(night_si_entry(codex, ship, attack_type));
-    hougeki.api_cl_list.push(hit_cls);
-    hougeki.api_sp_list.push(attack_type.api_sp_list());
-    hougeki.api_damage.push(hit_damages);
+    hougeki.record_night_attack(
+        NightAttackKind::Own {
+            codex,
+            ship,
+            attack_type,
+            // The source leaves the aircraft off for a double attack and for an attack
+            // on a submarine.
+            by_air: attack_type != NightAttackType::DoubleAttack && air_power.is_some(),
+        },
+        attacker_is_enemy,
+        idx,
+        vec![target_idx as i64; hits],
+        hit_cls,
+        hit_damages,
+    );
 }
 
 #[cfg(test)]

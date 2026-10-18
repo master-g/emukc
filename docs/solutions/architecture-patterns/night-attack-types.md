@@ -208,6 +208,17 @@ A plain attack that misses does nothing and is written `0` in `api_cl_list`. A h
 double attack, a cut-in or a special attack that misses still scratches and is written `1`
 (`cut_in_hit`; the source's `shell` and `NBattack`), by day and at night.
 
+## Why the night special-attack row is not the day one
+
+`special_attack_row` (night) and `special_attack::execute_special_attack` (day) look alike: each
+hit draws a surface target, rolls, takes the damage and lands through `take_hit`. They stay two
+functions (plan `docs/plans/2026-10-18-009`, U4c). Besides the `Aim` and the damage formula, the
+night row rerolls the target for the defenders' searchlights and lets 第2艦隊 shield its flagship
+(`choiceWProtect` with `includeEscort`), while the day row does neither, and the two write
+different packets (`BattleNightHougeki` with `api_n_mother_list` and `api_sp_list`, against
+`record_day_attack`). One function would need all four as parameters, an interface as wide as the
+two bodies.
+
 ## Known gaps
 
 - The flagship's special gunnery attacks of the day are rolled for at night too
