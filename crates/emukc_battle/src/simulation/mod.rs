@@ -101,11 +101,9 @@ pub(crate) fn simulate_day(
 ///
 /// Deck 1 takes no part in the opening ASW, opening torpedo or closing torpedo
 /// phases; that is enforced per ship inside those phase functions rather than by
-/// slicing here, because the enemy here still fires at *both* decks in the
-/// opening ones — the source has it fire at deck 2 alone there too
-/// (`kcsimcombined.js` `69097abc` `:212`, `:231`), which is not modelled. In the
-/// closing torpedo it fires at deck 2 alone (`simulate_raigeki`), and in each
-/// shelling round at that round's deck.
+/// slicing here, because the enemy fires at deck 2 in them and each phase
+/// function takes that slice itself (`targeting::escort_deck_start`). In each
+/// shelling round it fires at that round's deck.
 fn simulate_day_combined(
     codex: &Codex,
     state: &mut BattleState,
@@ -1286,6 +1284,76 @@ mod combined_tests {
             }
             assert!(torpedoed, "{combined_type:?}: the enemy never torpedoed");
         }
+    }
+
+    /// 連合 vs a single enemy fleet: the enemy opens with ASW and torpedoes at
+    /// the escort fleet alone (`kcsimcombined.js` `69097abc` `:207-224`,
+    /// `:228-231`, both given `alive1C`).
+    #[test]
+    fn the_enemy_opens_at_the_friendly_escort_fleet_alone() {
+        use crate::test_utils::{first_slotitem_mst_by_type, slotitem_with_mst_id};
+        use emukc_model::kc2::types::KcSlotItemType3;
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let clt = first_ship_mst_by_type(&codex, KcShipType::CLT);
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ss = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let sonar = first_slotitem_mst_by_type(&codex, KcSlotItemType3::Sonar);
+        // Nobody can sink anybody.
+        let tank = |mst: i64| {
+            let mut ship = sample_ship(&codex, mst, 50);
+            ship.ship.api_karyoku[0] = 1;
+            ship.ship.api_raisou[0] = 1;
+            ship.ship.api_soukou[0] = 300;
+            ship
+        };
+        let hunter = || {
+            let mut ship = tank(dd);
+            ship.ship.api_taisen[0] = 100;
+            ship.slot_items = vec![slotitem_with_mst_id(sonar)];
+            ship
+        };
+        // Main deck at 0..2, escort deck at 6..8 in the client's indices.
+        let escort = |i: &i64| (6..8).contains(i);
+
+        let (mut torpedoed, mut depth_charged) = (false, false);
+        for seed in 0..20 {
+            for (friendly, enemy) in [(tank(dd), tank(clt)), (tank(ss), hunter())] {
+                let context = BattleContext {
+                    special_attacks_made: Default::default(),
+                    battle_type: BattleType::Normal,
+                    is_sortie: true,
+                    friendly_formation_id: 11,
+                    enemy_formation_id: 1,
+                    engagement: EngagementType::SameCourse,
+                    friend_ships: vec![friendly.clone(); 2],
+                    enemy_ships: vec![enemy; 4],
+                    enemy_escort_ships: Vec::new(),
+                    air_corps: Vec::new(),
+                    combined: Some(CombinedSetup {
+                        combined_type: CombinedType::CarrierTaskForce,
+                        escort_ships: vec![friendly; 2],
+                    }),
+                };
+                let sim = super::simulate_day(&codex, context, &mut SeededRng::new(seed));
+                if let Some(opening) = &sim.packet.opening_attack {
+                    for targets in opening.api_erai_list_items.iter().flatten() {
+                        assert!(targets.iter().all(escort), "seed {seed}: {targets:?}");
+                        torpedoed = true;
+                    }
+                }
+                if let Some(taisen) = &sim.packet.opening_taisen {
+                    for (entry, &eflag) in taisen.api_at_eflag.iter().enumerate() {
+                        if eflag == 1 {
+                            let df = &taisen.api_df_list[entry];
+                            assert!(df.iter().all(escort), "seed {seed}: {df:?}");
+                            depth_charged = true;
+                        }
+                    }
+                }
+            }
+        }
+        assert!(torpedoed && depth_charged, "torpedoed {torpedoed}, depth charged {depth_charged}");
     }
 
     fn combined_sim(codex: &Codex, combined_type: CombinedType) -> BattleSimulation {

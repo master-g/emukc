@@ -156,7 +156,7 @@ Current verification baseline:
 | --- | --- |
 | populate 基准三坑：`head -200` 清单全是 mp3（带宽受限，收益被掩成 10%，全量实为 49% mp3 + 49% png，要随机抽样）；`Kache::build()` 要求 `cache_root` 已存在，否则 exit 1 且无输出；配置里的相对路径按 config 文件所在目录解析。 | 计划 003 (2026-09-21) |
 | `emukc_bootstrap` 的 `make_list` 两个测试打真实 CDN（`make_kache()` 用 `socks5://127.0.0.1:1086`），网络一抖就 `FailedOnAllCdn`，fail-fast 会让整轮 workspace 测试在该 crate 中断。已加 `skip_if_offline`：只吞这一种错；服务器回空文件（`EOF while parsing`）不吞，单独重跑即过（2026-10-14）。 | session 2026-09-21 |
-| 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方目标池另算（开幕打两支，闭幕打护卫），切片会连带改掉。须按船过滤。 | session 2026-09-21 |
+| 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方目标池另算（只打护卫，`escort_deck_start`），切片会连带改掉。须按船过滤。 | session 2026-09-21 |
 | 全量测试用 `cargo test --workspace --no-fail-fast` 并看退出码：默认在第一个失败的 crate 停，通过数偏少；只 grep `test result:` 会漏掉 FAILED 行。 | plan 004 U5 (2026-06-22)、session 2026-10-11 |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
 | 1-1 sorties often dead-end before the boss (routing, not damage RNG). Retry tests restore HP/fuel/ammo via `update_ship` first; quest tests count boss battles (`event_id` 5). | session 2026-08-26, 2026-10-14 |
@@ -185,11 +185,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-18] #218 合并，#223 关，#219 待合并。
+- [2026-10-18] #218、#219 合并；#225 已实现待合并。
 
 ## Next Session
 
-- [2026-10-18] #193–#204 未关均 ready；#206 blocked-by #194（共用改修表）。开幕对潜/雷击敌方应只打我方护卫（源 :212、:231）。季节＝某天的状态，非常规版。
+- [2026-10-18] #193–#204 未关均 ready；#206 blocked-by #194（共用改修表）。季节＝某天的状态，非常规版。
   瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。

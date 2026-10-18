@@ -7,7 +7,7 @@ use crate::damage::{calculate_torpedo_damage, torpedo_attack_power};
 use crate::random::BattleRng;
 use crate::targeting::{
     can_closing_torpedo_ship, can_opening_torpedo_ship, choice_with_protect, deck_candidates,
-    target_candidates,
+    escort_deck_start, target_candidates,
 };
 use crate::types::{
     BattleOpeningAttack, BattlePhase, BattleRaigeki, BattleRuntimeShip, EngagementType,
@@ -95,14 +95,16 @@ pub(crate) fn simulate_opening_torpedo(
         happened = true;
     }
 
+    let fired_at = escort_deck_start(friendly);
+    let targets = &mut friendly[fired_at..];
     for (idx, ship) in enemy_at_start.iter().enumerate() {
         if !can_opening_torpedo_ship(codex, ship) {
             continue;
         }
         // 旗艦援護 (かばう): a healthy escort may intercept a flagship-targeted hit.
-        let candidates = target_candidates(codex, ship, friendly, BattlePhase::OpeningTorpedo);
+        let candidates = target_candidates(codex, ship, targets, BattlePhase::OpeningTorpedo);
         let Some((target_idx, shield)) =
-            choice_with_protect(codex, rng, friendly, &candidates, 0, false, friendly_formation_id)
+            choice_with_protect(codex, rng, targets, &candidates, 0, false, friendly_formation_id)
         else {
             continue;
         };
@@ -110,7 +112,7 @@ pub(crate) fn simulate_opening_torpedo(
         let power = torpedo_attack_power(
             codex,
             ship,
-            &friendly[target_idx],
+            &targets[target_idx],
             enemy_formation_id,
             engagement,
             BattlePhase::OpeningTorpedo,
@@ -119,7 +121,7 @@ pub(crate) fn simulate_opening_torpedo(
             codex,
             rng,
             ship,
-            &friendly[target_idx],
+            &targets[target_idx],
             Aim::new(AttackKind::Torpedo, enemy_formation_id, friendly_formation_id)
                 .with_flat((power / 5.0).floor()),
         );
@@ -127,20 +129,20 @@ pub(crate) fn simulate_opening_torpedo(
             codex,
             rng,
             ship,
-            &friendly[target_idx],
+            &targets[target_idx],
             enemy_formation_id,
             engagement,
             BattlePhase::OpeningTorpedo,
             outcome,
         );
-        let (raw_dmg, dealt) = friendly[target_idx].apply_damage(rng, raw, target_idx);
+        let (raw_dmg, dealt) = targets[target_idx].apply_damage(rng, raw, target_idx);
         enemy[idx].damage_dealt += dealt;
-        let display = crate::targeting::display_damage(&friendly[target_idx], raw_dmg, dealt);
+        let display = crate::targeting::display_damage(&targets[target_idx], raw_dmg, dealt);
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
-                defender_index: target_idx,
+                defender_index: fired_at + target_idx,
                 damage: display,
                 cl: outcome.cl(),
                 shield,
@@ -229,10 +231,7 @@ pub(crate) fn simulate_raigeki(
         happened = true;
     }
 
-    // The enemy torpedoes a friendly combined fleet's escort fleet alone
-    // (`kcsimcombined.js` `69097abc`, `torpedoPhase(alive1C, ...)`); a single
-    // fleet has no escort deck and is fired at whole.
-    let fired_at = friendly.iter().position(BattleRuntimeShip::is_escort_deck).unwrap_or(0);
+    let fired_at = escort_deck_start(friendly);
     let targets = &mut friendly[fired_at..];
     for (idx, ship) in enemy_at_start.iter().enumerate() {
         // Of an enemy combined fleet only the escort fleet closes with
