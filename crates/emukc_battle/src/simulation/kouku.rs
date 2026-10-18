@@ -618,19 +618,8 @@ fn execute_airstrike_phase(
         if outcome == HitOutcome::Critical {
             output.cl_flags[target_idx] = 1;
         }
-        let display = if damage > 0 {
-            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, damage);
-            // display_damage returns dealt for friendly defenders (sinking protection),
-            // raw for enemy defenders. Must NOT accumulate raw_dmg directly.
-            crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt)
-        } else {
-            0
-        };
-        output.damage[target_idx].accumulate(if shown {
-            DamageCell::Shielded(display)
-        } else {
-            DamageCell::Plain(display)
-        });
+        output.damage[target_idx]
+            .accumulate(defenders[target_idx].take_hit(rng, damage, shown).cell);
         // A strike that misses is still flown at its target: the client
         // draws the run from the flag and the miss from the zero.
         if damage > 0 || outcome == HitOutcome::Miss {
@@ -1191,7 +1180,7 @@ mod tests {
     }
 
     #[test]
-    fn kouku_fdam_uses_display_damage_not_raw_under_protection() {
+    fn kouku_fdam_shows_what_a_protected_ship_lost() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);

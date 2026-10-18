@@ -27,6 +27,7 @@ pub(crate) use runtime::{CombinedMembership, VanguardPlace};
 mod tests {
     use super::domain::*;
     use super::packet::*;
+    use super::runtime::Landing;
     use crate::test_utils::make_test_ship_ctx;
 
     // ── AirState tests ──────────────────────────────────────────────
@@ -248,6 +249,70 @@ mod tests {
         assert_eq!(ship.current_hp, 0, "practice enemy HP clamps at 0, no overkill");
     }
 
+    // ── What a hit shows ────────────────────────────────────────────
+
+    #[test]
+    fn an_enemy_shows_the_raw_hit_and_a_friendly_what_she_lost() {
+        let mut rng = crate::random::SeededRng::new(42);
+        // Sortie: the enemy overkills, the friendly is protected.
+        let mut enemy = make_test_ship_ctx(50, 50, 50, 50, false, true);
+        let hit = enemy.take_hit(&mut rng, 200, false);
+        assert_eq!(
+            hit,
+            Landing {
+                cell: DamageCell::Plain(200),
+                dealt: 200
+            }
+        );
+        let mut friendly = make_test_ship_ctx(30, 30, 30, 40, true, true);
+        let hit = friendly.take_hit(&mut rng, 200, false);
+        assert_eq!(hit.cell, DamageCell::Plain(hit.dealt));
+        assert!(hit.dealt < 30, "protected: took {}", hit.dealt);
+        // Practice: both sides lose at most what they have; the enemy still shows the raw hit.
+        let mut enemy = make_test_ship_ctx(50, 50, 50, 50, false, false);
+        assert_eq!(
+            enemy.take_hit(&mut rng, 200, false),
+            Landing {
+                cell: DamageCell::Plain(200),
+                dealt: 50
+            }
+        );
+        let mut friendly = make_test_ship_ctx(80, 80, 80, 100, true, false);
+        assert_eq!(
+            friendly.take_hit(&mut rng, 100, false),
+            Landing {
+                cell: DamageCell::Plain(80),
+                dealt: 80
+            }
+        );
+    }
+
+    #[test]
+    fn a_shielded_hit_shows_as_shielded() {
+        let mut rng = crate::random::SeededRng::new(42);
+        let mut ship = make_test_ship_ctx(50, 50, 50, 50, false, true);
+        assert_eq!(
+            ship.take_hit(&mut rng, 20, true),
+            Landing {
+                cell: DamageCell::Shielded(20),
+                dealt: 20
+            }
+        );
+    }
+
+    #[test]
+    fn a_sunk_ship_takes_nothing_more() {
+        let mut rng = crate::random::SeededRng::new(42);
+        let mut ship = make_test_ship_ctx(0, 10, 0, 40, false, true);
+        assert_eq!(
+            ship.take_hit(&mut rng, 20, false),
+            Landing {
+                cell: DamageCell::Plain(0),
+                dealt: 0
+            }
+        );
+    }
+
     #[test]
     fn protection_shows_raw_but_reduces_hp_proportionally() {
         let mut ship = make_test_ship_ctx(10, 10, 10, 30, true, true);
@@ -269,9 +334,8 @@ mod tests {
             TorpedoHit {
                 attacker_index: 1,
                 defender_index: 0,
-                damage: 21,
+                damage: DamageCell::Plain(21),
                 cl: 1,
-                shield: false,
             },
         );
         payload.record_torpedo_hit(
@@ -279,9 +343,8 @@ mod tests {
             TorpedoHit {
                 attacker_index: 0,
                 defender_index: 1,
-                damage: 34,
+                damage: DamageCell::Plain(34),
                 cl: 1,
-                shield: false,
             },
         );
         let opening = payload;
@@ -304,9 +367,8 @@ mod tests {
             TorpedoHit {
                 attacker_index: 1,
                 defender_index: 0,
-                damage: 21,
+                damage: DamageCell::Plain(21),
                 cl: 1,
-                shield: false,
             },
         );
         payload.record_torpedo_hit(
@@ -314,9 +376,8 @@ mod tests {
             TorpedoHit {
                 attacker_index: 0,
                 defender_index: 1,
-                damage: 34,
+                damage: DamageCell::Plain(34),
                 cl: 1,
-                shield: false,
             },
         );
         let raigeki = payload;

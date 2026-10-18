@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-18 · branch `test/battle-golden-coverage`
+Last updated: 2026-10-18 · branch `refactor/battle-hit-landing`
 
 ## Verified Facts
 
@@ -161,11 +161,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-18] 计划 009 U0：`golden_transcript.rs` 新增 7 组 ×20 种子（单舰队带基地航空队、三种友方连合、敌方连合、sp_midnight、演习，各含昼夜），原 40 份未变；fmt、clippy `-D warnings`、`test --workspace` 48 套件 1611 通过 0 失败 0 忽略。
+- [2026-10-18] 计划 009 U0 合并（#235）；U1 在 `refactor/battle-hit-landing`：13 处落地改走 `take_hit → Hit`，`display_damage` 删除、`apply_damage` 限 `types` 内；fmt、clippy `-D warnings`、`test --workspace` 48 套件 1611 通过 0 失败 0 忽略，全部 golden 未变。
 
 ## Next Session
 
-- [2026-10-18] 战斗重构按计划 009 接着做 U1；基地航空队只在单对单出动（`simulate_day` 连合两条路径不调 `execute_air_base_attacks`），未开票；候选 5（夜战 deck 切分进 battle crate）与 2026-09-23 计划 KTD13 冲突，不做。
+- [2026-10-18] 战斗重构按计划 009 接着做 U2（先把 `idx == 0` 各处归到 deck 旗舰或舰队旗舰）；基地航空队只在单对单出动（`simulate_day` 连合两条路径不调 `execute_air_base_attacks`），未开票；候选 5（夜战 deck 切分进 battle crate）与 2026-09-23 计划 KTD13 冲突，不做。
   #193–#204 未关均 ready；改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。对潜基础攻击力已按源码（#231）；协同倍率仍不分投射机与爆雷（源码 `isDCProjector`/`isDCOnly`），未开票。命中/回避取整直接 floor，源码先 `round(x*1e6)/1e4`，未修。季节＝某天的状态，非常规版。
   瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。

@@ -10,8 +10,7 @@ use crate::targeting::{
     any_alive, can_shell_day_ship, choice_with_protect, deck_candidates, target_class,
 };
 use crate::types::{
-    AirState, BattleHougeki, BattlePhase, BattleRuntimeShip, DamageCell, EngagementType,
-    ShellingParams,
+    AirState, BattleHougeki, BattlePhase, BattleRuntimeShip, EngagementType, ShellingParams,
 };
 use emukc_model::codex::Codex;
 use emukc_model::kc2::start2::ApiMstSlotitem;
@@ -266,18 +265,15 @@ fn shell_turn(
             outcome,
             asw_proficiency(codex, ship),
         );
-        let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
-        if !params.attacker_is_enemy {
-            ship.damage_dealt += dealt;
-        }
-        let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+        let landed = defenders[target_idx].take_hit(rng, raw, shield);
+        ship.damage_dealt += landed.dealt;
 
         hougeki.record_day_attack(
             DayAttackKind::Asw(codex, ship),
             params.attacker_is_enemy,
             idx,
             vec![target_idx as i64],
-            vec![damage_cell(display, shield)],
+            vec![landed.cell],
             vec![outcome.cl()],
         );
     } else {
@@ -311,15 +307,9 @@ fn shell_turn(
                 );
                 let (raw, cl) = cut_in_hit(rng, outcome, raw, defenders[target_idx].hp());
                 cls.push(cl);
-                let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
-                if !params.attacker_is_enemy {
-                    ship.damage_dealt += dealt;
-                }
-                damages.push(crate::targeting::display_damage(
-                    &defenders[target_idx],
-                    raw_dmg,
-                    dealt,
-                ));
+                let landed = defenders[target_idx].take_hit(rng, raw, shield);
+                ship.damage_dealt += landed.dealt;
+                damages.push(landed.cell);
             }
             hougeki.record_day_attack(
                 DayAttackKind::Shelling {
@@ -331,7 +321,7 @@ fn shell_turn(
                 params.attacker_is_enemy,
                 idx,
                 vec![target_idx as i64; 2],
-                damages.into_iter().map(|d| damage_cell(d, shield)).collect(),
+                damages,
                 cls,
             );
         } else {
@@ -352,11 +342,8 @@ fn shell_turn(
             } else {
                 cut_in_hit(rng, outcome, raw, defenders[target_idx].hp())
             };
-            let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
-            if !params.attacker_is_enemy {
-                ship.damage_dealt += dealt;
-            }
-            let display = crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt);
+            let landed = defenders[target_idx].take_hit(rng, raw, shield);
+            ship.damage_dealt += landed.dealt;
             hougeki.record_day_attack(
                 DayAttackKind::Shelling {
                     codex,
@@ -367,21 +354,12 @@ fn shell_turn(
                 params.attacker_is_enemy,
                 idx,
                 vec![target_idx as i64],
-                vec![damage_cell(display, shield)],
+                vec![landed.cell],
                 vec![cl],
             );
         }
     }
     hougeki
-}
-
-/// Wrap a display-damage value, flagging it as shield-intercepted when `shield`.
-pub(super) fn damage_cell(value: i64, shield: bool) -> DamageCell {
-    if shield {
-        DamageCell::Shielded(value)
-    } else {
-        DamageCell::Plain(value)
-    }
 }
 
 #[cfg(test)]

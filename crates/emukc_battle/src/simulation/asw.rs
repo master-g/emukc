@@ -6,7 +6,7 @@ use crate::accuracy::{Aim, AttackKind, PlaneProficiency, roll_attack};
 use crate::damage::calculate_asw_damage;
 use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
-use crate::simulation::shelling::{damage_cell, firing_order};
+use crate::simulation::shelling::firing_order;
 use crate::targeting::{
     can_opening_asw, choice_with_protect, escort_deck_start, submarine_candidates,
 };
@@ -98,20 +98,15 @@ fn asw_turn(
         outcome,
         PlaneProficiency::NONE,
     );
-    let (raw_dmg, dealt) = defenders[target_idx].apply_damage(rng, raw);
-    ship.damage_dealt += dealt;
-    let shown = if attacker_is_enemy {
-        dealt
-    } else {
-        crate::targeting::display_damage(&defenders[target_idx], raw_dmg, dealt)
-    };
+    let landed = defenders[target_idx].take_hit(rng, raw, shield);
+    ship.damage_dealt += landed.dealt;
 
     hougeki.record_day_attack(
         DayAttackKind::Asw(codex, ship),
         attacker_is_enemy,
         idx,
         vec![(defender_at + target_idx) as i64],
-        vec![damage_cell(shown, shield)],
+        vec![landed.cell],
         vec![outcome.cl()],
     );
 }

@@ -6,7 +6,7 @@ use emukc_model::kc2::{KcApiShip, KcApiSlotItem, KcSortieResultRank};
 use super::domain::{AirState, BattleType, EngagementType};
 use super::packet::{
     BattleAirBaseAttack, BattleHougeki, BattleKouku, BattleNightHougeki, BattleOpeningAttack,
-    BattleRaigeki,
+    BattleRaigeki, DamageCell,
 };
 use crate::combined::{CombinedFleetRole, CombinedType};
 use crate::random::BattleRng;
@@ -29,7 +29,7 @@ pub struct BattleRuntimeShip {
     /// See [`BattleShipInput::aircraft_exp`].
     pub aircraft_exp: Vec<i64>,
     pub effect_list: Vec<i64>,
-    /// Current HP -- only mutable through [`apply_damage`](Self::apply_damage).
+    /// Current HP -- only mutable through [`take_hit`](Self::take_hit).
     pub(crate) current_hp: i64,
     /// HP at the start of this battle node (before any combat phases).
     /// Used to determine sinking protection eligibility.
@@ -174,6 +174,39 @@ impl BattleRuntimeShip {
         self.current_hp = hp.max(0);
     }
 
+    /// Land a hit of `raw` damage on this ship: sinking protection, the HP lost,
+    /// and the cell the battle log shows for it. Every attack that damages a ship
+    /// goes through here; what the attacker is credited with is up to the caller.
+    ///
+    /// An enemy shows the raw damage, so the client plays the overkill; a friendly
+    /// ship shows what she lost, so the client's HP bar stays true. `shield` marks
+    /// a hit an escort took for the flagship (かばう).
+    pub(crate) fn take_hit(&mut self, rng: &mut impl BattleRng, raw: i64, shield: bool) -> Landing {
+        let (raw, dealt) = self.apply_damage(rng, raw);
+        let shown = if self.is_friendly {
+            dealt
+        } else {
+            raw
+        };
+        Landing {
+            cell: if shield {
+                DamageCell::Shielded(shown)
+            } else {
+                DamageCell::Plain(shown)
+            },
+            dealt,
+        }
+    }
+
+    /// Whether a lethal hit is turned into proportional damage instead: a
+    /// friendly ship in a sortie that is the flagship of her deck (`is_flagship`,
+    /// the escort deck's included), or was not in taiha (HP <= 25% max) when the
+    /// battle node began.
+    pub(crate) fn protected_from_sinking(&self) -> bool {
+        let was_taiha_at_entry = self.entry_hp * 4 <= self.ship.api_maxhp;
+        self.is_friendly && self.is_sortie && (self.is_flagship || !was_taiha_at_entry)
+    }
+
     /// Apply damage with sinking protection (轟沈ストッパー).
     ///
     /// In real `KanColle`:
@@ -187,7 +220,7 @@ impl BattleRuntimeShip {
     ///
     /// Returns `(raw_damage, effective_damage)` where raw is the input damage
     /// and effective is the HP actually subtracted (after clamping/protection).
-    pub(crate) fn apply_damage(&mut self, rng: &mut impl BattleRng, raw_damage: i64) -> (i64, i64) {
+    pub(super) fn apply_damage(&mut self, rng: &mut impl BattleRng, raw_damage: i64) -> (i64, i64) {
         if self.is_sunk() {
             return (0, 0);
         }
@@ -204,29 +237,31 @@ impl BattleRuntimeShip {
             raw_damage.min(self.current_hp)
         };
 
-        // Sinking protection only applies to friendly ships during sorties.
-        if self.is_friendly && self.is_sortie && effective >= self.current_hp {
-            // Taiha threshold: HP <= 25% of max at node entry.
-            let was_taiha_at_entry = self.entry_hp * 4 <= self.ship.api_maxhp;
-            let is_protected = self.is_flagship || !was_taiha_at_entry;
-
-            if is_protected {
-                // Replace lethal damage with proportional damage (割合ダメージ),
-                // taken from what the ship has left now.
-                let h = self.current_hp;
-                let dealt = if h > 1 {
-                    (5 * h + 3 * rng.roll_range(0, h)) / 10
-                } else {
-                    0
-                };
-                self.current_hp -= dealt;
-                return (raw_damage, dealt);
-            }
+        if effective >= self.current_hp && self.protected_from_sinking() {
+            // Replace lethal damage with proportional damage (割合ダメージ),
+            // taken from what the ship has left now.
+            let h = self.current_hp;
+            let dealt = if h > 1 {
+                (5 * h + 3 * rng.roll_range(0, h)) / 10
+            } else {
+                0
+            };
+            self.current_hp -= dealt;
+            return (raw_damage, dealt);
         }
 
         self.current_hp -= effective;
         (raw_damage, effective)
     }
+}
+
+/// What a hit left on the ship it struck: see [`BattleRuntimeShip::take_hit`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Landing {
+    /// What the battle log shows for the hit.
+    pub(crate) cell: DamageCell,
+    /// The hit points the ship lost.
+    pub(crate) dealt: i64,
 }
 
 #[cfg(test)]

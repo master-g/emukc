@@ -83,7 +83,7 @@ enemy did (plan `docs/plans/2026-10-10-002`):
 
 Each friendly fleet's flagship, the escort fleet's included, is kept from sinking in every
 phase, as in the source (`kcships.js` `69097abc` `:45`, `:1825`). `BattleState::from_context`
-marks the first ship of the fleet and of the escort deck (`is_flagship`) and `apply_damage`
+marks the first ship of the fleet and of the escort deck (`is_flagship`) and `take_hit`
 reads the mark, so it no longer matters which slice a phase fires at: before, a flagship was
 the ship at index 0 of the slice, and the enemy's airstrike, flown at the whole combined
 fleet, could sink the escort flagship (plan `docs/plans/2026-10-18-005`). A test that builds

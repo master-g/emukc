@@ -69,27 +69,16 @@ pub(crate) fn simulate_opening_torpedo(
             Aim::new(AttackKind::Torpedo, friendly_formation_id, enemy_formation_id)
                 .with_flat((power / 5.0).floor()),
         );
-        let raw = calculate_torpedo_damage(
-            codex,
-            rng,
-            ship,
-            &enemy[target_idx],
-            friendly_formation_id,
-            engagement,
-            BattlePhase::OpeningTorpedo,
-            outcome,
-        );
-        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw);
-        ship.damage_dealt += dealt;
-        let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
+        let raw = calculate_torpedo_damage(codex, rng, ship, &enemy[target_idx], power, outcome);
+        let landed = enemy[target_idx].take_hit(rng, raw, shield);
+        ship.damage_dealt += landed.dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Friendly,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: display,
+                damage: landed.cell,
                 cl: outcome.cl(),
-                shield,
             },
         );
         happened = true;
@@ -125,27 +114,16 @@ pub(crate) fn simulate_opening_torpedo(
             Aim::new(AttackKind::Torpedo, enemy_formation_id, friendly_formation_id)
                 .with_flat((power / 5.0).floor()),
         );
-        let raw = calculate_torpedo_damage(
-            codex,
-            rng,
-            ship,
-            &targets[target_idx],
-            enemy_formation_id,
-            engagement,
-            BattlePhase::OpeningTorpedo,
-            outcome,
-        );
-        let (raw_dmg, dealt) = targets[target_idx].apply_damage(rng, raw);
-        enemy[idx].damage_dealt += dealt;
-        let display = crate::targeting::display_damage(&targets[target_idx], raw_dmg, dealt);
+        let raw = calculate_torpedo_damage(codex, rng, ship, &targets[target_idx], power, outcome);
+        let landed = targets[target_idx].take_hit(rng, raw, shield);
+        enemy[idx].damage_dealt += landed.dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: fired_at + target_idx,
-                damage: display,
+                damage: landed.cell,
                 cl: outcome.cl(),
-                shield,
             },
         );
         happened = true;
@@ -205,27 +183,16 @@ pub(crate) fn simulate_raigeki(
             Aim::new(AttackKind::Torpedo, friendly_formation_id, enemy_formation_id)
                 .with_flat((power / 5.0).floor()),
         );
-        let raw = calculate_torpedo_damage(
-            codex,
-            rng,
-            ship,
-            &enemy[target_idx],
-            friendly_formation_id,
-            engagement,
-            BattlePhase::ClosingTorpedo,
-            outcome,
-        );
-        let (raw_dmg, dealt) = enemy[target_idx].apply_damage(rng, raw);
-        ship.damage_dealt += dealt;
-        let display = crate::targeting::display_damage(&enemy[target_idx], raw_dmg, dealt);
+        let raw = calculate_torpedo_damage(codex, rng, ship, &enemy[target_idx], power, outcome);
+        let landed = enemy[target_idx].take_hit(rng, raw, shield);
+        ship.damage_dealt += landed.dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Friendly,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: target_idx,
-                damage: display,
+                damage: landed.cell,
                 cl: outcome.cl(),
-                shield,
             },
         );
         happened = true;
@@ -266,27 +233,16 @@ pub(crate) fn simulate_raigeki(
             Aim::new(AttackKind::Torpedo, enemy_formation_id, friendly_formation_id)
                 .with_flat((power / 5.0).floor()),
         );
-        let raw = calculate_torpedo_damage(
-            codex,
-            rng,
-            ship,
-            &targets[target_idx],
-            enemy_formation_id,
-            engagement,
-            BattlePhase::ClosingTorpedo,
-            outcome,
-        );
-        let (raw_dmg, dealt) = targets[target_idx].apply_damage(rng, raw);
-        enemy[idx].damage_dealt += dealt;
-        let display = crate::targeting::display_damage(&targets[target_idx], raw_dmg, dealt);
+        let raw = calculate_torpedo_damage(codex, rng, ship, &targets[target_idx], power, outcome);
+        let landed = targets[target_idx].take_hit(rng, raw, shield);
+        enemy[idx].damage_dealt += landed.dealt;
         payload.record_torpedo_hit(
             TorpedoAttackerSide::Enemy,
             TorpedoHit {
                 attacker_index: idx,
                 defender_index: fired_at + target_idx,
-                damage: display,
+                damage: landed.cell,
                 cl: outcome.cl(),
-                shield,
             },
         );
         happened = true;

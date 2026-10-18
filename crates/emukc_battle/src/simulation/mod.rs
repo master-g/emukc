@@ -691,7 +691,7 @@ mod tests {
     }
 
     #[test]
-    fn day_battle_display_damage_consistent_under_protection() {
+    fn day_battle_shows_what_a_protected_ship_lost() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
 

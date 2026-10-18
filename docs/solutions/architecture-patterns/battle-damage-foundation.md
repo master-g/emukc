@@ -22,7 +22,14 @@ client computes display HP as *initial HP minus cumulative per-phase damage*.
 If any phase reports the raw pre-protection damage instead of the actually-
 applied damage, the client's HP bar drifts out of sync with the server's true
 HP state. This spec codifies the invariant that every damage array reports the
-**effective** value returned by `apply_damage()`.
+**effective** value a hit left on its target.
+
+Every attack lands through one method, `BattleRuntimeShip::take_hit(rng, raw, shield)`
+(`crates/emukc_battle/src/types/runtime.rs`). It applies sinking protection, subtracts
+the HP, and returns a `Landing` with the `DamageCell` the battle log shows and the HP the
+ship lost (`dealt`), which the caller credits to the attacker. A phase computes the
+raw damage and records the cell; it never chooses what to show. `apply_damage` is
+private to the `types` module, so no phase can skip `take_hit`.
 
 ## Guidance
 
@@ -31,8 +38,9 @@ The following invariants hold for all battle phase output:
 - **Effective damage, not raw.** Every phase output array — hougeki
   `api_damage`, torpedo `api_fydam`/`api_eydam`/`api_fdam`/`api_edam`, kouku
   `api_fdam`/`api_edam`, OASW `api_damage`, and night battle `api_damage` —
-  SHALL contain the effective damage returned by `apply_damage()`: the actual
-  HP subtracted *after* sinking protection, not the raw calculated damage.
+  SHALL contain the effective damage: the actual HP subtracted *after* sinking
+  protection, not the raw calculated damage. `take_hit` shows `dealt` for a friendly
+  defender and the raw hit for an enemy, which the client plays as overkill.
 - **Sinking-protection proportional damage is reported.** When sinking
   protection triggers for a protected ship (flagship, or a non-taiha-at-entry
   friendly ship during sortie), the reported damage SHALL equal the
@@ -70,7 +78,7 @@ damage keeps client and server HP identical at every phase boundary.
 ## When to Apply
 
 - When implementing a new battle phase or output array.
-- When modifying `apply_damage()` or sinking-protection logic.
+- When modifying `take_hit`, `apply_damage` or sinking-protection logic.
 - When reviewing any change to `api_damage`/`api_fdam`/`api_edam` population.
 
 ## Examples
@@ -79,12 +87,12 @@ Flagship sinking-protection scenario:
 
 ```
 // flagship HP 50, raw shelling damage 80
-let applied = apply_damage(&mut ship, 80, protection_on); // => 25 (proportional)
-hougeki.api_damage[attack_index] = applied;                // reports 25, NOT 80
+let hit = flagship.take_hit(rng, 80, false); // hit.dealt == 25 (proportional)
+hougeki.api_damage.push(vec![hit.cell]);      // reports 25, NOT 80
 ```
 
 ## Related
 
 - `docs/solutions/architecture-patterns/night-battle-sinking-protection.md` — the sinking-protection policy that produces the proportional values reported here.
 - `docs/solutions/logic-errors/night-enemy-attack-display-damage-2026-06-24.md` — a concrete violation of this invariant (the night enemy-attack loop reported raw instead of effective damage) and its fix.
-- `crates/emukc_battle/` — `apply_damage()` and phase output population.
+- `crates/emukc_battle/src/types/runtime.rs` — `take_hit`, `Landing` and `apply_damage`.
