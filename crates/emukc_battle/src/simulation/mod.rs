@@ -31,6 +31,7 @@ pub(crate) mod night_attack_table;
 pub(crate) mod shelling;
 pub(crate) mod special_attack;
 pub(crate) mod torpedo;
+pub(crate) mod volley;
 
 /// Simulate a full day battle.
 ///
@@ -100,10 +101,9 @@ pub(crate) fn simulate_day(
 ///   `hougeki1` → `hougeki2` → `hougeki3` → `raigeki`.
 ///
 /// Deck 1 takes no part in the opening ASW, opening torpedo or closing torpedo
-/// phases; that is enforced per ship inside those phase functions rather than by
-/// slicing here, because the enemy fires at deck 2 in them and each phase
-/// function takes that slice itself (`targeting::escort_deck_start`). In each
-/// shelling round it fires at that round's deck.
+/// phases, and the enemy fires at deck 2 alone in them: those phases take their
+/// slices from [`Volleys::opening`](volley::Volleys::opening). In each shelling
+/// round the enemy fires at that round's deck.
 fn simulate_day_combined(
     codex: &Codex,
     state: &mut BattleState,
