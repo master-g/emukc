@@ -1,5 +1,5 @@
 ---
-title: "Equipment improvement (★) firepower for day shelling, night, torpedo and ASW"
+title: "Equipment improvement (★): firepower, accuracy and evasion"
 date: 2026-06-22
 category: architecture-patterns
 module: emukc_battle
@@ -9,29 +9,34 @@ severity: medium
 applies_when:
   - "Modifying day shelling, carrier shelling, night, torpedo or ASW basic power"
   - "Adding or adjusting what equipment stars (★) add to attack power"
-  - "Adding accuracy or evasion improvement keys (#194) to the same per-type table"
-tags: [equipment, improvement, star-bonus, shelling, torpedo, night-battle, asw, damage-formula]
+  - "Modifying the accuracy or evasion of day shelling, night, torpedo or ASW attacks"
+tags: [equipment, improvement, star-bonus, shelling, torpedo, night-battle, asw, damage-formula, accuracy, evasion]
 related_components: [emukc_model]
 ---
 
-# Equipment improvement (★) firepower for day shelling, night, torpedo and ASW
+# Equipment improvement (★): firepower, accuracy and evasion
 
 ## Context
 
-What each star adds to attack power follows `KC3Kai/kancolle-replay` at `69097abc`:
+What each star adds to attack power, accuracy and evasion follows `KC3Kai/kancolle-replay` at
+`69097abc`:
 `Equip.prototype.setImprovement` (`js/kcships.js:2387-2491`) over the per-type table
 `EQTDATA[type].improve` (`js/kcEQDATA.js`). The earlier contract, with no cited source, gave
 every gun, torpedo and bomber √★ by day and at night, torpedoes ★ × 1.2 and ASW nothing (#206).
 
+Before #194 no hit roll read the stars at all.
+
 The code is `Improvement`, `ship_improvement`, `improvement_coefficients` and `improvement` in
-`crates/emukc_battle/src/damage.rs`. `improvement_coefficients` is the one per-type table: the
-accuracy and evasion keys of #194 belong in it, not in a second one.
+`crates/emukc_battle/src/damage.rs`. `improvement_coefficients` is the one per-type table, for
+every key; the hit rolls read it in `accuracy.rs` (`improvement_accuracy`, `dodge`).
 
 ## Guidance
 
-Every equipped item at ★ > 0 contributes to four keys, summed over the ship. The source keys
-them `Pshell` (day), `Pnb` (night), `Ptorp` (torpedo) and `Pasw` (ASW). They are built in this
-order, a later step overwriting an earlier one:
+### Firepower
+
+Every equipped item at ★ > 0 contributes to four firepower keys, summed over the ship. The
+source keys them `Pshell` (day), `Pnb` (night), `Ptorp` (torpedo) and `Pasw` (ASW). They are
+built in this order, a later step overwriting an earlier one:
 
 1. **Aircraft, linear in ★:**
    - Dive, torpedo and jet bombers (client types 7, 8, 57) that are not fighter-bombers:
@@ -73,6 +78,34 @@ Where each key goes, as a flat term in basic power before the pre-cap modifiers:
 - ASW: inside the bracket of `calculate_asw_damage`, before the synergy multiplier
   (`ASWPower`).
 
+### Accuracy and evasion
+
+Six more keys, summed over the ship the same way, each `coefficient × √★` by client type:
+
+| Client types | Day acc. (`ACCshell`) | Night acc. (`ACCnb`) | Torpedo acc. (`ACCtorp`) | ASW acc. (`ACCasw`) | Day ev. (`EVshell`) | Torpedo ev. (`EVtorp`) |
+|---|---|---|---|---|---|---|
+| 1, 2, 3, 4, 18, 19, 24, 29, 34, 35, 36, 37, 38, 39, 42, 46, 52, 54, and the radars 12, 13, 93 | 1 | 1.3 | — | — | — | — |
+| 5 (torpedo) | — | 1.3 | 2 | — | — | — |
+| 21 (AA gun) | — | — | 2 | — | — | — |
+| 22 (midget sub) | — | 1.3 | — | — | — | — |
+| 14, 40 (sonars) | — | — | — | 1.3 | — | 1.5 |
+| 15 (depth charges) | — | — | — | 1.3 | — | — |
+| 17 (engines) | — | — | — | — | 1.5 | — |
+
+The first row is every type with a day firepower weight of 1 or 1.5 but the AA gun, plus the
+radars. A radar of 命中 ≥ 3 takes 1.7√★ by day and 1.6√★ at night instead
+(`setImprovement`). None of the items the source types apart from the client changes these.
+
+Where they go (`kcsim.js`):
+
+- Accuracy, into the flat terms of `hit_value` (`hitRate`), before morale, formation and cut-in
+  multiply them: day shelling `ACCshell` (`shell`), night `ACCnb` (`NBattack`, a carrier's
+  night air attack included), torpedo `floor(ACCtorp)` of the ship's sum (`torpedoPhase`),
+  ASW `ACCasw` beside the sonars' term (`ASW`).
+- Evasion, the target's, after the evasion curve and before rounding down (`accuracyAndCrit`'s
+  `evFlat`): `EVshell` against day shelling, `EVtorp` against torpedoes. None at night or
+  against ASW.
+
 Equipment at ★0 adds nothing; abyssal equipment is always ★0.
 
 ## Why This Matters
@@ -83,7 +116,8 @@ guns gain far less than √★. The keys go in before the multipliers and compou
 
 ## When to Apply
 
-- When changing any of the four basic power formulas above.
+- When changing any of the four basic power formulas above, or the accuracy or evasion of
+  those attacks.
 - When a client equipment type is added, or the kancolle-replay pin moves: repeat the
   check below.
 
@@ -95,17 +129,23 @@ guns gain far less than √★. The keys go in before the multipliers and compou
 - Secondary gun 12 at ★10: day and night 3. 467 at ★9: 3.
 - Sonar ★4: day 1.5, ASW 2.
 - Non-fighter dive bomber ★5: day (carrier shelling) 1, ASW 1.
-- AA gun ★4: day 2, torpedo 2.4, night 0.
+- AA gun ★4: day 2, torpedo 2.4, night 0; torpedo accuracy 4.
+- Main gun ★10: day accuracy √10, night 1.3√10. Torpedo ★4: torpedo accuracy 4, night 2.6.
+- Sonar ★9: ASW accuracy 3.9, torpedo evasion 4.5. Engine ★6: day evasion 1.5√6 ≈ 3.67.
+- Radar ★4: day accuracy 3.4 and night 3.2 at 命中 ≥ 3; 2 and 2.6 below.
 
 ## Checking against the source
 
 The table and special cases were compared once with the source for every item below id 1500
 in `kcEQDATA.js` at the pin (584, all in the current start2), ★1 to ★10: run the source's own
 `setImprovement` in Node over each `EQDATA` entry, and compare its four keys with
-`improvement` on the codex's item. No differences (#206).
+`improvement` on the codex's item. No differences: the four firepower keys (#206), and the
+six accuracy and evasion keys (#194).
 
 ## Related
 
 - `docs/solutions/architecture-patterns/battle-damage-foundation.md` — the damage formula
   these terms feed into.
 - `docs/battle/damage-formula-reference.md` §3.5 — the wiki's table, which this replaces.
+- `docs/solutions/architecture-patterns/battle-hit-and-critical-rolls.md` — the hit roll the
+  accuracy and evasion keys feed into.

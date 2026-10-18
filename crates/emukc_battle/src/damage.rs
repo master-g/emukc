@@ -596,11 +596,12 @@ pub(crate) fn asw_formation_modifier(formation_id: i64) -> f64 {
 // Improvement bonuses
 // ---------------------------------------------------------------------------
 
-/// The flat power a ship's improved (★) equipment adds to each of her attacks, the source's
-/// `improves` (`KC3Kai/kancolle-replay` at `69097abc`: `Equip.prototype.setImprovement`,
-/// `kcships.js:2387-2491`; `EQTDATA[type].improve`, `kcEQDATA.js`). Each goes into basic power
-/// before the pre-cap modifiers.
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+/// What a ship's improved (★) equipment adds to each of her attacks and to her evasion, the
+/// source's `improves` (`KC3Kai/kancolle-replay` at `69097abc`: `Equip.prototype.setImprovement`,
+/// `kcships.js:2387-2491`; `EQTDATA[type].improve`, `kcEQDATA.js`). The power goes into basic
+/// power before the pre-cap modifiers, the accuracy into the flat accuracy and the evasion after
+/// the evasion curve.
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct Improvement {
     /// Day shelling, a carrier's included (`Pshell`).
     pub(crate) shell: f64,
@@ -610,6 +611,55 @@ pub(crate) struct Improvement {
     pub(crate) torpedo: f64,
     /// Anti-submarine (`Pasw`).
     pub(crate) asw: f64,
+    /// Day shelling accuracy (`ACCshell`).
+    pub(crate) shell_accuracy: f64,
+    /// Night attack accuracy (`ACCnb`).
+    pub(crate) night_accuracy: f64,
+    /// Torpedo accuracy (`ACCtorp`), which the torpedo takes rounded down.
+    pub(crate) torpedo_accuracy: f64,
+    /// Anti-submarine accuracy (`ACCasw`).
+    pub(crate) asw_accuracy: f64,
+    /// Evasion against day shelling (`EVshell`).
+    pub(crate) shell_evasion: f64,
+    /// Evasion against torpedoes (`EVtorp`).
+    pub(crate) torpedo_evasion: f64,
+}
+
+impl Improvement {
+    /// Nothing improved.
+    pub(crate) const NONE: Self = Self {
+        shell: 0.0,
+        night: 0.0,
+        torpedo: 0.0,
+        asw: 0.0,
+        shell_accuracy: 0.0,
+        night_accuracy: 0.0,
+        torpedo_accuracy: 0.0,
+        asw_accuracy: 0.0,
+        shell_evasion: 0.0,
+        torpedo_evasion: 0.0,
+    };
+
+    /// Every key combined with the other's by `f`.
+    fn zip(self, other: Self, f: impl Fn(f64, f64) -> f64) -> Self {
+        Self {
+            shell: f(self.shell, other.shell),
+            night: f(self.night, other.night),
+            torpedo: f(self.torpedo, other.torpedo),
+            asw: f(self.asw, other.asw),
+            shell_accuracy: f(self.shell_accuracy, other.shell_accuracy),
+            night_accuracy: f(self.night_accuracy, other.night_accuracy),
+            torpedo_accuracy: f(self.torpedo_accuracy, other.torpedo_accuracy),
+            asw_accuracy: f(self.asw_accuracy, other.asw_accuracy),
+            shell_evasion: f(self.shell_evasion, other.shell_evasion),
+            torpedo_evasion: f(self.torpedo_evasion, other.torpedo_evasion),
+        }
+    }
+
+    /// Every key times `factor` (the zip's second side goes unread).
+    fn scaled(self, factor: f64) -> Self {
+        self.zip(self, |key, _| key * factor)
+    }
 }
 
 /// What a ship's equipment adds, summed over it.
@@ -621,42 +671,80 @@ pub(crate) fn ship_improvement(codex: &Codex, ship: &BattleRuntimeShip) -> Impro
             let mst = codex.find::<ApiMstSlotitem>(&si.api_slotitem_id).ok()?;
             Some(improvement(mst, si.api_level))
         })
-        .fold(Improvement::default(), |sum, item| Improvement {
-            shell: sum.shell + item.shell,
-            night: sum.night + item.night,
-            torpedo: sum.torpedo + item.torpedo,
-            asw: sum.asw + item.asw,
-        })
+        .fold(Improvement::NONE, |sum, item| sum.zip(item, |a, b| a + b))
 }
 
 /// The coefficients of √★ for each client equipment type (`api_type[2]`), the source's
 /// `EQTDATA[type].improve`. The source types a few items apart from the client (128, 281 and
 /// 465 as `MAINGUNXL`, 142 and 460 as `RADARXL`, 151 as `CARRIERSCOUT2`), none of them to
 /// different coefficients; 467 is the one that differs, in [`improvement`].
+/// The radars' client types (small, large, large II).
+const RADARS: [i64; 3] = [12, 13, 93];
+
 fn improvement_coefficients(kind: i64) -> Improvement {
-    let (shell, night, torpedo, asw) = match kind {
+    /// What the gun-like types aim with; radars too, but for those of 3 accuracy or more.
+    const AIM: Improvement = Improvement {
+        shell_accuracy: 1.0,
+        night_accuracy: 1.3,
+        ..Improvement::NONE
+    };
+    match kind {
         // Small and medium main guns, secondary guns, 三式弾, AP shells, landing craft,
         // searchlights, FCF, SCAMP, anti-aircraft fire directors, WG42, picket, 特二式内火艇,
         // army units and smoke screens.
-        1 | 2 | 4 | 18 | 19 | 24 | 29 | 34 | 35 | 36 | 37 | 39 | 42 | 46 | 52 | 54 => {
-            (1.0, 1.0, 0.0, 0.0)
-        }
+        1 | 2 | 4 | 18 | 19 | 24 | 29 | 34 | 35 | 36 | 37 | 39 | 42 | 46 | 52 | 54 => Improvement {
+            shell: 1.0,
+            night: 1.0,
+            ..AIM
+        },
         // Large main guns.
-        3 | 38 => (1.5, 1.0, 0.0, 0.0),
-        5 => (0.0, 1.0, 1.2, 0.0),
+        3 | 38 => Improvement {
+            shell: 1.5,
+            night: 1.0,
+            ..AIM
+        },
+        kind if RADARS.contains(&kind) => AIM,
+        5 => Improvement {
+            night: 1.0,
+            torpedo: 1.2,
+            night_accuracy: 1.3,
+            torpedo_accuracy: 2.0,
+            ..Improvement::NONE
+        },
         // Anti-aircraft guns.
-        21 => (1.0, 0.0, 1.2, 0.0),
+        21 => Improvement {
+            shell: 1.0,
+            torpedo: 1.2,
+            torpedo_accuracy: 2.0,
+            ..Improvement::NONE
+        },
         // Midget submarines.
-        22 => (0.0, 1.0, 0.0, 0.0),
-        // Sonars and depth charges.
-        14 | 15 | 40 => (0.75, 0.0, 0.0, 1.0),
-        _ => (0.0, 0.0, 0.0, 0.0),
-    };
-    Improvement {
-        shell,
-        night,
-        torpedo,
-        asw,
+        22 => Improvement {
+            night: 1.0,
+            night_accuracy: 1.3,
+            ..Improvement::NONE
+        },
+        // Sonars.
+        14 | 40 => Improvement {
+            shell: 0.75,
+            asw: 1.0,
+            asw_accuracy: 1.3,
+            torpedo_evasion: 1.5,
+            ..Improvement::NONE
+        },
+        // Depth charges.
+        15 => Improvement {
+            shell: 0.75,
+            asw: 1.0,
+            asw_accuracy: 1.3,
+            ..Improvement::NONE
+        },
+        // Engines.
+        17 => Improvement {
+            shell_evasion: 1.5,
+            ..Improvement::NONE
+        },
+        _ => Improvement::NONE,
     }
 }
 
@@ -679,12 +767,9 @@ fn improvement(mst: &ApiMstSlotitem, stars: i64) -> Improvement {
         _ => (0.0, 0.0),
     };
     let table = improvement_coefficients(mst.api_type[2]);
-    let mut item = Improvement {
-        shell: shell * linear + table.shell * root,
-        night: table.night * root,
-        torpedo: table.torpedo * root,
-        asw: asw * linear + table.asw * root,
-    };
+    let mut item = table.scaled(root);
+    item.shell += shell * linear;
+    item.asw += asw * linear;
     // An item weighted 1 by day takes 1.5 at 13 firepower or more; a large gun takes 1 below.
     if table.shell == 1.0 && mst.api_houg >= 13 {
         item.shell = 1.5 * root;
@@ -714,6 +799,11 @@ fn improvement(mst: &ApiMstSlotitem, stars: i64) -> Improvement {
     }
     if [226, 227, 488].contains(&mst.api_id) {
         item.shell = 0.0;
+    }
+    // A radar of 3 accuracy or more aims better.
+    if RADARS.contains(&mst.api_type[2]) && mst.api_houm >= 3 {
+        item.shell_accuracy = 1.7 * root;
+        item.night_accuracy = 1.6 * root;
     }
     item
 }
@@ -1717,6 +1807,49 @@ mod tests {
         }
     }
 
+    fn assert_aim(item: &ApiMstSlotitem, stars: i64, want: [f64; 6]) {
+        let got = improvement(item, stars);
+        let got = [
+            got.shell_accuracy,
+            got.night_accuracy,
+            got.torpedo_accuracy,
+            got.asw_accuracy,
+            got.shell_evasion,
+            got.torpedo_evasion,
+        ];
+        for (g, w) in got.iter().zip(want) {
+            assert!(
+                (g - w).abs() < 1e-9,
+                "item {} at ★{stars}: {got:?}, want {want:?}",
+                item.api_id
+            );
+        }
+    }
+
+    /// The source's accuracy and evasion figures, as `[day, night, torpedo, ASW accuracy, day,
+    /// torpedo evasion]`.
+    #[test]
+    fn improvement_aims_by_the_equipment_type() {
+        let root10 = 10f64.sqrt();
+        assert_aim(&gear(2, 1, 2, 0), 10, [root10, 1.3 * root10, 0.0, 0.0, 0.0, 0.0]);
+        assert_aim(&gear(13, 5, 0, 0), 4, [0.0, 2.6, 4.0, 0.0, 0.0, 0.0]);
+        assert_aim(&gear(37, 21, 0, 0), 4, [0.0, 0.0, 4.0, 0.0, 0.0, 0.0]);
+        assert_aim(&gear(46, 14, 0, 6), 9, [0.0, 0.0, 0.0, 3.9, 0.0, 4.5]);
+        assert_aim(&gear(226, 15, 0, 5), 9, [0.0, 0.0, 0.0, 3.9, 0.0, 0.0]);
+        assert_aim(&gear(34, 17, 0, 0), 6, [0.0, 0.0, 0.0, 0.0, 1.5 * 6f64.sqrt(), 0.0]);
+    }
+
+    /// A radar of 3 accuracy or more aims at 1.7√★ by day and 1.6√★ at night, one of less as a gun.
+    #[test]
+    fn a_radar_aims_by_its_accuracy() {
+        let radar = |accuracy| ApiMstSlotitem {
+            api_houm: accuracy,
+            ..gear(28, 12, 0, 0)
+        };
+        assert_aim(&radar(3), 4, [3.4, 3.2, 0.0, 0.0, 0.0, 0.0]);
+        assert_aim(&radar(2), 4, [2.0, 2.6, 0.0, 0.0, 0.0, 0.0]);
+    }
+
     /// The source's figures (`setImprovement`, `EQTDATA[type].improve`), as
     /// `[day, night, torpedo, ASW]`.
     #[test]
@@ -1778,7 +1911,7 @@ mod tests {
         let gun = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SmallCaliberMainGun);
         ship.slot_items = vec![slotitem_with_mst_id(gun), slotitem_with_mst_id(gun)];
         let plain = BattleRuntimeShip::from(ship.clone());
-        assert_eq!(ship_improvement(&codex, &plain), Improvement::default());
+        assert_eq!(ship_improvement(&codex, &plain), Improvement::NONE);
         ship.slot_items[0].api_level = 4;
         ship.slot_items[1].api_level = 9;
         let improved = ship_improvement(&codex, &BattleRuntimeShip::from(ship));
