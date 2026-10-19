@@ -130,6 +130,7 @@ mod tests {
         BattleContext {
             special_attacks_made: Default::default(),
             use_smoke: false,
+            balloon_cell: false,
             battle_type: BattleType::Normal,
             is_sortie: true,
             friendly_formation_id: 1,

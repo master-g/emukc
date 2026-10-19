@@ -15,7 +15,8 @@
 //! A smoke screen's comes from [`smoke`](crate::smoke).
 //!
 //! Left out, each a correction the source applies on top of what is here:
-//! the combined-fleet accuracy terms, balloons and event bonuses.
+//! the combined-fleet accuracy terms and event bonuses. The balloons' accuracy terms are 1 in the
+//! source.
 
 use emukc_model::{
     codex::Codex,

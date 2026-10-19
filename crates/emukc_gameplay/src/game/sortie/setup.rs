@@ -102,6 +102,8 @@ pub(super) struct SortieBattleSetup {
     pub air_corps: Vec<AirCorpsInput>,
     /// Whether the cell's event kind sends the client to the `ec_` endpoints.
     pub enemy_combined_cell: bool,
+    /// Whether the cell raises barrage balloons.
+    pub balloon_cell: bool,
     /// Whether either fleet carries a 彩雲 with planes left, which keeps the
     /// engagement from being T字不利.
     pub carries_saiun: bool,
@@ -216,6 +218,7 @@ where
     .await?;
 
     let carries_saiun = friend_ships.iter().chain(&escort_ships).any(carries_saiun);
+    let balloon_cell = is_balloon_cell(active.map_id, current_cell.node_label.as_deref());
 
     Ok(SortieBattleSetup {
         active,
@@ -227,7 +230,18 @@ where
         enemy,
         air_corps,
         enemy_combined_cell: current_cell.event_kind == 5,
+        balloon_cell,
     })
+}
+
+/// The regular maps' cells where barrage balloons rise, by map id and node label: 3-5 H, 4-3 N
+/// and 4-5 T from the source's `BARRAGE_BALLOON_NODES` (`kancolle-replay` `69097abc`,
+/// `js/simulator-ui/common.js`), and 6-4 N, which wikiwiki 「阻塞気球」 adds (read 2026-10-19). The
+/// game sets it cell by cell; 7-5 Q, a land target's cell, raises none.
+const BALLOON_CELLS: [(i64, &str); 4] = [(35, "H"), (43, "N"), (45, "T"), (64, "N")];
+
+fn is_balloon_cell(map_id: i64, label: Option<&str>) -> bool {
+    label.is_some_and(|label| BALLOON_CELLS.contains(&(map_id, label)))
 }
 
 impl SortieBattleSetup {
@@ -248,6 +262,7 @@ impl SortieBattleSetup {
             context: BattleContext {
                 special_attacks_made: self.active.special_attacks_made,
                 use_smoke: order.smoke && !self.active.smoke_used,
+                balloon_cell: self.balloon_cell,
                 battle_type,
                 is_sortie: true,
                 friendly_formation_id: order.formation_id,
@@ -452,4 +467,18 @@ where
     }
 
     Ok(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn balloons_rise_on_the_four_regular_cells() {
+        assert!(is_balloon_cell(35, Some("H")));
+        assert!(is_balloon_cell(64, Some("N")));
+        assert!(!is_balloon_cell(75, Some("Q")));
+        assert!(!is_balloon_cell(35, Some("G")));
+        assert!(!is_balloon_cell(35, None));
+    }
 }

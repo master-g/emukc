@@ -16,6 +16,7 @@ use emukc_model::{
 };
 
 use crate::accuracy::{HitOutcome, roll_strike, squadron_proficiency};
+use crate::damage::balloon_contact;
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::pt_imp::air_corps_strike_roll;
 use crate::random::BattleRng;
@@ -324,13 +325,15 @@ fn strike_power(
     power
 }
 
-/// Fly one attack of `corps` against `enemy`, taking the losses out of both.
+/// Fly one attack of `corps` against `enemy`, taking the losses out of both. `own_balloons` is
+/// how many barrage balloons the player's fleet flies at this cell.
 pub(crate) fn simulate_air_base_attack(
     codex: &Codex,
     corps: &mut AirCorpsInput,
     enemy: &mut [BattleRuntimeShip],
     enemy_formation_id: i64,
     previous: &mut PreviousWave,
+    own_balloons: i64,
     rng: &mut impl BattleRng,
 ) -> BattleAirBaseAttack {
     let api_squadron_plane = corps
@@ -368,6 +371,9 @@ pub(crate) fn simulate_air_base_attack(
         corps.squadrons.iter().map(|squadron| (squadron.mst_id, squadron.count)).collect();
     let (contact, touch_plane) =
         previous.contact(air_state, |state| roll_contact(codex, rng, &planes, state));
+    // The fleets' balloons bend the contact multiplier the strikes take (`LBASPhase`).
+    let struck_contact =
+        contact * balloon_contact(own_balloons, enemy.first().map_or(0, |ship| ship.balloons));
     let scouting = corps
         .squadrons
         .iter()
@@ -483,7 +489,8 @@ pub(crate) fn simulate_air_base_attack(
             1.0
         };
         let power = outcome.power_with(
-            strike_power(rng, mst, squadron.count, class, scouting, contact, combined) * special,
+            strike_power(rng, mst, squadron.count, class, scouting, struck_contact, combined)
+                * special,
             planes.critical_damage,
         );
         let defense = calculate_defense_power(rng, enemy[target].ship.api_soukou[0]);
@@ -590,7 +597,7 @@ mod tests {
         enemy: &mut [BattleRuntimeShip],
         rng: &mut impl BattleRng,
     ) -> BattleAirBaseAttack {
-        simulate_air_base_attack(codex, corps, enemy, 1, &mut PreviousWave::default(), rng)
+        simulate_air_base_attack(codex, corps, enemy, 1, &mut PreviousWave::default(), 0, rng)
     }
 
     fn lone_enemy(codex: &Codex, ship_type: KcShipType) -> Vec<BattleRuntimeShip> {

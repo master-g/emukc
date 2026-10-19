@@ -153,6 +153,19 @@ pub(crate) fn ammo_modifier(codex: &Codex, attacker: &BattleRuntimeShip) -> f64 
     (ammo_percent as f64 / 50.0).min(1.0)
 }
 
+/// What her fleet's barrage balloons add to a ship's day attack after the cap: a fiftieth for
+/// each (`shell`, `ASW`).
+pub(crate) fn balloon_power(attacker: &BattleRuntimeShip) -> f64 {
+    1.0 + attacker.balloons as f64 / 50.0
+}
+
+/// What two fleets' balloons do to the contact multiplier of a strike from one on the other: a
+/// fiftieth more for each of the attacker's, a twentieth less for each of the target's
+/// (`airstrike` phase, `LBASPhase`).
+pub(crate) fn balloon_contact(attacker_balloons: i64, target_balloons: i64) -> f64 {
+    (1.0 + attacker_balloons as f64 / 50.0) * (1.0 - target_balloons as f64 / 20.0)
+}
+
 /// Calculate shelling damage for a single attack.
 ///
 /// When `ci_multiplier` is `Some(m)`, the multiplier is applied post-cap
@@ -182,11 +195,17 @@ pub(crate) fn calculate_shelling_damage(
         * engagement.modifier()
         * dmg_state;
     let mut capped_power = apply_cap(pre_cap, SHELLING_CAP) as f64;
+    // Her fleet's balloons join a cut-in's multiplier, or the post-cap ones after the AP shell's
+    // (`shell`: `postModCI`, `postModExtra`).
+    let balloons = balloon_power(attacker);
     if let Some(m) = ci_multiplier {
-        capped_power *= m;
+        capped_power *= m * balloons;
     }
     if let Some(ap) = armour_piercing(codex, attacker, defender) {
         capped_power = (capped_power * ap.power).floor();
+    }
+    if ci_multiplier.is_none() {
+        capped_power *= balloons;
     }
     capped_power *= post_cap_multiplier(codex, attacker, defender, false);
     if is_pt(codex, defender) {
@@ -401,7 +420,10 @@ pub(crate) fn calculate_asw_damage(
         * vanguard_power(attacker, CombinedAttackClass::Asw)
         * engagement.modifier()
         * dmg_state;
-    let capped = outcome.power_with(apply_cap(modified, ASW_CAP) as f64, planes.critical_damage);
+    let capped = outcome.power_with(
+        apply_cap(modified, ASW_CAP) as f64 * balloon_power(attacker),
+        planes.critical_damage,
+    );
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     let armor_reduction = depth_charge_armor_reduction(codex, attacker);
     let adjusted_defense = (defense - armor_reduction).max(0.0);
@@ -1734,6 +1756,59 @@ mod tests {
         assert!((asw_formation_modifier(5) - 1.3).abs() < f64::EPSILON);
         assert!((asw_formation_modifier(1) - 1.0).abs() < f64::EPSILON);
         assert!((asw_formation_modifier(2) - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn a_fleets_balloons_add_a_fiftieth_each_after_the_cap() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        input.ship.api_karyoku[0] = 300;
+        input.ship.api_soukou[0] = 0;
+        input.ship.api_maxhp = 999;
+        input.ship.api_nowhp = 999;
+        input.slot_items.clear();
+        let mut attacker = BattleRuntimeShip::from(input);
+        let target = attacker.clone();
+        let shell = |attacker: &BattleRuntimeShip, cut_in| {
+            let rng = &mut crate::random::SeededRng::new(1);
+            let (engagement, hit) = (EngagementType::SameCourse, HitOutcome::Hit);
+            calculate_shelling_damage(&codex, rng, attacker, &target, 1, engagement, cut_in, hit)
+        };
+        assert_eq!((shell(&attacker, None), shell(&attacker, Some(1.5))), (229, 343));
+        attacker.balloons = 3;
+        // 229 × 1.06, and 229 × 1.5 × 1.06.
+        assert_eq!((shell(&attacker, None), shell(&attacker, Some(1.5))), (242, 364));
+        assert_eq!(balloon_contact(3, 0), 1.06);
+        assert_eq!(balloon_contact(0, 2), 0.9);
+
+        // By day her depth charges too, after the cap (`ASW`).
+        let dc = first_slotitem_mst_by_type(&codex, KcSlotItemType3::DepthCharge);
+        let mut hunter = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        hunter.ship.api_taisen[0] = 80;
+        hunter.slot_items = vec![slotitem_with_mst_id(dc)];
+        let mut hunter = BattleRuntimeShip::from(hunter);
+        let mut sub = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::SS), 50);
+        sub.ship.api_soukou[0] = 0;
+        sub.ship.api_maxhp = 999;
+        sub.ship.api_nowhp = 999;
+        let sub = BattleRuntimeShip::from(sub);
+        let asw = |hunter: &BattleRuntimeShip| {
+            let rng = &mut crate::random::SeededRng::new(1);
+            let (engagement, hit) = (EngagementType::SameCourse, HitOutcome::Hit);
+            calculate_asw_damage(
+                &codex,
+                rng,
+                hunter,
+                &sub,
+                1,
+                engagement,
+                hit,
+                PlaneProficiency::NONE,
+            )
+        };
+        let plain = asw(&hunter) as f64;
+        hunter.balloons = 3;
+        assert_eq!(asw(&hunter), (plain * 1.06).floor() as i64);
     }
 
     #[test]

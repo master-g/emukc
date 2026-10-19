@@ -166,6 +166,7 @@ mod tests {
             BattleContext {
                 special_attacks_made: Default::default(),
                 use_smoke: false,
+                balloon_cell: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -218,6 +219,7 @@ mod tests {
             BattleContext {
                 special_attacks_made: Default::default(),
                 use_smoke: false,
+                balloon_cell: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -263,6 +265,7 @@ mod tests {
                 BattleContext {
                     special_attacks_made: Default::default(),
                     use_smoke: false,
+                    balloon_cell: false,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: if combined.is_some() {
@@ -339,6 +342,7 @@ mod tests {
                     combined: None,
                     special_attacks_made: Default::default(),
                     use_smoke: false,
+                    balloon_cell: false,
                 },
                 &mut super::super::rng::ProductionRng,
             );

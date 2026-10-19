@@ -127,6 +127,9 @@ Current verification baseline:
 - [2026-10-15] #147 用户定：戦果 = 提督经验（1 万 7 点）+ 任务与 1-6 的加成，按月清零，排名列本服务器所有账号。月末规则（读过的日文攻略页）：戦果月在最后一天 22:00 JST 结束，22:00～23:59 破 EO 只给箱不给戦果，EO ゲージ 1 日 00:00 恢复；见 `war-result-ranking.md`。
 - [2026-10-18] 外部等待：#150 等抓包；#182 等 kcwiki 补 902
 
+- [2026-10-19] 烟幕：来源默认发动率 0、倍率 1；用户定发动率用 wikiwiki 発動率推定式、倍率用来源 `smokeEst`（`smoke-screen.md`）。气球格：常规图 3-5 H、4-3 N、4-5 T、6-4 N（`barrage-balloons.md`）。空母昼战炮击已是来源公式，不再是 `1.5×机数+55`。
+- [2026-10-19] `sortie_*` 昼战入口收 `impl Into<SortieOrder>`，`(pid, 1)` 照旧可用（冻结的 `battle_golden.rs` 也这样调）。
+
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
@@ -165,16 +168,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-19] `feat/ap-shell-modifiers`（#196，未推送）：徹甲弾按 `APtype` 四档给昼战炮击与特殊攻击加命中、威力；目标 AP-weak 时 CI 后威力照源码取整，无档位也取整。重冻 4 份 golden，全部来自取整（探针：关 AP 逐字节复原，档位恒 1 与完整实现一致）。fmt、clippy `-D warnings`、`test --workspace` 1622 通过 0 失败 0 忽略；两路审查无实现错误。
+- [2026-10-19] 叠放分支（未推送）：#251 → #197 → #199 → #200（含空母炮击公式，重冻 117 份 golden）→ `feat/barrage-balloons`（#198）。顶端 fmt、clippy、`test --workspace` 1641 通过 0 失败 0 忽略；`headless-check smoke_screen` 通过；审查意见已修。
 
 ## Next Session
 
-- [2026-10-19] `feat/ap-shell-modifiers` 待推送开 PR。
-  ready 未关：#197–#200、#251（敌连合 ×1.1）。改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。
-  瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
-  远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
-  源码按 `kancolle-replay@69097abc` 重取 `js/`，常数写作 `.39`（勿只搜 `0.39`），装备类型以源码 `type` 为准；`en.kancollewiki.net` 有人机验证。
-  验证客户端演出先读 `main.decoded.js` 与 `z/cache` 再跑 `make headless-check`；立绘位置比修复前后截图。
-  多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。
-  带种子的战斗测试落空时换种子、不放宽断言。数字先读到再写。
+- [2026-10-19] 五个分支待推送、开叠放 PR（合并前把上层 PR 改指 `main`）。未做：基地航空队自己的特殊加成链（`airstrikeLBAS` 除 PT 外、`LBWeak`、`divebombWeak`，记在 `anti-installation.md`），空母的装備ボーナス雷装/爆装（`getEquipBonusCVTorp`）。
+  改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
+  演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
+  源码按 `kancolle-replay@69097abc` 重取 `js/`（`js/simulator-ui/common.js` 有气球格、环礁格表），常数写作 `.39`（勿只搜 `0.39`），装备类型以源码 `type` 为准；`en.kancollewiki.net` 有人机验证。
+  验证客户端演出先读 `main.decoded.js` 与 `z/cache` 再跑 `make headless-check`；立绘位置比修复前后截图。多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。带种子的战斗测试落空时换种子、不放宽断言。数字先读到再写。

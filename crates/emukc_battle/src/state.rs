@@ -27,6 +27,9 @@ pub(crate) struct CombinedLayout {
     pub(crate) escort_start: usize,
 }
 
+/// 阻塞気球 and 深海観測阻塞気球.
+const BALLOONS: [i64; 2] = [513, 1640];
+
 /// Mark the first ship of a friendly fleet, or of one deck of it, as its flagship.
 fn mark_flagship(fleet: &mut [BattleRuntimeShip]) {
     if let Some(flagship) = fleet.first_mut() {
@@ -88,6 +91,8 @@ pub(crate) struct BattleState {
     has_bb_class_at_start: bool,
     /// How thick a smoke screen the player's fleet laid, 0 for none (`api_smoke_type`).
     smoke_type: i64,
+    /// Whether the cell raises barrage balloons (`api_balloon_cell`).
+    balloon_cell: bool,
     /// Whether each side, friendly then enemy, has made its special attack.
     pub(crate) special_attack_used: [bool; 2],
 }
@@ -172,6 +177,7 @@ impl BattleState {
             opening_taisen_flag: 0,
             has_bb_class_at_start: false,
             smoke_type: 0,
+            balloon_cell: false,
             special_attack_used: [context.special_attacks_made.gunnery, false],
         }
     }
@@ -209,6 +215,7 @@ impl BattleState {
             opening_taisen_flag: 0,
             has_bb_class_at_start: false,
             smoke_type: 0,
+            balloon_cell: false,
             special_attack_used: [false; 2],
         }
     }
@@ -292,6 +299,31 @@ impl BattleState {
         self.has_bb_class_at_start = value;
     }
 
+    /// Raise each side's barrage balloons: every ship learns how many ships of her fleet, both
+    /// decks of a combined one, fly one (阻塞気球 513 or 深海観測阻塞気球 1640), at most 3
+    /// (`Fleet.getNumBalloons`).
+    // ponytail: counted once, as the battle opens; the source counts the ships afloat at each
+    // attack, so a balloon ship sunk mid-battle still counts here. No regular map's enemy flies one.
+    pub(crate) fn raise_balloons(&mut self) {
+        self.balloon_cell = true;
+        for fleet in [&mut self.friendly, &mut self.enemy] {
+            let flying = fleet
+                .iter()
+                .filter(|ship| {
+                    ship.is_alive()
+                        && ship
+                            .slot_items
+                            .iter()
+                            .any(|item| BALLOONS.contains(&item.api_slotitem_id))
+                })
+                .count()
+                .min(3) as i64;
+            for ship in fleet.iter_mut() {
+                ship.balloons = flying;
+            }
+        }
+    }
+
     /// Put every friendly ship in a smoke screen of `level`.
     pub(crate) fn lay_smoke(&mut self, level: i64) {
         self.smoke_type = level;
@@ -327,7 +359,7 @@ impl BattleState {
             friendly_nowhps: self.friendly.iter().map(|ship| ship.hp().max(0)).collect(),
             enemy_nowhps: self.enemy.iter().map(|ship| ship.hp().max(0)).collect(),
             smoke_type: self.smoke_type,
-            balloon_cell: 0,
+            balloon_cell: i64::from(self.balloon_cell),
             atoll_cell: 0,
             midnight_flag: i64::from(can_midnight),
             search: [1, 1],
@@ -457,6 +489,32 @@ mod tests {
         assert_eq!(front(5), [true, true, false, false, false]);
         assert_eq!(front(6), [true, true, true, false, false, false]);
         assert_eq!(front(7), [true, true, true, false, false, false, false]);
+    }
+
+    #[test]
+    fn a_balloon_cell_counts_each_sides_balloons_up_to_three() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let ship = |balloon: bool| {
+            let mut ship = sample_ship(&codex, dd, 1);
+            if balloon {
+                ship.slot_items = vec![crate::test_utils::slotitem_with_mst_id(513)];
+            }
+            ship
+        };
+        let mut context = BattleContext::head_on(
+            BattleType::Normal,
+            true,
+            vec![ship(true), ship(true), ship(true), ship(true), ship(false)],
+            vec![ship(false), ship(false)],
+        );
+        context.friend_ships[3].ship.api_nowhp = 0;
+        let mut state = BattleState::from_context(&codex, context);
+        state.raise_balloons();
+        // Four carry one, three afloat.
+        assert!(state.friendly.iter().all(|ship| ship.balloons == 3));
+        assert!(state.enemy.iter().all(|ship| ship.balloons == 0));
+        assert_eq!(state.finalize_day().packet.balloon_cell, 1);
     }
 
     #[test]

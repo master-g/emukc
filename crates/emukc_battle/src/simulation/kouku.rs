@@ -13,7 +13,9 @@ use super::aaci::roll_air_fire;
 use super::air_base::{ENEMY_FLAT_SHOT, fleet_anti_air, weighted_anti_air};
 use crate::accuracy::{HitOutcome, PROFICIENCY_EXP, plane_proficiency, roll_strike};
 use crate::combined::CombinedFleetRole;
-use crate::damage::{ammo_modifier, apply_cap, calculate_defense_power, resolve_damage};
+use crate::damage::{
+    ammo_modifier, apply_cap, balloon_contact, calculate_defense_power, resolve_damage,
+};
 use crate::installation::post_cap_multiplier;
 use crate::random::BattleRng;
 use crate::simulation::installation_types::SUPPLY_DEPOT_IDS;
@@ -623,6 +625,9 @@ fn execute_airstrike_phase(
     is_enemy_side: bool,
     output: &mut AirstrikeOutput,
 ) {
+    // The fleets' balloons bend the contact multiplier (`AADefenceBombersAndAirstrike`).
+    let balloons = |fleet: &[BattleRuntimeShip]| fleet.first().map_or(0, |ship| ship.balloons);
+    let contact = contact * balloon_contact(balloons(attackers), balloons(defenders));
     let candidates: Vec<usize> = defenders
         .iter()
         .enumerate()
