@@ -592,8 +592,9 @@ fn special_bonus(
     }
 }
 
-/// `divebombWeak` (`kcSHIPDATA.js`) of the targets the chain above does not catch first.
-fn dive_bomb_weak(id: i64) -> f64 {
+/// `divebombWeak` (`kcSHIPDATA.js`) of the targets the chain above does not catch first; an air
+/// corps' chain catches more of them.
+pub(super) fn dive_bomb_weak(id: i64) -> f64 {
     match id {
         1668..=1672 => 1.7,
         1684..=1686 => 5.0,

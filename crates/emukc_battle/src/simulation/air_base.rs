@@ -18,7 +18,7 @@ use emukc_model::{
 use crate::accuracy::{HitOutcome, roll_strike, squadron_proficiency};
 use crate::damage::balloon_contact;
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
-use crate::pt_imp::air_corps_strike_roll;
+use crate::pt_imp::is_pt;
 use crate::random::BattleRng;
 use crate::targeting::{choice_with_protect, is_airstrike_attack_type, target_class};
 use crate::types::{
@@ -28,7 +28,7 @@ use crate::types::{
 };
 
 use super::kouku::{
-    Contact, apply_plane_losses, attack_plane_from, calculate_fighter_power,
+    Contact, apply_plane_losses, attack_plane_from, calculate_fighter_power, dive_bomb_weak,
     proficiency_fighter_power, roll_contact, total_plane_count,
 };
 
@@ -325,6 +325,59 @@ fn strike_power(
     power
 }
 
+/// What a strike does to particular targets (`airstrikeLBAS`, `kcsim.js:3300-3329` at
+/// `69097abc`, `enableAirstrikeSpecialBonus` and `enableSummerHarbourLBASBonus` on by default),
+/// as (before the cap, after it). The first of the source's targets she is rolls for its
+/// multiplier after the cap. Any other takes her `LBWeak` before the cap and, against anything
+/// but a torpedo bomber (the source's `isdivebomber`, land attackers included), her
+/// `divebombWeak` after it, without a roll.
+fn special_bonus(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    defender: &BattleRuntimeShip,
+    type3: i64,
+) -> (f64, f64) {
+    let id = defender.ship.api_ship_id;
+    let (chance, high, low) = match id {
+        1557 | 1586 | 1620 => (0.35, 3.0, 1.7),
+        _ if is_pt(codex, defender) => (0.4, 0.7, 0.4),
+        1653..=1658 => (0.4, 3.5, 1.7),
+        1665..=1667 => (0.5, 2.5, 1.6),
+        1668..=1672 => (0.4, 2.0, 1.5),
+        1696..=1698 => (0.4, 1.8, 1.5),
+        1699..=1704 | 2023..=2028 | 2243..=2246 => (0.5, 1.5, 1.2),
+        1751 => (0.4, 1.7, 1.3),
+        2178 | 2179 | 2196 | 2197 => (0.5, 2.2, 1.5),
+        2180 | 2181 => (0.5, 1.6, 1.3),
+        2188..=2191 => (0.4, 1.8, 1.4),
+        _ => {
+            let torpedo_bomber =
+                KcSlotItemType3::n(type3) == Some(KcSlotItemType3::CarrierBasedTorpedoBomber);
+            let dive = if torpedo_bomber {
+                1.0
+            } else {
+                dive_bomb_weak(id)
+            };
+            return (lb_weak(id), dive);
+        }
+    };
+    let post = if rng.random_f64_range(0.0, 1.0) < chance {
+        high
+    } else {
+        low
+    };
+    (1.0, post)
+}
+
+/// `LBWeak` (`kcSHIPDATA.js`) of the targets the chain above does not catch first.
+fn lb_weak(id: i64) -> f64 {
+    match id {
+        1687..=1689 => 1.6,
+        1690..=1692 => 1.32,
+        _ => 1.0,
+    }
+}
+
 /// Fly one attack of `corps` against `enemy`, taking the losses out of both. `own_balloons` is
 /// how many barrage balloons the player's fleet flies at this cell.
 pub(crate) fn simulate_air_base_attack(
@@ -482,15 +535,23 @@ pub(crate) fn simulate_air_base_attack(
         if outcome == HitOutcome::Critical {
             api_ecl_flag[target] = 1;
         }
-        // A PT imp rolls its own multiplier on a hit.
-        let special = if pt && outcome != HitOutcome::Miss {
-            air_corps_strike_roll(rng)
+        // Some targets roll their own multiplier on a hit.
+        let (weak, special) = if outcome == HitOutcome::Miss {
+            (1.0, 1.0)
         } else {
-            1.0
+            special_bonus(codex, rng, &enemy[target], mst.api_type[2])
         };
+        // `LBWeak` goes in before the cap with the scouts'.
         let power = outcome.power_with(
-            strike_power(rng, mst, squadron.count, class, scouting, struck_contact, combined)
-                * special,
+            strike_power(
+                rng,
+                mst,
+                squadron.count,
+                class,
+                scouting * weak,
+                struck_contact,
+                combined,
+            ) * special,
             planes.critical_damage,
         );
         let defense = calculate_defense_power(rng, enemy[target].ship.api_soukou[0]);
@@ -949,5 +1010,44 @@ mod tests {
         assert_eq!(packet.air_base_attack[0].flights[0].before, 18);
         assert_eq!(packet.air_base_attack[1].flights[0].before, 18);
         assert_eq!(packet.air_base_attack[1].api_squadron_plane[0].api_count, 18);
+    }
+
+    #[test]
+    fn a_strike_takes_the_targets_own_multipliers() {
+        /// Every `f64` draw at `self.0` of the range, counted.
+        struct At(f64, usize);
+        impl BattleRng for At {
+            fn random_f64_range(&mut self, min: f64, max: f64) -> f64 {
+                self.1 += 1;
+                min + (max - min) * self.0
+            }
+            fn roll_range_impl(&mut self, min: i64, _max: i64) -> i64 {
+                min
+            }
+        }
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let land_attacker = codex.manifest.find_slotitem(LAND_ATTACKER).unwrap().api_type[2];
+        let torpedo_bomber = KcSlotItemType3::CarrierBasedTorpedoBomber as i64;
+        let bonus = |id, at, type3| {
+            let mut enemy = lone_enemy(&codex, KcShipType::DD);
+            enemy[0].ship.api_ship_id = id;
+            let mut rng = At(at, 0);
+            (special_bonus(&codex, &mut rng, &enemy[0], type3), rng.1)
+        };
+        // 離島棲姫 (6-4): 2.0 under 0.4, else 1.5, one draw, whatever flies.
+        assert_eq!(bonus(1668, 0.39, land_attacker), ((1.0, 2.0), 1));
+        assert_eq!(bonus(1668, 0.4, torpedo_bomber), ((1.0, 1.5), 1));
+        // 空母棲姫 (6-4) rolls at 0.35 for 3 or 1.7.
+        assert_eq!(bonus(1620, 0.36, land_attacker), ((1.0, 1.7), 1));
+        // A PT imp keeps its 0.7 / 0.4.
+        let pt = ship_mst_id_by_name(&codex, "PT小鬼群");
+        assert_eq!(bonus(pt, 0.39, land_attacker), ((1.0, 0.7), 1));
+        // 中枢棲姫-壊 is in no arm: LBWeak before the cap, and divebombWeak after it for all but
+        // a torpedo bomber, a land attacker included; neither draws.
+        assert_eq!(bonus(1687, 0.0, land_attacker), ((1.6, 2.5), 0));
+        assert_eq!(bonus(1687, 0.0, torpedo_bomber), ((1.6, 1.0), 0));
+        // An ordinary ship draws nothing.
+        assert_eq!(bonus(1501, 0.0, land_attacker), ((1.0, 1.0), 0));
     }
 }

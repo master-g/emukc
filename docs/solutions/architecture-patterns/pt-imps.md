@@ -43,8 +43,8 @@ has any, after the deck roll is drawn.
 
 The issue cited `kcsim.js:2108` and `:3352` for the strikes; under the default switches those
 lines do not run, and the PT arms of the special-bonus chains (`:2058`, `:3303`) do. The carrier's
-chain is `special_bonus` in `kouku.rs` (#200); the air corps' other arms are not modelled
-(`anti-installation.md`).
+chain is `special_bonus` in `kouku.rs` (#200), the air corps' `special_bonus` in `air_base.rs`
+(#259).
 
 ## Not modelled
 
