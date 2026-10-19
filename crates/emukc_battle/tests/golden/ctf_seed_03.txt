@@ -12,7 +12,7 @@ BattlePacket {
         59,
         56,
         44,
-        34,
+        37,
         26,
         31,
         31,
@@ -603,7 +603,7 @@ BattlePacket {
                     6,
                 ],
                 [
-                    9,
+                    6,
                 ],
                 [
                     0,
@@ -1078,7 +1078,7 @@ NightBattlePacket {
     ],
     friendly_nowhps: [
         44,
-        34,
+        37,
         26,
         31,
         31,

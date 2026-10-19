@@ -203,10 +203,10 @@ pub(crate) fn calculate_shelling_damage(
     resolve_damage(rng, capped_power, defense, defender.hp(), ammo_modifier(codex, attacker))
 }
 
-/// What a ship's guns count for by day before the cap, less the light cruiser's gun fit
-/// (`shellPower`): firepower, 5, the combined fleet's correction and the improvement bonus.
-/// Against a land target her equipment multiplies that and adds its flat power, and a
-/// submarine has 30 more firepower.
+/// What a ship's guns count for by day before the cap (`shellPower`; the light cruiser's gun
+/// fit is [`light_gun_bonus`]): firepower, 5, the combined fleet's correction and the
+/// improvement bonus. Against a land target her equipment multiplies that and adds its flat
+/// power, and a submarine has 30 more firepower.
 fn day_gun_power(codex: &Codex, attacker: &BattleRuntimeShip, defender: &BattleRuntimeShip) -> f64 {
     let firepower = attacker.ship.api_karyoku[0].max(0) as f64;
     let rest = 5.0
@@ -318,7 +318,8 @@ pub(crate) fn calculate_night_damage(
     outcome: HitOutcome,
 ) -> i64 {
     let own_power = air_power.unwrap_or_else(|| night_gun_power(codex, attacker, defender));
-    let basic_power = own_power + contact.map_or(0.0, |contact| contact.power);
+    let basic_power =
+        own_power + contact.map_or(0.0, |contact| contact.power) + light_gun_bonus(codex, attacker);
     let pre_cap = match ci_multiplier {
         Some(m) => basic_power * m,
         None => basic_power,
@@ -439,34 +440,22 @@ pub(crate) fn bomber_plane_count(codex: &Codex, ship: &BattleRuntimeShip) -> i64
         .sum()
 }
 
-/// Light cruiser gun bonus: `√(single_gun_count) + 2 × √(twin_gun_count)`.
+/// The source's `fitclass` 101 (`kcEQDATA.js` at `69097abc`): 14cm単装砲, 15.2cm単装砲.
+const LIGHT_SINGLE_GUNS: [i64; 2] = [4, 11];
+/// `fitclass` 102: the 14cm, 15.2cm, 6inch, Bofors and 13.8cm twin mounts.
+const LIGHT_TWIN_GUNS: [i64; 12] = [65, 119, 139, 303, 310, 359, 360, 361, 407, 518, 534, 535];
+
+/// A light cruiser's gun fit firepower (`FPfit`, `kcships.js:565-568`), on either side:
+/// `√(single guns) + 2√(twin guns)`, counting the guns by id. Day shelling adds it to the basic
+/// power, a night attack with the night scout's bonus, both before the multipliers.
 pub(crate) fn light_gun_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
-    if !matches!(ship_type(codex, ship), Some(KcShipType::CL | KcShipType::CLT)) {
+    if !matches!(ship_type(codex, ship), Some(KcShipType::CL | KcShipType::CLT | KcShipType::CT)) {
         return 0.0;
     }
-    let single = ship
-        .slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                == Some(KcSlotItemType3::SmallCaliberMainGun)
-        })
-        .count() as f64;
-    let twin = ship
-        .slot_items
-        .iter()
-        .filter(|si| {
-            codex
-                .find::<ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                == Some(KcSlotItemType3::MediumCaliberMainGun)
-        })
-        .count() as f64;
-    single.sqrt() + 2.0 * twin.sqrt()
+    let count = |ids: &[i64]| {
+        ship.slot_items.iter().filter(|item| ids.contains(&item.api_slotitem_id)).count() as f64
+    };
+    count(&LIGHT_SINGLE_GUNS).sqrt() + 2.0 * count(&LIGHT_TWIN_GUNS).sqrt()
 }
 
 // ---------------------------------------------------------------------------
@@ -1689,6 +1678,51 @@ mod tests {
         assert!((asw_formation_modifier(5) - 1.3).abs() < f64::EPSILON);
         assert!((asw_formation_modifier(1) - 1.0).abs() < f64::EPSILON);
         assert!((asw_formation_modifier(2) - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn a_light_cruisers_guns_fit_her_firepower_by_day_and_at_night() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |ship_type: KcShipType, guns: &[i64]| {
+            let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, ship_type), 50);
+            input.ship.api_karyoku[0] = 50;
+            input.ship.api_raisou[0] = 0;
+            input.slot_items = guns.iter().map(|&id| slotitem_with_mst_id(id)).collect();
+            BattleRuntimeShip::from(input)
+        };
+        // 139 is the 15.2cm twin mount, 4 the 14cm single.
+        assert_eq!(light_gun_bonus(&codex, &ship(KcShipType::CL, &[139, 139])), 2.0 * 2f64.sqrt());
+        assert_eq!(light_gun_bonus(&codex, &ship(KcShipType::CT, &[4])), 1.0);
+        assert_eq!(light_gun_bonus(&codex, &ship(KcShipType::CA, &[139, 139])), 0.0);
+
+        let mut target = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 1);
+        target.ship.api_soukou[0] = 0;
+        target.ship.api_maxhp = 999;
+        target.ship.api_nowhp = 999;
+        let target = BattleRuntimeShip::from(target);
+        let rng = || crate::random::SeededRng::new(1);
+        let day = |attacker: &BattleRuntimeShip| {
+            let engagement = EngagementType::SameCourse;
+            let hit = HitOutcome::Hit;
+            calculate_shelling_damage(
+                &codex,
+                &mut rng(),
+                attacker,
+                &target,
+                1,
+                engagement,
+                None,
+                hit,
+            )
+        };
+        let night = |attacker: &BattleRuntimeShip| {
+            let hit = HitOutcome::Hit;
+            calculate_night_damage(&codex, &mut rng(), attacker, &target, None, None, None, hit)
+        };
+        // 55 by day and 50 at night, each 2√2 more with the guns, before the floor.
+        let (bare, armed) = (ship(KcShipType::CL, &[]), ship(KcShipType::CL, &[139, 139]));
+        assert_eq!((day(&bare), day(&armed)), (55, 57));
+        assert_eq!((night(&bare), night(&armed)), (50, 52));
     }
 
     #[test]
