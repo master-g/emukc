@@ -9,6 +9,18 @@ use crate::net::prelude::*;
 #[derive(Deserialize)]
 pub(super) struct Params {
     pub(super) api_formation: i64,
+    /// 1 when the player asks for a smoke screen; absent otherwise.
+    #[serde(default)]
+    pub(super) api_smoke_flag: i64,
+}
+
+impl Params {
+    pub(super) fn order(&self) -> SortieOrder {
+        SortieOrder {
+            formation_id: self.api_formation,
+            smoke: self.api_smoke_flag == 1,
+        }
+    }
 }
 
 pub(super) async fn handler(
@@ -16,7 +28,7 @@ pub(super) async fn handler(
     Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let resp = state.sortie_combined_ld_shooting(pid, params.api_formation).await?;
+    let resp = state.sortie_combined_ld_shooting(pid, params.order()).await?;
 
     Ok(KcApiResponse::success(&resp))
 }

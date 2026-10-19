@@ -11,7 +11,7 @@ pub use remodel_slot::{RemodelSlotDetail, RemodelSlotListEntry, RemodelSlotResul
 pub use route_probe::{RouteProbe, RouteProbeFleet, RouteProbeShip, probe_route};
 pub use sortie::{
     SortieAirSearch, SortieCellData, SortieEnemyDeckPreview, SortieEscortSuccess, SortieHappening,
-    SortieItemGet, SortieNextResponse, SortieStartResponse,
+    SortieItemGet, SortieNextResponse, SortieOrder, SortieStartResponse,
 };
 pub use sortie_store::PracticeStore;
 pub use sortie_store::SortieStore;

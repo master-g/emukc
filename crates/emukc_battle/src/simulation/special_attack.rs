@@ -1240,6 +1240,7 @@ mod tests {
                     combined: None,
                     air_corps: Vec::new(),
                     special_attacks_made: made,
+                    use_smoke: false,
                 };
                 let mut rng = crate::random::SeededRng::new(seed);
                 let packet = crate::execute_day(&codex, context, &mut rng).packet;

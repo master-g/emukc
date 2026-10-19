@@ -39,6 +39,7 @@ mod tests {
             Pid(context.session.profile.id),
             Form(battle::Params {
                 api_formation: 1,
+                api_smoke_flag: 0,
             }),
         )
         .await
@@ -74,6 +75,7 @@ mod tests {
             Pid(context.session.profile.id),
             Form(airbattle::Params {
                 api_formation: 1,
+                api_smoke_flag: 0,
             }),
         )
         .await
@@ -99,6 +101,7 @@ mod tests {
             Pid(context.session.profile.id),
             Form(ld_airbattle::Params {
                 api_formation: 1,
+                api_smoke_flag: 0,
             }),
         )
         .await
@@ -125,6 +128,7 @@ mod tests {
             Pid(context.session.profile.id),
             Form(ld_shooting::Params {
                 api_formation: 1,
+                api_smoke_flag: 0,
             }),
         )
         .await

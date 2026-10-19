@@ -86,6 +86,8 @@ pub(crate) struct BattleState {
     hourai_flag: [i64; 4],
     opening_taisen_flag: i64,
     has_bb_class_at_start: bool,
+    /// How thick a smoke screen the player's fleet laid, 0 for none (`api_smoke_type`).
+    smoke_type: i64,
     /// Whether each side, friendly then enemy, has made its special attack.
     pub(crate) special_attack_used: [bool; 2],
 }
@@ -169,6 +171,7 @@ impl BattleState {
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
             has_bb_class_at_start: false,
+            smoke_type: 0,
             special_attack_used: [context.special_attacks_made.gunnery, false],
         }
     }
@@ -205,6 +208,7 @@ impl BattleState {
             hourai_flag: [0, 0, 0, 0],
             opening_taisen_flag: 0,
             has_bb_class_at_start: false,
+            smoke_type: 0,
             special_attack_used: [false; 2],
         }
     }
@@ -288,6 +292,14 @@ impl BattleState {
         self.has_bb_class_at_start = value;
     }
 
+    /// Put every friendly ship in a smoke screen of `level`.
+    pub(crate) fn lay_smoke(&mut self, level: i64) {
+        self.smoke_type = level;
+        for ship in &mut self.friendly {
+            ship.smoke = level;
+        }
+    }
+
     pub(crate) fn has_bb_class_at_start(&self) -> bool {
         self.has_bb_class_at_start
     }
@@ -314,7 +326,7 @@ impl BattleState {
             ],
             friendly_nowhps: self.friendly.iter().map(|ship| ship.hp().max(0)).collect(),
             enemy_nowhps: self.enemy.iter().map(|ship| ship.hp().max(0)).collect(),
-            smoke_type: 0,
+            smoke_type: self.smoke_type,
             balloon_cell: 0,
             atoll_cell: 0,
             midnight_flag: i64::from(can_midnight),

@@ -1157,6 +1157,7 @@ mod tests {
         };
         let active = ActiveSortieState {
             special_attacks_made: Default::default(),
+            smoke_used: false,
             deck_id: 3,
             map_id: 12,
             map_name: "1-2".to_string(),
@@ -1247,6 +1248,7 @@ mod tests {
         };
         let active = ActiveSortieState {
             special_attacks_made: Default::default(),
+            smoke_used: false,
             deck_id: 3,
             map_id: 12,
             map_name: "1-2".to_string(),

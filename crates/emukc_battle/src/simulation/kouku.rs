@@ -399,7 +399,13 @@ fn fly_through_anti_air(
                 return (flew, shot, air_fire.map(|fire| fire.packet));
             };
             let defender = afloat[pick];
-            let kept = combined_fire_share(defender, attackers_combined);
+            // A fleet in its smoke screen fires no anti-air but the fixed shot
+            // (`getAAShotProp`, `getAAShotFlat`).
+            let kept = if defender.smoke > 0 {
+                0.0
+            } else {
+                combined_fire_share(defender, attackers_combined)
+            };
             let ship_aa = weighted_anti_air(codex, defender) as f64 * kept;
             // A friendly fleet's fire counts for 1/1.3 as much at a rate of 0.2,
             // and always takes one aircraft more (`getAAShotFlat`, `shotFix`).
@@ -1135,6 +1141,27 @@ mod tests {
             assert!(left[0] < 30 && left[2] < 3, "seed {seed}: {left:?}");
             assert_eq!(left[1], 12, "seed {seed}: fighters are not fired on");
             assert_eq!(shot, 45 - left.iter().sum::<i64>());
+        }
+    }
+
+    #[test]
+    fn a_fleet_in_its_smoke_screen_fires_only_the_fixed_shot() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let mut carrier = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CV), 50);
+        carrier.slot_items = vec![slotitem_with_mst_id(bomber), slotitem_with_mst_id(bomber)];
+        carrier.ship.api_onslot = [30, 3, 0, 0, 0];
+        let mut defender = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        defender.ship.api_taiku[0] = 200;
+        let mut defenders = vec![BattleRuntimeShip::new(defender, true, true)];
+        defenders[0].smoke = 1;
+
+        for seed in 0..20 {
+            let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), false, true)];
+            let mut rng = crate::random::SeededRng::new(seed);
+            let (_, shot, _) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &defenders);
+            assert_eq!(attackers[0].ship.api_onslot[..2], [29, 2], "seed {seed}");
+            assert_eq!(shot, 2);
         }
     }
 

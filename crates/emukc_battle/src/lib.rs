@@ -22,6 +22,7 @@ mod pt_imp;
 /// Random number generation trait and implementations for battle simulation.
 pub mod random;
 mod simulation;
+mod smoke;
 mod state;
 mod targeting;
 /// Deterministic text renderer for battle simulations.

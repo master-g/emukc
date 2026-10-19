@@ -30,6 +30,7 @@ pub mod prelude {
     pub use crate::{
         err::GameplayError,
         game::PracticeStore,
+        game::SortieOrder,
         game::SortieStore,
         game::probe_route,
         game::types::*,

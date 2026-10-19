@@ -224,8 +224,8 @@ two bodies.
 - The flagship's special gunnery attacks of the day are rolled for at night too
   (`special_gunnery_at_night`), in the same one row as the night assault
   (`special_attack_row`); `day-shelling-order.md` has their rules.
-- Smoke (`smokeType`) is not modelled at all, by day or at night, so neither is its effect on
-  the attack on a submarine.
+- Smoke is laid by day only, and smokes the night attack on a submarine of the same cell
+  (`smoke-screen.md`).
 - A night attack on an installation leaves the torpedo out; its equipment multipliers are in
   `anti-installation.md`, with what of them is still missing.
 - The destroyer cut-ins with a lookout show any lookout and any drum-type equipment.

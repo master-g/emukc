@@ -27,6 +27,57 @@ mod tests {
         context.update_fleet_ships(pid, 1, &fleet_slots).await.unwrap();
     }
 
+    /// A smoke screen once laid is spent for the sortie (wikiwiki 発煙装置: 1出撃につき1回):
+    /// `next` tells the client to offer it no more, and a second order lays none.
+    #[tokio::test]
+    async fn a_smoke_screen_is_laid_once_a_sortie() {
+        use emukc_internal::gameplay::scenario::{Scenario, apply_scenario};
+        use emukc_internal::prelude::SortieOrder;
+
+        let context = new_context().await;
+        let pid = new_profile(&context).await;
+        apply_scenario(&context, pid, &Scenario::smoke_screen()).await.unwrap();
+        let baseline = context.get_ships(pid).await.unwrap();
+        let smoke = SortieOrder {
+            formation_id: 1,
+            smoke: true,
+        };
+
+        let mut second_battles = 0;
+        for seed in 1..=20 {
+            for ship in &baseline {
+                context.update_ship(ship).await.unwrap();
+            }
+            emukc_internal::crypto::rng::seed(seed);
+            let start = context.start_sortie(pid, 1, 1, 1).await.unwrap();
+            assert_eq!(start.limit_state, 0);
+            let first = context.sortie_battle(pid, smoke).await.unwrap();
+            assert!((1..=3).contains(&first.api_smoke_type), "seed {seed}: never fails at n = 3");
+            context.sortie_battle_result(pid).await.unwrap();
+
+            let next = context.next_sortie(pid, None).await.unwrap();
+            assert_eq!(next.limit_state, Some(1), "seed {seed}");
+            if matches!(next.event_id, 4 | 5) {
+                let second = context.sortie_battle(pid, smoke).await.unwrap();
+                assert_eq!(second.api_smoke_type, 0, "seed {seed}");
+                context.sortie_battle_result(pid).await.unwrap();
+                second_battles += 1;
+            }
+            context.sortie_goback_port(pid).await.ok();
+        }
+        assert!(second_battles > 0, "no seed reached a second battle");
+
+        // Not asked, none is laid, and the next step still offers it.
+        for ship in &baseline {
+            context.update_ship(ship).await.unwrap();
+        }
+        context.start_sortie(pid, 1, 1, 1).await.unwrap();
+        let plain = context.sortie_battle(pid, 1).await.unwrap();
+        assert_eq!(plain.api_smoke_type, 0);
+        context.sortie_battle_result(pid).await.unwrap();
+        assert_eq!(context.next_sortie(pid, None).await.unwrap().limit_state, Some(0));
+    }
+
     /// 1-5's first cell fields submarines alone: 8% of the fuel and no ammunition
     /// (wikiwiki 資材「燃料・弾薬の消費」), where an ordinary battle takes a fifth of each.
     #[tokio::test]

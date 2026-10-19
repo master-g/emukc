@@ -49,8 +49,14 @@ pub(crate) fn simulate_day(
     context: BattleContext,
     rng: &mut impl BattleRng,
 ) -> BattleSimulation {
+    let use_smoke = context.use_smoke;
     let mut state = BattleState::from_context(codex, context);
     let flow = BattleFlow::for_battle_type(state.battle_type());
+    // The smoke screen is rolled before any phase (`getSmokeType`), and not at all unless asked.
+    if use_smoke {
+        let level = crate::smoke::roll(rng, &state.friendly, state.combined().is_some());
+        state.lay_smoke(level);
+    }
 
     let has_bb =
         fleet_has_bb_class(codex, &state.friendly) || fleet_has_bb_class(codex, &state.enemy);
@@ -487,6 +493,32 @@ mod tests {
 
         assert_eq!(simulation.packet.midnight_flag, 1);
         assert!(simulation.outcome.can_midnight);
+    }
+
+    #[test]
+    fn a_fleet_asked_to_lay_smoke_lays_it_for_the_day() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let mut flagship = sample_ship(&codex, dd, 50);
+        // 発煙装置改 and 発煙装置: three in all, so it never fails.
+        flagship.slot_items = vec![slotitem_with_mst_id(501), slotitem_with_mst_id(500)];
+        let fleet = || {
+            let mut fleet = vec![flagship.clone()];
+            fleet.extend((0..3).map(|_| sample_ship(&codex, dd, 50)));
+            fleet
+        };
+        let battle = |use_smoke| {
+            let mut context = BattleContext::head_on(
+                BattleType::Normal,
+                true,
+                fleet(),
+                vec![sample_ship(&codex, dd, 1)],
+            );
+            context.use_smoke = use_smoke;
+            simulate_day(&codex, context, &mut SeededRng::new(1)).packet.smoke_type
+        };
+        assert!((1..=3).contains(&battle(true)));
+        assert_eq!(battle(false), 0);
     }
 
     #[test]
@@ -1082,6 +1114,7 @@ mod combined_tests {
 
         let context = BattleContext {
             special_attacks_made: Default::default(),
+            use_smoke: false,
             battle_type: BattleType::Normal,
             is_sortie: true,
             friendly_formation_id: 1,
@@ -1159,6 +1192,7 @@ mod combined_tests {
         for seed in 0..20 {
             let context = BattleContext {
                 special_attacks_made: Default::default(),
+                use_smoke: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -1218,6 +1252,7 @@ mod combined_tests {
         for seed in 0..40 {
             let context = BattleContext {
                 special_attacks_made: Default::default(),
+                use_smoke: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -1272,6 +1307,7 @@ mod combined_tests {
             for seed in 0..20 {
                 let context = BattleContext {
                     special_attacks_made: Default::default(),
+                    use_smoke: false,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: 11,
@@ -1345,6 +1381,7 @@ mod combined_tests {
             for (friendly, enemy) in [(tank(dd), tank(clt)), (tank(ss), hunter())] {
                 let context = BattleContext {
                     special_attacks_made: Default::default(),
+                    use_smoke: false,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: 11,
@@ -1399,6 +1436,7 @@ mod combined_tests {
         for seed in 0..40 {
             let context = BattleContext {
                 special_attacks_made: Default::default(),
+                use_smoke: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 11,
@@ -1427,6 +1465,7 @@ mod combined_tests {
 
         let context = BattleContext {
             special_attacks_made: Default::default(),
+            use_smoke: false,
             battle_type: BattleType::Normal,
             is_sortie: true,
             // 第一警戒航行序列; the enemy keeps a normal formation.
