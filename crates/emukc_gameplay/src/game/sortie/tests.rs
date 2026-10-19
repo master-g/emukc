@@ -1487,14 +1487,22 @@ fn active_sortie_on_cell(
     codex: &Codex,
     pick: impl Fn(&MapCellDefinition) -> bool,
 ) -> ActiveSortieState {
-    let definition = codex.maps.map_definition(11).unwrap();
+    active_sortie_on_map_cell(codex, 11, pick)
+}
+
+fn active_sortie_on_map_cell(
+    codex: &Codex,
+    map_id: i64,
+    pick: impl Fn(&MapCellDefinition) -> bool,
+) -> ActiveSortieState {
+    let definition = codex.maps.map_definition(map_id).unwrap();
     let stage = definition.stage(&definition.default_variant).unwrap();
     let cell = stage.cells.iter().find(|cell| pick(cell)).unwrap();
     ActiveSortieState {
         special_attacks_made: Default::default(),
         smoke_used: false,
         deck_id: 1,
-        map_id: 11,
+        map_id,
         map_name: definition.name.clone(),
         map_level: definition.level,
         stage_id: definition.default_variant.clone(),
@@ -1655,36 +1663,12 @@ async fn balloons_rise_at_3_5_h() {
     scenario.fleet.extend(vec![ShipSpec::new(951, 50); 2]);
     apply_scenario(&context, pid, &scenario).await.unwrap();
 
-    let definition = context.codex.maps.map_definition(35).unwrap();
-    let stage = definition.stage(&definition.default_variant).unwrap();
     let fight_at = |balloons: bool| {
-        let cell = stage
-            .cells
-            .iter()
-            .find(|cell| {
-                (cell.node_label.as_deref() == Some("H")) == balloons
-                    && cell.node_label.is_some()
-                    && cell.event_id == 4
-            })
-            .unwrap();
-        ActiveSortieState {
-            special_attacks_made: Default::default(),
-            smoke_used: false,
-            deck_id: 1,
-            map_id: 35,
-            map_name: definition.name.clone(),
-            map_level: definition.level,
-            stage_id: definition.default_variant.clone(),
-            current_cell_id: cell.cell_no,
-            boss_cell_id: stage.boss_cell_no,
-            pending_battle_cell_id: None,
-            visited_cell_ids: BTreeSet::from([cell.cell_no]),
-            locked_enemy_composition: None,
-            landing_tp: None,
-            recon_rewards: Vec::new(),
-            air_strikes: vec![],
-            raided: false,
-        }
+        active_sortie_on_map_cell(&context.codex, 35, |cell| {
+            (cell.node_label.as_deref() == Some("H")) == balloons
+                && cell.node_label.is_some()
+                && cell.event_id == 4
+        })
     };
     let store = context.sortie_store.as_ref();
 

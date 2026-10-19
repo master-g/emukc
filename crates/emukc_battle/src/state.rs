@@ -27,6 +27,9 @@ pub(crate) struct CombinedLayout {
     pub(crate) escort_start: usize,
 }
 
+/// 阻塞気球 and 深海観測阻塞気球.
+const BALLOONS: [i64; 2] = [513, 1640];
+
 /// Mark the first ship of a friendly fleet, or of one deck of it, as its flagship.
 fn mark_flagship(fleet: &mut [BattleRuntimeShip]) {
     if let Some(flagship) = fleet.first_mut() {
@@ -311,7 +314,7 @@ impl BattleState {
                         && ship
                             .slot_items
                             .iter()
-                            .any(|item| matches!(item.api_slotitem_id, 513 | 1640))
+                            .any(|item| BALLOONS.contains(&item.api_slotitem_id))
                 })
                 .count()
                 .min(3) as i64;
