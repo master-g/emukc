@@ -10,6 +10,7 @@ applies_when:
   - "Modifying day shelling, carrier shelling, night, torpedo or ASW basic power"
   - "Adding or adjusting what equipment stars (★) add to attack power"
   - "Modifying the accuracy or evasion of day shelling, night, torpedo or ASW attacks"
+  - "Modifying a carrier's or an air corps' airstrike power"
 tags: [equipment, improvement, star-bonus, shelling, torpedo, night-battle, asw, damage-formula, accuracy, evasion]
 related_components: [emukc_model]
 ---
@@ -41,7 +42,7 @@ built in this order, a later step overwriting an earlier one:
 1. **Aircraft, linear in ★:**
    - Dive, torpedo and jet bombers (client types 7, 8, 57) that are not fighter-bombers:
      day and ASW 0.2★. The fighter-bombers are the items the source marks `isFighterBomber`
-     (60, 154, 219, 447, 487); of them only 487 has ASW 0.2★.
+     (60, 154, 219, 447, 487, generated into `FIGHTER_BOMBERS`); of them only 487 has ASW 0.2★.
    - Autogyro (25): ASW 0.3★ at 対潜 ≥ 11, else 0.2★. ASW patrol plane (26): the same at 8.
 2. **The table, coefficient × √★, by client type `api_type[2]`:**
 
@@ -77,6 +78,22 @@ Where each key goes, as a flat term in basic power before the pre-cap modifiers:
   power, so it moves with it.
 - ASW: inside the bracket of `calculate_asw_damage`, before the synergy multiplier
   (`ASWPower`).
+
+### Airstrikes
+
+An aircraft's stars also add to her own figure (爆装, 雷装) in the carrier battle's strike and
+an air corps' strike (`airstrikePowerImprove`, `kcships.js:2387-2428`; added at `kcsim.js:2019`
+and `3277`), as `airstrike_improvement` in `damage.rs` (#264):
+
+- Dive, torpedo and jet bombers (7, 8, 57) that are not fighter-bombers, and seaplane bombers
+  (11): 0.2★. The fighter-bombers' stars go to their anti-air instead.
+- Land attackers and large land attackers (47, 53): 0.7√★.
+
+It goes in only when the figure is above zero and the target is no submarine: a torpedo bomber
+against land, 東海 against a ship, and any strike on a submarine take none. In the carrier
+strike it comes before the slot's 装備ボーナス. The fighter-bombers are the generated
+`FIGHTER_BOMBERS` (`scripts/gen_installation_types.py`, the source's `isFighterBomber`); the
+source types every aircraft as the client does.
 
 ### Accuracy and evasion
 
@@ -133,6 +150,7 @@ guns gain far less than √★. The keys go in before the multipliers and compou
 - Main gun ★10: day accuracy √10, night 1.3√10. Torpedo ★4: torpedo accuracy 4, night 2.6.
 - Sonar ★9: ASW accuracy 3.9, torpedo evasion 4.5. Engine ★6: day evasion 1.5√6 ≈ 3.67.
 - Radar ★4: day accuracy 3.4 and night 3.2 at 命中 ≥ 3; 2 and 2.6 below.
+- 彗星 ★10 in a carrier strike: 爆装 8 + 2. 一式陸攻 ★4 in an air corps' strike: 雷装 10 + 1.4.
 
 ## Checking against the source
 

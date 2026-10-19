@@ -1223,6 +1223,7 @@ mod combined_tests {
                             mst_id: 169,
                             count: 18,
                             alv: 7,
+                            level: 0,
                             exp: None,
                         })
                         .collect(),

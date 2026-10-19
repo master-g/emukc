@@ -22,7 +22,7 @@ use crate::combined::{
 use crate::installation::{AntiInstallation, land_target, post_cap_multiplier};
 use crate::pt_imp::{AntiPt, is_pt, pt_power};
 use crate::random::BattleRng;
-use crate::simulation::installation_types::INSTALLATION_BOMBERS;
+use crate::simulation::installation_types::{FIGHTER_BOMBERS, INSTALLATION_BOMBERS};
 use crate::simulation::night::carrier_torpedo_bonus;
 use crate::targeting::{
     abyssal_carrier_asw, bonus_gears, count_slotitems, has_slotitem_type, is_airstrike_attack_type,
@@ -793,8 +793,6 @@ fn improvement_coefficients(kind: i64) -> Improvement {
 
 /// What one item at `stars` (> 0) adds.
 fn improvement(mst: &ApiMstSlotitem, stars: i64) -> Improvement {
-    /// The items the source marks `isFighterBomber`.
-    const FIGHTER_BOMBERS: [i64; 5] = [60, 154, 219, 447, 487];
     let linear = stars as f64;
     let root = linear.sqrt();
     // Aircraft improve by the star; the table below has no weight for them.
@@ -849,6 +847,20 @@ fn improvement(mst: &ApiMstSlotitem, stars: i64) -> Improvement {
         item.night_accuracy = 1.6 * root;
     }
     item
+}
+
+/// What an aircraft's stars add to her figure in a carrier's or an air corps' strike
+/// (`airstrikePowerImprove`, `kcships.js:2387-2428` at `69097abc`): 0.2★ for a dive, torpedo or
+/// jet bomber that is no fighter-bomber and for a seaplane bomber, 0.7√★ for a land attacker.
+/// The strikes add it only to a figure above zero against a ship that is no submarine.
+pub(crate) fn airstrike_improvement(mst: &ApiMstSlotitem, stars: i64) -> f64 {
+    let stars = stars.max(0) as f64;
+    match mst.api_type[2] {
+        7 | 8 | 57 if !FIGHTER_BOMBERS.contains(&mst.api_id) => 0.2 * stars,
+        11 => 0.2 * stars,
+        47 | 53 => 0.7 * stars.sqrt(),
+        _ => 0.0,
+    }
 }
 
 // ---------------------------------------------------------------------------

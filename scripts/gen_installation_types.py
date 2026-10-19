@@ -6,8 +6,9 @@ or the files given as the arguments) and writes
 crates/emukc_battle/src/simulation/installation_types.rs: every abyssal ship with an
 `installtype`, the ships with each of the separate marks the damage formulas read
 (`isSupplyDepot`, `isAnchorage`, `isDock`, `isSummerBB`, `isSummerCA`), the last abyssal id the
-source knows, and the dive bombers that may attack a land target (`canShellInstall`). It prints
-the counts and sums that the test `the_installation_tables_follow_the_source` asserts.
+source knows, the dive bombers that may attack a land target (`canShellInstall`) and the
+fighter-bombers (`isFighterBomber`). It prints the counts and sums that the test
+`the_installation_tables_follow_the_source` asserts.
 
     python3 scripts/gen_installation_types.py [kcSHIPDATA.js [kcEQDATA.js]]
 """
@@ -48,12 +49,12 @@ def parse(text: str) -> tuple[dict[int, int], dict[str, list[int]], int]:
     return types, {mark: sorted(ids) for mark, ids in marks.items()}, last
 
 
-def bombers(text: str) -> list[int]:
+def flagged(text: str, flag: str) -> list[int]:
     found, item = [], None
     for line in text.splitlines():
         if entry := re.match(r"\t(\d+): \{", line):
             item = int(entry[1])
-        elif item is not None and re.match(r"\t\tcanShellInstall: true,", line):
+        elif item is not None and re.match(rf"\t\t{flag}: true,", line):
             found.append(item)
     return sorted(found)
 
@@ -67,7 +68,9 @@ def source(at: int, name: str) -> str:
 
 def main() -> None:
     types, marks, last = parse(source(1, "kcSHIPDATA.js"))
-    land_bombers = bombers(source(2, "kcEQDATA.js"))
+    equipment = source(2, "kcEQDATA.js")
+    land_bombers = flagged(equipment, "canShellInstall")
+    fighter_bombers = flagged(equipment, "isFighterBomber")
     rows = "".join(f"    ({ship}, {kind}),\n" for ship, kind in sorted(types.items()))
     lists = "".join(
         f"/// The ships that {doc} (`{mark}`).\n"
@@ -86,6 +89,11 @@ def main() -> None:
         "/// The dive bombers that may attack a land target (`canShellInstall`), sorted by id.\n"
         "pub(crate) const INSTALLATION_BOMBERS: &[i64] = &[\n"
         + "".join(f"    {item},\n" for item in land_bombers)
+        + "];\n\n"
+        "/// The fighter-bombers (`isFighterBomber`), sorted by id: their stars improve their anti-air,\n"
+        "/// not their strike.\n"
+        "pub(crate) const FIGHTER_BOMBERS: &[i64] = &[\n"
+        + "".join(f"    {item},\n" for item in fighter_bombers)
         + "];\n",
         encoding="utf-8",
     )
@@ -97,6 +105,7 @@ def main() -> None:
         print(f"{mark}: {len(ids)} ships, ids sum {sum(ids)}")
     print(f"last abyssal id: {last}")
     print(f"canShellInstall: {len(land_bombers)} items, ids sum {sum(land_bombers)}: {land_bombers}")
+    print(f"isFighterBomber: {len(fighter_bombers)} items, ids sum {sum(fighter_bombers)}: {fighter_bombers}")
 
 
 if __name__ == "__main__":
