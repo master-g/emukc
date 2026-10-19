@@ -12,7 +12,7 @@
 
 use emukc_model::{
     codex::Codex,
-    kc2::{KcApiSlotItem, KcSlotItemType3, start2::ApiMstSlotitem},
+    kc2::{KcApiSlotItem, KcShipType, KcSlotItemType3, start2::ApiMstSlotitem},
 };
 
 use crate::accuracy::{HitOutcome, roll_strike, squadron_proficiency};
@@ -20,7 +20,7 @@ use crate::damage::balloon_contact;
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
 use crate::pt_imp::is_pt;
 use crate::random::BattleRng;
-use crate::targeting::{choice_with_protect, is_airstrike_attack_type, target_class};
+use crate::targeting::{choice_with_protect, is_airstrike_attack_type, ship_type, target_class};
 use crate::types::{
     AirCorpsInput, AirState, BattleAirBaseAttack, BattleKouku, BattleKoukuStage1,
     BattleKoukuStage2, BattleKoukuStage3, BattleRuntimeShip, BattleSquadronPlane, DamageCell,
@@ -29,7 +29,8 @@ use crate::types::{
 
 use super::kouku::{
     Contact, apply_plane_losses, attack_plane_from, calculate_fighter_power, dive_bomb_weak,
-    proficiency_fighter_power, roll_contact, total_plane_count,
+    is_skip_bomber, proficiency_fighter_power, roll_contact, skip_bombing_accuracy,
+    skip_bombing_pre_cap, total_plane_count,
 };
 
 /// Where an air corps strike stops growing linearly (`lbasDmgCap`).
@@ -173,9 +174,14 @@ fn fighter_power(codex: &Codex, corps: &AirCorpsInput) -> i64 {
 
 /// The figure a squadron strikes this target with: 対潜 against a submarine,
 /// otherwise bombs or torpedoes, depending on what it flies and whether the
-/// target stands on land. Its stars add to the figure (`airstrikePowerImprove`), not to
-/// 対潜 or to a figure of nothing.
-fn strike_stat(mst: &ApiMstSlotitem, stars: i64, target: TargetClass) -> f64 {
+/// target stands on land, then what some aircraft do to particular ship types. Its stars add
+/// to the figure (`airstrikePowerImprove`), not to 対潜 or to a figure of nothing.
+fn strike_stat(
+    mst: &ApiMstSlotitem,
+    stars: i64,
+    target: TargetClass,
+    ship_type: Option<KcShipType>,
+) -> f64 {
     if target.is_submarine() {
         return mst.api_tais.max(0) as f64;
     }
@@ -198,6 +204,28 @@ fn strike_stat(mst: &ApiMstSlotitem, stars: i64, target: TargetClass) -> f64 {
         }
     } else {
         bombs
+    };
+    // `kcsim.js:3243-3276` at `69097abc`, `hayabusa65Buff` on.
+    use KcShipType::*;
+    let destroyer = ship_type == Some(DD);
+    let battleship = matches!(ship_type, Some(FBB | BB | BBV));
+    let light = matches!(ship_type, Some(DD | CL | CLT | CA | CAV));
+    let heavy = matches!(ship_type, Some(CVL | FBB | BB | BBV | CV));
+    let stat = match (mst.api_id, on_land) {
+        (224, _) if destroyer => 25.0,
+        (491, _) if destroyer => 30.0,
+        (405, false) if destroyer => stat * 1.1,
+        (406, false) if battleship => stat * 1.5,
+        (444, false) if light => stat * 1.15,
+        (444, false) if heavy => stat * 1.13,
+        (454, false) if light => stat * 1.16,
+        (454, false) if heavy => stat * 1.14,
+        (484, true) => stat + 2.1,
+        (484, false) if light => stat + 2.6,
+        (484, false) if heavy => stat + 2.25,
+        (562, false) if destroyer => stat * 1.25,
+        (562, false) if battleship => stat * 1.15,
+        _ => stat,
     };
     crate::damage::with_airstrike_improvement(stat, mst, stars)
 }
@@ -302,11 +330,12 @@ fn strike_power(
     count: i64,
     stars: i64,
     target: TargetClass,
+    ship_type: Option<KcShipType>,
     scouting: f64,
     contact: f64,
     combined: bool,
 ) -> f64 {
-    let stat = strike_stat(mst, stars, target);
+    let stat = strike_stat(mst, stars, target, ship_type);
     let pre = if target.is_submarine() {
         if stat >= 10.0 {
             rng.random_f64_range(0.7, 1.0)
@@ -318,6 +347,8 @@ fn strike_power(
     } else {
         1.0
     };
+    let pre =
+        pre * skip_bombing_pre_cap(mst.api_id, target == TargetClass::Installation, ship_type);
     let power = (25.0 + stat * (SLOT_MODIFIER * count as f64).sqrt()) * pre * scouting;
     let mut power = apply_cap(power, DAMAGE_CAP) as f64 * contact;
     if KcSlotItemType3::n(mst.api_type[2]) == Some(KcSlotItemType3::LandBasedAttacker) {
@@ -327,6 +358,31 @@ fn strike_power(
         power *= COMBINED_FLEET_POST_CAP;
     }
     power
+}
+
+/// What some aircraft add to a strike's chance to hit particular ship types, in percent
+/// (`airstrikeLBAS`, `kcsim.js:3183-3206` at `69097abc`): guided missiles by type, the
+/// installations' own types included, and skip bombing, −9 on land.
+fn strike_accuracy_bonus(id: i64, target: TargetClass, ship_type: Option<KcShipType>) -> f64 {
+    use KcShipType::*;
+    let destroyer = ship_type == Some(DD);
+    let missile = match id {
+        444 if destroyer => -7.0,
+        444 if matches!(ship_type, Some(CL | CLT | CVL | FBB | BB | BBV | CV)) => 7.0,
+        484 if destroyer => -5.0,
+        484 if matches!(ship_type, Some(CL | CLT | CA | CAV | CVL | FBB | BB | BBV | CV)) => 5.0,
+        453 if destroyer => 7.0,
+        454 if destroyer => -17.0,
+        454 if matches!(ship_type, Some(CL | CLT)) => 7.0,
+        454 if matches!(ship_type, Some(CA | CAV | CVL | FBB | BB | BBV | CV)) => 5.0,
+        _ => 0.0,
+    };
+    let skip = match target {
+        TargetClass::Installation if is_skip_bomber(id) => -9.0,
+        TargetClass::Installation => 0.0,
+        _ => skip_bombing_accuracy(id, ship_type, target == TargetClass::PtBoat, 13.0),
+    };
+    missile + skip
 }
 
 /// What a strike does to particular targets (`airstrikeLBAS`, `kcsim.js:3300-3329` at
@@ -510,6 +566,7 @@ pub(crate) fn simulate_air_base_attack(
             continue;
         };
         let class = target_class(codex, &enemy[target]);
+        let kind = ship_type(codex, &enemy[target]);
         let land_attacker = is_land_attacker(mst.api_type[2]);
         // A land-based strike lands 90 times in a hundred plus 7 for each
         // point of the aircraft's 命中, and the target dodges it less well
@@ -528,7 +585,8 @@ pub(crate) fn simulate_air_base_attack(
             codex,
             rng,
             &enemy[target],
-            (90.0 + 7.0 * mst.api_houm as f64) * pt_accuracy,
+            (90.0 + 7.0 * mst.api_houm as f64) * pt_accuracy
+                + strike_accuracy_bonus(mst.api_id, class, kind),
             if combined {
                 0.68
             } else {
@@ -553,6 +611,7 @@ pub(crate) fn simulate_air_base_attack(
                 squadron.count,
                 squadron.level,
                 class,
+                kind,
                 scouting * weak,
                 struck_contact,
                 combined,
@@ -685,7 +744,7 @@ mod tests {
 
         let mut rng = crate::random::SeededRng::new(1);
         let mut power = |count, target, scouting, contact| {
-            strike_power(&mut rng, mst, count, 0, target, scouting, contact, false)
+            strike_power(&mut rng, mst, count, 0, target, None, scouting, contact, false)
         };
         let sea = TargetClass::SurfaceShip;
 
@@ -708,8 +767,8 @@ mod tests {
         let mut rng = crate::random::SeededRng::new(1);
         let sea = TargetClass::SurfaceShip;
         // 65 after the cap, × 1.8, then × 1.1.
-        let single = strike_power(&mut rng, mst, 18, 0, sea, 1.0, 1.0, false);
-        let combined = strike_power(&mut rng, mst, 18, 0, sea, 1.0, 1.0, true);
+        let single = strike_power(&mut rng, mst, 18, 0, sea, None, 1.0, 1.0, false);
+        let combined = strike_power(&mut rng, mst, 18, 0, sea, None, 1.0, 1.0, true);
         assert!((single - 117.0).abs() < 1e-9);
         assert!((combined - 128.7).abs() < 1e-9);
     }
@@ -723,7 +782,7 @@ mod tests {
         let tokai = codex.manifest.find_slotitem(TOKAI).unwrap();
         let power = |mst, stars, target| {
             let mut rng = crate::random::SeededRng::new(1);
-            strike_power(&mut rng, mst, 18, stars, target, 1.0, 1.0, false)
+            strike_power(&mut rng, mst, 18, stars, target, None, 1.0, 1.0, false)
         };
         let sea = TargetClass::SurfaceShip;
         // ★4: 25 + (10 + 1.4) × √32.4 = 89.9, × 0.8 = 71.9 → 71, × 1.8.
@@ -735,6 +794,71 @@ mod tests {
             power(tokai, 4, TargetClass::Submarine),
             power(tokai, 0, TargetClass::Submarine)
         );
+    }
+
+    /// Some aircraft strike particular ship types with another figure, before the root and the
+    /// stars (`airstrikeLBAS`, `kcsim.js:3243-3276`).
+    #[test]
+    fn an_aircraft_strikes_some_ship_types_with_its_own_figure() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let power = |id, ship_type| {
+            let mst = codex.manifest.find_slotitem(id).unwrap();
+            let mut rng = crate::random::SeededRng::new(1);
+            let sea = TargetClass::SurfaceShip;
+            strike_power(&mut rng, mst, 18, 0, sea, Some(ship_type), 1.0, 1.0, false)
+        };
+        // Do 217 E-5+Hs293初期型, 雷装 13: against a destroyer 14.3, 25 + 14.3 × √32.4 = 106.4,
+        // × 0.8 = 85.1 → 85, × 1.8; against a cruiser 25 + 13 × √32.4 = 99, × 0.8 = 79.2 → 79.
+        assert!((power(405, KcShipType::DD) - 153.0).abs() < 1e-9);
+        assert!((power(405, KcShipType::CA) - 142.2).abs() < 1e-9);
+        // 爆装一式戦 隼III型改(65戦隊) has no torpedo; a destroyer it strikes with 25:
+        // 25 + 25 × √32.4 = 167.3, × 0.8 = 133.8 → 133, × 1.8.
+        assert!((power(224, KcShipType::DD) - 239.4).abs() < 1e-9);
+        assert!((power(224, KcShipType::CL) - 36.0).abs() < 1e-9);
+    }
+
+    /// The B-25 skip-bombs: before the cap ×1.9 on a destroyer, ×1.3 on a battleship, ×0.9 on
+    /// land (`airstrikeLBAS`, `kcsim.js:3286-3295`).
+    #[test]
+    fn the_b25_skip_bombs_by_ship_type_and_less_on_land() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mst = codex.manifest.find_slotitem(B25).unwrap();
+        assert_eq!((mst.api_raig, mst.api_baku), (8, 16), "the figures below assume these");
+        let power = |target, ship_type| {
+            let mut rng = crate::random::SeededRng::new(1);
+            strike_power(&mut rng, mst, 18, 0, target, Some(ship_type), 1.0, 1.0, false)
+        };
+        let sea = TargetClass::SurfaceShip;
+        // 25 + 8 × √32.4 = 70.5, × 0.8 × 1.9 = 107.2 → 107, × 1.8.
+        assert!((power(sea, KcShipType::DD) - 192.6).abs() < 1e-9);
+        // × 0.8 × 1.3 = 73.4 → 73, × 1.8.
+        assert!((power(sea, KcShipType::BB) - 131.4).abs() < 1e-9);
+        // A submarine tender is in no arm: × 0.8 = 56.4 → 56, × 1.8.
+        assert!((power(sea, KcShipType::AS) - 100.8).abs() < 1e-9);
+        // On land it bombs: 25 + 16 × √32.4 = 116.1, × 0.8 × 0.9 = 83.6 → 83, × 1.8.
+        assert!((power(TargetClass::Installation, KcShipType::BBV) - 149.4).abs() < 1e-9);
+    }
+
+    /// Some aircraft land more or less often on particular ship types, in points added after the
+    /// PT imp's multiplier (`airstrikeLBAS`, `kcsim.js:3183-3206`).
+    #[test]
+    fn an_aircraft_hits_some_ship_types_more_or_less_often() {
+        use KcShipType::*;
+        let sea = TargetClass::SurfaceShip;
+        let land = TargetClass::Installation;
+        // The B-25 skip-bombs: +31 on a battleship, +13 on a destroyer but not a PT imp,
+        // −9 on land.
+        assert_eq!(strike_accuracy_bonus(B25, sea, Some(BB)), 31.0);
+        assert_eq!(strike_accuracy_bonus(B25, sea, Some(CA)), 22.0);
+        assert_eq!(strike_accuracy_bonus(B25, sea, Some(DD)), 13.0);
+        assert_eq!(strike_accuracy_bonus(B25, TargetClass::PtBoat, Some(DD)), 0.0);
+        assert_eq!(strike_accuracy_bonus(B25, land, Some(BBV)), -9.0);
+        // キ102乙改+イ号一型乙: −17 on a destroyer, +7 on a light cruiser, +5 on a battleship.
+        assert_eq!(strike_accuracy_bonus(454, sea, Some(DD)), -17.0);
+        assert_eq!(strike_accuracy_bonus(454, sea, Some(CL)), 7.0);
+        assert_eq!(strike_accuracy_bonus(454, sea, Some(BB)), 5.0);
+        // 一式陸攻 has none.
+        assert_eq!(strike_accuracy_bonus(LAND_ATTACKER, sea, Some(BB)), 0.0);
     }
 
     #[test]
@@ -949,7 +1073,8 @@ mod tests {
         assert_eq!(mst.api_raig, 0, "the figure below assumes no torpedoes");
         let mut rng = crate::random::SeededRng::new(1);
         // 25 × 0.8 = 20, × 1.8.
-        let power = strike_power(&mut rng, mst, 18, 0, TargetClass::SurfaceShip, 1.0, 1.0, false);
+        let power =
+            strike_power(&mut rng, mst, 18, 0, TargetClass::SurfaceShip, None, 1.0, 1.0, false);
         assert!((power - 36.0).abs() < 1e-9);
 
         let hit = (0..20).any(|seed| {

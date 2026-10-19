@@ -554,6 +554,8 @@ fn calculate_single_slot_airstrike_damage(
     } else {
         1.0
     };
+    let on_land = target_class(codex, defender) == TargetClass::Installation;
+    let pre = pre * skip_bombing_pre_cap(mst.api_id, on_land, ship_type(codex, defender));
     // The target's own roll comes after the torpedo's.
     let post = special_bonus(codex, rng, defender, !is_torpedo_bomber)
         * post_cap_multiplier(codex, attacker, defender, true);
@@ -595,6 +597,56 @@ fn special_bonus(
         high
     } else {
         low
+    }
+}
+
+/// Whether this aircraft skip-bombs: the B-25 and five abyssal planes (`isSkipBomber`,
+/// `kcEQDATA.js` at `69097abc`).
+pub(super) fn is_skip_bomber(id: i64) -> bool {
+    matches!(id, 459 | 1625 | 1626 | 1634..=1636)
+}
+
+/// What skip bombing multiplies aircraft `id`'s strike by before the cap, carrier's or air
+/// corps' alike (`kcsim.js:2042-2051` and `3286-3295` at `69097abc`, `enableSkipTorpBonus`
+/// on): ×0.9 on land, at sea by the target's type, a PT imp counted as the destroyer she is
+/// typed; 1 for any other aircraft.
+pub(super) fn skip_bombing_pre_cap(id: i64, on_land: bool, ship_type: Option<KcShipType>) -> f64 {
+    use KcShipType::*;
+    if !is_skip_bomber(id) {
+        return 1.0;
+    }
+    if on_land {
+        return 0.9;
+    }
+    match ship_type {
+        Some(DD) => 1.9,
+        Some(CL | CLT | AV) => 1.75,
+        Some(CA | CAV) => 1.6,
+        // The source's `AT` is the 輸送ワ級, stype 15.
+        Some(CVL | FBB | BB | BBV | CV | CVB | AP) => 1.3,
+        _ => 1.0,
+    }
+}
+
+/// What skip bombing adds to aircraft `id`'s chance to hit at sea, in percent, by the target's
+/// type: `destroyer_points` for a destroyer that is no PT imp, 14 from a carrier and 13 from an
+/// air corps (`kcsim.js:1983-1988` and `3200-3206` at `69097abc`); 0 for any other aircraft.
+pub(super) fn skip_bombing_accuracy(
+    id: i64,
+    ship_type: Option<KcShipType>,
+    pt: bool,
+    destroyer_points: f64,
+) -> f64 {
+    use KcShipType::*;
+    if !is_skip_bomber(id) {
+        return 0.0;
+    }
+    match ship_type {
+        Some(FBB | BB | BBV | CVL | CV | CVB | AP) => 31.0,
+        Some(CA | CAV) => 22.0,
+        Some(CL | CLT | AV) => 18.0,
+        Some(DD) if !pt => destroyer_points,
+        _ => 0.0,
     }
 }
 
@@ -671,11 +723,17 @@ fn execute_airstrike_phase(
         let ship = &attackers[ship_idx];
         let planes = plane_proficiency(codex, ship);
         let slot_item = &ship.slot_items[slot_idx];
-        let torpedo = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id).is_ok_and(|mst| {
+        let mst = codex.find::<ApiMstSlotitem>(&slot_item.api_slotitem_id).ok();
+        let torpedo = mst.is_some_and(|mst| {
             KcSlotItemType3::n(mst.api_type[2]) == Some(KcSlotItemType3::CarrierBasedTorpedoBomber)
         });
-        let outcome =
-            roll_strike(codex, rng, &defenders[target_idx], AIRSTRIKE_HIT_PERCENT, 1.0, planes);
+        let defender = &defenders[target_idx];
+        // The source asks nothing about land here.
+        let skip = mst.map_or(0.0, |mst| {
+            let pt = crate::pt_imp::is_pt(codex, defender);
+            skip_bombing_accuracy(mst.api_id, ship_type(codex, defender), pt, 14.0)
+        });
+        let outcome = roll_strike(codex, rng, defender, AIRSTRIKE_HIT_PERCENT + skip, 1.0, planes);
         let damage = calculate_single_slot_airstrike_damage(
             codex,
             rng,
@@ -1609,6 +1667,41 @@ mod tests {
         assert_eq!(seen.into_iter().collect::<Vec<_>>(), expected, "power {power}");
         let (power, seen) = damage(KcSlotItemType3::CarrierBasedDiveBomber);
         assert_eq!(seen.into_iter().collect::<Vec<_>>(), [power as i64]);
+    }
+
+    /// An abyssal skip bomber strikes a destroyer ×1.9 before the cap, and lands more often on
+    /// the bigger ships, a destroyer only when she is no PT imp (`airstrike`,
+    /// `kcsim.js:1983-1988` and `2042-2051`).
+    #[test]
+    fn an_abyssal_skip_bomber_strikes_by_ship_type() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let target = bare_target(&codex, first_ship_mst_by_type(&codex, KcShipType::DD));
+        // 深海双発陸爆, 爆装 12, a dive bomber: (25 + 12 × 4) × 1.9 = 138.7 → 138.
+        let item = slotitem_with_mst_id(1625);
+        assert_eq!(codex.manifest.find_slotitem(1625).unwrap().api_baku, 12);
+        let mut rng = crate::random::SeededRng::new(1);
+        let damage = calculate_single_slot_airstrike_damage(
+            &codex,
+            &mut rng,
+            &target,
+            &item,
+            16,
+            &target,
+            HitOutcome::Hit,
+            1.0,
+            1.0,
+            1.0,
+            0.0,
+        );
+        assert_eq!(damage, 138);
+
+        use KcShipType::*;
+        let accuracy = |ship_type, pt| skip_bombing_accuracy(1625, Some(ship_type), pt, 14.0);
+        assert_eq!(
+            [accuracy(BB, false), accuracy(CAV, false), accuracy(AV, false), accuracy(DD, false)],
+            [31.0, 22.0, 18.0, 14.0]
+        );
+        assert_eq!([accuracy(DD, true), accuracy(DE, false)], [0.0, 0.0]);
     }
 
     /// Against a land target a torpedo bomber's torpedo stat does not count, but

@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-19 · branch `feat/airstrike-improvement`
+Last updated: 2026-10-19 · branch `feat/airstrike-ship-type-multipliers`
 
 ## Verified Facts
 
@@ -57,6 +57,7 @@ Current verification baseline:
 - [2026-09-20] `start2` 里没有任何字段能把 5 条补给形态舰（743/744/745/748/749，名字以 補 结尾）与普通
   友军舰区分开——`api_sortno`/`api_backs`/`api_aftershipid`/`ship_picturebook.json` 都查过；友军舰队
   graph id 6299/6301/6303 同理。不要再找规则。
+- [2026-10-19] 来源 `kcSHIPDATA.js` 的 `type` 与 codex `api_stype` 一一对应（设施也是：砲台小鬼 BB、集積地/飛行場姫 BBV、PT小鬼群 DD+`isPT`），来源 `AT` = 輸送ワ級 = stype 15（`KcShipType::AP`，两边各 7 艘）；按舰种的规则直接用 `targeting::ship_type`。
 - [2026-09-21] `KC3Kai/kancolle-replay` 的 `js/kcsim.js` 是第二条独立数据链（`COMBINEDCF1-4`
   与 `COMBINEDCONSTS` 复现 wikiwiki 的联合舰队表）。其精度/回避補正对本项目无用。
 - [2026-09-22] 地图数据源：开放前置表对真实 `mapinfo` 逐 id 复现；`KC3Kai/edges.json` **不接**（唯一分歧是上游错）；
@@ -168,11 +169,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-19] #260 已合并（PR #265）。#264 做完待合并（`feat/airstrike-improvement`）：fmt、严格 clippy、`test --workspace --no-fail-fast` 1646 通过 0 失败 0 忽略，golden 未变；两路审查无硬性问题。
+- [2026-10-19] #264 已合并（PR #266）。#263 做完待合并（`feat/airstrike-ship-type-multipliers`）：fmt、严格 clippy、`test --workspace --no-fail-fast` 1650 通过 0 失败 0 忽略，golden 未变；两路审查无硬性问题。航空队按机体命中（`kcsim.js:3183-3206`）票上未列，按会话中转来的旁注一并做了。
 
 ## Next Session
 
-- [2026-10-19] 用户定顺序：#264 合并后做 #263（按机体的对舰倍率、跳弹轰炸）；其倍率要乘在 `with_airstrike_improvement` 之前（来源 `kcsim.js:3277` 的顺序）。外部等待 #150、#182。不做：`isSummerCV` 等 19 艘不在常规图、`bonusSpecialP` 是活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
+- [2026-10-19] #263 合并后无排定的下一张票，问用户。外部等待 #150、#182。不做：`isSummerCV` 等 19 艘不在常规图、`bonusSpecialP` 是活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
   改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   源码按 `kancolle-replay@69097abc` 重取 `js/`（`js/simulator-ui/common.js` 有气球格、环礁格表），常数写作 `.39`（勿只搜 `0.39`），装备类型以源码 `type` 为准；`en.kancollewiki.net` 有人机验证。

@@ -48,6 +48,13 @@ The following invariants hold for `BattleKoukuStage3`:
   the plane goes into `api_touch_plane` and its ×1.12/1.17/1.2 follows the 170 cap. A
   torpedo bomber that hits rolls ×0.8 or ×1.5 before the cap, and brings no torpedo power
   against a land target (the base 25 remains).
+- **Skip bombers** (`isSkipBomber`: 1625, 1626, 1634–1636 among the abyssal planes, #263).
+  After the torpedo's roll they take the air corps' skip-bombing multiplier before the cap
+  (`kouku::skip_bombing_pre_cap`, ×1.9 on a destroyer down to ×1.3 on capital ships, ×0.9
+  on land), and their chance to hit gains 31/22/18/14 points against capital ships /
+  CA-CAV / CL-CLT-AV / a destroyer that is no PT imp (`kcsim.js:1983-1988`; the source asks
+  nothing about land here). On the regular maps only 5-6's
+  飛行場姫 (2094) carries them, so it is the player's fleet that is struck.
 - **Bomber-slot mapping is exact.** Each bomber slot's attacker ship index and
   its target defender index MUST map correctly to the entries above — a
   mismatch between the attacker slot and the reported target position corrupts
