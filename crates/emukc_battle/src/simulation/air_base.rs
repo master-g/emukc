@@ -38,6 +38,8 @@ const SLOT_MODIFIER: f64 = 1.8;
 const LAND_ATTACKER_PRE_CAP: f64 = 0.8;
 /// …and 陸上攻撃機 at this multiple after it.
 const LAND_ATTACKER_POST_CAP: f64 = 1.8;
+/// A strike on a ship of a combined fleet, either deck, lands harder by this.
+const COMBINED_FLEET_POST_CAP: f64 = 1.1;
 
 fn is_land_attacker(type3: i64) -> bool {
     matches!(
@@ -285,8 +287,8 @@ fn anti_air_kind(mst: &ApiMstSlotitem) -> AntiAirKind {
 /// Attack power of one squadron before the target's armour:
 /// `25 + stat × √(1.8 × strength)`, a land attacker's taken at 0.8 (against a
 /// submarine at 0.7 to 1 for 対潜 10 or more, else 0.35 to 0.8), times the
-/// land scouts' `scouting`, capped at 220, times `contact`, and 陸上攻撃機's
-/// then multiplied by 1.8.
+/// land scouts' `scouting`, capped at 220, times `contact`, 陸上攻撃機's
+/// then multiplied by 1.8, and against a ship of a combined fleet by 1.1.
 fn strike_power(
     rng: &mut impl BattleRng,
     mst: &ApiMstSlotitem,
@@ -294,6 +296,7 @@ fn strike_power(
     target: TargetClass,
     scouting: f64,
     contact: f64,
+    combined: bool,
 ) -> f64 {
     let stat = strike_stat(mst, target);
     let pre = if target.is_submarine() {
@@ -311,6 +314,9 @@ fn strike_power(
     let mut power = apply_cap(power, DAMAGE_CAP) as f64 * contact;
     if KcSlotItemType3::n(mst.api_type[2]) == Some(KcSlotItemType3::LandBasedAttacker) {
         power *= LAND_ATTACKER_POST_CAP;
+    }
+    if combined {
+        power *= COMBINED_FLEET_POST_CAP;
     }
     power
 }
@@ -444,12 +450,13 @@ pub(crate) fn simulate_air_base_attack(
         // than it dodges anything else: 0.86 of its evasion, 0.68 in a
         // combined fleet (`airstrikeLBAS`, `lbasEvaMod*`).
         let planes = squadron_proficiency(mst.api_type[2], squadron.alv, squadron.exp);
+        let combined = enemy[target].enemy_deck.is_some();
         let outcome = roll_strike(
             codex,
             rng,
             &enemy[target],
             90.0 + 7.0 * mst.api_houm as f64,
-            if enemy[target].enemy_deck.is_some() {
+            if combined {
                 0.68
             } else {
                 0.86
@@ -460,7 +467,7 @@ pub(crate) fn simulate_air_base_attack(
             api_ecl_flag[target] = 1;
         }
         let power = outcome.power_with(
-            strike_power(rng, mst, squadron.count, class, scouting, contact),
+            strike_power(rng, mst, squadron.count, class, scouting, contact, combined),
             planes.critical_damage,
         );
         let defense = calculate_defense_power(rng, enemy[target].ship.api_soukou[0]);
@@ -588,7 +595,7 @@ mod tests {
 
         let mut rng = crate::random::SeededRng::new(1);
         let mut power = |count, target, scouting, contact| {
-            strike_power(&mut rng, mst, count, target, scouting, contact)
+            strike_power(&mut rng, mst, count, target, scouting, contact, false)
         };
         let sea = TargetClass::SurfaceShip;
 
@@ -602,6 +609,19 @@ mod tests {
         assert!((power(18, sea, 1.15, 1.0) - 135.0).abs() < 1e-9);
         // Contact after it: 65 × 1.2 × 1.8.
         assert!((power(18, sea, 1.0, 1.2) - 140.4).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_strike_on_a_combined_fleet_lands_a_tenth_harder() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mst = codex.manifest.find_slotitem(LAND_ATTACKER).unwrap();
+        let mut rng = crate::random::SeededRng::new(1);
+        let sea = TargetClass::SurfaceShip;
+        // 65 after the cap, × 1.8, then × 1.1.
+        let single = strike_power(&mut rng, mst, 18, sea, 1.0, 1.0, false);
+        let combined = strike_power(&mut rng, mst, 18, sea, 1.0, 1.0, true);
+        assert!((single - 117.0).abs() < 1e-9);
+        assert!((combined - 128.7).abs() < 1e-9);
     }
 
     #[test]
@@ -816,7 +836,7 @@ mod tests {
         assert_eq!(mst.api_raig, 0, "the figure below assumes no torpedoes");
         let mut rng = crate::random::SeededRng::new(1);
         // 25 × 0.8 = 20, × 1.8.
-        let power = strike_power(&mut rng, mst, 18, TargetClass::SurfaceShip, 1.0, 1.0);
+        let power = strike_power(&mut rng, mst, 18, TargetClass::SurfaceShip, 1.0, 1.0, false);
         assert!((power - 36.0).abs() < 1e-9);
 
         let hit = (0..20).any(|seed| {
