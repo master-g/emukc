@@ -787,29 +787,33 @@ fn improvement(mst: &ApiMstSlotitem, stars: i64) -> Improvement {
 // ASW helpers
 // ---------------------------------------------------------------------------
 
-/// Determine ASW equipment synergy multiplier.
+/// Depth charge projectors, the source's `isDCProjector` (`kcEQDATA.js` at `69097abc`).
+const DC_PROJECTORS: [i64; 7] = [44, 45, 287, 288, 377, 472, 569];
+/// Depth charges that are not projectors, the source's `isDCOnly`.
+const DC_ONLY: [i64; 5] = [226, 227, 378, 439, 488];
+
+/// The ASW synergy multiplier (`ASWPower`, `kcships.js:1600-1603`): a projector with a plain
+/// depth charge is worth 1.1, or 1.25 beside a small sonar, and any sonar with any depth charge
+/// a further 1.15. A depth charge in neither list counts for the second only.
 pub(crate) fn asw_synergy_modifier(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
-    let has_sonar = has_slotitem_type(codex, ship, KcSlotItemType3::Sonar);
-    let has_large_sonar = has_slotitem_type(codex, ship, KcSlotItemType3::LargeSonar);
+    let has_small_sonar = has_slotitem_type(codex, ship, KcSlotItemType3::Sonar);
+    let has_sonar = has_small_sonar || has_slotitem_type(codex, ship, KcSlotItemType3::LargeSonar);
     let has_depth_charge = has_slotitem_type(codex, ship, KcSlotItemType3::DepthCharge);
-    let any_sonar = has_sonar || has_large_sonar;
+    let has_id =
+        |ids: &[i64]| ship.slot_items.iter().any(|item| ids.contains(&item.api_slotitem_id));
 
-    // Depth charge projectors are a subset of depth charge equipment.
-    // Simplified: treat all DepthCharge as both projector and charge for now.
-    // Full implementation would check specific item IDs.
-    let has_projector = has_depth_charge;
-
-    if has_sonar && has_projector && has_depth_charge {
-        1.4375
-    } else if has_large_sonar && has_projector && has_depth_charge {
-        1.265
-    } else if any_sonar && has_depth_charge {
-        1.15
-    } else if has_projector && has_depth_charge {
-        1.1
-    } else {
-        1.0
+    let mut synergy = 1.0;
+    if has_id(&DC_PROJECTORS) && has_id(&DC_ONLY) {
+        synergy *= if has_small_sonar {
+            1.25
+        } else {
+            1.1
+        };
     }
+    if has_sonar && has_depth_charge {
+        synergy *= 1.15;
+    }
+    synergy
 }
 
 /// Depth charge armor reduction: sum of `√(ASW − 2)` per depth charge with ASW > 2.
@@ -1688,6 +1692,24 @@ mod tests {
     }
 
     #[test]
+    fn the_asw_synergy_tells_projectors_from_charges() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let synergy = |ids: &[i64]| {
+            let mut input = sample_ship(&codex, dd_mst, 50);
+            input.slot_items = ids.iter().map(|&id| slotitem_with_mst_id(id)).collect();
+            asw_synergy_modifier(&codex, &BattleRuntimeShip::from(input))
+        };
+        // 46 is a small sonar, 132 a large one; 44 and 45 are projectors, 226 a plain charge.
+        assert_eq!(synergy(&[44]), 1.0);
+        assert_eq!(synergy(&[44, 226]), 1.1);
+        assert_eq!(synergy(&[46, 44, 226]), 1.25 * 1.15);
+        assert_eq!(synergy(&[132, 44, 226]), 1.1 * 1.15);
+        assert_eq!(synergy(&[46, 226]), 1.15);
+        assert_eq!(synergy(&[44, 45]), 1.0);
+    }
+
+    #[test]
     fn asw_damage_formula_uses_the_sources_asw_power() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
@@ -1720,9 +1742,10 @@ mod tests {
         // Verify damage is positive and uses the ASW formula (not shelling formula)
         assert!(dmg >= 1);
         // raw_power = (√(80 - equip_asw) * 2 + equip_asw * 1.5 + 13) * synergy
-        // With a single depth charge: projector=true, dc=true → synergy = 1.1
+        // A lone projector (44) earns no synergy.
+        assert_eq!(dc_mst_id, 44);
         let base_asw = (80.0 - equip_asw).max(0.0);
-        let synergy = 1.1; // single DepthCharge counts as both projector and charge
+        let synergy = 1.0;
         let expected_raw = (base_asw.sqrt() * 2.0 + equip_asw * 1.5 + 13.0) * synergy;
         let expected_capped = apply_cap(expected_raw, ASW_CAP) as f64;
         // Defense is now randomized; just verify damage is positive and reasonable

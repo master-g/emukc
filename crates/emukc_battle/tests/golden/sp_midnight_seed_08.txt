@@ -56,6 +56,7 @@ NightBattlePacket {
                 0,
                 1,
                 0,
+                1,
             ],
             api_at_list: [
                 6,
@@ -66,8 +67,10 @@ NightBattlePacket {
                 9,
                 3,
                 10,
+                5,
             ],
             api_n_mother_list: [
+                0,
                 0,
                 0,
                 0,
@@ -95,13 +98,16 @@ NightBattlePacket {
                     8,
                 ],
                 [
-                    5,
+                    4,
                 ],
                 [
                     10,
                 ],
                 [
                     5,
+                ],
+                [
+                    9,
                 ],
             ],
             api_si_list: [
@@ -148,6 +154,11 @@ NightBattlePacket {
                         -1,
                     ),
                 ],
+                [
+                    Num(
+                        1501,
+                    ),
+                ],
             ],
             api_cl_list: [
                 [
@@ -175,6 +186,9 @@ NightBattlePacket {
                 [
                     1,
                 ],
+                [
+                    0,
+                ],
             ],
             api_sp_list: [
                 0,
@@ -185,10 +199,11 @@ NightBattlePacket {
                 0,
                 0,
                 0,
+                0,
             ],
             api_damage: [
                 [
-                    74,
+                    58,
                 ],
                 [
                     23,
@@ -204,7 +219,7 @@ NightBattlePacket {
                     0,
                 ],
                 [
-                    51,
+                    58,
                 ],
                 [
                     0,
@@ -212,12 +227,15 @@ NightBattlePacket {
                 [
                     36,
                 ],
+                [
+                    0,
+                ],
             ],
         },
     ),
 }
 BattleOutcome {
-    win_rank: B,
-    mvp: 1,
+    win_rank: C,
+    mvp: 4,
     can_midnight: false,
 }

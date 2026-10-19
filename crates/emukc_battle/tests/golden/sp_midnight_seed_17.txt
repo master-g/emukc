@@ -54,9 +54,9 @@ NightBattlePacket {
                 0,
                 1,
                 0,
+                0,
+                0,
                 1,
-                0,
-                0,
             ],
             api_at_list: [
                 6,
@@ -65,9 +65,9 @@ NightBattlePacket {
                 8,
                 2,
                 9,
-                3,
                 10,
                 11,
+                5,
             ],
             api_n_mother_list: [
                 0,
@@ -89,10 +89,10 @@ NightBattlePacket {
                     6,
                 ],
                 [
-                    5,
+                    4,
                 ],
                 [
-                    2,
+                    3,
                 ],
                 [
                     8,
@@ -101,13 +101,13 @@ NightBattlePacket {
                     3,
                 ],
                 [
-                    10,
-                ],
-                [
                     1,
                 ],
                 [
                     1,
+                ],
+                [
+                    11,
                 ],
             ],
             api_si_list: [
@@ -146,17 +146,17 @@ NightBattlePacket {
                 ],
                 [
                     Num(
-                        1504,
-                    ),
-                ],
-                [
-                    Num(
                         -1,
                     ),
                 ],
                 [
                     Num(
                         63,
+                    ),
+                ],
+                [
+                    Num(
+                        1501,
                     ),
                 ],
             ],
@@ -181,7 +181,7 @@ NightBattlePacket {
                     1,
                 ],
                 [
-                    0,
+                    1,
                 ],
                 [
                     1,
@@ -203,17 +203,17 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    77,
+                    61,
                 ],
                 [
                     41,
                     1,
                 ],
                 [
-                    156,
+                    25,
                 ],
                 [
-                    128,
+                    135,
                 ],
                 [
                     25,
@@ -222,10 +222,10 @@ NightBattlePacket {
                     35,
                 ],
                 [
-                    0,
+                    29,
                 ],
                 [
-                    7,
+                    12.1,
                 ],
                 [
                     0,
@@ -236,6 +236,6 @@ NightBattlePacket {
 }
 BattleOutcome {
     win_rank: C,
-    mvp: 2,
+    mvp: 3,
     can_midnight: false,
 }

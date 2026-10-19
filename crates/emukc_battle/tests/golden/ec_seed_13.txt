@@ -23,7 +23,7 @@ BattlePacket {
         0,
         0,
         80,
-        32,
+        56,
         80,
     ],
     smoke_type: 0,
@@ -283,7 +283,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    105,
+                    82,
                 ],
             ],
         },
@@ -472,7 +472,7 @@ BattlePacket {
                     4,
                 ],
                 [
-                    10,
+                    8,
                 ],
                 [
                     1,
@@ -512,7 +512,7 @@ BattlePacket {
                 ],
                 [
                     Num(
-                        10,
+                        -1,
                     ),
                 ],
                 [
@@ -1163,7 +1163,7 @@ NightBattlePacket {
         0,
         0,
         80,
-        32,
+        56,
         80,
     ],
     enemy_maxhps: [
@@ -1300,7 +1300,7 @@ NightBattlePacket {
     ),
 }
 BattleOutcome {
-    win_rank: S,
+    win_rank: A,
     mvp: 1,
     can_midnight: false,
 }

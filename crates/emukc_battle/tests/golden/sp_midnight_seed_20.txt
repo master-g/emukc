@@ -92,7 +92,7 @@ NightBattlePacket {
                     10,
                 ],
                 [
-                    2,
+                    4,
                 ],
                 [
                     3,
@@ -218,14 +218,14 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    77,
+                    61,
                 ],
                 [
                     2,
                     3,
                 ],
                 [
-                    83,
+                    15,
                 ],
                 [
                     91,
