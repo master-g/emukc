@@ -166,10 +166,11 @@ Current verification baseline:
 
 - [2026-10-19] 开 #242–#244（6-5 boss 敌连合不出基地航空队、对潜协同倍率、命中/回避取整）。#193 在 `feat/gun-fit-accuracy`：`gun_fit.rs` 移植 `getFit`，`Aim::day_cut_in` 分出 `accMod2`。
   fit 置 0 时 180 份 golden 与 `battle_golden.rs` 逐字节不变；真实 fit 下重冻 22 份（舰队里都有 fit≠0 的舰），`battle_golden.rs` 未动。fmt、clippy `-D warnings`、`test --workspace` 1615 通过 0 失败 0 忽略。
+  `chore/deps-zip-9`（叠在其上）：zip 8.6→9.0.5，仅改版本号与 lock（zstd crate 移出依赖树，默认 feature 未变），三道门同样结果，`compass_source` 解压测试通过。
 
 ## Next Session
 
-- [2026-10-19] 下一步 zip 8.6→9.0.5（用到的 API 仍在，9.0 修了解压 OOM、ZIP64 溢出），叠在 #193 分支上另开 PR。
+- [2026-10-19] #245（#193）与叠在其上的 zip 9.0.5 PR 待合并：先合 #245，再把 zip PR 改指 `main`。
   候选 5（夜战 deck 切分进 battle crate）与 2026-09-23 计划 KTD13 冲突，不做。
   #193 PR 待合并。ready 未关：#196–#200、#204（`FPfit` 按装备 `fitclass` 计数，与 #193 不共表）、#242（6-5 boss 敌连合不出基地航空队）、#243（对潜协同倍率）、#244（命中/回避取整）。改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。
   瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
