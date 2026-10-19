@@ -218,7 +218,7 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    74,
+                    58,
                 ],
                 [
                     2,

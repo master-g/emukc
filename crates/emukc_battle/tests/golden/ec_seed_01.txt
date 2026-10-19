@@ -20,7 +20,7 @@ BattlePacket {
         256,
         37,
         110,
-        120,
+        125,
         0,
         0,
         0,
@@ -283,7 +283,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    107,
+                    84,
                 ],
             ],
         },
@@ -466,7 +466,7 @@ BattlePacket {
                     5,
                 ],
                 [
-                    7,
+                    8,
                 ],
                 [
                     4,
@@ -500,7 +500,7 @@ BattlePacket {
                 ],
                 [
                     Num(
-                        10,
+                        -1,
                     ),
                 ],
                 [
@@ -571,7 +571,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    5,
+                    22,
                 ],
                 [
                     0,
@@ -1143,7 +1143,7 @@ NightBattlePacket {
     ],
     enemy_nowhps: [
         110,
-        120,
+        125,
         0,
         0,
         0,
@@ -1283,7 +1283,7 @@ NightBattlePacket {
     ),
 }
 BattleOutcome {
-    win_rank: S,
+    win_rank: A,
     mvp: 1,
     can_midnight: false,
 }

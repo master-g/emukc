@@ -23,7 +23,7 @@ BattlePacket {
         95,
         0,
         0,
-        57,
+        80,
         0,
     ],
     smoke_type: 0,
@@ -283,7 +283,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    109,
+                    86,
                 ],
             ],
         },
@@ -469,7 +469,7 @@ BattlePacket {
                     5,
                 ],
                 [
-                    10,
+                    8,
                 ],
                 [
                     3,
@@ -506,7 +506,7 @@ BattlePacket {
                 ],
                 [
                     Num(
-                        10,
+                        -1,
                     ),
                 ],
                 [
@@ -585,7 +585,7 @@ BattlePacket {
                     7,
                 ],
                 [
-                    23,
+                    22,
                 ],
                 [
                     3,
@@ -1146,7 +1146,7 @@ NightBattlePacket {
         95,
         0,
         0,
-        57,
+        80,
         0,
     ],
     enemy_maxhps: [
@@ -1172,6 +1172,7 @@ NightBattlePacket {
                 1,
                 0,
                 0,
+                1,
                 0,
             ],
             api_at_list: [
@@ -1179,9 +1180,11 @@ NightBattlePacket {
                 7,
                 2,
                 3,
+                10,
                 5,
             ],
             api_n_mother_list: [
+                0,
                 0,
                 0,
                 0,
@@ -1203,7 +1206,10 @@ NightBattlePacket {
                     7,
                 ],
                 [
-                    10,
+                    4,
+                ],
+                [
+                    7,
                 ],
             ],
             api_si_list: [
@@ -1232,6 +1238,11 @@ NightBattlePacket {
                 ],
                 [
                     Num(
+                        1501,
+                    ),
+                ],
+                [
+                    Num(
                         -1,
                     ),
                 ],
@@ -1251,11 +1262,15 @@ NightBattlePacket {
                     1,
                 ],
                 [
-                    1,
+                    0,
+                ],
+                [
+                    0,
                 ],
             ],
             api_sp_list: [
                 1,
+                0,
                 0,
                 0,
                 0,
@@ -1276,7 +1291,10 @@ NightBattlePacket {
                     91,
                 ],
                 [
-                    50,
+                    0,
+                ],
+                [
+                    0,
                 ],
             ],
         },

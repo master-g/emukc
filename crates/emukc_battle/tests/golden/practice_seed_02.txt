@@ -208,7 +208,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    111,
+                    88,
                 ],
             ],
         },

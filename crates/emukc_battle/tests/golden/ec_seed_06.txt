@@ -7,7 +7,7 @@ BattlePacket {
     friendly_nowhps: [
         90,
         5,
-        33,
+        27,
         18,
         35,
         31,
@@ -18,7 +18,7 @@ BattlePacket {
         208,
         46,
         248,
-        33,
+        42,
         0,
         0,
         0,
@@ -283,7 +283,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    109,
+                    86,
                 ],
             ],
         },
@@ -469,7 +469,7 @@ BattlePacket {
                     1,
                 ],
                 [
-                    10,
+                    8,
                 ],
                 [
                     9,
@@ -506,7 +506,7 @@ BattlePacket {
                 ],
                 [
                     Num(
-                        10,
+                        -1,
                     ),
                 ],
                 [
@@ -585,7 +585,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    23,
+                    22,
                 ],
                 [
                     22,
@@ -1029,7 +1029,7 @@ BattlePacket {
                     25,
                 ],
                 [
-                    23,
+                    14,
                 ],
                 [
                     6,
@@ -1038,7 +1038,7 @@ BattlePacket {
                     27,
                 ],
                 [
-                    2,
+                    1,
                 ],
                 [
                     25.1,
@@ -1076,7 +1076,7 @@ BattlePacket {
             api_fdam: [
                 0,
                 0,
-                9,
+                16,
                 0,
                 0,
                 0,
@@ -1142,7 +1142,7 @@ BattlePacket {
                 0,
                 0,
                 0,
-                9,
+                16,
                 0,
             ],
         },
@@ -1162,7 +1162,7 @@ NightBattlePacket {
     friendly_nowhps: [
         90,
         5,
-        33,
+        27,
         18,
         35,
         31,
@@ -1181,7 +1181,7 @@ NightBattlePacket {
         208,
         46,
         248,
-        33,
+        42,
     ],
     enemy_maxhps: [
         336,

@@ -366,7 +366,7 @@ Applied as pre-cap multiplier based on attacker's HP ratio at start of battle:
 
 **Current code**: ✓ Correct values implemented in `asw_synergy_modifier()`.
 
-**Note**: "DC Projector" vs "Depth Charge" distinction requires checking specific item IDs, not just `KcSlotItemType3::DepthCharge`. Current code treats all depth charges as both projector and charge (simplified).
+**Note**: "DC Projector" and "Depth Charge" are told apart by item id (#243, the source's `isDCProjector` 44, 45, 287, 288, 377, 472, 569 and `isDCOnly` 226, 227, 378, 439, 488). A depth charge in neither list counts only for the sonar row. "Any Sonar" and the projector rows multiply: 1.4375 is 1.25 x 1.15.
 
 ### 3.5 Improvement Bonus (改修強化)
 

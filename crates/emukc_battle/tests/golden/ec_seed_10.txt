@@ -24,7 +24,7 @@ BattlePacket {
         0,
         0,
         0,
-        50,
+        57,
     ],
     smoke_type: 0,
     balloon_cell: 0,
@@ -283,7 +283,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    38,
+                    29,
                 ],
             ],
         },
@@ -606,7 +606,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    38,
+                    29,
                 ],
             ],
         },
@@ -871,7 +871,7 @@ BattlePacket {
                     2,
                 ],
                 [
-                    11,
+                    8,
                 ],
                 [
                     5,
@@ -998,7 +998,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    7,
+                    31,
                 ],
                 [
                     5,

@@ -284,7 +284,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    73,
+                    57,
                 ],
             ],
         },
@@ -821,7 +821,7 @@ BattlePacket {
                     9,
                 ],
                 [
-                    0,
+                    4,
                 ],
                 [
                     0,
@@ -849,7 +849,7 @@ BattlePacket {
                 ],
                 [
                     Num(
-                        10,
+                        -1,
                     ),
                 ],
                 [
@@ -887,13 +887,13 @@ BattlePacket {
                     1,
                 ],
                 [
-                    2,
+                    1,
                 ],
                 [
                     1,
                 ],
                 [
-                    2,
+                    1,
                 ],
             ],
             api_damage: [
@@ -904,16 +904,16 @@ BattlePacket {
                     0,
                 ],
                 [
-                    1,
+                    14,
                 ],
                 [
                     1,
                 ],
                 [
-                    2,
+                    1,
                 ],
                 [
-                    2,
+                    1,
                 ],
                 [
                     1,
@@ -944,7 +944,7 @@ BattlePacket {
                 0,
                 0,
                 0,
-                2,
+                1,
                 1,
                 0,
                 0,
@@ -973,7 +973,7 @@ BattlePacket {
                 0,
                 0,
                 1,
-                20,
+                21,
                 0,
                 0,
                 0,
@@ -996,7 +996,7 @@ BattlePacket {
                 0,
             ],
             api_edam: [
-                21,
+                22,
                 0,
                 0,
                 0,
@@ -1062,7 +1062,7 @@ NightBattlePacket {
         -1,
     ],
     flare_pos: [
-        11,
+        -1,
         -1,
     ],
     hougeki: None,

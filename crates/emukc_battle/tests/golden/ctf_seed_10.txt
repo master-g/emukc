@@ -284,7 +284,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    141,
+                    111,
                 ],
             ],
         },
@@ -1216,6 +1216,6 @@ NightBattlePacket {
 }
 BattleOutcome {
     win_rank: S,
-    mvp: 1,
+    mvp: 2,
     can_midnight: false,
 }

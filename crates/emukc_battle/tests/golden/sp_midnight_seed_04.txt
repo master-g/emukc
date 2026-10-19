@@ -92,19 +92,19 @@ NightBattlePacket {
                     4,
                 ],
                 [
+                    4,
+                ],
+                [
+                    11,
+                ],
+                [
                     5,
                 ],
                 [
-                    8,
+                    11,
                 ],
                 [
-                    3,
-                ],
-                [
-                    7,
-                ],
-                [
-                    0,
+                    5,
                 ],
                 [
                     0,
@@ -175,10 +175,10 @@ NightBattlePacket {
                     1,
                 ],
                 [
-                    0,
+                    1,
                 ],
                 [
-                    0,
+                    1,
                 ],
                 [
                     0,
@@ -203,7 +203,7 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    74,
+                    58,
                 ],
                 [
                     4,
@@ -213,22 +213,22 @@ NightBattlePacket {
                     17,
                 ],
                 [
-                    104.1,
+                    13,
+                ],
+                [
+                    17,
+                ],
+                [
+                    49,
                 ],
                 [
                     0,
                 ],
                 [
-                    0,
-                ],
-                [
-                    0,
+                    38,
                 ],
                 [
                     23,
-                ],
-                [
-                    20,
                 ],
             ],
         },
@@ -236,6 +236,6 @@ NightBattlePacket {
 }
 BattleOutcome {
     win_rank: B,
-    mvp: 3,
+    mvp: 1,
     can_midnight: false,
 }
