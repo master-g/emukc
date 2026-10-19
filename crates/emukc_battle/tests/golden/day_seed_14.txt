@@ -188,7 +188,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    0,
+                    1,
                 ],
                 [
                     2,
@@ -202,7 +202,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    0,
+                    114,
                 ],
                 [
                     5,
@@ -214,19 +214,25 @@ BattlePacket {
         BattleHougeki {
             api_at_eflag: [
                 0,
+                1,
                 0,
             ],
             api_at_list: [
                 0,
                 1,
+                1,
             ],
             api_at_type: [
+                0,
                 0,
                 0,
             ],
             api_df_list: [
                 [
-                    0,
+                    1,
+                ],
+                [
+                    1,
                 ],
                 [
                     1,
@@ -240,13 +246,21 @@ BattlePacket {
                 ],
                 [
                     Num(
+                        105,
+                    ),
+                ],
+                [
+                    Num(
                         7,
                     ),
                 ],
             ],
             api_cl_list: [
                 [
-                    1,
+                    0,
+                ],
+                [
+                    0,
                 ],
                 [
                     1,
@@ -254,10 +268,13 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    115,
+                    0,
                 ],
                 [
-                    115,
+                    0,
+                ],
+                [
+                    114,
                 ],
             ],
         },

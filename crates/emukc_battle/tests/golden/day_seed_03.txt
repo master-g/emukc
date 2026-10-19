@@ -6,7 +6,7 @@ BattlePacket {
     ],
     friendly_nowhps: [
         60,
-        43,
+        55,
     ],
     enemy_nowhps: [
         0,
@@ -120,9 +120,9 @@ BattlePacket {
     opening_attack: None,
     hourai_flag: [
         1,
-        1,
         0,
-        1,
+        0,
+        0,
     ],
     hougeki1: Some(
         BattleHougeki {
@@ -130,102 +130,10 @@ BattlePacket {
                 0,
                 1,
                 0,
-                1,
             ],
             api_at_list: [
                 0,
                 1,
-                1,
-                0,
-            ],
-            api_at_type: [
-                0,
-                0,
-                0,
-                2,
-            ],
-            api_df_list: [
-                [
-                    0,
-                ],
-                [
-                    1,
-                ],
-                [
-                    0,
-                ],
-                [
-                    1,
-                    1,
-                ],
-            ],
-            api_si_list: [
-                [
-                    Num(
-                        7,
-                    ),
-                ],
-                [
-                    Num(
-                        105,
-                    ),
-                ],
-                [
-                    Num(
-                        7,
-                    ),
-                ],
-                [
-                    Text(
-                        "105",
-                    ),
-                    Text(
-                        "8",
-                    ),
-                ],
-            ],
-            api_cl_list: [
-                [
-                    0,
-                ],
-                [
-                    1,
-                ],
-                [
-                    0,
-                ],
-                [
-                    1,
-                    1,
-                ],
-            ],
-            api_damage: [
-                [
-                    0,
-                ],
-                [
-                    5,
-                ],
-                [
-                    0,
-                ],
-                [
-                    4,
-                    5,
-                ],
-            ],
-        },
-    ),
-    hougeki2: Some(
-        BattleHougeki {
-            api_at_eflag: [
-                0,
-                1,
-                0,
-            ],
-            api_at_list: [
-                0,
-                0,
                 1,
             ],
             api_at_type: [
@@ -235,13 +143,13 @@ BattlePacket {
             ],
             api_df_list: [
                 [
-                    1,
-                ],
-                [
-                    1,
-                ],
-                [
                     0,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
                 ],
             ],
             api_si_list: [
@@ -266,60 +174,26 @@ BattlePacket {
                     1,
                 ],
                 [
-                    0,
+                    1,
                 ],
                 [
-                    0,
+                    1,
                 ],
             ],
             api_damage: [
                 [
-                    116.1,
+                    118,
                 ],
                 [
-                    0.1,
+                    5,
                 ],
                 [
-                    0,
+                    114,
                 ],
             ],
         },
     ),
+    hougeki2: None,
     hougeki3: None,
-    raigeki: Some(
-        BattleRaigeki {
-            api_frai: [
-                0,
-                -1,
-            ],
-            api_fcl: [
-                1,
-                0,
-            ],
-            api_fdam: [
-                0,
-                3,
-            ],
-            api_fydam: [
-                111,
-                0,
-            ],
-            api_erai: [
-                1,
-                -1,
-            ],
-            api_ecl: [
-                1,
-                0,
-            ],
-            api_edam: [
-                111,
-                0,
-            ],
-            api_eydam: [
-                3,
-                0,
-            ],
-        },
-    ),
+    raigeki: None,
 }

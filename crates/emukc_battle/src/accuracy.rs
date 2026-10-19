@@ -8,9 +8,11 @@
 //!
 //! Aircraft proficiency follows `Ship.updateProficiencyBonus` in `kcships.js`.
 //!
+//! The gun fit comes from [`gun_fit`](crate::gun_fit).
+//!
 //! Left out, each a correction the source applies on top of what is here:
-//! gun fit, the combined-fleet accuracy terms, smoke, balloons, PT imps
-//! and event bonuses.
+//! the combined-fleet accuracy terms, smoke, balloons, PT imps and event
+//! bonuses.
 
 use emukc_model::{
     codex::Codex,
@@ -21,6 +23,7 @@ use emukc_model::{
 };
 
 use crate::damage::{is_cv_type, ship_improvement};
+use crate::gun_fit::gun_fit;
 use crate::random::BattleRng;
 use crate::targeting::{
     bonus_gears, has_slotitem_type, is_radar_type, searchlight_rerolls, ship_mst, ship_type,
@@ -538,8 +541,12 @@ pub(crate) struct Aim {
     pub kind: AttackKind,
     pub attacker_formation: i64,
     pub defender_formation: i64,
-    /// A cut-in's own accuracy multiplier, 1 for a plain attack.
+    /// The attack's own accuracy multiplier inside `hitRate` (a special attack's, a night
+    /// cut-in's), 1 for a plain attack.
     pub modifier: f64,
+    /// A day shelling cut-in's or double attack's multiplier, which the source keeps apart
+    /// (`accMod2`) and applies after the gun fit; 1 otherwise.
+    pub day_cut_in: f64,
     /// Accuracy the phase adds on its own: a fifth of the torpedo's power.
     pub flat: f64,
     /// Whether this is a carrier's cut-in, which has its own critical rate.
@@ -563,6 +570,7 @@ impl Aim {
             attacker_formation,
             defender_formation,
             modifier: 1.0,
+            day_cut_in: 1.0,
             flat: 0.0,
             carrier_cut_in: false,
             opening: false,
@@ -619,6 +627,11 @@ impl Aim {
         self
     }
 
+    pub(crate) fn with_day_cut_in(mut self, modifier: f64) -> Self {
+        self.day_cut_in = modifier;
+        self
+    }
+
     pub(crate) fn with_flat(mut self, flat: f64) -> Self {
         self.flat = flat;
         self
@@ -666,7 +679,11 @@ fn dodge(
 fn hit_value(codex: &Codex, attacker: &BattleRuntimeShip, aim: Aim, formation_acc: f64) -> f64 {
     let level = attacker.ship.api_lv.max(0) as f64;
     let luck = attacker.ship.api_lucky[0].max(0) as f64;
-    (aim.base()
+    let fit = match aim.kind {
+        AttackKind::Shelling | AttackKind::Night => gun_fit(codex, attacker),
+        AttackKind::Torpedo | AttackKind::Asw => 0.0,
+    };
+    ((aim.base()
         + 2.0 * level.sqrt()
         + 1.5 * luck.sqrt()
         + equipment_accuracy(codex, attacker, aim.kind)
@@ -676,6 +693,9 @@ fn hit_value(codex: &Codex, attacker: &BattleRuntimeShip, aim: Aim, formation_ac
         * attacker_morale(attacker, aim.kind)
         * formation_acc
         * aim.modifier
+        // `shell`, `NBattack`: the gun fit comes after `hitRate`, before `accMod2`.
+        + fit)
+        * aim.day_cut_in
         // `NBattack`: the attacker's fleet's searchlight adds 7 after every multiplier.
         + if aim.searchlight && aim.kind == AttackKind::Night { 7.0 } else { 0.0 }
 }
@@ -1254,5 +1274,37 @@ mod tests {
         assert_eq!(gain(AttackKind::Torpedo), 4);
         assert_eq!(gain(AttackKind::Night), 0);
         assert_eq!(gain(AttackKind::Asw), 0);
+    }
+
+    /// The gun fit joins day shelling and night attacks after `hitRate`'s multipliers: by day a
+    /// cut-in's multiplier (`accMod2`) scales it, a special attack's does not, and at night
+    /// nothing does. Torpedoes and depth charges leave it out.
+    #[test]
+    fn the_gun_fit_comes_after_the_hit_rate_multipliers() {
+        use crate::test_utils::{sample_ship, slotitem_with_mst_id};
+        const KONGOU: i64 = 78;
+        const MYOUKOU: i64 = 62;
+        const GUN_356CM_TWIN: i64 = 7;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // One ship with one 35.6cm gun, and only the master differs: it fits 金剛 by 7 and
+        // 妙高 not at all.
+        let ship = |mst_id| {
+            let mut ship = BattleRuntimeShip::from(sample_ship(&codex, KONGOU, 50));
+            ship.ship.api_ship_id = mst_id;
+            ship.slot_items = vec![slotitem_with_mst_id(GUN_356CM_TWIN)];
+            ship
+        };
+        let (fitting, plain) = (ship(KONGOU), ship(MYOUKOU));
+        assert_eq!(bonus_accuracy(&codex, &fitting), bonus_accuracy(&codex, &plain));
+        let gain =
+            |aim: Aim| hit_value(&codex, &fitting, aim, 1.1) - hit_value(&codex, &plain, aim, 1.1);
+        let close = |gain: f64, want: f64| (gain - want).abs() < 1e-9;
+        let day = Aim::new(AttackKind::Shelling, 1, 1);
+        assert!(close(gain(day), 7.0));
+        assert!(close(gain(day.with_day_cut_in(1.5)), 7.0 * 1.5));
+        assert!(close(gain(day.with_modifier(1.5)), 7.0));
+        assert!(close(gain(Aim::new(AttackKind::Night, 1, 1).with_modifier(1.5)), 7.0));
+        assert_eq!(gain(Aim::new(AttackKind::Torpedo, 1, 1)), 0.0);
+        assert_eq!(gain(Aim::new(AttackKind::Asw, 1, 1)), 0.0);
     }
 }

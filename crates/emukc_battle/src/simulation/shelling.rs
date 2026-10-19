@@ -285,7 +285,7 @@ fn shell_turn(
         };
 
         let aim = Aim::new(AttackKind::Shelling, params.formation_id, params.defender_formation_id)
-            .with_modifier(day_accuracy_modifier(resolved.at_type, resolved.carrier_sub))
+            .with_day_cut_in(day_accuracy_modifier(resolved.at_type, resolved.carrier_sub))
             .as_carrier_cut_in(resolved.carrier_sub.is_some());
 
         if resolved.hit_count == 2 {

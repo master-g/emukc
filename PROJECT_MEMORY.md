@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-18 · branch `chore/deps-rust-1.99`
+Last updated: 2026-10-19 · branch `main`
 
 ## Verified Facts
 
@@ -122,6 +122,7 @@ Current verification baseline:
 - [2026-10-14] kcanotify 的 `total-fp` 是对空合计，27 是护卫空母（`cve_ids`），来源见 #116 #117；改修、Bw1、远征列表的计数规则已入 `quest.md`。客户端把 `mission` 列表里没有的远征置 -1（`main.decoded.js:15821`）。
 
 - [2026-10-15] 陆上设施按来源 `installtype` 表判（`installation_types.rs`，脚本再生）；名字匹配只兜底比来源更新的深海舰（id > 2397）。倍率与上限后倍率见 `anti-installation.md`。
+- [2026-10-19] 来源 `SHIPDATA.type` 与 start2 `api_stype` 一一对应（FBB=8、BB=9、BBV=10），`sclass` 全等于 `api_ctype`，`MAINGUNM` 全等于 `api_type[2]==2`，`loadEquips` 不分敌我：按舰种/舰级移植的规则直接读 start2（#193 对拍 100 万例逐位一致）。
 - [2026-10-15] 测试里 `BattleRuntimeShip::from` 造的是 `is_friendly: false`（注释写反了）：要测「玩家侧」规则（空槽、燃料）得用 `BattleRuntimeShip::new(input, true, true)`。
 - [2026-10-15] #147 用户定：戦果 = 提督经验（1 万 7 点）+ 任务与 1-6 的加成，按月清零，排名列本服务器所有账号。月末规则（读过的日文攻略页）：戦果月在最后一天 22:00 JST 结束，22:00～23:59 破 EO 只给箱不给戦果，EO ゲージ 1 日 00:00 恢复；见 `war-result-ranking.md`。
 - [2026-10-18] 外部等待：#150 等抓包；#182 等 kcwiki 补 902
@@ -159,16 +160,18 @@ Current verification baseline:
 | [2026-10-16] codex 自比抓不到结构体丢字段（codex 由同一结构体写出）；要和原始 `.data/temp/start2.json` 比；新表丢字段时加进该测试的表名列表。 | `start2_keeps_every_field_kcwiki_sends` |
 | [2026-10-17] 逐种子跑 `--exact`：名字不匹配也退出 0，须判「1 passed」。 | #201 |
 | [2026-10-18] 战斗 golden 读 `.data/codex` 的真实舰船、初始装备与深海数据：重建 codex 后代码不变也会红。先在 `main` 单独提交重冻、写明是数据变化，再做别的；重构不应需要重冻。 | `golden_transcript.rs` 头注释 |
+| [2026-10-19] 对拍时 serde_json 默认解析 JS 打印的小数会差最后一位（不保证往返精确），误报成算法差异：脚本输出 `Float64Array` 的比特位字符串，Rust 用 `f64::from_bits` 比。 | #193 |
 
 ## Last Session
 
-- [2026-10-18] 工具链升到 1.99.1，`rust-version` 留 1.96；`chore/deps-rust-1.99` 仅 `cargo update`（55 个兼容包）。`cargo clean` 后全量重建，fmt、clippy `-D warnings`（无新 lint）、`test --workspace` 1613 通过 0 失败 0 忽略。
+- [2026-10-19] 开 #242–#244（6-5 boss 敌连合不出基地航空队、对潜协同倍率、命中/回避取整）。#193 在 `feat/gun-fit-accuracy`：`gun_fit.rs` 移植 `getFit`，`Aim::day_cut_in` 分出 `accMod2`。
+  fit 置 0 时 180 份 golden 与 `battle_golden.rs` 逐字节不变；真实 fit 下重冻 22 份（舰队里都有 fit≠0 的舰），`battle_golden.rs` 未动。fmt、clippy `-D warnings`、`test --workspace` 1615 通过 0 失败 0 忽略。
 
 ## Next Session
 
-- [2026-10-18] zip 8.6→9.0.5 未升：用到的 API 仍在，9.0 修了解压 OOM、ZIP64 溢出；待单独分支升级。
-  计划 009 已实施完；基地航空队只在单对单出动（`simulate_day` 连合两条路径不调 `execute_air_base_attacks`），未开票；候选 5（夜战 deck 切分进 battle crate）与 2026-09-23 计划 KTD13 冲突，不做。
-  #193–#204 未关均 ready；改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。对潜基础攻击力已按源码（#231）；协同倍率仍不分投射机与爆雷（源码 `isDCProjector`/`isDCOnly`），未开票。命中/回避取整直接 floor，源码先 `round(x*1e6)/1e4`，未修。季节＝某天的状态，非常规版。
+- [2026-10-19] 下一步 zip 8.6→9.0.5（用到的 API 仍在，9.0 修了解压 OOM、ZIP64 溢出），叠在 #193 分支上另开 PR。
+  候选 5（夜战 deck 切分进 battle crate）与 2026-09-23 计划 KTD13 冲突，不做。
+  #193 PR 待合并。ready 未关：#196–#200、#204（`FPfit` 按装备 `fitclass` 计数，与 #193 不共表）、#242（6-5 boss 敌连合不出基地航空队）、#243（对潜协同倍率）、#244（命中/回避取整）。改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。
   瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
