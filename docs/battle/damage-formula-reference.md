@@ -108,7 +108,7 @@ let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
 | S4 | Damage state modifier (chuuha×0.7, taiha×0.4) | Implemented — `damage_state_modifier` |
 | S5 | Defense randomization `0.7A + 0.6×rand(0,A−1)` | Implemented — `calculate_defense_power` |
 | S6 | Artillery spotting post-cap modifiers | Implemented — `ci_multiplier` (`simulation/day_cutin.rs`) |
-| S7 | AP shell post-cap modifier (×1.08/1.10/1.15 vs armor) | Open — AP shells only feed CI / special-attack detection |
+| S7 | AP shell post-cap modifier (×1.08/1.10/1.15 by tier, vs CA/BB/CV) | Implemented — `armour_piercing` (#196: after the cut-in, floored; accuracy ×1.1–1.3 too) |
 | S8 | Critical hit (1.5×) | Open — `api_cl` hardcoded to 1, no crit roll |
 | S9 | Ammo modifier | Implemented — `ammo_modifier` (post-cap, friendly-only) |
 | S10 | Scratch damage when attack < defense | Implemented — `resolve_damage` |
@@ -407,15 +407,23 @@ Day battle post-cap modifiers. Requires air superiority (AS+) and at least one r
 
 ### 3.7 AP Shell Modifier
 
-Post-cap multiplier when attacker has AP Shell equipped and target is armored:
+Day shelling only, when the target is a CA, CAV, FBB, BB, BBV, CV or CVB (not a CVL), by the
+attacker's tier (`kcships.js:550-555`, `:1500-1518` at `69097abc`). The tier needs an AP shell and
+a main gun of any calibre:
 
-| Attacker | Target Type | Modifier |
+| Attacker | Accuracy (`APacc`) | Power (`APmod`) |
 |---|---|---|
-| Large Gun + AP Shell | Heavy armor (CA, BB, etc.) | 1.08 |
-| Large Gun + AP Shell | Regular armor | 1.10 |
-| Large Gun + AP Shell | Light armor (DD, etc.) | 1.15 |
+| Main gun + AP shell | 1.1 | 1.08 |
+| + radar | 1.25 | 1.10 |
+| + secondary gun | 1.2 | 1.15 |
+| + radar + secondary gun | 1.3 | 1.15 |
 
-**Current code**: Not implemented.
+The accuracy sits with the cut-in's (`accMod2`); the power applies after the cut-in's, then
+`floor`, before the anti-installation post-cap multipliers. Against such a target the power is
+floored even without a tier.
+
+**Current code**: `armour_piercing` in `damage.rs`, used by `hit_value` and
+`calculate_shelling_damage` (#196).
 
 ### 3.8 Ammunition Modifier
 
@@ -519,7 +527,6 @@ is authoritative and supersedes the per-section "Current code" snippets above.
 |---|-----|-------------|----------------|
 | 8 | Critical hit (1.5× + `api_cl`=2) | All | Open — `api_cl` hardcoded to 1; needs trigger rate + post-cap 1.5× + flag |
 | 9 | Contact modifier | Airstrike | Open — pre-cap multiplier when aerial contact established |
-| 7 | AP shell post-cap modifier (×1.08/1.10/1.15) | Day shelling | Open — AP shells currently only feed CI / special-attack detection |
 | 13 | ASW armor penetration (`D_bonus`) | ASW | Open — no item-ID armor reduction in the defense formula |
 | 14 | Special unconditional OASW (Isuzu K2 etc.) | ASW | Open / unverified — ship-ID trigger conditions |
 | 15 | Torpedo bomber ×0.8/×1.5 random per slot | Airstrike | Open |
@@ -551,7 +558,7 @@ Phase 2: Equipment-driven power (requires star-level access)
 Phase 3: Post-cap modifiers (visible damage spikes)
   ├─ [open] Critical hit system
   ├─ [done] Artillery spotting
-  ├─ [open] AP shell modifier
+  ├─ [done] AP shell modifier
   └─ [done] Ammo modifier
 
 Phase 4: Airstrike fidelity

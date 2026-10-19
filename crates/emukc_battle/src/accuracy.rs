@@ -22,7 +22,7 @@ use emukc_model::{
     },
 };
 
-use crate::damage::{is_cv_type, ship_improvement};
+use crate::damage::{armour_piercing, is_cv_type, ship_improvement};
 use crate::gun_fit::gun_fit;
 use crate::random::BattleRng;
 use crate::targeting::{
@@ -683,7 +683,20 @@ fn dodge(
 }
 
 /// The attacker's accuracy before the target's evasion (`hitRate`), in percent.
-fn hit_value(codex: &Codex, attacker: &BattleRuntimeShip, aim: Aim, formation_acc: f64) -> f64 {
+fn hit_value(
+    codex: &Codex,
+    attacker: &BattleRuntimeShip,
+    defender: &BattleRuntimeShip,
+    aim: Aim,
+    formation_acc: f64,
+) -> f64 {
+    // `shell`: an AP shell's accuracy joins the cut-in's (`accMod2`).
+    let ap_accuracy = match aim.kind {
+        AttackKind::Shelling => {
+            armour_piercing(codex, attacker, defender).map_or(1.0, |ap| ap.accuracy)
+        }
+        _ => 1.0,
+    };
     let level = attacker.ship.api_lv.max(0) as f64;
     let luck = attacker.ship.api_lucky[0].max(0) as f64;
     let fit = match aim.kind {
@@ -703,6 +716,7 @@ fn hit_value(codex: &Codex, attacker: &BattleRuntimeShip, aim: Aim, formation_ac
         // `shell`, `NBattack`: the gun fit comes after `hitRate`, before `accMod2`.
         + fit)
         * aim.day_cut_in
+        * ap_accuracy
         // `NBattack`: the attacker's fleet's searchlight adds 7 after every multiplier.
         + if aim.searchlight && aim.kind == AttackKind::Night { 7.0 } else { 0.0 }
 }
@@ -736,7 +750,7 @@ pub(crate) fn roll_attack(
     let formation_acc = formation_acc
         * vanguard_dodge(codex, defender, aim.kind)
         * vanguard_against_destroyers(codex, attacker, defender, aim.kind);
-    let hit = hit_value(codex, attacker, aim, formation_acc);
+    let hit = hit_value(codex, attacker, defender, aim, formation_acc);
     let dodged = dodge(codex, defender, aim.kind, formation_ev, evasion_flat);
     let chance = hit_chance(hit, dodged, target_morale(defender));
     let planes = match aim.kind {
@@ -1088,7 +1102,7 @@ mod tests {
         // Sparkling (1.2, torpedo 1.3), a formation of 1.1 and a cut-in of 1.5 multiply it all.
         let gain = |kind| {
             let aim = Aim::new(kind, 1, 1).with_modifier(1.5);
-            hit_value(&codex, &armed, aim, 1.1) - hit_value(&codex, &bare, aim, 1.1)
+            hit_value(&codex, &armed, &bare, aim, 1.1) - hit_value(&codex, &bare, &bare, aim, 1.1)
         };
         // By day the two copies add 2 of their own and 2 of bonus.
         assert!((gain(AttackKind::Shelling) - 4.0 * 1.2 * 1.1 * 1.5).abs() < 1e-9);
@@ -1248,7 +1262,8 @@ mod tests {
             (improved_destroyer(&codex, [0, 0, 0]), improved_destroyer(&codex, [10, 3, 9]));
         let gain = |kind| {
             let aim = Aim::new(kind, 1, 1).with_modifier(1.5);
-            hit_value(&codex, &improved, aim, 1.1) - hit_value(&codex, &plain, aim, 1.1)
+            hit_value(&codex, &improved, &plain, aim, 1.1)
+                - hit_value(&codex, &plain, &plain, aim, 1.1)
         };
         let root10 = 10f64.sqrt();
         assert!((gain(AttackKind::Shelling) - root10 * 1.1 * 1.5).abs() < 1e-9);
@@ -1305,8 +1320,10 @@ mod tests {
         };
         let (fitting, plain) = (ship(KONGOU), ship(MYOUKOU));
         assert_eq!(bonus_accuracy(&codex, &fitting), bonus_accuracy(&codex, &plain));
-        let gain =
-            |aim: Aim| hit_value(&codex, &fitting, aim, 1.1) - hit_value(&codex, &plain, aim, 1.1);
+        let gain = |aim: Aim| {
+            hit_value(&codex, &fitting, &plain, aim, 1.1)
+                - hit_value(&codex, &plain, &plain, aim, 1.1)
+        };
         let close = |gain: f64, want: f64| (gain - want).abs() < 1e-9;
         let day = Aim::new(AttackKind::Shelling, 1, 1);
         assert!(close(gain(day), 7.0));
@@ -1315,5 +1332,36 @@ mod tests {
         assert!(close(gain(Aim::new(AttackKind::Night, 1, 1).with_modifier(1.5)), 7.0));
         assert_eq!(gain(Aim::new(AttackKind::Torpedo, 1, 1)), 0.0);
         assert_eq!(gain(Aim::new(AttackKind::Asw, 1, 1)), 0.0);
+    }
+
+    /// An AP shell with a main gun and a radar (`APtype` 2) aims 1.25 times as well at a
+    /// battleship by day, beside a cut-in's multiplier; at a destroyer or a light carrier, or at
+    /// night, it does not.
+    #[test]
+    fn an_ap_shell_aims_better_at_a_battleship_by_day() {
+        use crate::test_utils::{first_ship_mst_by_type, sample_ship, slotitem_with_mst_id};
+        use emukc_model::kc2::types::KcShipType;
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |ship_type| {
+            BattleRuntimeShip::from(sample_ship(
+                &codex,
+                first_ship_mst_by_type(&codex, ship_type),
+                50,
+            ))
+        };
+        let mut attacker = ship(KcShipType::FBB);
+        // 7 is a main gun, 36 an AP shell, 27 a radar.
+        attacker.slot_items = [7, 36, 27].map(slotitem_with_mst_id).to_vec();
+        let destroyer = ship(KcShipType::DD);
+        let ratio = |target: KcShipType, aim: Aim| {
+            hit_value(&codex, &attacker, &ship(target), aim, 1.1)
+                / hit_value(&codex, &attacker, &destroyer, aim, 1.1)
+        };
+        let close = |ratio: f64, want: f64| (ratio - want).abs() < 1e-9;
+        let day = Aim::new(AttackKind::Shelling, 1, 1);
+        assert!(close(ratio(KcShipType::BB, day), 1.25));
+        assert!(close(ratio(KcShipType::BB, day.with_day_cut_in(1.5)), 1.25));
+        assert!(close(ratio(KcShipType::CVL, day), 1.0));
+        assert!(close(ratio(KcShipType::BB, Aim::new(AttackKind::Night, 1, 1)), 1.0));
     }
 }

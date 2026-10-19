@@ -165,12 +165,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-19] 四个叠放 PR 自底向上合进 `main`：#247（#244）→ #248（#243）→ #249（#242）→ #250（#204），每层合并后改指上层 base、同步 `main`、删分支。合并前顶端 fmt、clippy `-D warnings`、`test --workspace` 1619 通过 0 失败 0 忽略。开 #251：基地航空队打敌连合少源码 ×1.1（`kcsim.js:3332`）。
+- [2026-10-19] `feat/ap-shell-modifiers`（#196，未推送）：徹甲弾按 `APtype` 四档给昼战炮击与特殊攻击加命中、威力；目标 AP-weak 时 CI 后威力照源码取整，无档位也取整。重冻 4 份 golden，全部来自取整（探针：关 AP 逐字节复原，档位恒 1 与完整实现一致）。fmt、clippy `-D warnings`、`test --workspace` 1622 通过 0 失败 0 忽略；两路审查无实现错误。
 
 ## Next Session
 
-- [2026-10-19] 无待合并分支。
-  ready 未关：#196–#200、#251（敌连合 ×1.1）。改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。
+- [2026-10-19] `feat/ap-shell-modifiers` 待推送开 PR。
+  ready 未关：#197–#200、#251（敌连合 ×1.1）。改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。
   瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
