@@ -203,6 +203,9 @@ place in the area as a string.
   the same sortie, where the source resets it on the way home. Land scouts lose only by being
   wiped out, like the other scouts. The base jet assault and its extra roll are not modelled.
 
+- A strike's own multipliers against particular targets (`airstrikeLBAS`'s chain, `LBWeak`,
+  `divebombWeak`) other than a PT imp's.
+
 - A tired squadron fights as well as a fresh one. Upstream lowers its accuracy by an
   amount nobody has published. The hit roll itself is in
   `battle-hit-and-critical-rolls.md`; a raid on the base lands 95 times in a hundred.

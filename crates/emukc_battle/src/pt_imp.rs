@@ -147,17 +147,7 @@ pub(crate) fn pt_power(power: f64) -> f64 {
     0.3 * power + power.max(0.0).sqrt() + 10.0
 }
 
-/// A carrier's strike on a PT imp lands at 0.8 of its power 40 times in a hundred, else at 0.5
-/// (`airstrike`, `enableAirstrikeSpecialBonus`).
-pub(crate) fn carrier_strike_roll(rng: &mut impl BattleRng) -> f64 {
-    if rng.random_f64_range(0.0, 1.0) < 0.4 {
-        0.8
-    } else {
-        0.5
-    }
-}
-
-/// An air corps strike on one at 0.7 of its power 40 times in a hundred, else at 0.4
+/// An air corps strike on a PT imp lands at 0.7 of its power 40 times in a hundred, else at 0.4
 /// (`airstrikeLBAS`).
 pub(crate) fn air_corps_strike_roll(rng: &mut impl BattleRng) -> f64 {
     if rng.random_f64_range(0.0, 1.0) < 0.4 {
