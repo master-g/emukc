@@ -116,7 +116,8 @@ ships, or has 対潜 7 or more, is fired on, then draws its target through `choi
 main deck 45 times in a hundred, and only the submarines when it hunts them and there are
 any. An enemy combined fleet (the 6-5 boss) is struck before the air phase, as a single one
 is, and each wave's stage 3 is split by deck the way `api_kouku`'s is: the main deck in
-`api_stage3`, the escort deck in `api_stage3_combined` (#242). A submarine is struck with 対潜, at 0.7–1 (対潜 10 or more) or 0.35–0.8 in place of a
+`api_stage3`, the escort deck in `api_stage3_combined` (#242); a strike on either deck lands
+×1.1 after the cap (`airstrikeLBAS`, `combinedWith`, #251). A submarine is struck with 対潜, at 0.7–1 (対潜 10 or more) or 0.35–0.8 in place of a
 land attacker's 0.8. Every target is drawn before the first strike lands, so a strike sent at
 a ship already sunk is wasted. A squadron whose figure is 0 (東海 against a ship) still
 strikes at the formula's base 25, as the carrier battle's torpedo bombers do on land.
@@ -201,8 +202,6 @@ place in the area as a string.
   has no rule. A squadron emptied in one battle can still gain from a later battle or raid of
   the same sortie, where the source resets it on the way home. Land scouts lose only by being
   wiped out, like the other scouts. The base jet assault and its extra roll are not modelled.
-- The strike leaves out the source's ×1.1 against a combined fleet (`airstrikeLBAS`
-  `postMod`).
 
 - A tired squadron fights as well as a fresh one. Upstream lowers its accuracy by an
   amount nobody has published. The hit roll itself is in
