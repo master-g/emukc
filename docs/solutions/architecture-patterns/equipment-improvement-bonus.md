@@ -83,7 +83,7 @@ Where each key goes, as a flat term in basic power before the pre-cap modifiers:
 
 An aircraft's stars also add to her own figure (爆装, 雷装) in the carrier battle's strike and
 an air corps' strike (`airstrikePowerImprove`, `kcships.js:2387-2428`; added at `kcsim.js:2019`
-and `3277`), as `airstrike_improvement` in `damage.rs` (#264):
+and `3277`), as `with_airstrike_improvement` in `damage.rs` (#264):
 
 - Dive, torpedo and jet bombers (7, 8, 57) that are not fighter-bombers, and seaplane bombers
   (11): 0.2★. The fighter-bombers' stars go to their anti-air instead.
@@ -91,7 +91,8 @@ and `3277`), as `airstrike_improvement` in `damage.rs` (#264):
 
 It goes in only when the figure is above zero and the target is no submarine: a torpedo bomber
 against land, 東海 against a ship, and any strike on a submarine take none. In the carrier
-strike it comes before the slot's 装備ボーナス. The fighter-bombers are the generated
+strike it comes before the slot's 装備ボーナス; the source's per-aircraft multipliers (#263) come
+before it, so they must not scale it. The fighter-bombers are the generated
 `FIGHTER_BOMBERS` (`scripts/gen_installation_types.py`, the source's `isFighterBomber`); the
 source types every aircraft as the client does.
 

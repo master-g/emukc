@@ -504,7 +504,7 @@ pub(super) const AIRSTRIKE_HIT_PERCENT: f64 = 95.0;
 /// ×1.5 of it, then the cap at 170, then `contact` (触接), the target's own roll
 /// ([`special_bonus`]) and the attacker's dock and summer multipliers. `ammo` is the carrier's
 /// ammunition modifier. The slot's stars add to a stat above zero
-/// ([`crate::damage::airstrike_improvement`]). `fit_bonus` is what the slot's 装備ボーナス torpedo
+/// ([`crate::damage::with_airstrike_improvement`]). `fit_bonus` is what the slot's 装備ボーナス torpedo
 /// adds to its stat, against land too (`getEquipBonusCVTorp(slot)`, `kcsim.js:2022`). A miss
 /// rolls nothing.
 #[expect(clippy::too_many_arguments)]
@@ -540,12 +540,8 @@ fn calculate_single_slot_airstrike_damage(
     } else {
         mst.api_raig.max(0) as f64
     };
-    // Her stars add to a figure she has; a submarine is never her target here.
-    let stat = if stat > 0.0 {
-        stat + crate::damage::airstrike_improvement(mst, slot_item.api_level)
-    } else {
-        stat
-    };
+    // A submarine is never her target here.
+    let stat = crate::damage::with_airstrike_improvement(stat, mst, slot_item.api_level);
     let bomb_power = (stat + fit_bonus) * (onslot as f64).sqrt();
     // ponytail: a jet's strike outside the jet phase (×0.7 + 0.5 in the source)
     // is not modelled; add it with the jet phase.
@@ -1680,6 +1676,9 @@ mod tests {
         // 彗星 (爆装 8) at ★10: (8 + 2) × √16 + 25 = 65.
         assert_eq!(codex.manifest.find_slotitem(24).unwrap().api_baku, 8);
         assert_eq!(strike(24, 10, &ship).into_iter().collect::<Vec<_>>(), [65]);
+        // 瑞雲 (爆装 4), a seaplane bomber, at ★5: (4 + 1) × √16 + 25 = 45.
+        assert_eq!(codex.manifest.find_slotitem(26).unwrap().api_baku, 4);
+        assert_eq!(strike(26, 5, &ship).into_iter().collect::<Vec<_>>(), [45]);
         // 零式艦戦62型(爆戦) is a fighter-bomber: her stars add nothing.
         assert_eq!(strike(60, 10, &ship), strike(60, 0, &ship));
         // A torpedo bomber has nothing to bring against land, so her stars do not either.

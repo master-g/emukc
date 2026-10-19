@@ -199,11 +199,7 @@ fn strike_stat(mst: &ApiMstSlotitem, stars: i64, target: TargetClass) -> f64 {
     } else {
         bombs
     };
-    if stat > 0.0 {
-        stat + crate::damage::airstrike_improvement(mst, stars)
-    } else {
-        stat
-    }
+    crate::damage::with_airstrike_improvement(stat, mst, stars)
 }
 
 /// What an enemy ship's fixed shot takes of its own and its fleet's anti-air.

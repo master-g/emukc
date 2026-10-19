@@ -849,18 +849,23 @@ fn improvement(mst: &ApiMstSlotitem, stars: i64) -> Improvement {
     item
 }
 
-/// What an aircraft's stars add to her figure in a carrier's or an air corps' strike
+/// An aircraft's figure in a carrier's or an air corps' strike with what her stars add
 /// (`airstrikePowerImprove`, `kcships.js:2387-2428` at `69097abc`): 0.2★ for a dive, torpedo or
 /// jet bomber that is no fighter-bomber and for a seaplane bomber, 0.7√★ for a land attacker.
-/// The strikes add it only to a figure above zero against a ship that is no submarine.
-pub(crate) fn airstrike_improvement(mst: &ApiMstSlotitem, stars: i64) -> f64 {
-    let stars = stars.max(0) as f64;
-    match mst.api_type[2] {
-        7 | 8 | 57 if !FIGHTER_BOMBERS.contains(&mst.api_id) => 0.2 * stars,
-        11 => 0.2 * stars,
-        47 | 53 => 0.7 * stars.sqrt(),
-        _ => 0.0,
+/// A figure of nothing takes none (`kcsim.js:2019`, `3277`); the callers keep a submarine out.
+/// The source's per-aircraft multipliers (#263) apply to `figure` before this.
+pub(crate) fn with_airstrike_improvement(figure: f64, mst: &ApiMstSlotitem, stars: i64) -> f64 {
+    if figure <= 0.0 {
+        return figure;
     }
+    let stars = stars.max(0) as f64;
+    figure
+        + match mst.api_type[2] {
+            7 | 8 | 57 if !FIGHTER_BOMBERS.contains(&mst.api_id) => 0.2 * stars,
+            11 => 0.2 * stars,
+            47 | 53 => 0.7 * stars.sqrt(),
+            _ => 0.0,
+        }
 }
 
 // ---------------------------------------------------------------------------
