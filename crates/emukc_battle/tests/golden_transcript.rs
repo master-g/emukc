@@ -316,7 +316,7 @@ fn enemy_combined(codex: &Codex) -> BattleContext {
 }
 
 /// A single-fleet sortie with two land attack corps, the second pointed here
-/// twice. Only a single fleet against a single fleet flies air corps.
+/// twice. A friendly combined fleet flies no air corps.
 fn single_with_air_corps(codex: &Codex) -> BattleContext {
     let mut context = fleet_context(codex, true, &SINGLE_FLEET, &ENEMY_SINGLE, (1, 1));
     context.air_corps = vec![

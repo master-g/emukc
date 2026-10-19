@@ -228,6 +228,11 @@ fn simulate_day_enemy_combined(codex: &Codex, state: &mut BattleState, rng: &mut
     let flow = BattleFlow::for_battle_type(state.battle_type());
     let runs = |kind: BattlePhaseKind| flow.phases.contains(&kind);
 
+    // Before the air phase, at both decks (`kcsimcombined.js` `sim6vs12`); gated
+    // as in `simulate_day`.
+    if !state.air_corps.is_empty() {
+        execute_air_base_attacks(codex, state, rng);
+    }
     if runs(BattlePhaseKind::Kouku) {
         execute_kouku(codex, state, rng);
     }
@@ -1134,6 +1139,62 @@ mod combined_tests {
             "{:?}",
             raigeki.api_frai
         );
+    }
+
+    /// 敵連合 with air corps (#242): they fly before the air phase, at both decks, and each
+    /// attack's stage3 is split as `api_kouku`'s is, the main deck in `api_stage3` and the
+    /// escort deck in `api_stage3_combined`.
+    #[test]
+    fn air_corps_strike_both_decks_of_an_enemy_combined_fleet() {
+        use crate::types::{AirCorpsInput, AirSquadronInput};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let tank = || {
+            let mut ship = sample_ship(&codex, dd, 50);
+            ship.ship.api_soukou[0] = 300;
+            ship
+        };
+        let mut struck = [false, false];
+        for seed in 0..20 {
+            let context = BattleContext {
+                special_attacks_made: Default::default(),
+                battle_type: BattleType::Normal,
+                is_sortie: true,
+                friendly_formation_id: 1,
+                enemy_formation_id: 13,
+                engagement: EngagementType::SameCourse,
+                friend_ships: vec![tank()],
+                enemy_ships: vec![tank(); 3],
+                enemy_escort_ships: vec![tank(); 2],
+                air_corps: vec![AirCorpsInput {
+                    base_rid: 1,
+                    waves: 1,
+                    // 一式陸攻.
+                    squadrons: (1..=4)
+                        .map(|squadron_id| AirSquadronInput {
+                            squadron_id,
+                            mst_id: 169,
+                            count: 18,
+                            alv: 7,
+                            exp: None,
+                        })
+                        .collect(),
+                }],
+                combined: None,
+            };
+            let sim = super::simulate_day(&codex, context, &mut SeededRng::new(seed));
+            let [attack] = sim.packet.air_base_attack.as_slice() else {
+                panic!("one air corps attack, got {}", sim.packet.air_base_attack.len());
+            };
+            let main = &attack.kouku.api_stage3.api_erai_flag;
+            let escort =
+                &attack.kouku.api_stage3_combined.as_ref().expect("escort split").api_erai_flag;
+            assert_eq!((main.len(), escort.len()), (3, 2));
+            struck[0] |= main.contains(&1);
+            struck[1] |= escort.contains(&1);
+        }
+        assert_eq!(struck, [true, true]);
     }
 
     /// 敵連合, the battleship round: only the enemy main fleet fires back, but
