@@ -379,10 +379,66 @@ const TORPEDO_BONUS_PAIR: [i64; 2] = [522, 523];
 /// put on after those before it, as the source's `loadEquips` assigns them. The plane bonus is
 /// one plane's: 522 and 523 together if she has either, else the first she carries of a fixed
 /// list, then of the others with a bonus by id downwards. The crew bonus is the smallest of her
-/// aviation personnel's.
-fn carrier_torpedo_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+/// aviation personnel's. Her day shelling adds it too.
+pub(crate) fn carrier_torpedo_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
+    let (plane, crew) = torpedo_bonus_parts(codex, ship);
+    (plane + crew) as f64
+}
+
+/// The aircraft types the source counts as dive bombers (`EQTDATA[..].isdivebomber`): their
+/// bombing, not their torpedo, decides which slot takes the plane bonus.
+const DIVE_BOMBER_TYPES: [i64; 7] = [7, 11, 25, 26, 47, 53, 57];
+
+/// What one bomber slot's strike adds to its figure (`getEquipBonusCVTorp(slot)`): the plane
+/// bonus if this is the plane with the highest torpedo (bombing for a dive bomber), ties to the
+/// slot with more aircraft and then to the first; and for a 艦攻 the crew bonus.
+pub(crate) fn carrier_slot_torpedo_bonus(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    slot: usize,
+) -> f64 {
+    let (plane, crew) = torpedo_bonus_parts(codex, ship);
+    let (mut best, mut most, mut top) = (0, 0, None);
+    for (at, item) in ship.slot_items.iter().enumerate() {
+        let Ok(mst) = codex.find::<emukc_model::kc2::start2::ApiMstSlotitem>(&item.api_slotitem_id)
+        else {
+            continue;
+        };
+        if !PLANE_TYPES.contains(&mst.api_type[2]) {
+            continue;
+        }
+        let stat = if DIVE_BOMBER_TYPES.contains(&mst.api_type[2]) {
+            mst.api_baku
+        } else {
+            mst.api_raig
+        };
+        let count = ship.ship.api_onslot.get(at).copied().unwrap_or(0);
+        if stat > best || (stat == best && count > most) {
+            (best, most, top) = (stat, count, Some(at));
+        }
+    }
+    let torpedo_bomber = ship.slot_items.get(slot).is_some_and(|item| {
+        codex
+            .find::<emukc_model::kc2::start2::ApiMstSlotitem>(&item.api_slotitem_id)
+            .is_ok_and(|mst| mst.api_type[2] == KcSlotItemType3::CarrierBasedTorpedoBomber as i64)
+    });
+    let plane = if top == Some(slot) {
+        plane
+    } else {
+        0
+    };
+    (plane
+        + if torpedo_bomber {
+            crew
+        } else {
+            0
+        }) as f64
+}
+
+/// The plane and crew parts of a carrier's torpedo fit bonus.
+fn torpedo_bonus_parts(codex: &Codex, ship: &BattleRuntimeShip) -> (i64, i64) {
     let Some(hull) = crate::targeting::ship_mst(codex, ship) else {
-        return 0.0;
+        return (0, 0);
     };
     let carried = crate::targeting::bonus_gears(codex, ship);
     let totals: Vec<i64> = (0..=carried.len())
@@ -415,7 +471,7 @@ fn carrier_torpedo_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
         .map(|(_, share)| *share)
         .min()
         .unwrap_or(0);
-    (plane + crew) as f64
+    (plane, crew)
 }
 
 /// The four carrier night cut-ins (戦爆連合夜間CI), the source's `NBATTACKDATA` 61 to 64, in
@@ -2890,6 +2946,36 @@ mod tests {
         let cvl = first_ship_mst_by_type(&codex, KcShipType::CVL);
         let group = night_carrier(&codex, cvl, &[CREW, (NF, 10, 0), (NA, 9, 0)], 100);
         assert_eq!(power(&group, false) - power(&group, true), 9.0);
+    }
+
+    /// `getEquipBonusCVTorp(slot)`: one slot takes the plane bonus, the one whose torpedo (a
+    /// dive bomber's bombing) is highest, then the one with more aircraft; a 艦攻 takes the crew's.
+    #[test]
+    fn a_strike_takes_the_torpedo_fit_bonus_on_one_slot() {
+        const BARRACUDA_MK2: i64 = 424; // 雷装 7, +3 on a British carrier
+        const DECK_CREW: i64 = 478; // 雷装 +1 from ★5
+        const SUISEI_12A: i64 = 57; // 爆装 10
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let slot = |equipment: &[(i64, i64, i64)], at| {
+            let ship = night_carrier(&codex, ARK_ROYAL, equipment, 100);
+            carrier_slot_torpedo_bonus(&codex, &ship, at)
+        };
+
+        // Barracuda's 7 beats the Swordfish' 3.
+        let fitted = [(SF, 20, 0), (BARRACUDA_MK2, 10, 0)];
+        assert_eq!((slot(&fitted, 0), slot(&fitted, 1)), (0.0, 3.0));
+        // On a tie the larger slot takes it, then the first.
+        let pair = |first, second| [(BARRACUDA_MK2, first, 0), (BARRACUDA_MK2, second, 0)];
+        assert_eq!(
+            slot(&pair(5, 10), 1),
+            carrier_torpedo_bonus(&codex, &night_carrier(&codex, ARK_ROYAL, &pair(5, 10), 100))
+        );
+        assert_eq!(slot(&pair(5, 10), 0), 0.0);
+        assert_eq!(slot(&pair(10, 10), 1), 0.0);
+        // A dive bomber's 10 bombing beats the 7 and takes the plane bonus; the crew's goes to
+        // the 艦攻 only.
+        let crewed = [(BARRACUDA_MK2, 10, 0), (SUISEI_12A, 10, 0), (DECK_CREW, 0, 5)];
+        assert_eq!((slot(&crewed, 0), slot(&crewed, 1)), (1.0, 3.0));
     }
 
     #[test]

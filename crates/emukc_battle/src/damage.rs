@@ -23,6 +23,7 @@ use crate::installation::{AntiInstallation, land_target, post_cap_multiplier};
 use crate::pt_imp::{AntiPt, is_pt, pt_power};
 use crate::random::BattleRng;
 use crate::simulation::installation_types::INSTALLATION_BOMBERS;
+use crate::simulation::night::carrier_torpedo_bonus;
 use crate::targeting::{
     abyssal_carrier_asw, bonus_gears, count_slotitems, has_slotitem_type, is_airstrike_attack_type,
     is_ap_shell_type, is_main_gun_type, is_radar_type, is_secondary_gun_type, ship_mst, ship_type,
@@ -241,9 +242,9 @@ fn day_gun_power(codex: &Codex, attacker: &BattleRuntimeShip, defender: &BattleR
 /// `fp` her firepower, 5, the combined fleet's correction and the improvement bonus, and the
 /// torpedo and bombing of everything she carries, flown or not. Against a land target her
 /// equipment multiplies `fp` and adds its flat power, with no day part; her torpedoes count for
-/// nothing and only the bombers that may attack land bring their bombing.
-// ponytail: the 装備ボーナス torpedo and bombing on a carrier's planes (`getEquipBonusCVTorp`)
-// are left out, as in her airstrike; add them with that table.
+/// nothing and only the bombers that may attack land bring their bombing. Her torpedo takes the
+/// 装備ボーナス on her planes ([`carrier_torpedo_bonus`], `getEquipBonusCVTorp`) before a land
+/// target clears it.
 fn carrier_gun_power(
     codex: &Codex,
     attacker: &BattleRuntimeShip,
@@ -266,10 +267,10 @@ fn carrier_gun_power(
         + combined_correction(attacker, defender, CombinedAttackClass::Shelling) as f64
         + ship_improvement(codex, attacker).shell;
     let (fp, torpedo) = match land {
-        Some(kind) => (AntiInstallation::of(codex, attacker).power(kind, fp, false), 0),
-        None => (fp, torpedo),
+        Some(kind) => (AntiInstallation::of(codex, attacker).power(kind, fp, false), 0.0),
+        None => (fp, torpedo as f64 + carrier_torpedo_bonus(codex, attacker)),
     };
-    25.0 + (1.5 * (15.0 + fp + torpedo as f64 + (1.3 * bombing as f64).floor())).floor()
+    25.0 + (1.5 * (15.0 + fp + torpedo + (1.3 * bombing as f64).floor())).floor()
 }
 
 /// The 30 firepower a submarine has against a land target.
@@ -2090,6 +2091,34 @@ mod tests {
         assert!(fp >= 55.0 * 2.5, "{fp}");
         let land = 25.0 + (1.5 * (15.0 + fp + (1.3 * ju87).floor())).floor();
         assert_eq!(shell(&target(Some(airfield))), apply_cap(land, SHELLING_CAP));
+    }
+
+    /// `CV.shellPower`: the 装備ボーナス torpedo on her planes joins her torpedo, and goes with it
+    /// against a land target.
+    #[test]
+    fn a_carrier_shells_with_the_torpedo_fit_bonus_at_sea_only() {
+        const ARK_ROYAL: i64 = 515;
+        const BARRACUDA_MK2: i64 = 424; // 雷装 7, +3 on a British carrier
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut input = sample_ship(&codex, ARK_ROYAL, 50);
+        input.ship.api_karyoku[0] = 50;
+        input.ship.api_onslot = [18, 0, 0, 0, 0];
+        input.slot_items = vec![slotitem_with_mst_id(BARRACUDA_MK2)];
+        let carrier = BattleRuntimeShip::from(input);
+        let target = |id: Option<i64>| {
+            let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+            if let Some(id) = id {
+                ship.ship.api_ship_id = id;
+            }
+            BattleRuntimeShip::from(ship)
+        };
+
+        // 25 + ⌊1.5 × (15 + 50 + 5 + 7 + 3)⌋.
+        assert_eq!(carrier_gun_power(&codex, &carrier, &target(None)), 145.0);
+        let airfield = ship_mst_id_by_name(&codex, "飛行場姫");
+        let fp = AntiInstallation::of(&codex, &carrier).power(1, 55.0, false);
+        let land = 25.0 + (1.5 * (15.0 + fp)).floor();
+        assert_eq!(carrier_gun_power(&codex, &carrier, &target(Some(airfield))), land);
     }
 
     #[test]
