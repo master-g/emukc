@@ -1772,6 +1772,87 @@ async fn enemy_combined_boss_runs_day_night_and_result() {
     assert_eq!(result.api_ship_id.len(), 12, "both enemy decks are reported");
 }
 
+/// 6-5 の M with air corps sent against it (#242): the client gets the attack in
+/// `ec_battle`, its stage3 split by deck as `api_kouku`'s is, and the response passes
+/// the client-derived rules. Set `EMUKC_DUMP_DIR` to have it written out for `battle validate`.
+#[tokio::test]
+async fn air_corps_attack_the_enemy_combined_boss() {
+    use crate::scenario::{Scenario, apply_scenario};
+
+    let db = new_mem_db().await.unwrap();
+    let mut codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    codex.game_cfg.god_mode = false;
+    codex.game_cfg.one_hit_kill = false;
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
+    let account = context.sign_up("ec-air-corps", "1234567").await.unwrap();
+    let profile = context.new_profile(&account.access_token.token, "ec-air-corps").await.unwrap();
+    let pid = context
+        .start_game(&account.access_token.token, profile.profile.id)
+        .await
+        .unwrap()
+        .profile
+        .id;
+    apply_scenario(&context, pid, &Scenario::air_raid_6_5()).await.unwrap();
+    context.get_airbases(pid).await.unwrap();
+    // 一式陸攻 in all four squadrons of air corps 1.
+    let attackers: Vec<i64> = context
+        .get_unset_slot_items(pid)
+        .await
+        .unwrap()
+        .iter()
+        .filter(|item| item.api_slotitem_id == 169)
+        .map(|item| item.api_id)
+        .collect();
+    assert_eq!(attackers.len(), 4);
+    for (squadron_id, item_id) in (1..).zip(attackers) {
+        context.set_airbase_plane(pid, 6, 1, squadron_id, item_id).await.unwrap();
+    }
+
+    let definition = context.codex.maps.map_definition(65).unwrap();
+    let stage = definition.stage(&definition.default_variant).unwrap();
+    let boss = stage.cell(18).unwrap();
+    let _ = context.sortie_store.as_ref().insert_active(
+        pid,
+        ActiveSortieState {
+            special_attacks_made: Default::default(),
+            deck_id: 1,
+            map_id: 65,
+            map_name: definition.name.clone(),
+            map_level: definition.level,
+            stage_id: definition.default_variant.clone(),
+            current_cell_id: boss.cell_no,
+            boss_cell_id: stage.boss_cell_no,
+            pending_battle_cell_id: None,
+            visited_cell_ids: BTreeSet::from([boss.cell_no]),
+            locked_enemy_composition: None,
+            landing_tp: None,
+            recon_rewards: Vec::new(),
+            air_strikes: vec![AirStrike {
+                base_rid: 1,
+                cells: vec![boss.cell_no],
+            }],
+            raided: false,
+        },
+    );
+
+    let day = serde_json::to_value(context.sortie_ec_battle(pid, 1).await.unwrap()).unwrap();
+    if let Ok(dir) = std::env::var("EMUKC_DUMP_DIR") {
+        std::fs::write(format!("{dir}/ec_battle_air_corps.json"), day.to_string()).unwrap();
+    }
+    let attacks = day["api_air_base_attack"].as_array().expect("the air corps attacked");
+    assert_eq!(attacks.len(), 1);
+    assert_eq!(attacks[0]["api_stage3"]["api_edam"].as_array().unwrap().len(), 6);
+    assert_eq!(attacks[0]["api_stage3_combined"]["api_edam"].as_array().unwrap().len(), 6);
+    let assets = emukc_bootstrap::prelude::load_repo_battle_knowledge_assets().unwrap();
+    let report = emukc_bootstrap::prelude::validate_day_battle_response(
+        &context.codex.manifest,
+        &day,
+        &assets,
+    )
+    .unwrap();
+    assert!(!report.has_errors(), "day findings: {:?}", report.findings);
+}
+
 /// Every battle cell of every map can be fought through the entry the client picks
 /// for its event kind (`map_info.isNightStart` / `isAirBattle` / `isVS12` / `isAirRaid` /
 /// `isLongRangeFires`), and the packet passes the client-derived rules.

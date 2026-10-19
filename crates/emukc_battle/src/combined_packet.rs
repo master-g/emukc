@@ -239,6 +239,9 @@ pub(crate) fn remap_day_packet_enemy(
     escort_start: usize,
     friendly_len: usize,
 ) {
+    for attack in &mut packet.air_base_attack {
+        split_enemy_kouku_stage3(&mut attack.kouku, escort_start);
+    }
     if let Some(kouku) = packet.kouku.as_mut() {
         split_enemy_kouku_stage3(kouku, escort_start);
     }
