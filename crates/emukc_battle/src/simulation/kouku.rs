@@ -557,8 +557,8 @@ fn calculate_single_slot_airstrike_damage(
 }
 
 /// What a carrier's strike does to particular targets after the cap, each rolled for as the
-/// source's chain has them, first match only (`airstrike`, `enableAirstrikeSpecialBonus`, on by
-/// default): 40 times in a hundred the higher figure (50 against a supply depot), else the lower.
+/// source's chain has them, first match only (`kcsim.js:2053-2083` at `69097abc`, `airstrike`,
+/// `enableAirstrikeSpecialBonus`, on by default): 40 times in a hundred the higher figure (50 against a supply depot), else the lower.
 /// A dive bomber on any other target takes her `divebombWeak`. Rolls nothing for a target in none.
 fn special_bonus(
     codex: &Codex,

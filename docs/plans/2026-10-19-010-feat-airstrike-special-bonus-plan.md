@@ -2,7 +2,7 @@
 title: "Airstrike Special Bonus and Carrier Shelling of Land - Plan"
 type: feat
 date: 2026-10-19
-status: in-progress
+status: implemented
 execution: code
 ---
 
@@ -23,6 +23,11 @@ Issue #200。来源 `kancolle-replay@69097abc`：`kcsim.js:2053-2110`（`airstri
 - 单测：链的首中、补给基地 0.5、`divebombWeak` 不抽签、鱼雷机后再抽；既有「对地鱼雷机只有基础 25」改为含砲台小鬼的 1.3/1.7。
 - golden：180 份与 `battle_golden.rs` 未变。
 
-### U2 空母昼战炮击对地
+### U2 空母昼战炮击（含对地）
 
-待定：现行空母炮击公式是简化的 `1.5 × 轰炸机机数 + 55`（`damage-formula-reference.md` S2），没有火力项可乘对地倍率。
+现行空母炮击公式是简化的 `1.5 × 轰炸机机数 + 55`（`damage-formula-reference.md` S2），没有火力项可乘对地倍率。用户定（2026-10-19）：整个移植来源公式，再在其上接对地倍率，单独一个提交。
+
+- `damage.rs` `carrier_gun_power`：`25 + ⌊1.5 × (15 + fp + 雷装 + ⌊1.3 × 爆装⌋)⌋`，fp = 火力 + 5 + 连合补正 + 改修；雷装、爆装取所带全部装备（不论机数，来源如此）。对地：`AntiInstallation::power(kind, fp, day = false)`（来源 CV 分支不乘 `*MultDay`），雷装 0，爆装只取 `INSTALLATION_BOMBERS`。`bomber_plane_count` 随旧公式删除。
+- 非目标：`getEquipBonusCVTorp`（装備ボーナス对空母机的雷装/爆装），与航空战一致不做。
+- 单测：对海与对软目标（三式弾 2.5、过 cap）。
+- golden：180 份中 117 份变化（ctf 20、ec 20、practice 20、single 17、stf 20、te 20），全部来自本提交唯一的行为改动（空母昼战炮击公式）；`battle_golden.rs`（1-1 两艘驱逐）未变。

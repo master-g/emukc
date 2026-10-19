@@ -76,7 +76,7 @@ Where:
 
 ```
 F₀ = firepower + 5                          (for non-CV)
-F₀ = 55 + floor(1.5 × (FP + TP + floor(1.5 × DB) + improvement + CL_fit))  (for CV/CVL/CVB)
+F₀ = 25 + floor(1.5 × (15 + FP + 5 + TP + floor(1.3 × DB) + improvement))  (for CV/CVL/CVB; `CV.prototype.shellPower`)
 ```
 
 Pre-cap modifiers:
@@ -103,7 +103,7 @@ let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
 | # | Item | Status |
 |---|------|--------|
 | S1 | Improvement bonus (√★ or ★ by item) | Implemented — `ship_improvement(..).shell` |
-| S2 | CV special formula | Implemented (simplified) — `1.5 × bombers + 55` in `calculate_shelling_damage` |
+| S2 | CV special formula | Implemented — `carrier_gun_power` (#200: the source's `CV.prototype.shellPower`; against land the equipment multiplier on FP, no TP, land bombers' DB only; 装備ボーナス torpedo/bombing left out) |
 | S3 | CL fit gun bonus `√単装 + 2√連装` | Implemented — `light_gun_bonus` (#204: CL/CLT/CT, guns by the source's `fitclass` 101/102 ids; also at night) |
 | S4 | Damage state modifier (chuuha×0.7, taiha×0.4) | Implemented — `damage_state_modifier` |
 | S5 | Defense randomization `0.7A + 0.6×rand(0,A−1)` | Implemented — `calculate_defense_power` |

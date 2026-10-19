@@ -69,6 +69,10 @@ Where it is read (`damage.rs`):
 - By day (`day_gun_power`, the source's `shellPower`): firepower, 30 more for a submarine, 5, the
   combined fleet's correction and the improvement bonus, times the multiplier and its day part,
   plus the flat power. The light cruiser's gun fit is added after, as the source adds `FPfit`.
+- A carrier by day (`carrier_gun_power`, `CV.prototype.shellPower`): firepower, 5, the combined
+  fleet's correction and the improvement bonus, times the multiplier without its day part, plus
+  the flat power; no torpedo, and only the bombers that may attack land bring their bombing, in
+  `25 + ⌊1.5 × (15 + fp + ⌊1.3 × bombing⌋)⌋` (#200).
 - At night (`night_gun_power`, `NBPower`): firepower, 30 more for a submarine and the improvement
   bonus, times the multiplier, plus the flat power. No torpedo, but for the northern princesses.
 - At night, a ship with nothing equipped at all: firepower and torpedo, no multiplier and no
@@ -109,5 +113,3 @@ Where it is read (`damage.rs`):
 - The summer carrier, French battleship and European princess multipliers (`isSummerCV`,
   `isFrenchBB`, `isEuroWP`, 19 ships in the source, switches on by default): plan 2026-10-15-004 did
   not take them, and the generator does not list them.
-- A carrier's day shelling of a land target (`CV.prototype.shellPower`) keeps the carrier formula
-  without the multipliers.

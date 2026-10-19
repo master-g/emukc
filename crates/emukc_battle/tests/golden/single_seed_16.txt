@@ -689,13 +689,14 @@ BattlePacket {
     ),
     hourai_flag: [
         1,
-        0,
+        1,
         0,
         0,
     ],
     hougeki1: Some(
         BattleHougeki {
             api_at_eflag: [
+                0,
                 0,
                 0,
                 0,
@@ -708,6 +709,7 @@ BattlePacket {
                 3,
                 5,
                 1,
+                2,
             ],
             api_at_type: [
                 2,
@@ -715,11 +717,15 @@ BattlePacket {
                 0,
                 0,
                 7,
+                0,
             ],
             api_df_list: [
                 [
                     0,
                     0,
+                ],
+                [
+                    1,
                 ],
                 [
                     1,
@@ -769,10 +775,18 @@ BattlePacket {
                         "16",
                     ),
                 ],
+                [
+                    Num(
+                        -1,
+                    ),
+                ],
             ],
             api_cl_list: [
                 [
                     1,
+                    1,
+                ],
+                [
                     1,
                 ],
                 [
@@ -803,18 +817,55 @@ BattlePacket {
                     6,
                 ],
                 [
-                    115,
+                    49,
+                ],
+                [
+                    5,
                 ],
             ],
         },
     ),
-    hougeki2: None,
+    hougeki2: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                0,
+            ],
+            api_at_list: [
+                0,
+            ],
+            api_at_type: [
+                0,
+            ],
+            api_df_list: [
+                [
+                    1,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Num(
+                        8,
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
+                    2,
+                ],
+            ],
+            api_damage: [
+                [
+                    108,
+                ],
+            ],
+        },
+    ),
     hougeki3: None,
     raigeki: None,
 }
 BattleOutcome {
     win_rank: S,
-    mvp: 2,
+    mvp: 1,
     can_midnight: false,
 }
 NightBattlePacket {
@@ -867,6 +918,6 @@ NightBattlePacket {
 }
 BattleOutcome {
     win_rank: S,
-    mvp: 2,
+    mvp: 1,
     can_midnight: false,
 }

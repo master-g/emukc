@@ -22,6 +22,7 @@ use crate::combined::{
 use crate::installation::{AntiInstallation, land_target, post_cap_multiplier};
 use crate::pt_imp::{AntiPt, is_pt, pt_power};
 use crate::random::BattleRng;
+use crate::simulation::installation_types::INSTALLATION_BOMBERS;
 use crate::targeting::{
     abyssal_carrier_asw, bonus_gears, count_slotitems, has_slotitem_type, is_airstrike_attack_type,
     is_ap_shell_type, is_main_gun_type, is_radar_type, is_secondary_gun_type, ship_mst, ship_type,
@@ -169,21 +170,7 @@ pub(crate) fn calculate_shelling_damage(
     outcome: HitOutcome,
 ) -> i64 {
     let basic_power = if is_cv_type(codex, attacker) {
-        let bomber_count = bomber_plane_count(codex, attacker);
-        let planes = if bomber_count > 0 {
-            1.5 * bomber_count as f64 + 55.0
-        } else {
-            attacker.ship.api_karyoku[0].max(0) as f64 + 5.0
-        };
-        // The reference spells the correction out only for the non-carrier formula,
-        // but states it sits "inside basic attack power" — so it applies to the
-        // carrier branch as well, not just the gun branch.
-        // ponytail: a carrier's power against a land target (`CV.prototype.shellPower`, its
-        // multipliers on her firepower alone) is not modelled.
-        // The improvement sits inside the source's `1.5 × (…)` (`CV.prototype.shellPower`).
-        planes
-            + 1.5 * ship_improvement(codex, attacker).shell
-            + combined_correction(attacker, defender, CombinedAttackClass::Shelling) as f64
+        carrier_gun_power(codex, attacker, defender)
     } else {
         day_gun_power(codex, attacker, defender)
     };
@@ -228,6 +215,42 @@ fn day_gun_power(codex: &Codex, attacker: &BattleRuntimeShip, defender: &BattleR
         ),
         None => firepower + rest,
     }
+}
+
+/// What a carrier's day shelling counts for before the cap (`CV.prototype.shellPower`,
+/// `kcships.js:1986` at `69097abc`): `25 + ⌊1.5 × (15 + fp + torpedo + ⌊1.3 × bombing⌋)⌋`, with
+/// `fp` her firepower, 5, the combined fleet's correction and the improvement bonus, and the
+/// torpedo and bombing of everything she carries, flown or not. Against a land target her
+/// equipment multiplies `fp` and adds its flat power, with no day part; her torpedoes count for
+/// nothing and only the bombers that may attack land bring their bombing.
+// ponytail: the 装備ボーナス torpedo and bombing on a carrier's planes (`getEquipBonusCVTorp`)
+// are left out, as in her airstrike; add them with that table.
+fn carrier_gun_power(
+    codex: &Codex,
+    attacker: &BattleRuntimeShip,
+    defender: &BattleRuntimeShip,
+) -> f64 {
+    let land = land_target(codex, defender);
+    let (mut torpedo, mut bombing) = (0, 0);
+    for mst in attacker
+        .slot_items
+        .iter()
+        .filter_map(|item| codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok())
+    {
+        torpedo += mst.api_raig.max(0);
+        if land.is_none() || INSTALLATION_BOMBERS.contains(&mst.api_id) {
+            bombing += mst.api_baku.max(0);
+        }
+    }
+    let fp = attacker.ship.api_karyoku[0].max(0) as f64
+        + 5.0
+        + combined_correction(attacker, defender, CombinedAttackClass::Shelling) as f64
+        + ship_improvement(codex, attacker).shell;
+    let (fp, torpedo) = match land {
+        Some(kind) => (AntiInstallation::of(codex, attacker).power(kind, fp, false), 0),
+        None => (fp, torpedo),
+    };
+    25.0 + (1.5 * (15.0 + fp + torpedo as f64 + (1.3 * bombing as f64).floor())).floor()
 }
 
 /// The 30 firepower a submarine has against a land target.
@@ -433,25 +456,6 @@ pub(crate) fn calculate_scratch_damage(rng: &mut impl BattleRng, current_hp: i64
 /// Check if a ship is a carrier type (CV, CVL, or CVB).
 pub(crate) fn is_cv_type(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     matches!(ship_type(codex, ship), Some(KcShipType::CV | KcShipType::CVL | KcShipType::CVB))
-}
-
-/// Count the total number of bomber aircraft (dive bomber + torpedo bomber) on a ship.
-/// Uses `api_onslot` (actual plane count per slot), not the number of bomber slots.
-pub(crate) fn bomber_plane_count(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
-    const BOMBER_TYPES: &[KcSlotItemType3] =
-        &[KcSlotItemType3::CarrierBasedDiveBomber, KcSlotItemType3::CarrierBasedTorpedoBomber];
-    ship.slot_items
-        .iter()
-        .zip(ship.ship.api_onslot)
-        .filter(|(si, _)| {
-            codex
-                .find::<ApiMstSlotitem>(&si.api_slotitem_id)
-                .ok()
-                .and_then(|mst| KcSlotItemType3::n(mst.api_type[2]))
-                .is_some_and(|t| BOMBER_TYPES.contains(&t))
-        })
-        .map(|(_, onslot)| onslot.max(0))
-        .sum()
 }
 
 /// The source's `fitclass` 101 (`kcEQDATA.js` at `69097abc`): 14cm単装砲, 15.2cm単装砲.
@@ -1971,41 +1975,46 @@ mod tests {
     }
 
     #[test]
-    fn cv_shelling_uses_bomber_plane_count() {
+    fn a_carrier_shells_by_the_sources_formula_at_sea_and_on_land() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let cvl_mst = first_ship_mst_by_type(&codex, KcShipType::CVL);
-        let bomber_mst_id =
-            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
-        let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
+        // 九九式艦爆 (bombing 5), 九七式艦攻 (torpedo 5), Ju87C改, one of the bombers that may
+        // attack land, and a 三式弾, which a soft-skinned target takes at 2.5.
+        let gear = [23, 16, 64, 35];
+        let ju87 = codex.manifest.find_slotitem(64).unwrap().api_baku as f64;
+        assert!(INSTALLATION_BOMBERS.contains(&64) && !INSTALLATION_BOMBERS.contains(&23));
+        let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CV), 50);
+        input.ship.api_karyoku[0] = 50;
+        input.ship.api_onslot = [18, 18, 18, 0, 0];
+        input.slot_items = gear.iter().map(|&id| slotitem_with_mst_id(id)).collect();
+        let carrier = BattleRuntimeShip::from(input);
+        let target = |id: Option<i64>| {
+            let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+            ship.ship.api_soukou[0] = 0;
+            ship.ship.api_maxhp = 999;
+            ship.ship.api_nowhp = 999;
+            if let Some(id) = id {
+                ship.ship.api_ship_id = id;
+            }
+            BattleRuntimeShip::from(ship)
+        };
+        let shell = |defender: &BattleRuntimeShip| {
+            let rng = &mut crate::random::SeededRng::new(1);
+            let (engagement, hit) = (EngagementType::SameCourse, HitOutcome::Hit);
+            calculate_shelling_damage(&codex, rng, &carrier, defender, 1, engagement, None, hit)
+        };
 
-        // CVL with 2 bomber slots: 18 planes each = 36 total
-        let mut cvl = sample_ship(&codex, cvl_mst, 50);
-        cvl.ship.api_onslot = [18, 18, 0, 0, 0];
-        cvl.slot_items =
-            vec![slotitem_with_mst_id(bomber_mst_id), slotitem_with_mst_id(bomber_mst_id)];
-        let cvl_ship = BattleRuntimeShip::from(cvl);
-        assert_eq!(bomber_plane_count(&codex, &cvl_ship), 36);
+        // 25 + ⌊1.5 × (15 + 50 + 5 + 5 + ⌊1.3 × (5 + Ju87C改)⌋)⌋.
+        let sea = 25.0 + (1.5 * (75.0 + (1.3 * (5.0 + ju87)).floor())).floor();
+        assert_eq!(shell(&target(None)), sea as i64);
 
-        // Basic power should be 1.5 * 36 + 55 = 109
-        let expected_basic = 1.5 * 36.0 + 55.0;
-        assert!((expected_basic - 109.0_f64).abs() < f64::EPSILON);
-
-        // Verify damage is computed (not just returning firepower fallback)
-        let mut defender = BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50));
-        defender.ship.api_soukou[0] = 0;
-        let mut rng = crate::random::SeededRng::new(42);
-        let attacker = cvl_ship.clone();
-        let dmg = calculate_shelling_damage(
-            &codex,
-            &mut rng,
-            &attacker,
-            &defender,
-            1,
-            EngagementType::SameCourse,
-            None,
-            HitOutcome::Hit,
-        );
-        assert!(dmg > 0, "CV with bombers should deal shelling damage");
+        // 飛行場姫, soft-skinned: the equipment's multiplier on 55, no torpedo, Ju87C改 alone, then
+        // the cap.
+        let airfield = ship_mst_id_by_name(&codex, "飛行場姫");
+        assert_eq!(crate::targeting::installation_type(airfield), Some(1));
+        let fp = AntiInstallation::of(&codex, &carrier).power(1, 55.0, false);
+        assert!(fp >= 55.0 * 2.5, "{fp}");
+        let land = 25.0 + (1.5 * (15.0 + fp + (1.3 * ju87).floor())).floor();
+        assert_eq!(shell(&target(Some(airfield))), apply_cap(land, SHELLING_CAP));
     }
 
     #[test]
