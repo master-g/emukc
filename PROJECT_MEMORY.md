@@ -165,13 +165,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-19] 四个本地叠放分支，从 `main` `676d0ead` 起：#244 命中/回避取整前先舍入（golden 不变）→ #243 对潜协同按 id 区分投射机与爆雷（重冻 139 份）→ #242 敌连合（6-5 boss）出基地航空队并按层拆 stage3（golden 不变，`battle validate` 0 错误 0 警告）→ #204 轻巡 `FPfit` 按 `fitclass` id、加 CT、夜战也加（重冻 16 份）。
-  每份重冻都用探针归因（见失败尝试）；`battle_golden.rs` 均未动。`test --workspace` 自底向上 1615、1616、1618、1619 通过，均 0 失败 0 忽略；fmt、clippy `-D warnings` 每个提交过钩子，顶端另跑一次。均未推送。
+- [2026-10-19] 四个叠放 PR 自底向上合进 `main`：#247（#244）→ #248（#243）→ #249（#242）→ #250（#204），每层合并后改指上层 base、同步 `main`、删分支。合并前顶端 fmt、clippy `-D warnings`、`test --workspace` 1619 通过 0 失败 0 忽略。开 #251：基地航空队打敌连合少源码 ×1.1（`kcsim.js:3332`）。
 
 ## Next Session
 
-- [2026-10-19] 四个叠放分支待推送开 PR，自底向上合并。
-  ready 未关：#196–#200。目标外待开票：基地航空队打连合舰队少源码的 ×1.1（`airstrikeLBAS` `postMod`，`air-corps.md` 已记）。改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。
+- [2026-10-19] 无待合并分支。
+  ready 未关：#196–#200、#251（敌连合 ×1.1）。改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。
   瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
