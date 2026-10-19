@@ -18,6 +18,7 @@ mod gun_fit;
 mod installation;
 /// Internal battle documentation.
 mod outcome;
+mod pt_imp;
 /// Random number generation trait and implementations for battle simulation.
 pub mod random;
 mod simulation;

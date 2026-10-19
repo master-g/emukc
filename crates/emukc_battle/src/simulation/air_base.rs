@@ -17,6 +17,7 @@ use emukc_model::{
 
 use crate::accuracy::{HitOutcome, roll_strike, squadron_proficiency};
 use crate::damage::{apply_cap, calculate_defense_power, resolve_damage};
+use crate::pt_imp::air_corps_strike_roll;
 use crate::random::BattleRng;
 use crate::targeting::{choice_with_protect, is_airstrike_attack_type, target_class};
 use crate::types::{
@@ -38,6 +39,8 @@ const SLOT_MODIFIER: f64 = 1.8;
 const LAND_ATTACKER_PRE_CAP: f64 = 0.8;
 /// …and 陸上攻撃機 at this multiple after it.
 const LAND_ATTACKER_POST_CAP: f64 = 1.8;
+/// The B-25, which a PT imp dodges better than other aircraft.
+const B25: i64 = 459;
 /// A strike on a ship of a combined fleet, either deck, lands harder by this.
 const COMBINED_FLEET_POST_CAP: f64 = 1.1;
 
@@ -448,14 +451,21 @@ pub(crate) fn simulate_air_base_attack(
         // A land-based strike lands 90 times in a hundred plus 7 for each
         // point of the aircraft's 命中, and the target dodges it less well
         // than it dodges anything else: 0.86 of its evasion, 0.68 in a
-        // combined fleet (`airstrikeLBAS`, `lbasEvaMod*`).
+        // combined fleet (`airstrikeLBAS`, `lbasEvaMod*`). A PT imp is hit 0.95 as often, 0.85
+        // by the B-25.
         let planes = squadron_proficiency(mst.api_type[2], squadron.alv, squadron.exp);
         let combined = enemy[target].enemy_deck.is_some();
+        let pt = class == TargetClass::PtBoat;
+        let pt_accuracy = match (pt, mst.api_id) {
+            (false, _) => 1.0,
+            (true, B25) => 0.85,
+            (true, _) => 0.95,
+        };
         let outcome = roll_strike(
             codex,
             rng,
             &enemy[target],
-            90.0 + 7.0 * mst.api_houm as f64,
+            (90.0 + 7.0 * mst.api_houm as f64) * pt_accuracy,
             if combined {
                 0.68
             } else {
@@ -466,8 +476,14 @@ pub(crate) fn simulate_air_base_attack(
         if outcome == HitOutcome::Critical {
             api_ecl_flag[target] = 1;
         }
+        // A PT imp rolls its own multiplier on a hit.
+        let special = if pt && outcome != HitOutcome::Miss {
+            air_corps_strike_roll(rng)
+        } else {
+            1.0
+        };
         let power = outcome.power_with(
-            strike_power(rng, mst, squadron.count, class, scouting, contact, combined),
+            strike_power(rng, mst, squadron.count, class, scouting, contact, combined) * special,
             planes.critical_damage,
         );
         let defense = calculate_defense_power(rng, enemy[target].ship.api_soukou[0]);

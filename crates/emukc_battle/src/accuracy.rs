@@ -10,9 +10,10 @@
 //!
 //! The gun fit comes from [`gun_fit`](crate::gun_fit).
 //!
+//! A PT imp's corrections come from [`pt_imp`](crate::pt_imp).
+//!
 //! Left out, each a correction the source applies on top of what is here:
-//! the combined-fleet accuracy terms, smoke, balloons, PT imps and event
-//! bonuses.
+//! the combined-fleet accuracy terms, smoke, balloons and event bonuses.
 
 use emukc_model::{
     codex::Codex,
@@ -24,6 +25,7 @@ use emukc_model::{
 
 use crate::damage::{armour_piercing, is_cv_type, ship_improvement};
 use crate::gun_fit::gun_fit;
+use crate::pt_imp::{AntiPt, is_pt, pt_accuracy};
 use crate::random::BattleRng;
 use crate::targeting::{
     bonus_gears, has_slotitem_type, is_radar_type, searchlight_rerolls, ship_mst, ship_type,
@@ -699,17 +701,24 @@ fn hit_value(
     };
     let level = attacker.ship.api_lv.max(0) as f64;
     let luck = attacker.ship.api_lucky[0].max(0) as f64;
+    let pt = is_pt(codex, defender);
+    // `ptAccFlat`, by day and at night.
+    let pt_flat = match aim.kind {
+        AttackKind::Shelling | AttackKind::Night if pt => attacker.pt_accuracy_flat as f64,
+        _ => 0.0,
+    };
     let fit = match aim.kind {
         AttackKind::Shelling | AttackKind::Night => gun_fit(codex, attacker),
         AttackKind::Torpedo | AttackKind::Asw => 0.0,
     };
-    ((aim.base()
+    let hit = ((aim.base()
         + 2.0 * level.sqrt()
         + 1.5 * luck.sqrt()
         + equipment_accuracy(codex, attacker, aim.kind)
         + if aim.kind == AttackKind::Shelling { bonus_accuracy(codex, attacker) } else { 0.0 }
         + improvement_accuracy(codex, attacker, aim.kind)
-        + aim.flat)
+        + aim.flat
+        + pt_flat)
         * attacker_morale(attacker, aim.kind)
         * formation_acc
         * aim.modifier
@@ -718,7 +727,27 @@ fn hit_value(
         * aim.day_cut_in
         * ap_accuracy
         // `NBattack`: the attacker's fleet's searchlight adds 7 after every multiplier.
-        + if aim.searchlight && aim.kind == AttackKind::Night { 7.0 } else { 0.0 }
+        + if aim.searchlight && aim.kind == AttackKind::Night { 7.0 } else { 0.0 };
+    if !pt {
+        return hit;
+    }
+    // Last, a PT imp bends what is left: guns by the attacker's `ptAccMod` and 1.2 more from a
+    // fleet in 警戒陣, at night and torpedoes at 0.7 besides.
+    let guns = || {
+        AntiPt::of(codex, attacker).accuracy
+            * if aim.attacker_formation == 6 {
+                1.2
+            } else {
+                1.0
+            }
+    };
+    pt_accuracy(hit)
+        * match aim.kind {
+            AttackKind::Shelling => guns(),
+            AttackKind::Night => 0.7 * guns(),
+            AttackKind::Torpedo => 0.7,
+            AttackKind::Asw => 1.0,
+        }
 }
 
 /// Roll a ship's attack on another ship.
@@ -839,6 +868,45 @@ mod tests {
         assert_eq!(squadron_proficiency(attacker, 5, Some(81)).accuracy, 8.1_f64.sqrt() + 4.0);
         // Without one it reads its level's 70.
         assert!((critical(None) - 1.13).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_pt_imp_bends_the_accuracy_of_each_kind_of_attack() {
+        use crate::test_utils::{
+            first_ship_mst_by_type, sample_ship, ship_mst_id_by_name, slotitem_with_mst_id,
+        };
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 1);
+        // Two 12.7cm連装砲: × 1.3 × 1.15 to a destroyer's 1.
+        input.slot_items = vec![slotitem_with_mst_id(2), slotitem_with_mst_id(2)];
+        let mut attacker = BattleRuntimeShip::from(input);
+        let mut dd = attacker.clone();
+        dd.slot_items.clear();
+        let mut pt = dd.clone();
+        pt.ship.api_ship_id = ship_mst_id_by_name(&codex, "PT小鬼群");
+        let guns = 1.3 * 1.15;
+        let close = |a: f64, b: f64| (a - b).abs() < 1e-9;
+        let hit = |attacker: &BattleRuntimeShip, defender, kind, formation| {
+            hit_value(&codex, attacker, defender, Aim::new(kind, formation, 1), 1.0)
+        };
+
+        let shelling = hit(&attacker, &dd, AttackKind::Shelling, 1);
+        assert!(close(hit(&attacker, &pt, AttackKind::Shelling, 1), pt_accuracy(shelling) * guns));
+        // A fleet in 警戒陣 aims 1.2 better at one.
+        let vanguard = hit(&attacker, &pt, AttackKind::Shelling, 6);
+        assert!(close(vanguard, pt_accuracy(shelling) * guns * 1.2));
+        let night = hit(&attacker, &dd, AttackKind::Night, 1);
+        assert!(close(hit(&attacker, &pt, AttackKind::Night, 1), pt_accuracy(night) * 0.7 * guns));
+        // Torpedoes take neither the guns nor the formation.
+        let torpedo = hit(&attacker, &dd, AttackKind::Torpedo, 6);
+        assert!(close(hit(&attacker, &pt, AttackKind::Torpedo, 6), pt_accuracy(torpedo) * 0.7));
+
+        // 天霧改二's 64 joins the sum before the multipliers, by day and at night alone.
+        attacker.pt_accuracy_flat = 64;
+        let flat = hit(&attacker, &pt, AttackKind::Shelling, 1);
+        assert!(close(flat, pt_accuracy(shelling + 64.0) * guns));
+        assert!(close(hit(&attacker, &pt, AttackKind::Torpedo, 6), pt_accuracy(torpedo) * 0.7));
     }
 
     #[test]

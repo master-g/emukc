@@ -20,6 +20,7 @@ use crate::combined::{
     combined_formation_modifier,
 };
 use crate::installation::{AntiInstallation, land_target, post_cap_multiplier};
+use crate::pt_imp::{AntiPt, is_pt, pt_power};
 use crate::random::BattleRng;
 use crate::targeting::{
     abyssal_carrier_asw, bonus_gears, count_slotitems, has_slotitem_type, is_airstrike_attack_type,
@@ -201,6 +202,9 @@ pub(crate) fn calculate_shelling_damage(
         capped_power = (capped_power * ap.power).floor();
     }
     capped_power *= post_cap_multiplier(codex, attacker, defender, false);
+    if is_pt(codex, defender) {
+        capped_power = pt_power(capped_power) * AntiPt::of(codex, attacker).damage;
+    }
     let capped_power =
         outcome.power_with(capped_power, shelling_proficiency(codex, attacker).critical_damage);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
@@ -266,7 +270,10 @@ pub(crate) fn calculate_torpedo_damage(
     power: f64,
     outcome: HitOutcome,
 ) -> i64 {
-    let capped_power = power * post_cap_multiplier(codex, attacker, defender, true);
+    let mut capped_power = power * post_cap_multiplier(codex, attacker, defender, true);
+    if is_pt(codex, defender) {
+        capped_power = pt_power(capped_power);
+    }
     let capped_power = outcome.power(capped_power);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped_power, defense, defender.hp(), ammo_modifier(codex, attacker))
@@ -334,8 +341,11 @@ pub(crate) fn calculate_night_damage(
     } else {
         pre_cap
     };
-    let capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64
+    let mut capped_power = apply_cap(pre_cap, NIGHT_CAP) as f64
         * post_cap_multiplier(codex, attacker, defender, false);
+    if is_pt(codex, defender) {
+        capped_power = pt_power(capped_power) * 0.6 * AntiPt::of(codex, attacker).damage;
+    }
     let capped_power = if air_power.is_some() {
         outcome.power_with(capped_power, plane_proficiency(codex, attacker).critical_damage)
     } else {
@@ -1720,6 +1730,51 @@ mod tests {
         assert!((asw_formation_modifier(5) - 1.3).abs() < f64::EPSILON);
         assert!((asw_formation_modifier(1) - 1.0).abs() < f64::EPSILON);
         assert!((asw_formation_modifier(2) - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn a_pt_imp_takes_what_is_left_of_the_power_after_the_cap() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
+        input.ship.api_karyoku[0] = 300;
+        input.ship.api_raisou[0] = 0;
+        input.ship.api_soukou[0] = 0;
+        input.ship.api_maxhp = 999;
+        input.ship.api_nowhp = 999;
+        // Two 12.7cm連装砲: × 1.5 × 1.4 against a PT imp.
+        input.slot_items = vec![slotitem_with_mst_id(2), slotitem_with_mst_id(2)];
+        let attacker = BattleRuntimeShip::from(input);
+        let mut dd = attacker.clone();
+        dd.slot_items.clear();
+        let mut pt = dd.clone();
+        pt.ship.api_ship_id = ship_mst_id_by_name(&codex, "PT小鬼群");
+        let rng = || crate::random::SeededRng::new(1);
+        let hit = HitOutcome::Hit;
+        let shell = |target| {
+            let engagement = EngagementType::SameCourse;
+            calculate_shelling_damage(
+                &codex,
+                &mut rng(),
+                &attacker,
+                target,
+                1,
+                engagement,
+                None,
+                hit,
+            )
+        };
+        let night = |target| {
+            calculate_night_damage(&codex, &mut rng(), &attacker, target, None, None, None, hit)
+        };
+        let torpedo =
+            |target| calculate_torpedo_damage(&codex, &mut rng(), &attacker, target, 100.0, hit);
+
+        // 305 is capped to 229; a PT imp is left 0.3 × 229 + √229 + 10 = 93.8, × 2.1.
+        assert_eq!((shell(&dd), shell(&pt)), (229, 197));
+        // At night 300 is left (90 + √300 + 10) × 0.6 = 70.4, × 2.1.
+        assert_eq!((night(&dd), night(&pt)), (300, 147));
+        // A torpedo of 100 is left 30 + 10 + 10, whatever the guns.
+        assert_eq!((torpedo(&dd), torpedo(&pt)), (100, 50));
     }
 
     #[test]

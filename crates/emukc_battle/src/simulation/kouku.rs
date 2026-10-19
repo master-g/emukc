@@ -490,7 +490,8 @@ pub(super) const AIRSTRIKE_HIT_PERCENT: f64 = 95.0;
 /// Calculate airstrike damage for a single bomber slot (`kcsim.js` `airstrike`).
 ///
 /// Bomb/torpedo stat × √(onslot) + 25; a torpedo bomber that hits takes ×0.8 or
-/// ×1.5 of it, then the cap at 170, then `contact` (触接). `ammo` is the carrier's
+/// ×1.5 of it, then the cap at 170, then `contact` (触接) and, against a PT imp, its
+/// own roll ([`carrier_strike_roll`](crate::pt_imp::carrier_strike_roll)). `ammo` is the carrier's
 /// ammunition modifier. A miss rolls nothing.
 #[expect(clippy::too_many_arguments)]
 fn calculate_single_slot_airstrike_damage(
@@ -535,8 +536,15 @@ fn calculate_single_slot_airstrike_damage(
     } else {
         1.0
     };
+    // A PT imp rolls its own multiplier, after the torpedo's.
+    let special = if crate::pt_imp::is_pt(codex, defender) {
+        crate::pt_imp::carrier_strike_roll(rng)
+    } else {
+        1.0
+    };
     let raw_power = (bomb_power + 25.0 + aerial_correction(defender)) * pre;
-    let capped = outcome.power_with(apply_cap(raw_power, 170.0) as f64 * contact, critical_damage);
+    let capped =
+        outcome.power_with(apply_cap(raw_power, 170.0) as f64 * contact * special, critical_damage);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped, defense, defender.hp(), ammo)
 }
@@ -784,6 +792,51 @@ mod tests {
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
+
+    #[test]
+    fn a_strike_on_a_pt_imp_rolls_its_own_multiplier() {
+        /// A die that always draws `0`, and `f64` draws at `self.0` of the range.
+        struct At(f64);
+        impl crate::random::BattleRng for At {
+            fn random_f64_range(&mut self, min: f64, max: f64) -> f64 {
+                min + (max - min) * self.0
+            }
+            fn roll_range_impl(&mut self, min: i64, _max: i64) -> i64 {
+                min
+            }
+        }
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedDiveBomber);
+        let baku = codex.manifest.find_slotitem(bomber).unwrap().api_baku as f64;
+        let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 1);
+        input.ship.api_soukou[0] = 0;
+        input.ship.api_maxhp = 999;
+        input.ship.api_nowhp = 999;
+        let dd = BattleRuntimeShip::from(input);
+        let mut pt = dd.clone();
+        pt.ship.api_ship_id = ship_mst_id_by_name(&codex, "PT小鬼群");
+        let strike = |at, target: &BattleRuntimeShip| {
+            let item = slotitem_with_mst_id(bomber);
+            let hit = HitOutcome::Hit;
+            calculate_single_slot_airstrike_damage(
+                &codex,
+                &mut At(at),
+                &item,
+                16,
+                target,
+                hit,
+                1.0,
+                1.0,
+                1.0,
+            )
+        };
+        let base = crate::damage::apply_cap(baku * 4.0 + 25.0, 170.0) as f64;
+        assert_eq!(strike(0.0, &dd), base as i64);
+        // Under 0.4 it lands at 0.8, else at 0.5.
+        assert_eq!(strike(0.39, &pt), (base * 0.8).floor() as i64);
+        assert_eq!(strike(0.4, &pt), (base * 0.5).floor() as i64);
+    }
 
     #[test]
     fn fighter_power_calculates_from_equipment_aa_and_slot_count() {

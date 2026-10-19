@@ -49,7 +49,7 @@ pub(crate) fn simulate_day(
     context: BattleContext,
     rng: &mut impl BattleRng,
 ) -> BattleSimulation {
-    let mut state = BattleState::from_context(context);
+    let mut state = BattleState::from_context(codex, context);
     let flow = BattleFlow::for_battle_type(state.battle_type());
 
     let has_bb =

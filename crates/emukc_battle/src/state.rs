@@ -1,5 +1,8 @@
+use emukc_model::codex::Codex;
+
 use crate::combined::{CombinedFleetRole, CombinedType};
 use crate::outcome::{calculate_mvp, calculate_win_rank, verify_protected_ships_alive};
+use crate::pt_imp::mark_anti_pt;
 use crate::targeting::any_alive;
 use crate::types::CombinedMembership;
 use crate::types::{
@@ -89,7 +92,7 @@ pub(crate) struct BattleState {
 
 impl BattleState {
     /// Build initial state from a battle context.
-    pub fn from_context(context: BattleContext) -> Self {
+    pub fn from_context(codex: &Codex, context: BattleContext) -> Self {
         let is_sortie = context.is_sortie;
         let mut friendly = context
             .friend_ships
@@ -98,6 +101,7 @@ impl BattleState {
             .collect::<Vec<_>>();
         place_in_vanguard(&mut friendly, context.friendly_formation_id);
         mark_flagship(&mut friendly);
+        mark_anti_pt(codex, &mut friendly);
 
         // A combined fleet appends deck 2 to the same vector and tags both
         // decks. With no combined setup this loop does not run, `friendly` is
@@ -118,6 +122,7 @@ impl BattleState {
                     .in_combined_fleet(combined_type, CombinedFleetRole::Escort)
             }));
             mark_flagship(&mut friendly[escort_start..]);
+            mark_anti_pt(codex, &mut friendly[escort_start..]);
             CombinedLayout {
                 combined_type,
                 escort_start,
@@ -449,7 +454,7 @@ mod tests {
         let fleet = |count| (0..count).map(|_| sample_ship(&codex, dd, 1)).collect::<Vec<_>>();
         let mut context = BattleContext::head_on(BattleType::Normal, true, fleet(6), fleet(5));
         context.friendly_formation_id = 6;
-        let state = BattleState::from_context(context);
+        let state = BattleState::from_context(&codex, context);
 
         let fronts = state.friendly.iter().map(BattleRuntimeShip::in_vanguard_front);
         assert_eq!(fronts.collect::<Vec<_>>(), [true, true, true, false, false, false]);
