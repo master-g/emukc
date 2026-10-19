@@ -11,7 +11,7 @@ execution: code
 Issue #259。来源 `kancolle-replay@69097abc`：`kcsim.js:3300-3329`（`airstrikeLBAS`，`enableAirstrikeSpecialBonus` 与 `enableSummerHarbourLBASBonus` 默认开）；`kcSHIPDATA.js` 的 `LBWeak`、`divebombWeak`；`kcEQDATA.js` 的 `isdivebomber`。
 
 **基线**：`main`（#261 之后）。
-**非目标**：`enablePlaneBonus`/`bonusSpecialP`（活动专用）；关掉特殊加成时的旧分支（`kcsim.js:3347-3355`）；B-25 等按装备 id 的对舰种倍率（`kcsim.js:3243-3292`，另议）。
+**非目标**：`enablePlaneBonus`/`bonusSpecialP`（活动专用）；关掉特殊加成时的旧分支（`kcsim.js:3347-3355`）；按机体 id 的对舰种倍率与跳弹轰炸（`kcsim.js:3243-3292`，#263）；机体改修加成（#264）。
 
 **前提（已核对）**：
 
