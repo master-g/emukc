@@ -503,7 +503,8 @@ pub(super) const AIRSTRIKE_HIT_PERCENT: f64 = 95.0;
 /// Bomb/torpedo stat × √(onslot) + 25; a torpedo bomber that hits takes ×0.8 or
 /// ×1.5 of it, then the cap at 170, then `contact` (触接), the target's own roll
 /// ([`special_bonus`]) and the attacker's dock and summer multipliers. `ammo` is the carrier's
-/// ammunition modifier. A miss rolls nothing.
+/// ammunition modifier. `fit_bonus` is what the slot's 装備ボーナス torpedo adds to its stat,
+/// against land too (`getEquipBonusCVTorp(slot)`, `kcsim.js:2022`). A miss rolls nothing.
 #[expect(clippy::too_many_arguments)]
 fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
@@ -516,6 +517,7 @@ fn calculate_single_slot_airstrike_damage(
     critical_damage: f64,
     ammo: f64,
     contact: f64,
+    fit_bonus: f64,
 ) -> i64 {
     if onslot <= 0 || outcome == HitOutcome::Miss {
         return 0;
@@ -536,7 +538,7 @@ fn calculate_single_slot_airstrike_damage(
     } else {
         mst.api_raig.max(0) as f64
     };
-    let bomb_power = stat * (onslot as f64).sqrt();
+    let bomb_power = (stat + fit_bonus) * (onslot as f64).sqrt();
     // ponytail: a jet's strike outside the jet phase (×0.7 + 0.5 in the source)
     // is not modelled; add it with the jet phase.
     let pre = if is_torpedo_bomber {
@@ -681,6 +683,7 @@ fn execute_airstrike_phase(
             planes.critical_damage,
             ammo_modifier(codex, ship),
             contact,
+            super::night::carrier_slot_torpedo_bonus(codex, ship, slot_idx),
         );
         if outcome == HitOutcome::Critical {
             output.cl_flags[target_idx] = 1;
@@ -906,6 +909,7 @@ mod tests {
             1.0,
             1.0,
             1.0,
+            0.0,
         );
         let capped = crate::damage::apply_cap((raig * 4.0 + 25.0) * 0.8, 170.0) as f64;
         assert_eq!(damage, (capped * 1.4).floor() as i64);
@@ -949,6 +953,7 @@ mod tests {
                 1.0,
                 1.0,
                 1.0,
+                0.0,
             )
         };
         let base = crate::damage::apply_cap(baku * 4.0 + 25.0, 170.0) as f64;
@@ -1588,6 +1593,7 @@ mod tests {
                         1.0,
                         1.0,
                         1.0,
+                        0.0,
                     )
                 })
                 .collect();
@@ -1626,6 +1632,7 @@ mod tests {
                     1.0,
                     1.0,
                     1.0,
+                    0.0,
                 )
             })
             .collect();

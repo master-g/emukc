@@ -213,7 +213,10 @@ and `damage.rs` do not ask `simulation::night` themselves.
 
 ## Known gaps
 
-- The torpedo fit bonus in a carrier's day shelling and airstrike (the day formulas are not the
-  source's to begin with). Bombing bonuses (`DBCrew`): the 装備ボーナス table carries no bombing.
+- Bombing bonuses (`DBCrew`): the 装備ボーナス table carries no bombing. The torpedo fit bonus
+  itself is taken by day too (#260): her day shelling adds the whole bonus to her torpedo, gone
+  with it on land (`carrier_gun_power`); her airstrike adds the plane bonus to one slot, the one
+  with the highest torpedo (a dive bomber's bombing), then the most aircraft, and the crew bonus
+  to each 艦攻, on land too (`carrier_slot_torpedo_bonus`, `getEquipBonusCVTorp(slot)`).
 - The 夜間瑞雲 cut-in is in `night-attack-types.md`; smoke in `smoke-screen.md`.
 - The types of the other ships are in `night-attack-types.md`.
