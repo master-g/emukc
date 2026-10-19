@@ -52,6 +52,8 @@ TO_MAPS = (
 )
 # 決定, then 出撃開始.
 START = "c:1015,668 w:4 u:830,668:api_req_map/start"
+# 煙幕 on a single fleet's formation screen (`SmokeButton._getPosition`, 51 by 50).
+SMOKE_BUTTON = "648,522"
 # 6-3's cell 3 (C), where `kcs2/resources/map/006/03_info.json` puts it.
 SPOT_C = "436,444"
 # 5-6's O and Q (cells 28 and 30), from `map/005/06_info20.json`.
@@ -61,6 +63,17 @@ SPOT_5_6_O, SPOT_5_6_Q = "672,259", "782,244"
 def responses(work: Path, path: str) -> list[dict]:
     """What the server answered to every call of `path`, in order."""
     return [json.loads(dump.read_text())["api_data"] for dump in sorted((work / "api").glob(f"*_{path.replace('/', '.')}.json"))]
+
+
+def check_smoke_screen(work: Path) -> list[str]:
+    problems = []
+    request = next((work / "api").glob("*_api_req_sortie.battle.request")).read_text()
+    if "api_smoke_flag=1" not in request:
+        problems.append(f"the client did not ask for smoke: {request}")
+    smoke = responses(work, "api_req_sortie/battle")[0]["api_smoke_type"]
+    if smoke not in (1, 2, 3):
+        problems.append(f"the battle laid no screen: api_smoke_type {smoke}")
+    return problems
 
 
 def check_transport_5_6(work: Path) -> list[str]:
@@ -687,6 +700,16 @@ SCENARIOS = {
         + " ".join(f"w:2 s:night{n}" for n in range(1, 7))
         + " u:600,400;770,365:api_req_practice/battle_result w:14 s:result",
         check_practice_night_contact,
+    ),
+    # Four destroyers into 1-1 with three smoke generators: 煙幕 is pressed on the formation
+    # screen, and the battle opens in a screen of smoke. Photographed through its opening.
+    "smoke_screen": (
+        f"{TO_MAPS} c:280,280 w:3 {START} "
+        + " ".join(f"c:600,400 w:2" for _ in range(6))
+        + f" s:formation c:{SMOKE_BUTTON} w:1 s:smoke_on u:670,278:api_req_sortie/battle "
+        + " ".join(f"w:2 s:smoke{n}" for n in range(1, 11))
+        + f" {BATTLE}",
+        check_smoke_screen,
     ),
     # One battle of 1-1, up to the choice between going on and going home.
     "fresh_1_1": (f"{TO_MAPS} c:280,280 w:3 {START} {BATTLE}", lambda work: []),

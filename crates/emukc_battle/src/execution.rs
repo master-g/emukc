@@ -129,6 +129,7 @@ mod tests {
     fn day_context(codex: &Codex) -> BattleContext {
         BattleContext {
             special_attacks_made: Default::default(),
+            use_smoke: false,
             battle_type: BattleType::Normal,
             is_sortie: true,
             friendly_formation_id: 1,

@@ -20,6 +20,10 @@ pub fn render_day_battle(sim: &BattleSimulation) -> String {
     let mut out = String::new();
     let _ = writeln!(out, "== Day Battle ==");
     render_formation(&sim.packet.formation, &mut out);
+    // Only when one is laid, so that a battle without one reads as it always did.
+    if sim.packet.smoke_type > 0 {
+        let _ = writeln!(out, "smoke screen: {}", sim.packet.smoke_type);
+    }
 
     if let Some(kouku) = &sim.packet.kouku {
         render_kouku(kouku, &mut out);

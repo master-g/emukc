@@ -11,7 +11,7 @@ pub(super) async fn handler(
     Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let resp = state.sortie_ec_battle(pid, params.api_formation).await?;
+    let resp = state.sortie_ec_battle(pid, params.order()).await?;
 
     Ok(KcApiResponse::success(&resp))
 }

@@ -74,6 +74,23 @@ const ROUTE_CHOICE_EVENT: (i64, i64) = (6, 2);
 
 pub use super::sortie_result::SortieBattleResultResponse;
 
+/// What the player orders for a day battle: the formation, and whether to lay a smoke screen
+/// (`api_smoke_flag`). A formation alone orders no smoke.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SortieOrder {
+    pub formation_id: i64,
+    pub smoke: bool,
+}
+
+impl From<i64> for SortieOrder {
+    fn from(formation_id: i64) -> Self {
+        Self {
+            formation_id,
+            smoke: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ActiveSortieState {
     pub deck_id: i64,
@@ -99,6 +116,8 @@ pub struct ActiveSortieState {
     /// The fleet special attacks made on this sortie: a flagship's special gunnery attack
     /// once, the Kongou class's night assault three times.
     pub special_attacks_made: SpecialAttacksMade,
+    /// Whether the fleet has laid its smoke screen on this sortie; a failed one does not count.
+    pub smoke_used: bool,
 }
 
 /// The cells one air corps was sent against, in the order it flies them.
@@ -288,6 +307,7 @@ impl Ctx {
             air_strikes: vec![],
             raided: false,
             special_attacks_made: SpecialAttacksMade::default(),
+            smoke_used: false,
         };
         // A sortie may open onto a resource cell or a maelstrom.
         let (itemget, happening) = cell_effect::resolve_cell_effect(
@@ -733,7 +753,8 @@ impl Ctx {
                         .as_ref()
                         .map(build_enemy_deck_preview)
                         .filter(|preview| !preview.is_empty()),
-                    limit_state: Some(0),
+                    // The smoke screen is spent once laid: the client offers it no more.
+                    limit_state: Some(i64::from(active.smoke_used)),
                     // What a reconnaissance found is shown as a resource cell's is.
                     itemget: itemget.or(found.map(|found| vec![found])),
                     happening,
@@ -747,14 +768,14 @@ impl Ctx {
     pub async fn sortie_battle(
         &self,
         profile_id: i64,
-        formation_id: i64,
+        order: impl Into<SortieOrder>,
     ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
             self.db.as_ref(),
             profile_id,
-            formation_id,
+            order.into(),
             BattleType::Normal,
             SortieBattleEndpoint::Single,
         )
@@ -764,14 +785,14 @@ impl Ctx {
     pub async fn sortie_airbattle(
         &self,
         profile_id: i64,
-        formation_id: i64,
+        order: impl Into<SortieOrder>,
     ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
             self.db.as_ref(),
             profile_id,
-            formation_id,
+            order.into(),
             BattleType::AirBattle,
             SortieBattleEndpoint::Single,
         )
@@ -781,14 +802,14 @@ impl Ctx {
     pub async fn sortie_ld_airbattle(
         &self,
         profile_id: i64,
-        formation_id: i64,
+        order: impl Into<SortieOrder>,
     ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
             self.db.as_ref(),
             profile_id,
-            formation_id,
+            order.into(),
             BattleType::LdAirBattle,
             SortieBattleEndpoint::Single,
         )
@@ -798,14 +819,14 @@ impl Ctx {
     pub async fn sortie_ld_shooting(
         &self,
         profile_id: i64,
-        formation_id: i64,
+        order: impl Into<SortieOrder>,
     ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
             self.db.as_ref(),
             profile_id,
-            formation_id,
+            order.into(),
             BattleType::LdShooting,
             SortieBattleEndpoint::Single,
         )
@@ -819,14 +840,14 @@ impl Ctx {
     pub async fn sortie_ec_battle(
         &self,
         profile_id: i64,
-        formation_id: i64,
+        order: impl Into<SortieOrder>,
     ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
             self.db.as_ref(),
             profile_id,
-            formation_id,
+            order.into(),
             BattleType::Normal,
             SortieBattleEndpoint::EnemyCombined,
         )
@@ -837,14 +858,14 @@ impl Ctx {
     pub async fn sortie_combined_battle(
         &self,
         profile_id: i64,
-        formation_id: i64,
+        order: impl Into<SortieOrder>,
     ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
             self.db.as_ref(),
             profile_id,
-            formation_id,
+            order.into(),
             BattleType::Normal,
             SortieBattleEndpoint::Combined,
         )
@@ -859,14 +880,14 @@ impl Ctx {
     pub async fn sortie_combined_battle_water(
         &self,
         profile_id: i64,
-        formation_id: i64,
+        order: impl Into<SortieOrder>,
     ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
             self.db.as_ref(),
             profile_id,
-            formation_id,
+            order.into(),
             BattleType::Normal,
             SortieBattleEndpoint::CombinedWater,
         )
@@ -881,14 +902,14 @@ impl Ctx {
     pub async fn sortie_combined_airbattle(
         &self,
         profile_id: i64,
-        formation_id: i64,
+        order: impl Into<SortieOrder>,
     ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
             self.db.as_ref(),
             profile_id,
-            formation_id,
+            order.into(),
             BattleType::AirBattle,
             SortieBattleEndpoint::CombinedAnyType,
         )
@@ -900,14 +921,14 @@ impl Ctx {
     pub async fn sortie_combined_ld_airbattle(
         &self,
         profile_id: i64,
-        formation_id: i64,
+        order: impl Into<SortieOrder>,
     ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
             self.db.as_ref(),
             profile_id,
-            formation_id,
+            order.into(),
             BattleType::LdAirBattle,
             SortieBattleEndpoint::CombinedAnyType,
         )
@@ -924,14 +945,14 @@ impl Ctx {
     pub async fn sortie_combined_ld_shooting(
         &self,
         profile_id: i64,
-        formation_id: i64,
+        order: impl Into<SortieOrder>,
     ) -> Result<DayBattleResponse, GameplayError> {
         sortie_battle_impl(
             self.sortie_store.as_ref(),
             self.codex.as_ref(),
             self.db.as_ref(),
             profile_id,
-            formation_id,
+            order.into(),
             BattleType::LdShooting,
             SortieBattleEndpoint::CombinedAnyType,
         )
@@ -1135,7 +1156,7 @@ impl Ctx {
                 let (session, night_session) = run_sp_midnight_battle(
                     store,
                     codex,
-                    setup.battle_input(BattleType::Normal, formation_id, engagement),
+                    setup.battle_input(BattleType::Normal, formation_id.into(), engagement),
                     &mut rng,
                 );
                 let mut snapshot = setup.result_snapshot(codex, &session);
@@ -1323,7 +1344,7 @@ async fn sortie_battle_impl(
     codex: &Codex,
     db: &emukc_db::sea_orm::DatabaseConnection,
     profile_id: i64,
-    formation_id: i64,
+    order: SortieOrder,
     battle_type: BattleType,
     endpoint: SortieBattleEndpoint,
 ) -> Result<DayBattleResponse, GameplayError> {
@@ -1333,13 +1354,13 @@ async fn sortie_battle_impl(
 
             let setup = resolve_sortie_battle_setup_impl(&tx, codex, store, profile_id).await?;
             setup.validate_endpoint(endpoint)?;
-            setup.validate_formation(formation_id)?;
+            setup.validate_formation(order.formation_id)?;
             let mut rng = ProductionRng;
             let engagement = roll_engagement(&mut rng, setup.carries_saiun);
             let session = run_day_battle(
                 store,
                 codex,
-                setup.battle_input(battle_type, formation_id, engagement),
+                setup.battle_input(battle_type, order, engagement),
                 &mut rng,
             );
             let mut response = build_day_response(
@@ -1361,6 +1382,7 @@ async fn sortie_battle_impl(
             let mut active = setup.active;
             active.pending_battle_cell_id = Some(active.current_cell_id);
             active.special_attacks_made.record(&session.packet.special_attacks());
+            active.smoke_used |= session.packet.smoke_type > 0;
 
             tx.commit().await?;
             let _ = store.insert_active(profile_id, active);

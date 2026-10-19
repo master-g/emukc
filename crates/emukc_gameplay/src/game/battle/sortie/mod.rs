@@ -165,6 +165,7 @@ mod tests {
             &codex,
             BattleContext {
                 special_attacks_made: Default::default(),
+                use_smoke: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -216,6 +217,7 @@ mod tests {
             &codex,
             BattleContext {
                 special_attacks_made: Default::default(),
+                use_smoke: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -260,6 +262,7 @@ mod tests {
                 &codex,
                 BattleContext {
                     special_attacks_made: Default::default(),
+                    use_smoke: false,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: if combined.is_some() {
@@ -335,6 +338,7 @@ mod tests {
                     air_corps: Vec::new(),
                     combined: None,
                     special_attacks_made: Default::default(),
+                    use_smoke: false,
                 },
                 &mut super::super::rng::ProductionRng,
             );
@@ -343,6 +347,7 @@ mod tests {
         let _ = store.insert_active(
             42,
             ActiveSortieState {
+                smoke_used: false,
                 deck_id: 1,
                 map_id: 11,
                 map_name: String::new(),

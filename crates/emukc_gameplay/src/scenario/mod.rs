@@ -416,6 +416,15 @@ impl Scenario {
         scenario
     }
 
+    /// Four destroyers into 1-1, the flagship carrying a 発煙装置改 and a 発煙装置: three in
+    /// all, so a smoke screen asked for is always laid.
+    pub fn smoke_screen() -> Self {
+        let mut scenario = Self::fresh_1_1();
+        scenario.fleet = vec![ShipSpec::new(951, 30); 4];
+        scenario.fleet[0] = ShipSpec::new(951, 30).with_slots([501, 500]);
+        scenario
+    }
+
     /// 金剛 and three destroyers into 2-5: a battleship and fewer than four destroyers are sent
     /// to C, whose flagship is 軽母ヌ級flagship, one of the abyssal carriers that attack at
     /// night. Too few and too weak to be sure of sinking her by day.
@@ -619,6 +628,9 @@ pub enum PhaseExpectation {
     /// Some night battle that follows a day battle must carry the friendly fleet's scout in
     /// `api_touch_plane`: the air has to be taken by day for it to fly.
     NightContact,
+    /// The fleet is ordered to lay smoke, and the day battle must carry a screen in
+    /// `api_smoke_type`.
+    SmokeScreen,
     /// Nothing beyond a plain battle is required.
     PlainBattle,
 }
@@ -642,6 +654,15 @@ pub struct Preset {
 }
 
 impl Preset {
+    /// What the preset orders for its day battle: formation 1, and smoke where it exists to
+    /// lay a screen.
+    pub fn order(&self) -> crate::game::SortieOrder {
+        crate::game::SortieOrder {
+            formation_id: 1,
+            smoke: self.expects == PhaseExpectation::SmokeScreen,
+        }
+    }
+
     /// Find a preset by name.
     pub fn lookup(name: &str) -> Option<&'static Preset> {
         PRESETS.iter().find(|preset| preset.name == name)
@@ -657,6 +678,13 @@ pub const PRESETS: &[Preset] = &[
         maparea: 1,
         mapinfo: 1,
         expects: PhaseExpectation::PlainBattle,
+    },
+    Preset {
+        name: "smoke_screen",
+        build: Scenario::smoke_screen,
+        maparea: 1,
+        mapinfo: 1,
+        expects: PhaseExpectation::SmokeScreen,
     },
     Preset {
         name: "leveled_for_mid_boss",

@@ -1,21 +1,17 @@
 use axum::Form;
-use serde::Deserialize;
 
 use crate::net::prelude::*;
 
-// The client also sends api_recovery_type, api_supply_flag, api_ration_flag and
-// api_smoke_flag; none of them is used here.
-#[derive(Deserialize)]
-pub(super) struct Params {
-    pub(super) api_formation: i64,
-}
+use super::battle::Params;
 
+// The client also sends api_recovery_type, api_supply_flag and api_ration_flag,
+// which are not used here.
 pub(super) async fn handler(
     state: AppState,
     Pid(pid): Pid,
     Form(params): Form<Params>,
 ) -> KcApiResult {
-    let resp = state.sortie_ld_shooting(pid, params.api_formation).await?;
+    let resp = state.sortie_ld_shooting(pid, params.order()).await?;
 
     Ok(KcApiResponse::success(&resp))
 }

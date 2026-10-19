@@ -77,6 +77,7 @@ pub fn run_day_battle(
         codex,
         BattleContext {
             special_attacks_made: Default::default(),
+            use_smoke: false,
             battle_type: BattleType::Normal,
             is_sortie: false,
             friendly_formation_id: input.formation_id,

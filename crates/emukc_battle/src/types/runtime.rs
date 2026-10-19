@@ -61,6 +61,12 @@ pub struct BattleRuntimeShip {
     ///
     /// [`mark_anti_pt`]: crate::pt_imp::mark_anti_pt
     pub(crate) pt_accuracy_flat: i64,
+    /// How thick the smoke screen her fleet laid this battle, 1 to 3, or 0 ([`smoke`]). An
+    /// attack is smoked when either side's ship is in one, as the source's
+    /// `ship.fleet.smokeType || target.fleet.smokeType`.
+    ///
+    /// [`smoke`]: crate::smoke
+    pub(crate) smoke: i64,
     pub married: bool,
 }
 
@@ -99,6 +105,7 @@ impl BattleRuntimeShip {
             enemy_deck: None,
             vanguard: None,
             pt_accuracy_flat: 0,
+            smoke: 0,
             married: input.married,
         }
     }
@@ -380,6 +387,9 @@ pub struct BattleContext {
     pub air_corps: Vec<AirCorpsInput>,
     /// What the fleet has made of its special attacks on this sortie.
     pub special_attacks_made: SpecialAttacksMade,
+    /// Whether the player asked for a smoke screen (`api_smoke_flag`); the battle rolls whether
+    /// one is laid.
+    pub use_smoke: bool,
 }
 
 /// An air corps attacking the enemy fleet before the fleets meet.
@@ -429,6 +439,7 @@ impl BattleContext {
             combined: None,
             air_corps: Vec::new(),
             special_attacks_made: SpecialAttacksMade::default(),
+            use_smoke: false,
         }
     }
 }

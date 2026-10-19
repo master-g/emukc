@@ -12,8 +12,10 @@
 //!
 //! A PT imp's corrections come from [`pt_imp`](crate::pt_imp).
 //!
+//! A smoke screen's comes from [`smoke`](crate::smoke).
+//!
 //! Left out, each a correction the source applies on top of what is here:
-//! the combined-fleet accuracy terms, smoke, balloons and event bonuses.
+//! the combined-fleet accuracy terms, balloons and event bonuses.
 
 use emukc_model::{
     codex::Codex,
@@ -27,6 +29,7 @@ use crate::damage::{armour_piercing, is_cv_type, ship_improvement};
 use crate::gun_fit::gun_fit;
 use crate::pt_imp::{AntiPt, is_pt, pt_accuracy};
 use crate::random::BattleRng;
+use crate::smoke;
 use crate::targeting::{
     bonus_gears, has_slotitem_type, is_radar_type, searchlight_rerolls, ship_mst, ship_type,
 };
@@ -728,6 +731,8 @@ fn hit_value(
         * ap_accuracy
         // `NBattack`: the attacker's fleet's searchlight adds 7 after every multiplier.
         + if aim.searchlight && aim.kind == AttackKind::Night { 7.0 } else { 0.0 };
+    // A smoke screen on either side, before the PT imp's correction (`shell`, `ASW`, `torpedoPhase`).
+    let hit = hit * smoke::accuracy(codex, attacker.smoke.max(defender.smoke), aim.kind, attacker);
     if !pt {
         return hit;
     }
@@ -907,6 +912,41 @@ mod tests {
         let flat = hit(&attacker, &pt, AttackKind::Shelling, 1);
         assert!(close(flat, pt_accuracy(shelling + 64.0) * guns));
         assert!(close(hit(&attacker, &pt, AttackKind::Torpedo, 6), pt_accuracy(torpedo) * 0.7));
+    }
+
+    #[test]
+    fn a_smoke_screen_comes_before_the_pt_imps_correction() {
+        use crate::test_utils::{first_ship_mst_by_type, sample_ship, ship_mst_id_by_name};
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 1);
+        let attacker = BattleRuntimeShip::new(input, true, true);
+        let mut dd = attacker.clone();
+        dd.is_friendly = false;
+        let mut pt = dd.clone();
+        pt.ship.api_ship_id = ship_mst_id_by_name(&codex, "PT小鬼群");
+        let hit = |attacker: &BattleRuntimeShip, defender, kind| {
+            hit_value(&codex, attacker, defender, Aim::new(kind, 1, 1), 1.0)
+        };
+        let clear = hit(&attacker, &dd, AttackKind::Shelling);
+        let mut smoked = attacker.clone();
+        smoked.smoke = 2;
+        let close = |a: f64, b: f64| (a - b).abs() < 1e-9;
+
+        // The player's guns, with no radar, keep a hundredth; her torpedoes 0.42.
+        assert!(close(hit(&smoked, &dd, AttackKind::Shelling), clear * 0.01));
+        let torpedo = hit(&attacker, &dd, AttackKind::Torpedo);
+        assert!(close(hit(&smoked, &dd, AttackKind::Torpedo), torpedo * 0.42));
+        // The enemy's guns are smoked by the screen she fires into.
+        let enemy_clear = hit(&dd, &attacker, AttackKind::Shelling);
+        assert!(close(hit(&dd, &smoked, AttackKind::Shelling), enemy_clear * 0.5));
+        // Night attacks are not.
+        let night = hit(&attacker, &dd, AttackKind::Night);
+        assert!(close(hit(&smoked, &dd, AttackKind::Night), night));
+        // The PT imp's curve bends what the smoke left.
+        let at_pt = hit(&attacker, &pt, AttackKind::Shelling);
+        let ratio = at_pt / pt_accuracy(clear);
+        assert!(close(hit(&smoked, &pt, AttackKind::Shelling), pt_accuracy(clear * 0.01) * ratio));
     }
 
     #[test]

@@ -64,6 +64,7 @@ fn reached_expectation(battle: &serde_json::Value, expects: PhaseExpectation) ->
         PhaseExpectation::AntiAirCutIn => {
             battle.pointer("/api_kouku/api_stage2/api_air_fire").is_some_and(|fire| !fire.is_null())
         }
+        PhaseExpectation::SmokeScreen => battle["api_smoke_type"].as_i64().unwrap_or(0) > 0,
         PhaseExpectation::PlainBattle
         | PhaseExpectation::NightAirAttack
         | PhaseExpectation::EnemyCarrierNightAttack
@@ -126,7 +127,7 @@ async fn every_preset_day_battle_passes_protocol_validation() {
             context.start_sortie(pid, 1, preset.maparea, preset.mapinfo).await.unwrap_or_else(
                 |e| panic!("preset {} seed {seed}: start_sortie: {e:?}", preset.name),
             );
-            let battle = context.sortie_battle(pid, 1).await.unwrap_or_else(|e| {
+            let battle = context.sortie_battle(pid, preset.order()).await.unwrap_or_else(|e| {
                 panic!("preset {} seed {seed}: sortie_battle: {e:?}", preset.name)
             });
 

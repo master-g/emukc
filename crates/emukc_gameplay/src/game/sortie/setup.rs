@@ -34,7 +34,7 @@ use crate::{
 };
 
 use super::{
-    ActiveSortieState,
+    ActiveSortieState, SortieOrder,
     enemy_ship::{EnemyEncounter, build_enemy_encounter},
 };
 
@@ -232,11 +232,12 @@ where
 
 impl SortieBattleSetup {
     /// The simulation input for this setup; only the battle type, the player's
-    /// formation and the engagement differ between entries.
+    /// order and the engagement differ between entries. One smoke screen a sortie: asking again
+    /// after one was laid does nothing.
     pub(super) fn battle_input(
         &self,
         battle_type: BattleType,
-        formation_id: i64,
+        order: SortieOrder,
         engagement: EngagementType,
     ) -> SortieBattleInput {
         SortieBattleInput {
@@ -246,9 +247,10 @@ impl SortieBattleSetup {
             cell_id: self.active.current_cell_id,
             context: BattleContext {
                 special_attacks_made: self.active.special_attacks_made,
+                use_smoke: order.smoke && !self.active.smoke_used,
                 battle_type,
                 is_sortie: true,
-                friendly_formation_id: formation_id,
+                friendly_formation_id: order.formation_id,
                 enemy_formation_id: self.enemy.formation_id,
                 engagement,
                 friend_ships: self.friend_ships.clone(),

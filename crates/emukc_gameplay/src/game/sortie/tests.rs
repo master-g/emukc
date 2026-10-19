@@ -79,6 +79,7 @@ async fn settle_boss_win_with_enemies(
     let stage = definition.stage(stage_id).unwrap();
     let active = ActiveSortieState {
         special_attacks_made: Default::default(),
+        smoke_used: false,
         deck_id: 1,
         map_id: definition.map_id,
         map_name: definition.name.clone(),
@@ -176,6 +177,7 @@ async fn combined_midnight_battle_is_fought_by_the_escort_deck_alone() {
             cell_id: 1,
             context: BattleContext {
                 special_attacks_made: Default::default(),
+                use_smoke: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 11,
@@ -1489,6 +1491,7 @@ fn active_sortie_on_cell(
     let cell = stage.cells.iter().find(|cell| pick(cell)).unwrap();
     ActiveSortieState {
         special_attacks_made: Default::default(),
+        smoke_used: false,
         deck_id: 1,
         map_id: 11,
         map_name: definition.name.clone(),
@@ -1668,6 +1671,7 @@ async fn enemy_combined_boss_runs_day_night_and_result() {
         pid,
         ActiveSortieState {
             special_attacks_made: Default::default(),
+            smoke_used: false,
             deck_id: 1,
             map_id: 65,
             map_name: definition.name.clone(),
@@ -1815,6 +1819,7 @@ async fn air_corps_attack_the_enemy_combined_boss() {
         pid,
         ActiveSortieState {
             special_attacks_made: Default::default(),
+            smoke_used: false,
             deck_id: 1,
             map_id: 65,
             map_name: definition.name.clone(),
@@ -1895,6 +1900,7 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
                     pid,
                     ActiveSortieState {
                         special_attacks_made: Default::default(),
+                        smoke_used: false,
                         deck_id: 1,
                         map_id: *map_id,
                         map_name: definition.name.clone(),
@@ -2023,6 +2029,7 @@ async fn every_battle_cell_is_playable_through_its_own_entry() {
         pid,
         ActiveSortieState {
             special_attacks_made: Default::default(),
+            smoke_used: false,
             deck_id: 1,
             map_id,
             map_name: definition.name.clone(),
@@ -2097,6 +2104,7 @@ async fn settle_win_with(
     let cell_no = stage.multi_label_index()[label][0];
     let active = ActiveSortieState {
         special_attacks_made: Default::default(),
+        smoke_used: false,
         deck_id: 1,
         map_id: definition.map_id,
         map_name: definition.name.clone(),
@@ -2237,6 +2245,7 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
         profile_id,
         ActiveSortieState {
             special_attacks_made: Default::default(),
+            smoke_used: false,
             deck_id: 1,
             map_id: definition.map_id,
             map_name: definition.name.clone(),
@@ -2351,6 +2360,7 @@ async fn map_5_6_counts_the_cargo_on_arrival_at_the_landing_cell() {
         profile_id,
         ActiveSortieState {
             special_attacks_made: Default::default(),
+            smoke_used: false,
             deck_id: 1,
             map_id: definition.map_id,
             map_name: definition.name.clone(),

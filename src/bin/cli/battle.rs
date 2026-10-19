@@ -12,8 +12,8 @@ use emukc::bootstrap::prelude::{
 use emukc_internal::{
     crypto::rng,
     prelude::{
-        BattleSimulation, Codex, Ctx, PRESETS, Preset, Scenario, apply_scenario, new_mem_db,
-        render_day_battle,
+        BattleSimulation, Codex, Ctx, PRESETS, Preset, Scenario, SortieOrder, apply_scenario,
+        new_mem_db, render_day_battle,
     },
 };
 use serde_json::Value;
@@ -168,6 +168,7 @@ fn sim_exec(args: &SimArgs, config: &AppConfig) -> Result<()> {
         area,
         map_no,
         formation: args.formation,
+        smoke: Preset::lookup(&args.scenario).is_some_and(|preset| preset.order().smoke),
     };
 
     if let Some(find) = &args.find {
@@ -246,6 +247,8 @@ struct SortieTarget {
     area: i64,
     map_no: i64,
     formation: i64,
+    /// Whether the fleet is ordered to lay a smoke screen.
+    smoke: bool,
 }
 
 /// What a single seeded sortie run produced — shared by the printer and the
@@ -373,7 +376,11 @@ async fn run_first_battle_outcome(
     target: SortieTarget,
 ) -> Result<RunOutcome> {
     ctx.start_sortie(profile_id, 1, target.area, target.map_no).await.context("start_sortie")?;
-    ctx.sortie_battle(profile_id, target.formation).await.context("sortie_battle")?;
+    let order = SortieOrder {
+        formation_id: target.formation,
+        smoke: target.smoke,
+    };
+    ctx.sortie_battle(profile_id, order).await.context("sortie_battle")?;
 
     let session = ctx
         .sortie_store()
@@ -526,6 +533,7 @@ mod tests {
             area: 1,
             map_no: 1,
             formation: 1,
+            smoke: false,
         }
     }
 

@@ -243,6 +243,11 @@ screen, pass steps on the command line and read the screenshots:
   「航空偵察 成功!」 with 弾薬 ×50 and 作戦完遂時にGet! (`g7`), 「航空偵察 偵察失敗!」 (`h4`).
   `recon_6_3_called_off` has nothing that flies: both cells say
   「航空偵察予定地点に到着しましたが、稼働偵察機がないため、偵察を中止します。」 (`g4`). One run.
+- `smoke_screen` sends four destroyers into 1-1 with three smoke generators on the flagship,
+  presses 煙幕 on the formation screen (`SMOKE_BUTTON`, from `SmokeButton._getPosition`) and then
+  単縦陣. The check wants `api_smoke_flag=1` in the request and a screen in `api_smoke_type`. On
+  2026-10-19, two runs without a page error: the button on the formation screen (`smoke_on`), a
+  single layer of smoke in front of the fleet through the shelling (`smoke6` to `smoke8`).
 - `escort_1_6_standing` and `escort_1_6_cleared` take 1-6's preset to the goal with the gauge
   untouched and with it emptied this month (`sunk:16:7 cleared:16`). On 2026-10-15, without a
   page error, four runs of the first (three passing, one stopped at its last screenshot, below)
