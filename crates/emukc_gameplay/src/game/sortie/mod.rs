@@ -1156,7 +1156,7 @@ impl Ctx {
                 let (session, night_session) = run_sp_midnight_battle(
                     store,
                     codex,
-                    setup.battle_input(BattleType::Normal, formation_id, engagement),
+                    setup.battle_input(BattleType::Normal, formation_id.into(), engagement),
                     &mut rng,
                 );
                 let mut snapshot = setup.result_snapshot(codex, &session);
@@ -1357,10 +1357,12 @@ async fn sortie_battle_impl(
             setup.validate_formation(order.formation_id)?;
             let mut rng = ProductionRng;
             let engagement = roll_engagement(&mut rng, setup.carries_saiun);
-            let mut input = setup.battle_input(battle_type, order.formation_id, engagement);
-            // One smoke screen a sortie; asking again after one was laid does nothing.
-            input.context.use_smoke = order.smoke && !setup.active.smoke_used;
-            let session = run_day_battle(store, codex, input, &mut rng);
+            let session = run_day_battle(
+                store,
+                codex,
+                setup.battle_input(battle_type, order, engagement),
+                &mut rng,
+            );
             let mut response = build_day_response(
                 setup.active.deck_id,
                 &setup.friend_ships,

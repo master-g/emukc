@@ -73,7 +73,7 @@ mod tests {
         let resp = airbattle::handler(
             app_state(&context.state),
             Pid(context.session.profile.id),
-            Form(airbattle::Params {
+            Form(battle::Params {
                 api_formation: 1,
                 api_smoke_flag: 0,
             }),
@@ -99,7 +99,7 @@ mod tests {
         let resp = ld_airbattle::handler(
             app_state(&context.state),
             Pid(context.session.profile.id),
-            Form(ld_airbattle::Params {
+            Form(battle::Params {
                 api_formation: 1,
                 api_smoke_flag: 0,
             }),
@@ -126,7 +126,7 @@ mod tests {
         let resp = ld_shooting::handler(
             app_state(&context.state),
             Pid(context.session.profile.id),
-            Form(ld_shooting::Params {
+            Form(battle::Params {
                 api_formation: 1,
                 api_smoke_flag: 0,
             }),

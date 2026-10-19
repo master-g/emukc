@@ -1,24 +1,8 @@
 use axum::Form;
-use serde::Deserialize;
 
 use crate::net::prelude::*;
 
-#[derive(Deserialize)]
-pub(super) struct Params {
-    pub(super) api_formation: i64,
-    /// 1 when the player asks for a smoke screen; absent otherwise.
-    #[serde(default)]
-    pub(super) api_smoke_flag: i64,
-}
-
-impl Params {
-    pub(super) fn order(&self) -> SortieOrder {
-        SortieOrder {
-            formation_id: self.api_formation,
-            smoke: self.api_smoke_flag == 1,
-        }
-    }
-}
+use super::battle::Params;
 
 pub(super) async fn handler(
     state: AppState,
