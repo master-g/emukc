@@ -82,8 +82,8 @@ A searchlight draws fire and costs its ship her evasion (`kcsim.js` `nightPhase`
   a searchlight too. Whether hers is the lit one does not matter.
 - A fleet with one lit adds 7 to the accuracy of each of its night attacks on a surface ship
   (`Aim::lit_by_searchlight`; `NBattack`: `if (searchlights[0]) acc += .07`), after every
-  multiplier. The source adds it after the gun fit and before the PT boat's correction, neither
-  of which is modelled (`accuracy.rs`). The special attacks' rows and the night 瑞雲 cut-in take
+  multiplier. The source adds it after the gun fit (`gun_fit.rs`) and before the PT boat's
+  correction, which is not modelled (`accuracy.rs`). The special attacks' rows and the night 瑞雲 cut-in take
   it too; the enemy's searchlight does nothing to it.
 
 ## The night 瑞雲 cut-in

@@ -10,7 +10,7 @@ BattlePacket {
         38,
         13,
         6,
-        24,
+        27,
     ],
     enemy_nowhps: [
         309,
@@ -582,7 +582,7 @@ BattlePacket {
                     72,
                 ],
                 [
-                    7,
+                    4,
                 ],
                 [
                     22,
@@ -1131,7 +1131,7 @@ NightBattlePacket {
         38,
         13,
         6,
-        24,
+        27,
     ],
     friendly_maxhps: [
         90,
