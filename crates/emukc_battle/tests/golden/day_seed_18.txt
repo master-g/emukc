@@ -160,7 +160,7 @@ BattlePacket {
             ],
             api_cl_list: [
                 [
-                    1,
+                    2,
                 ],
                 [
                     1,
@@ -168,7 +168,7 @@ BattlePacket {
             ],
             api_damage: [
                 [
-                    115,
+                    177,
                 ],
                 [
                     114,

@@ -44,6 +44,11 @@ Transcribed from `KC3Kai/kancolle-replay` `kcsim.js` (`hitRate`, `accuracyAndCri
   capped attack power; against submarines only sonar counts, at twice its 対潜. Improved (★)
   equipment adds its accuracy for the attack (the torpedo's rounded down) to the flat terms
   (`equipment-improvement-bonus.md`).
+- Gun fit (`gun_fit.rs`, #193): `getFit` from `kcships.js` at `69097abc`, rules per ship type and
+  class over the guns' ids, for both sides. Day shelling adds it after `hitRate`'s multipliers
+  and before a cut-in's (`accMod2`, `Aim::day_cut_in`); a night attack adds it after every
+  multiplier, like the searchlight's 7. A gun the pinned source does not list has no fit until
+  the pin moves.
 - Target: `floor((回避 + sqrt(2 x 運)) x formation)`, bent at 40 and 65, less the points its
   fuel is short of 75%. Her improved engines (against shelling) and sonars (against torpedoes)
   add their evasion after the curve, and the sum is rounded down.
@@ -137,7 +142,7 @@ roll only. How proficiency grows and falls is in `plane-losses-and-proficiency-g
 
 ## Not modelled
 
-Each is a correction the source applies on top: the first-slot terms of the carrier cut-in; gun fit,
+Each is a correction the source applies on top: the first-slot terms of the carrier cut-in;
 the combined-fleet accuracy terms, star shells and night contact, AP-shell accuracy,
 the accuracy multipliers of flagship special attacks, smoke, balloons, PT imps, event bonuses.
 A night attack on a submarine in a combined fleet after a day battle scratches where the source
