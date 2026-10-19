@@ -804,6 +804,7 @@ where
                     mst_id: item.mst_id,
                     count: plane.count,
                     alv: item.aircraft_lv,
+                    level: item.level,
                     exp: Some(item.aircraft_exp),
                 })
             })
@@ -938,6 +939,7 @@ where
                         mst_id: item.mst_id,
                         count: plane.count,
                         alv: item.aircraft_lv,
+                        level: item.level,
                         exp: Some(item.aircraft_exp),
                     })
                 })

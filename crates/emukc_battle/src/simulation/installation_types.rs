@@ -201,3 +201,7 @@ pub(crate) const LAST_SOURCE_ABYSSAL_ID: i64 = 2397;
 /// The dive bombers that may attack a land target (`canShellInstall`), sorted by id.
 pub(crate) const INSTALLATION_BOMBERS: &[i64] =
     &[64, 148, 233, 277, 305, 306, 319, 320, 391, 392, 420, 421, 474, 578];
+
+/// The fighter-bombers (`isFighterBomber`), sorted by id: their stars improve their anti-air,
+/// not their strike.
+pub(crate) const FIGHTER_BOMBERS: &[i64] = &[60, 154, 219, 447, 487];

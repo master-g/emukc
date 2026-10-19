@@ -422,6 +422,8 @@ pub struct AirSquadronInput {
     pub count: i64,
     /// Proficiency level, 0 to 7.
     pub alv: i64,
+    /// Improvement level (★), 0 to 10.
+    pub level: i64,
     /// Stored proficiency experience; `None` reads the level's representative value.
     pub exp: Option<i64>,
 }

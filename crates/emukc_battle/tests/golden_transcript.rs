@@ -340,6 +340,7 @@ fn land_attackers(squadron_id: i64, mst_id: i64) -> AirSquadronInput {
         mst_id,
         count: 18,
         alv: 7,
+        level: 0,
         exp: None,
     }
 }

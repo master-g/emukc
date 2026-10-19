@@ -367,6 +367,7 @@ mod tests {
                     mst_id,
                     count,
                     alv: 0,
+                    level: 0,
                     exp: None,
                 })
                 .collect(),
@@ -408,6 +409,7 @@ mod tests {
                 mst_id: LOCAL_FIGHTER,
                 count: 18,
                 alv: 0,
+                level: 0,
                 exp: None,
             }],
         };

@@ -173,15 +173,16 @@ fn fighter_power(codex: &Codex, corps: &AirCorpsInput) -> i64 {
 
 /// The figure a squadron strikes this target with: 対潜 against a submarine,
 /// otherwise bombs or torpedoes, depending on what it flies and whether the
-/// target stands on land.
-fn strike_stat(mst: &ApiMstSlotitem, target: TargetClass) -> f64 {
+/// target stands on land. Its stars add to the figure (`airstrikePowerImprove`), not to
+/// 対潜 or to a figure of nothing.
+fn strike_stat(mst: &ApiMstSlotitem, stars: i64, target: TargetClass) -> f64 {
     if target.is_submarine() {
         return mst.api_tais.max(0) as f64;
     }
     let on_land = target == TargetClass::Installation;
     let bombs = mst.api_baku.max(0) as f64;
     let torpedoes = mst.api_raig.max(0) as f64;
-    if is_land_attacker(mst.api_type[2]) {
+    let stat = if is_land_attacker(mst.api_type[2]) {
         if on_land {
             bombs
         } else {
@@ -197,7 +198,8 @@ fn strike_stat(mst: &ApiMstSlotitem, target: TargetClass) -> f64 {
         }
     } else {
         bombs
-    }
+    };
+    crate::damage::with_airstrike_improvement(stat, mst, stars)
 }
 
 /// What an enemy ship's fixed shot takes of its own and its fleet's anti-air.
@@ -293,16 +295,18 @@ fn anti_air_kind(mst: &ApiMstSlotitem) -> AntiAirKind {
 /// submarine at 0.7 to 1 for 対潜 10 or more, else 0.35 to 0.8), times the
 /// land scouts' `scouting`, capped at 220, times `contact`, 陸上攻撃機's
 /// then multiplied by 1.8, and against a ship of a combined fleet by 1.1.
+#[expect(clippy::too_many_arguments)]
 fn strike_power(
     rng: &mut impl BattleRng,
     mst: &ApiMstSlotitem,
     count: i64,
+    stars: i64,
     target: TargetClass,
     scouting: f64,
     contact: f64,
     combined: bool,
 ) -> f64 {
-    let stat = strike_stat(mst, target);
+    let stat = strike_stat(mst, stars, target);
     let pre = if target.is_submarine() {
         if stat >= 10.0 {
             rng.random_f64_range(0.7, 1.0)
@@ -547,6 +551,7 @@ pub(crate) fn simulate_air_base_attack(
                 rng,
                 mst,
                 squadron.count,
+                squadron.level,
                 class,
                 scouting * weak,
                 struck_contact,
@@ -645,6 +650,7 @@ mod tests {
                     mst_id,
                     count,
                     alv: 0,
+                    level: 0,
                     exp: None,
                 })
                 .collect(),
@@ -679,7 +685,7 @@ mod tests {
 
         let mut rng = crate::random::SeededRng::new(1);
         let mut power = |count, target, scouting, contact| {
-            strike_power(&mut rng, mst, count, target, scouting, contact, false)
+            strike_power(&mut rng, mst, count, 0, target, scouting, contact, false)
         };
         let sea = TargetClass::SurfaceShip;
 
@@ -702,10 +708,33 @@ mod tests {
         let mut rng = crate::random::SeededRng::new(1);
         let sea = TargetClass::SurfaceShip;
         // 65 after the cap, × 1.8, then × 1.1.
-        let single = strike_power(&mut rng, mst, 18, sea, 1.0, 1.0, false);
-        let combined = strike_power(&mut rng, mst, 18, sea, 1.0, 1.0, true);
+        let single = strike_power(&mut rng, mst, 18, 0, sea, 1.0, 1.0, false);
+        let combined = strike_power(&mut rng, mst, 18, 0, sea, 1.0, 1.0, true);
         assert!((single - 117.0).abs() < 1e-9);
         assert!((combined - 128.7).abs() < 1e-9);
+    }
+
+    /// A land attacker's stars add 0.7√★ to her figure, but not to a figure of nothing and not
+    /// against a submarine (`airstrikePowerImprove`, `kcsim.js:3277`).
+    #[test]
+    fn stars_add_to_a_land_attackers_figure_but_not_a_zero_or_against_a_submarine() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let attacker = codex.manifest.find_slotitem(LAND_ATTACKER).unwrap();
+        let tokai = codex.manifest.find_slotitem(TOKAI).unwrap();
+        let power = |mst, stars, target| {
+            let mut rng = crate::random::SeededRng::new(1);
+            strike_power(&mut rng, mst, 18, stars, target, 1.0, 1.0, false)
+        };
+        let sea = TargetClass::SurfaceShip;
+        // ★4: 25 + (10 + 1.4) × √32.4 = 89.9, × 0.8 = 71.9 → 71, × 1.8.
+        assert!((power(attacker, 4, sea) - 127.8).abs() < 1e-9);
+        // 東海 has no torpedoes for her stars to add to: 25 × 0.8 = 20, × 1.8.
+        assert!((power(tokai, 4, sea) - 36.0).abs() < 1e-9);
+        // Against a submarine she strikes with her 対潜 alone, whatever her stars.
+        assert_eq!(
+            power(tokai, 4, TargetClass::Submarine),
+            power(tokai, 0, TargetClass::Submarine)
+        );
     }
 
     #[test]
@@ -920,7 +949,7 @@ mod tests {
         assert_eq!(mst.api_raig, 0, "the figure below assumes no torpedoes");
         let mut rng = crate::random::SeededRng::new(1);
         // 25 × 0.8 = 20, × 1.8.
-        let power = strike_power(&mut rng, mst, 18, TargetClass::SurfaceShip, 1.0, 1.0, false);
+        let power = strike_power(&mut rng, mst, 18, 0, TargetClass::SurfaceShip, 1.0, 1.0, false);
         assert!((power - 36.0).abs() < 1e-9);
 
         let hit = (0..20).any(|seed| {

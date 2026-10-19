@@ -503,8 +503,10 @@ pub(super) const AIRSTRIKE_HIT_PERCENT: f64 = 95.0;
 /// Bomb/torpedo stat × √(onslot) + 25; a torpedo bomber that hits takes ×0.8 or
 /// ×1.5 of it, then the cap at 170, then `contact` (触接), the target's own roll
 /// ([`special_bonus`]) and the attacker's dock and summer multipliers. `ammo` is the carrier's
-/// ammunition modifier. `fit_bonus` is what the slot's 装備ボーナス torpedo adds to its stat,
-/// against land too (`getEquipBonusCVTorp(slot)`, `kcsim.js:2022`). A miss rolls nothing.
+/// ammunition modifier. The slot's stars add to a stat above zero
+/// ([`crate::damage::with_airstrike_improvement`]). `fit_bonus` is what the slot's 装備ボーナス torpedo
+/// adds to its stat, against land too (`getEquipBonusCVTorp(slot)`, `kcsim.js:2022`). A miss
+/// rolls nothing.
 #[expect(clippy::too_many_arguments)]
 fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
@@ -538,6 +540,8 @@ fn calculate_single_slot_airstrike_damage(
     } else {
         mst.api_raig.max(0) as f64
     };
+    // A submarine is never her target here.
+    let stat = crate::damage::with_airstrike_improvement(stat, mst, slot_item.api_level);
     let bomb_power = (stat + fit_bonus) * (onslot as f64).sqrt();
     // ponytail: a jet's strike outside the jet phase (×0.7 + 0.5 in the source)
     // is not modelled; add it with the jet phase.
@@ -1638,6 +1642,49 @@ mod tests {
             .collect();
         // 25 × 0.8 and 25 × 1.5, each × 1.3 or × 1.7 for 砲台小鬼 (`special_bonus`).
         assert_eq!(seen.into_iter().collect::<Vec<_>>(), [26, 34, 48, 62]);
+    }
+
+    /// A bomber's stars add 0.2★ to her figure, but not a fighter-bomber's, and not to a
+    /// figure of nothing (`airstrikePowerImprove`, `kcsim.js:2019`).
+    #[test]
+    fn stars_add_to_a_bombers_figure_but_not_a_fighter_bombers_or_a_zero() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = bare_target(&codex, first_ship_mst_by_type(&codex, KcShipType::DD));
+        let mut land = bare_target(&codex, first_ship_mst_by_type(&codex, KcShipType::DD));
+        land.ship.api_ship_id = ship_mst_id_by_name(&codex, "砲台小鬼");
+        let strike = |mst_id: i64, stars: i64, target: &BattleRuntimeShip| {
+            let mut item = slotitem_with_mst_id(mst_id);
+            item.api_level = stars;
+            (0..40)
+                .map(|seed| {
+                    calculate_single_slot_airstrike_damage(
+                        &codex,
+                        &mut crate::random::SeededRng::new(seed),
+                        target,
+                        &item,
+                        16,
+                        target,
+                        HitOutcome::Hit,
+                        1.0,
+                        1.0,
+                        1.0,
+                        0.0,
+                    )
+                })
+                .collect::<std::collections::BTreeSet<i64>>()
+        };
+        // 彗星 (爆装 8) at ★10: (8 + 2) × √16 + 25 = 65.
+        assert_eq!(codex.manifest.find_slotitem(24).unwrap().api_baku, 8);
+        assert_eq!(strike(24, 10, &ship).into_iter().collect::<Vec<_>>(), [65]);
+        // 瑞雲 (爆装 4), a seaplane bomber, at ★5: (4 + 1) × √16 + 25 = 45.
+        assert_eq!(codex.manifest.find_slotitem(26).unwrap().api_baku, 4);
+        assert_eq!(strike(26, 5, &ship).into_iter().collect::<Vec<_>>(), [45]);
+        // 零式艦戦62型(爆戦) is a fighter-bomber: her stars add nothing.
+        assert_eq!(strike(60, 10, &ship), strike(60, 0, &ship));
+        // A torpedo bomber has nothing to bring against land, so her stars do not either.
+        let torpedo =
+            first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedTorpedoBomber);
+        assert_eq!(strike(torpedo, 10, &land).into_iter().collect::<Vec<_>>(), [26, 34, 48, 62]);
     }
 
     /// A carrier with 16 scouts, 16 torpedo bombers and fighters to hold the

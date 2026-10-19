@@ -1276,6 +1276,7 @@ mod tests {
             (SUMMER_BATTLESHIP_IDS, 3, 5_091),
             (SUMMER_CRUISER_IDS, 3, 5_118),
             (INSTALLATION_BOMBERS, 14, 4_648),
+            (FIGHTER_BOMBERS, 5, 1_367),
         ] {
             assert_eq!((ids.len(), ids.iter().sum::<i64>()), (ships, sum));
         }

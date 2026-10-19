@@ -120,7 +120,10 @@ is, and each wave's stage 3 is split by deck the way `api_kouku`'s is: the main 
 ×1.1 after the cap (`airstrikeLBAS`, `combinedWith`, #251). A submarine is struck with 対潜, at 0.7–1 (対潜 10 or more) or 0.35–0.8 in place of a
 land attacker's 0.8. Every target is drawn before the first strike lands, so a strike sent at
 a ship already sunk is wasted. A squadron whose figure is 0 (東海 against a ship) still
-strikes at the formula's base 25, as the carrier battle's torpedo bombers do on land.
+strikes at the formula's base 25, as the carrier battle's torpedo bombers do on land. Its
+stars add to a figure above zero against anything but a submarine: 0.7√★ for a land
+attacker, 0.2★ for a bomber (`airstrikePowerImprove`, #264; see
+`equipment-improvement-bonus.md`).
 A hit on one of the source's particular targets rolls its own multiplier after the cap
 (`special_bonus`, `airstrikeLBAS`'s chain, first match only; on the regular maps 6-4's
 空母棲姫, 集積地棲姫, 砲台小鬼 and 離島棲姫, 6-5's 空母棲姫 and 7-5's 砲台小鬼). Any other target takes
