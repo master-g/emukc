@@ -30,8 +30,8 @@ const ROCKET4_ID: i64 = 348;
 const ROCKET4_C_ID: i64 = 349;
 const M4A1_ID: i64 = 355;
 /// 装甲艇(AB艇).
-const SOUKOUTEI_ID: i64 = 408;
-const ARMED_DAIHATSU_ID: i64 = 409;
+pub(crate) const SOUKOUTEI_ID: i64 = 408;
+pub(crate) const ARMED_DAIHATSU_ID: i64 = 409;
 /// 大発動艇(II号戦車/北アフリカ仕様).
 const PANZER2_ID: i64 = 436;
 /// 特大発動艇+一式砲戦車.
@@ -42,7 +42,7 @@ const PANZER3J_ID: i64 = 514;
 const CHIHA_ID: i64 = 494;
 const CHIHA_KAI_ID: i64 = 495;
 /// 特四式内火艇 and 改.
-const T4_IDS: [i64; 2] = [525, 526];
+pub(crate) const T4_IDS: [i64; 2] = [525, 526];
 const T4K_ID: i64 = 526;
 /// 大発動艇(R35&フランス兵).
 const R35_ID: i64 = 576;

@@ -185,7 +185,7 @@ mod tests {
             combined_type: CombinedType::CarrierTaskForce,
             escort_ships: ships(escort),
         });
-        BattleState::from_context(context)
+        BattleState::from_context(&codex, context)
     }
 
     type Ranges = (Range<usize>, Range<usize>, Range<usize>, Range<usize>);

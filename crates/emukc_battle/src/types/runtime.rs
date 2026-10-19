@@ -56,6 +56,11 @@ pub struct BattleRuntimeShip {
     /// Her place in the line when her fleet is in 警戒陣, `None` in any other
     /// formation.
     pub(crate) vanguard: Option<VanguardPlace>,
+    /// The accuracy she adds against a PT imp, and with it whether she goes for one first: 64
+    /// for 天霧改二, 32 for a destroyer beside her, else 0 ([`mark_anti_pt`]).
+    ///
+    /// [`mark_anti_pt`]: crate::pt_imp::mark_anti_pt
+    pub(crate) pt_accuracy_flat: i64,
     pub married: bool,
 }
 
@@ -93,6 +98,7 @@ impl BattleRuntimeShip {
             combined: None,
             enemy_deck: None,
             vanguard: None,
+            pt_accuracy_flat: 0,
             married: input.married,
         }
     }

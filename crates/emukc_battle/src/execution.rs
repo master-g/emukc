@@ -71,7 +71,7 @@ pub fn execute_sp_midnight(
     let engagement = context.engagement;
     let special_attacks_made = context.special_attacks_made;
 
-    let state = BattleState::from_context(context);
+    let state = BattleState::from_context(codex, context);
     let escort_start = state.combined().map_or(0, |layout| layout.escort_start);
     let mut friendly = state.friendly;
     let enemy = state.enemy;

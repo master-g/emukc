@@ -175,7 +175,7 @@ pub(crate) fn target_candidates(
         .filter(|idx| target_class(codex, &defenders[*idx]).is_submarine())
         .collect::<Vec<_>>();
 
-    match attack_capability_for_phase(codex, attacker, phase) {
+    let candidates = match attack_capability_for_phase(codex, attacker, phase) {
         AttackCapability::CannotAttack => Vec::new(),
         AttackCapability::SurfaceOnly => surface_like_targets,
         AttackCapability::BothPreferSubmarine => {
@@ -192,6 +192,15 @@ pub(crate) fn target_candidates(
                 surface_like_targets
             }
         }
+    };
+    // An anti-PT ship's guns go for a PT imp first (`shellPhaseTarget`, `nightPhaseTarget`).
+    // ponytail: by day the source still lets any ship cover the flagship, as here; at night it
+    // draws the cover from the PT imps alone, which differs only when the flagship is one.
+    match phase {
+        BattlePhase::DayShelling | BattlePhase::NightShelling => {
+            crate::pt_imp::prefer_pt(codex, attacker, defenders, candidates)
+        }
+        BattlePhase::OpeningTorpedo | BattlePhase::ClosingTorpedo => candidates,
     }
 }
 
@@ -199,7 +208,8 @@ pub(crate) fn target_candidates(
 /// picks a deck and draws from that deck alone (`kancolle-replay` `69097abc`):
 ///
 /// - a shell (`doShellC`) goes for the escort deck first on a roll under 0.39 and the main
-///   deck first otherwise, and for the other deck when the first has nothing to fire at;
+///   deck first otherwise, an anti-PT ship for the deck that alone has PT imps, and for the
+///   other deck when the first has nothing to fire at;
 /// - a closing torpedo (`torpedoPhase` with `combinedAll`) goes for the main deck on a roll
 ///   under 0.35 and the escort deck otherwise, with no roll when one deck has nothing.
 ///
@@ -223,7 +233,19 @@ pub(crate) fn deck_candidates(
     };
     match phase {
         BattlePhase::DayShelling => {
-            let (first, fallback) = if rng.random_f64_range(0.0, 1.0) < 0.39 {
+            let mut escort_first = rng.random_f64_range(0.0, 1.0) < 0.39;
+            // An anti-PT ship goes for the deck that alone has PT imps, whatever the roll.
+            if attacker.pt_accuracy_flat > 0 {
+                let has_pt = |deck: &[BattleRuntimeShip]| {
+                    deck.iter().any(|ship| ship.is_alive() && crate::pt_imp::is_pt(codex, ship))
+                };
+                match (has_pt(&defenders[..escort_start]), has_pt(&defenders[escort_start..])) {
+                    (true, false) => escort_first = false,
+                    (false, true) => escort_first = true,
+                    _ => {}
+                }
+            }
+            let (first, fallback) = if escort_first {
                 (escort(), main())
             } else {
                 (main(), escort())
