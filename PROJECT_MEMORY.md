@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-19 · branch `main`
+Last updated: 2026-10-19 · branch `feat/light-cruiser-fp-fit`（叠在 `fix/air-corps-enemy-combined`、`fix/asw-synergy`、`fix/accuracy-rounding` 之上）
 
 ## Verified Facts
 
@@ -161,18 +161,17 @@ Current verification baseline:
 | [2026-10-17] 逐种子跑 `--exact`：名字不匹配也退出 0，须判「1 passed」。 | #201 |
 | [2026-10-18] 战斗 golden 读 `.data/codex` 的真实舰船、初始装备与深海数据：重建 codex 后代码不变也会红。先在 `main` 单独提交重冻、写明是数据变化，再做别的；重构不应需要重冻。 | `golden_transcript.rs` 头注释 |
 | [2026-10-19] 对拍时 serde_json 默认解析 JS 打印的小数会差最后一位（不保证往返精确），误报成算法差异：脚本输出 `Float64Array` 的比特位字符串，Rust 用 `f64::from_bits` 比。 | #193 |
+| [2026-10-19] 按 `api_type[2]` 判炮种会把深海炮算进去（1504 5inch単装高射砲是中口径主炮），来源按装备 id 的标记算。golden 变动要归因时，临时把旧行为加回、看 180 份是否逐字节复原，再写进提交说明。 | #204、#243 |
 
 ## Last Session
 
-- [2026-10-19] 开 #242–#244（6-5 boss 敌连合不出基地航空队、对潜协同倍率、命中/回避取整）。#193 在 `feat/gun-fit-accuracy`：`gun_fit.rs` 移植 `getFit`，`Aim::day_cut_in` 分出 `accMod2`。
-  fit 置 0 时 180 份 golden 与 `battle_golden.rs` 逐字节不变；真实 fit 下重冻 22 份（舰队里都有 fit≠0 的舰），`battle_golden.rs` 未动。fmt、clippy `-D warnings`、`test --workspace` 1615 通过 0 失败 0 忽略。
-  `chore/deps-zip-9`（叠在其上）：zip 8.6→9.0.5，仅改版本号与 lock（zstd crate 移出依赖树，默认 feature 未变），三道门同样结果，`compass_source` 解压测试通过。
+- [2026-10-19] 四个本地叠放分支，从 `main` `676d0ead` 起：#244 命中/回避取整前先舍入（golden 不变）→ #243 对潜协同按 id 区分投射机与爆雷（重冻 139 份）→ #242 敌连合（6-5 boss）出基地航空队并按层拆 stage3（golden 不变，`battle validate` 0 错误 0 警告）→ #204 轻巡 `FPfit` 按 `fitclass` id、加 CT、夜战也加（重冻 16 份）。
+  每份重冻都用探针归因（见失败尝试）；`battle_golden.rs` 均未动。`test --workspace` 自底向上 1615、1616、1618、1619 通过，均 0 失败 0 忽略；fmt、clippy `-D warnings` 每个提交过钩子，顶端另跑一次。均未推送。
 
 ## Next Session
 
-- [2026-10-19] #245（#193）与叠在其上的 zip 9.0.5 PR 待合并：先合 #245，再把 zip PR 改指 `main`。
-  候选 5（夜战 deck 切分进 battle crate）与 2026-09-23 计划 KTD13 冲突，不做。
-  #193 PR 待合并。ready 未关：#196–#200、#204（`FPfit` 按装备 `fitclass` 计数，与 #193 不共表）、#242（6-5 boss 敌连合不出基地航空队）、#243（对潜协同倍率）、#244（命中/回避取整）。改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。
+- [2026-10-19] 四个叠放分支待推送开 PR，自底向上合并。
+  ready 未关：#196–#200。目标外待开票：基地航空队打连合舰队少源码的 ×1.1（`airstrikeLBAS` `postMod`，`air-corps.md` 已记）。改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。
   瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。叠放 PR 合并前先把上层 PR 改指 `main`。
   远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
