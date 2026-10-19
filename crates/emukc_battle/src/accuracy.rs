@@ -4,7 +4,7 @@
 //! `accuracyAndCrit`, `rollHit`, `formationCountered` and the formation table
 //! at the top of that file, with `Ship.moraleMod` / `moraleModEv` from
 //! `kcships.js`. The arithmetic is kept in whole percent, as the source does
-//! after its `floor(round(x * 1e6) / 1e4)` step.
+//! after its `floor(round(x * 1e6) / 1e4)` step ([`floor_percent`]).
 //!
 //! Aircraft proficiency follows `Ship.updateProficiencyBonus` in `kcships.js`.
 //!
@@ -504,9 +504,16 @@ fn night_evasion(codex: &Codex, ship: &BattleRuntimeShip, formation: f64) -> (f6
     }
 }
 
+/// Round a percentage down to a whole one as `accuracyAndCrit` does: first to four places, so
+/// floating-point noise just under a whole number (`100 x 1.15`) does not cost a point.
+fn floor_percent(x: f64) -> i64 {
+    // `Math.round` is `floor(x + 0.5)`.
+    ((x * 1e4 + 0.5).floor() / 1e4).floor() as i64
+}
+
 /// The chance to hit in percent, between the floor and the ceiling.
 pub(crate) fn hit_chance(hit: f64, dodge: i64, target_morale: f64) -> i64 {
-    let chance = (hit.floor() as i64 - dodge).max(HIT_FLOOR) as f64 * target_morale;
+    let chance = (floor_percent(hit) - dodge).max(HIT_FLOOR) as f64 * target_morale;
     (chance.floor() as i64).min(HIT_CEILING)
 }
 
@@ -672,7 +679,7 @@ fn dodge(
         formation_ev,
         fuel_shortfall(codex, defender),
     );
-    (curve as f64 + evasion_flat as f64 + improved).floor() as i64
+    floor_percent(curve as f64 + evasion_flat as f64 + improved)
 }
 
 /// The attacker's accuracy before the target's evasion (`hitRate`), in percent.
@@ -761,7 +768,7 @@ pub(crate) fn roll_strike(
         1.0,
         fuel_shortfall(codex, defender),
     );
-    let dodge = (dodge as f64 * evasion_modifier).floor() as i64;
+    let dodge = floor_percent(dodge as f64 * evasion_modifier);
     roll(rng, hit_chance(hit_percent, dodge, target_morale(defender)), 0.0, planes)
 }
 
@@ -901,6 +908,8 @@ mod tests {
         assert_eq!(hit_chance(30.0, 80, 1.0), 10);
         assert_eq!(hit_chance(150.0, 0, 1.0), 96);
         assert_eq!(hit_chance(90.9, 20, 1.0), 70);
+        // 100 x 1.15 is 114.99999999999999 in floating point; the source still counts 115.
+        assert_eq!(hit_chance(100.0 * 1.15, 20, 1.0), 95);
         // A sparkling target is hit 0.7 times as often, a tired one 1.4 times.
         assert_eq!(hit_chance(90.0, 20, 0.7), 49);
         assert_eq!(hit_chance(90.0, 80, 1.4), 14);

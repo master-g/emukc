@@ -52,7 +52,9 @@ Transcribed from `KC3Kai/kancolle-replay` `kcsim.js` (`hitRate`, `accuracyAndCri
 - Target: `floor((回避 + sqrt(2 x 運)) x formation)`, bent at 40 and 65, less the points its
   fuel is short of 75%. Her improved engines (against shelling) and sonars (against torpedoes)
   add their evasion after the curve, and the sum is rounded down.
-- Chance: `max(attacker - target, 10) x target morale`, floored, at most 96.
+- Chance: `max(attacker - target, 10) x target morale`, floored, at most 96. The attacker's
+  and target's terms are rounded to four places before they are floored (`floor_percent`, #244),
+  so `100 x 1.15` counts 115, not 114.
 - One draw in 0..=99: at or under `floor(sqrt(chance) x factor)` is a critical, at or under the
   chance is a hit. The factor is 1.3 for shelling and ASW, 1.5 for torpedo and night, 0 for
   aircraft, whose criticals come from proficiency alone.
