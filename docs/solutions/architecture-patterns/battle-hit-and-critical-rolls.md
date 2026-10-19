@@ -49,6 +49,9 @@ Transcribed from `KC3Kai/kancolle-replay` `kcsim.js` (`hitRate`, `accuracyAndCri
   and before a cut-in's (`accMod2`, `Aim::day_cut_in`); a night attack adds it after every
   multiplier, like the searchlight's 7. A gun the pinned source does not list has no fit until
   the pin moves.
+- AP shell (`armour_piercing`, #196): by day an AP shell with a main gun multiplies `accMod2`
+  by 1.1 to 1.3 (more with a radar or a secondary gun) against a CA, CAV, battleship or
+  standard carrier, not a light carrier; normal shelling and special attacks alike.
 - Target: `floor((回避 + sqrt(2 x 運)) x formation)`, bent at 40 and 65, less the points its
   fuel is short of 75%. Her improved engines (against shelling) and sonars (against torpedoes)
   add their evasion after the curve, and the sum is rounded down.
@@ -145,8 +148,8 @@ roll only. How proficiency grows and falls is in `plane-losses-and-proficiency-g
 ## Not modelled
 
 Each is a correction the source applies on top: the first-slot terms of the carrier cut-in;
-the combined-fleet accuracy terms, star shells and night contact, AP-shell accuracy,
-the accuracy multipliers of flagship special attacks, smoke, balloons, PT imps, event bonuses.
+the combined-fleet accuracy terms, star shells and night contact, smoke, balloons, PT imps,
+event bonuses.
 A night attack on a submarine in a combined fleet after a day battle scratches where the source
 does real damage (see `carrier-night-air-attack.md`, "A submarine at night"). Abyssal ships fight at
 condition 49 with full fuel; an enemy built from the manifest alone has no evasion.

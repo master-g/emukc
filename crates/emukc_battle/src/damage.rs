@@ -22,8 +22,9 @@ use crate::combined::{
 use crate::installation::{AntiInstallation, land_target, post_cap_multiplier};
 use crate::random::BattleRng;
 use crate::targeting::{
-    abyssal_carrier_asw, bonus_gears, has_slotitem_type, is_airstrike_attack_type, ship_mst,
-    ship_type, target_class,
+    abyssal_carrier_asw, bonus_gears, count_slotitems, has_slotitem_type, is_airstrike_attack_type,
+    is_ap_shell_type, is_main_gun_type, is_radar_type, is_secondary_gun_type, ship_mst, ship_type,
+    target_class,
 };
 use crate::types::{BattlePhase, BattleRuntimeShip, EngagementType};
 
@@ -195,6 +196,9 @@ pub(crate) fn calculate_shelling_damage(
     let mut capped_power = apply_cap(pre_cap, SHELLING_CAP) as f64;
     if let Some(m) = ci_multiplier {
         capped_power *= m;
+    }
+    if let Some(ap) = armour_piercing(codex, attacker, defender) {
+        capped_power = (capped_power * ap.power).floor();
     }
     capped_power *= post_cap_multiplier(codex, attacker, defender, false);
     let capped_power =
@@ -456,6 +460,44 @@ pub(crate) fn light_gun_bonus(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
         ship.slot_items.iter().filter(|item| ids.contains(&item.api_slotitem_id)).count() as f64
     };
     count(&LIGHT_SINGLE_GUNS).sqrt() + 2.0 * count(&LIGHT_TWIN_GUNS).sqrt()
+}
+
+/// What an armour piercing shell multiplies a day shelling attack's accuracy and power by.
+pub(crate) struct ArmourPiercing {
+    /// `APacc`, beside the cut-in's accuracy (`accMod2`).
+    pub accuracy: f64,
+    /// `APmod`, after the cut-in's power and floored.
+    pub power: f64,
+}
+
+/// An armour piercing shell against `defender` by day (`kcships.js:550-555`, `:1500-1518`):
+/// `None` unless she is a heavy cruiser, battleship or standard carrier of any kind (`APweak`,
+/// not a light carrier). The tier needs a shell and a main gun, and rises with a secondary gun
+/// and a radar; without one the multipliers are 1, but the source still floors the power.
+pub(crate) fn armour_piercing(
+    codex: &Codex,
+    attacker: &BattleRuntimeShip,
+    defender: &BattleRuntimeShip,
+) -> Option<ArmourPiercing> {
+    use KcShipType::{BB, BBV, CA, CAV, CV, CVB, FBB};
+    if !matches!(ship_type(codex, defender), Some(CA | CAV | FBB | BB | BBV | CV | CVB)) {
+        return None;
+    }
+    let has = |keep: fn(KcSlotItemType3) -> bool| count_slotitems(codex, attacker, keep) > 0;
+    let (accuracy, power) = if !(has(is_ap_shell_type) && has(is_main_gun_type)) {
+        (1.0, 1.0)
+    } else {
+        match (has(is_secondary_gun_type), has(is_radar_type)) {
+            (true, true) => (1.3, 1.15),
+            (true, false) => (1.2, 1.15),
+            (false, true) => (1.25, 1.1),
+            (false, false) => (1.1, 1.08),
+        }
+    };
+    Some(ArmourPiercing {
+        accuracy,
+        power,
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -1678,6 +1720,57 @@ mod tests {
         assert!((asw_formation_modifier(5) - 1.3).abs() < f64::EPSILON);
         assert!((asw_formation_modifier(1) - 1.0).abs() < f64::EPSILON);
         assert!((asw_formation_modifier(2) - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn an_ap_shell_multiplies_the_power_after_the_cut_in() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |ship_type: KcShipType, ids: &[i64]| {
+            let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, ship_type), 50);
+            input.ship.api_karyoku[0] = 300;
+            input.ship.api_soukou[0] = 0;
+            input.ship.api_maxhp = 999;
+            input.ship.api_nowhp = 999;
+            input.slot_items = ids.iter().map(|&id| slotitem_with_mst_id(id)).collect();
+            BattleRuntimeShip::from(input)
+        };
+        let shell = |attacker: &BattleRuntimeShip, target: KcShipType| {
+            let target = ship(target, &[]);
+            let rng = &mut crate::random::SeededRng::new(1);
+            let (engagement, hit) = (EngagementType::SameCourse, HitOutcome::Hit);
+            calculate_shelling_damage(&codex, rng, attacker, &target, 1, engagement, Some(1.5), hit)
+        };
+        // 305 is capped to floor(220 + √85) = 229, and the cut-in makes it 343.5.
+        // 7 is a main gun, 36 an AP shell, 27 a radar: floor(343.5 × 1.1) against heavy ships.
+        let (armed, plain) = (ship(KcShipType::BB, &[7, 36, 27]), ship(KcShipType::BB, &[7]));
+        assert_eq!(shell(&armed, KcShipType::BB), 377);
+        assert_eq!(shell(&armed, KcShipType::DD), 343);
+        assert_eq!(shell(&armed, KcShipType::CVL), 343);
+        assert_eq!(shell(&plain, KcShipType::BB), 343);
+    }
+
+    #[test]
+    fn an_ap_shell_and_a_main_gun_pierce_heavy_ships() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = |ship_type: KcShipType, ids: &[i64]| {
+            let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, ship_type), 50);
+            input.slot_items = ids.iter().map(|&id| slotitem_with_mst_id(id)).collect();
+            BattleRuntimeShip::from(input)
+        };
+        let pierce = |ids: &[i64], target: KcShipType| {
+            armour_piercing(&codex, &ship(KcShipType::BB, ids), &ship(target, &[]))
+                .map(|ap| (ap.accuracy, ap.power))
+        };
+        // 7 is a main gun, 36 an AP shell, 27 a radar, 12 a secondary gun.
+        assert_eq!(pierce(&[7, 36], KcShipType::BB), Some((1.1, 1.08)));
+        assert_eq!(pierce(&[7, 36, 27], KcShipType::BB), Some((1.25, 1.1)));
+        assert_eq!(pierce(&[7, 36, 12], KcShipType::BB), Some((1.2, 1.15)));
+        assert_eq!(pierce(&[7, 36, 27, 12], KcShipType::BB), Some((1.3, 1.15)));
+        // Without a main gun the shell does nothing, but a heavy target still floors the power.
+        assert_eq!(pierce(&[36, 27, 12], KcShipType::BB), Some((1.0, 1.0)));
+        assert_eq!(pierce(&[7, 36], KcShipType::CVB), Some((1.1, 1.08)));
+        assert_eq!(pierce(&[7, 36], KcShipType::CVL), None);
+        assert_eq!(pierce(&[7, 36], KcShipType::DD), None);
     }
 
     #[test]
