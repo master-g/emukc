@@ -50,7 +50,11 @@ pub(crate) fn simulate_day(
     rng: &mut impl BattleRng,
 ) -> BattleSimulation {
     let use_smoke = context.use_smoke;
+    let balloon_cell = context.balloon_cell;
     let mut state = BattleState::from_context(codex, context);
+    if balloon_cell {
+        state.raise_balloons();
+    }
     let flow = BattleFlow::for_battle_type(state.battle_type());
     // The smoke screen is rolled before any phase (`getSmokeType`), and not at all unless asked.
     if use_smoke {
@@ -280,6 +284,7 @@ fn simulate_day_enemy_combined(codex: &Codex, state: &mut BattleState, rng: &mut
 fn execute_air_base_attacks(codex: &Codex, state: &mut BattleState, rng: &mut impl BattleRng) {
     let mut air_corps = std::mem::take(&mut state.air_corps);
     let enemy_formation_id = state.enemy_formation_id();
+    let own_balloons = state.friendly.first().map_or(0, |ship| ship.balloons);
     let mut previous = air_base::PreviousWave::default();
     for corps in &mut air_corps {
         let set_out: Vec<i64> = corps.squadrons.iter().map(|squadron| squadron.count).collect();
@@ -296,6 +301,7 @@ fn execute_air_base_attacks(codex: &Codex, state: &mut BattleState, rng: &mut im
                 &mut state.enemy,
                 enemy_formation_id,
                 &mut previous,
+                own_balloons,
                 rng,
             );
             state.air_base_attack.push(attack);
@@ -420,6 +426,10 @@ pub(crate) fn simulate_night(
         night_start,
         special_attacks_made,
     } = input;
+    // Balloons do nothing at night (`ASW`: `if (!isNightActual)`).
+    for ship in friendly.iter_mut().chain(enemy.iter_mut()) {
+        ship.balloons = 0;
+    }
     let entry_friendly_nowhps = friendly.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
     let entry_friendly_maxhps = friendly.iter().map(|ship| ship.ship.api_maxhp).collect::<Vec<_>>();
     let entry_enemy_nowhps = enemy.iter().map(|ship| ship.hp().max(0)).collect::<Vec<_>>();
@@ -1115,6 +1125,7 @@ mod combined_tests {
         let context = BattleContext {
             special_attacks_made: Default::default(),
             use_smoke: false,
+            balloon_cell: false,
             battle_type: BattleType::Normal,
             is_sortie: true,
             friendly_formation_id: 1,
@@ -1193,6 +1204,7 @@ mod combined_tests {
             let context = BattleContext {
                 special_attacks_made: Default::default(),
                 use_smoke: false,
+                balloon_cell: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -1253,6 +1265,7 @@ mod combined_tests {
             let context = BattleContext {
                 special_attacks_made: Default::default(),
                 use_smoke: false,
+                balloon_cell: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 1,
@@ -1308,6 +1321,7 @@ mod combined_tests {
                 let context = BattleContext {
                     special_attacks_made: Default::default(),
                     use_smoke: false,
+                    balloon_cell: false,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: 11,
@@ -1382,6 +1396,7 @@ mod combined_tests {
                 let context = BattleContext {
                     special_attacks_made: Default::default(),
                     use_smoke: false,
+                    balloon_cell: false,
                     battle_type: BattleType::Normal,
                     is_sortie: true,
                     friendly_formation_id: 11,
@@ -1437,6 +1452,7 @@ mod combined_tests {
             let context = BattleContext {
                 special_attacks_made: Default::default(),
                 use_smoke: false,
+                balloon_cell: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 11,
@@ -1466,6 +1482,7 @@ mod combined_tests {
         let context = BattleContext {
             special_attacks_made: Default::default(),
             use_smoke: false,
+            balloon_cell: false,
             battle_type: BattleType::Normal,
             is_sortie: true,
             // 第一警戒航行序列; the enemy keeps a normal formation.

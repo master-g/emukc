@@ -148,8 +148,9 @@ roll only. How proficiency grows and falls is in `plane-losses-and-proficiency-g
 ## Not modelled
 
 Each is a correction the source applies on top: the first-slot terms of the carrier cut-in;
-the combined-fleet accuracy terms, star shells and night contact, balloons,
-event bonuses. PT imps are in `pt-imps.md`, smoke in `smoke-screen.md`.
+the combined-fleet accuracy terms, star shells and night contact,
+event bonuses. PT imps are in `pt-imps.md`, smoke in `smoke-screen.md`; balloons have no accuracy
+term by the source's defaults (`barrage-balloons.md`).
 A night attack on a submarine in a combined fleet after a day battle scratches where the source
 does real damage (see `carrier-night-air-attack.md`, "A submarine at night"). Abyssal ships fight at
 condition 49 with full fuel; an enemy built from the manifest alone has no evasion.

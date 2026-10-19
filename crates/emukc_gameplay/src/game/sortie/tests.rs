@@ -178,6 +178,7 @@ async fn combined_midnight_battle_is_fought_by_the_escort_deck_alone() {
             context: BattleContext {
                 special_attacks_made: Default::default(),
                 use_smoke: false,
+                balloon_cell: false,
                 battle_type: BattleType::Normal,
                 is_sortie: true,
                 friendly_formation_id: 11,
@@ -1629,6 +1630,80 @@ async fn enemies_sunk_at_night_reach_the_quest_outcomes() {
         .collect();
     assert_eq!(sunk, vec![7], "night-only sink must still report EnemyShipSunk");
     assert_eq!(settlement.dests, 1);
+}
+
+/// 3-5 H, 北方棲姫's cell, raises barrage balloons (`BALLOON_CELLS`), and the day battle says so;
+/// the other battle cells of the map do not.
+#[tokio::test]
+async fn balloons_rise_at_3_5_h() {
+    use crate::scenario::{Scenario, ShipSpec, apply_scenario};
+
+    let db = new_mem_db().await.unwrap();
+    let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+    let context = Ctx::new(Arc::new(db), Arc::new(codex));
+    let account = context.sign_up("balloons", "1234567").await.unwrap();
+    let profile = context.new_profile(&account.access_token.token, "balloons").await.unwrap();
+    let pid = context
+        .start_game(&account.access_token.token, profile.profile.id)
+        .await
+        .unwrap()
+        .profile
+        .id;
+    let mut scenario = Scenario::fresh_1_1();
+    // Four balloons, of which three fly.
+    scenario.fleet = vec![ShipSpec::new(951, 50).with_slots([513]); 4];
+    scenario.fleet.extend(vec![ShipSpec::new(951, 50); 2]);
+    apply_scenario(&context, pid, &scenario).await.unwrap();
+
+    let definition = context.codex.maps.map_definition(35).unwrap();
+    let stage = definition.stage(&definition.default_variant).unwrap();
+    let fight_at = |balloons: bool| {
+        let cell = stage
+            .cells
+            .iter()
+            .find(|cell| {
+                (cell.node_label.as_deref() == Some("H")) == balloons
+                    && cell.node_label.is_some()
+                    && cell.event_id == 4
+            })
+            .unwrap();
+        ActiveSortieState {
+            special_attacks_made: Default::default(),
+            smoke_used: false,
+            deck_id: 1,
+            map_id: 35,
+            map_name: definition.name.clone(),
+            map_level: definition.level,
+            stage_id: definition.default_variant.clone(),
+            current_cell_id: cell.cell_no,
+            boss_cell_id: stage.boss_cell_no,
+            pending_battle_cell_id: None,
+            visited_cell_ids: BTreeSet::from([cell.cell_no]),
+            locked_enemy_composition: None,
+            landing_tp: None,
+            recon_rewards: Vec::new(),
+            air_strikes: vec![],
+            raided: false,
+        }
+    };
+    let store = context.sortie_store.as_ref();
+
+    let _ = store.insert_active(pid, fight_at(true));
+    let battle = context.sortie_battle(pid, 1).await.unwrap();
+    assert_eq!(battle.api_balloon_cell, 1);
+    let assets = emukc_bootstrap::prelude::load_repo_battle_knowledge_assets().unwrap();
+    let report = emukc_bootstrap::prelude::validate_day_battle_response(
+        &context.codex.manifest,
+        &battle,
+        &assets,
+    )
+    .unwrap();
+    assert!(!report.has_errors(), "{:#?}", report.findings);
+    store.clear();
+
+    let _ = store.insert_active(pid, fight_at(false));
+    let battle = context.sortie_battle(pid, 1).await.unwrap();
+    assert_eq!(battle.api_balloon_cell, 0);
 }
 
 /// 6-5 の M is an enemy combined fleet: the client asks for `ec_battle` there,
