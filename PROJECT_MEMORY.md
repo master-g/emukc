@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-19 · branch `feat/light-cruiser-fp-fit`（叠在 `fix/air-corps-enemy-combined`、`fix/asw-synergy`、`fix/accuracy-rounding` 之上）
+Last updated: 2026-10-19 · branch `docs/memory-after-stack`
 
 ## Verified Facts
 
@@ -124,7 +124,7 @@ Current verification baseline:
 - [2026-10-15] 陆上设施按来源 `installtype` 表判（`installation_types.rs`，脚本再生）；名字匹配只兜底比来源更新的深海舰（id > 2397）。倍率与上限后倍率见 `anti-installation.md`。
 - [2026-10-19] 来源 `SHIPDATA.type` 与 start2 `api_stype` 一一对应（FBB=8、BB=9、BBV=10），`sclass` 全等于 `api_ctype`，`MAINGUNM` 全等于 `api_type[2]==2`，`loadEquips` 不分敌我：按舰种/舰级移植的规则直接读 start2（#193 对拍 100 万例逐位一致）。
 - [2026-10-15] 测试里 `BattleRuntimeShip::from` 造的是 `is_friendly: false`（注释写反了）：要测「玩家侧」规则（空槽、燃料）得用 `BattleRuntimeShip::new(input, true, true)`。
-- [2026-10-15] #147 用户定：戦果 = 提督经验（1 万 7 点）+ 任务与 1-6 的加成，按月清零，排名列本服务器所有账号。月末规则（读过的日文攻略页）：戦果月在最后一天 22:00 JST 结束，22:00～23:59 破 EO 只给箱不给戦果，EO ゲージ 1 日 00:00 恢复；见 `war-result-ranking.md`。
+- [2026-10-15] 戦果的口径（#147 用户定）与月末 22:00 规则：`war-result-ranking.md`。
 - [2026-10-18] 外部等待：#150 等抓包；#182 等 kcwiki 补 902
 
 - [2026-10-19] 烟幕：来源默认发动率 0、倍率 1；用户定发动率用 wikiwiki 発動率推定式、倍率用来源 `smokeEst`（`smoke-screen.md`）。气球格：常规图 3-5 H、4-3 N、4-5 T、6-4 N（`barrage-balloons.md`）。空母昼战炮击已是来源公式，不再是 `1.5×机数+55`。
@@ -168,11 +168,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-19] 叠放分支（未推送）：#251 → #197 → #199 → #200（含空母炮击公式，重冻 117 份 golden）→ `feat/barrage-balloons`（#198）。顶端 fmt、clippy、`test --workspace` 1641 通过 0 失败 0 忽略；`headless-check smoke_screen` 通过；审查意见已修。
+- [2026-10-19] 叠放五项（#251、#197、#199、#200、#198）已合并为 PR #254–#258，`main` 无遗留分支。盘点后把剩余战斗缺口立成 #259（基地航空队特殊加成链，6-4/6-5/7-5 的目标会触发）、#260（空母昼战与空袭的装備ボーナス雷装）；本次只改文档，未跑测试。
 
 ## Next Session
 
-- [2026-10-19] 五个分支待推送、开叠放 PR（合并前把上层 PR 改指 `main`）。未做：基地航空队自己的特殊加成链（`airstrikeLBAS` 除 PT 外、`LBWeak`、`divebombWeak`，记在 `anti-installation.md`），空母的装備ボーナス雷装/爆装（`getEquipBonusCVTorp`）。
+- [2026-10-19] 可做：#259、#260（ready-for-agent）；外部等待 #150、#182。不做：`isSummerCV` 等 19 艘不在常规图（#200 Out of scope）、`bonusSpecialP` 是活动专用。
   改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   源码按 `kancolle-replay@69097abc` 重取 `js/`（`js/simulator-ui/common.js` 有气球格、环礁格表），常数写作 `.39`（勿只搜 `0.39`），装备类型以源码 `type` 为准；`en.kancollewiki.net` 有人机验证。
