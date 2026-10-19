@@ -124,6 +124,20 @@ strikes at the formula's base 25, as the carrier battle's torpedo bombers do on 
 stars add to a figure above zero against anything but a submarine: 0.7√★ for a land
 attacker, 0.2★ for a bomber (`airstrikePowerImprove`, #264; see
 `equipment-improvement-bonus.md`).
+Some aircraft strike particular ship types with another figure, before the root and the stars
+(`strike_stat`, `kcsim.js:3243-3276`, #263): 65戦隊 (224) and 熟練/20戦隊 (491) strike a
+destroyer with 25 and 30; at sea 405 ×1.1 against a destroyer, 406 ×1.5 against a battleship,
+444 ×1.15 / ×1.13 and 454 ×1.16 / ×1.14 against DD-CL-CLT-CA-CAV / CVL-FBB-BB-BBV-CV, 484
++2.6 / +2.25 on the same two lists and +2.1 on land, 562 ×1.25 against a destroyer and ×1.15
+against a battleship. The B-25 skip-bombs: before the cap ×1.9 on a destroyer (a PT imp
+included), ×1.75 on CL/CLT/AV, ×1.6 on CA/CAV, ×1.3 on CVL/FBB/BB/BBV/CV/CVB and 輸送ワ級
+(the source's `AT`, stype 15), ×0.9 on land (`kouku::skip_bombing_pre_cap`). Some aircraft
+also hit some types more or less often, in points added after the PT imp's multiplier
+(`strike_accuracy_bonus`, `kcsim.js:3183-3206`): the B-25 +31/+22/+18 on the skip-bombing
+lists, +13 on a destroyer that is no PT imp and −9 on land; 444 −7 on a destroyer and +7 on
+CL/CLT/CVL/FBB/BB/BBV/CV; 484 −5 / +5 (CA/CAV too); 453 +7 on a destroyer; 454 −17 on a
+destroyer, +7 on CL/CLT, +5 on CA/CAV/CVL/FBB/BB/BBV/CV. The guided missiles' lists ask only
+the type, so an installation typed BB, BBV or CV takes them too.
 A hit on one of the source's particular targets rolls its own multiplier after the cap
 (`special_bonus`, `airstrikeLBAS`'s chain, first match only; on the regular maps 6-4's
 空母棲姫, 集積地棲姫, 砲台小鬼 and 離島棲姫, 6-5's 空母棲姫 and 7-5's 砲台小鬼). Any other target takes
