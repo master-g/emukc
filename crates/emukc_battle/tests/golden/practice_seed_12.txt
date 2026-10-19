@@ -14,8 +14,8 @@ BattlePacket {
     ],
     enemy_nowhps: [
         82,
-        66,
-        0,
+        68,
+        3,
         0,
         0,
         0,
@@ -473,7 +473,7 @@ BattlePacket {
                     3,
                 ],
                 [
-                    1,
+                    2,
                 ],
                 [
                     1,
@@ -544,16 +544,16 @@ BattlePacket {
                     0,
                 ],
                 [
-                    80,
+                    32,
                 ],
                 [
                     0,
                 ],
                 [
-                    8,
+                    1,
                 ],
                 [
-                    9,
+                    10,
                 ],
             ],
         },
@@ -565,9 +565,9 @@ BattlePacket {
                 -1,
                 -1,
                 -1,
-                1,
+                2,
                 -1,
-                0,
+                1,
             ],
             api_fcl: [
                 0,
@@ -575,7 +575,7 @@ BattlePacket {
                 0,
                 0,
                 0,
-                0,
+                1,
             ],
             api_fdam: [
                 0,
@@ -591,7 +591,7 @@ BattlePacket {
                 0,
                 0,
                 0,
-                0,
+                5,
             ],
             api_erai: [
                 -1,
@@ -611,7 +611,7 @@ BattlePacket {
             ],
             api_edam: [
                 0,
-                0,
+                5,
                 0,
                 0,
                 0,
@@ -657,8 +657,8 @@ NightBattlePacket {
     ],
     enemy_nowhps: [
         82,
-        66,
-        0,
+        68,
+        3,
         0,
         0,
         0,
@@ -708,7 +708,7 @@ NightBattlePacket {
                     1,
                 ],
                 [
-                    0,
+                    2,
                 ],
                 [
                     0,

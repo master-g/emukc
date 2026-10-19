@@ -16,7 +16,7 @@ BattlePacket {
         0,
         0,
         0,
-        24,
+        64,
         0,
         0,
     ],
@@ -510,7 +510,7 @@ BattlePacket {
                     3,
                 ],
                 [
-                    3,
+                    2,
                 ],
             ],
             api_si_list: [
@@ -587,7 +587,7 @@ BattlePacket {
                     5,
                 ],
                 [
-                    99,
+                    43,
                 ],
                 [
                     0,
@@ -610,9 +610,9 @@ BattlePacket {
             api_frai: [
                 -1,
                 -1,
+                2,
                 3,
-                3,
-                3,
+                2,
                 3,
             ],
             api_fcl: [
@@ -636,8 +636,8 @@ BattlePacket {
                 0,
                 0,
                 0,
-                46,
-                3,
+                48,
+                9,
             ],
             api_erai: [
                 -1,
@@ -658,8 +658,8 @@ BattlePacket {
             api_edam: [
                 0,
                 0,
-                0,
-                49,
+                48,
+                9,
                 0,
                 0,
             ],
@@ -676,7 +676,7 @@ BattlePacket {
 }
 BattleOutcome {
     win_rank: A,
-    mvp: 2,
+    mvp: 1,
     can_midnight: true,
 }
 NightBattlePacket {
@@ -705,7 +705,7 @@ NightBattlePacket {
         0,
         0,
         0,
-        24,
+        64,
         0,
         0,
     ],
@@ -763,7 +763,7 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    1,
+                    5,
                     60,
                 ],
             ],

@@ -24,7 +24,7 @@ BattlePacket {
         0,
         0,
         9,
-        0,
+        26,
     ],
     smoke_type: 0,
     balloon_cell: 0,
@@ -623,7 +623,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    119,
+                    80,
                 ],
             ],
         },
@@ -802,7 +802,7 @@ BattlePacket {
                     29,
                 ],
                 [
-                    182,
+                    123,
                 ],
                 [
                     34,
@@ -978,7 +978,7 @@ BattlePacket {
                     51,
                 ],
                 [
-                    82,
+                    54,
                 ],
                 [
                     5,
@@ -1315,6 +1315,6 @@ NightBattlePacket {
 }
 BattleOutcome {
     win_rank: C,
-    mvp: 2,
+    mvp: 4,
     can_midnight: false,
 }

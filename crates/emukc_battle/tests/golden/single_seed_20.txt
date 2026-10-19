@@ -689,7 +689,7 @@ BattlePacket {
     ),
     hourai_flag: [
         1,
-        0,
+        1,
         0,
         0,
     ],
@@ -701,6 +701,8 @@ BattlePacket {
                 0,
                 0,
                 0,
+                0,
+                0,
             ],
             api_at_list: [
                 0,
@@ -708,8 +710,12 @@ BattlePacket {
                 4,
                 3,
                 1,
+                5,
+                2,
             ],
             api_at_type: [
+                0,
+                0,
                 0,
                 0,
                 0,
@@ -722,6 +728,12 @@ BattlePacket {
                 ],
                 [
                     2,
+                ],
+                [
+                    0,
+                ],
+                [
+                    0,
                 ],
                 [
                     0,
@@ -759,6 +771,16 @@ BattlePacket {
                         -1,
                     ),
                 ],
+                [
+                    Num(
+                        -1,
+                    ),
+                ],
+                [
+                    Num(
+                        -1,
+                    ),
+                ],
             ],
             api_cl_list: [
                 [
@@ -772,6 +794,12 @@ BattlePacket {
                 ],
                 [
                     1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    2,
                 ],
                 [
                     1,
@@ -791,12 +819,58 @@ BattlePacket {
                     7,
                 ],
                 [
-                    79,
+                    25,
+                ],
+                [
+                    3,
+                ],
+                [
+                    3,
                 ],
             ],
         },
     ),
-    hougeki2: None,
+    hougeki2: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                0,
+            ],
+            api_at_list: [
+                0,
+            ],
+            api_at_type: [
+                2,
+            ],
+            api_df_list: [
+                [
+                    0,
+                    0,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Text(
+                        "8",
+                    ),
+                    Text(
+                        "8",
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
+                    1,
+                    1,
+                ],
+            ],
+            api_damage: [
+                [
+                    57,
+                    0,
+                ],
+            ],
+        },
+    ),
     hougeki3: None,
     raigeki: None,
 }

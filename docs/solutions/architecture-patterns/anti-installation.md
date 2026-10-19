@@ -69,6 +69,10 @@ Where it is read (`damage.rs`):
 - By day (`day_gun_power`, the source's `shellPower`): firepower, 30 more for a submarine, 5, the
   combined fleet's correction and the improvement bonus, times the multiplier and its day part,
   plus the flat power. The light cruiser's gun fit is added after, as the source adds `FPfit`.
+- A carrier by day (`carrier_gun_power`, `CV.prototype.shellPower`): firepower, 5, the combined
+  fleet's correction and the improvement bonus, times the multiplier without its day part, plus
+  the flat power; no torpedo, and only the bombers that may attack land bring their bombing, in
+  `25 + ⌊1.5 × (15 + fp + ⌊1.3 × bombing⌋)⌋` (#200).
 - At night (`night_gun_power`, `NBPower`): firepower, 30 more for a submarine and the improvement
   bonus, times the multiplier, plus the flat power. No torpedo, but for the northern princesses.
 - At night, a ship with nothing equipped at all: firepower and torpedo, no multiplier and no
@@ -78,6 +82,14 @@ Where it is read (`damage.rs`):
 - After the cap and any cut-in's multiplier, before a critical (`post_cap_multiplier`): by day
   and at night all five; by torpedo the dock's and the summer ships' (the source's
   `anchorageTorpNerf` leaves the anchorage out, and a supply depot is not torpedoed).
+- A carrier's airstrike (`kouku.rs` `special_bonus`, the source's `airstrike` with
+  `enableAirstrikeSpecialBonus` on): after the cap and contact, the target's own multiplier from
+  the source's chain, first match only, each a roll of its own drawn after the torpedo bomber's
+  ×0.8/×1.5 (40 in a hundred the higher figure, 50 for a supply depot): 戦艦棲姫 2/1.4, 空母棲姫 and
+  kin 2.2/1.7, a PT imp 0.8/0.5, a supply depot 2.4/1.5, 砲台小鬼 1.7/1.3, and the rest of the
+  source's list. A dive bomber (types 7, 11, 57) on a target in none of them takes the target's
+  `divebombWeak`, without a roll. Then the dock's and the summer ships' post-cap multipliers, as
+  by torpedo (#200).
 
 ## Who fires at them, and who covers them
 
@@ -96,10 +108,8 @@ Where it is read (`damage.rs`):
 
 ## Known gaps
 
-- The airstrike's own bonuses against land targets and special ships (`enableAirstrikeSpecialBonus`,
-  with a roll of its own) and its dock and summer multipliers.
+- An air corps strike's own chain (`airstrikeLBAS`: its per-target rolls beyond the PT imp's,
+  `LBWeak` before the cap and `divebombWeak` after it), which #200 did not take.
 - The summer carrier, French battleship and European princess multipliers (`isSummerCV`,
   `isFrenchBB`, `isEuroWP`, 19 ships in the source, switches on by default): plan 2026-10-15-004 did
   not take them, and the generator does not list them.
-- A carrier's day shelling of a land target (`CV.prototype.shellPower`) keeps the carrier formula
-  without the multipliers.

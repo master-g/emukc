@@ -13,10 +13,10 @@ BattlePacket {
         0,
     ],
     enemy_nowhps: [
-        65,
+        64,
+        1,
         0,
-        33,
-        0,
+        45,
         0,
         0,
     ],
@@ -361,7 +361,7 @@ BattlePacket {
                     1,
                 ],
                 [
-                    3,
+                    2,
                 ],
             ],
             api_si_list: [
@@ -441,7 +441,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    135,
+                    54,
                 ],
                 [
                     0,
@@ -455,6 +455,7 @@ BattlePacket {
                 0,
                 1,
                 0,
+                1,
                 0,
                 0,
                 0,
@@ -462,6 +463,7 @@ BattlePacket {
             api_at_list: [
                 0,
                 0,
+                1,
                 1,
                 2,
                 3,
@@ -474,6 +476,7 @@ BattlePacket {
                 0,
                 0,
                 0,
+                0,
             ],
             api_df_list: [
                 [
@@ -483,16 +486,19 @@ BattlePacket {
                     3,
                 ],
                 [
-                    3,
-                ],
-                [
-                    0,
-                ],
-                [
                     2,
                 ],
                 [
                     0,
+                ],
+                [
+                    3,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
                 ],
             ],
             api_si_list: [
@@ -515,6 +521,11 @@ BattlePacket {
                     ),
                     Text(
                         "16",
+                    ),
+                ],
+                [
+                    Num(
+                        8,
                     ),
                 ],
                 [
@@ -552,6 +563,9 @@ BattlePacket {
                 [
                     1,
                 ],
+                [
+                    1,
+                ],
             ],
             api_damage: [
                 [
@@ -561,16 +575,19 @@ BattlePacket {
                     0,
                 ],
                 [
-                    118,
+                    52,
                 ],
                 [
                     0,
                 ],
                 [
+                    3,
+                ],
+                [
                     2,
                 ],
                 [
-                    7,
+                    2,
                 ],
             ],
         },
@@ -581,9 +598,9 @@ BattlePacket {
             api_frai: [
                 -1,
                 -1,
-                2,
                 0,
-                2,
+                1,
+                1,
                 -1,
             ],
             api_fcl: [
@@ -591,7 +608,7 @@ BattlePacket {
                 0,
                 1,
                 0,
-                0,
+                1,
                 0,
             ],
             api_fdam: [
@@ -605,9 +622,9 @@ BattlePacket {
             api_fydam: [
                 0,
                 0,
-                2,
+                8,
                 0,
-                0,
+                24,
                 0,
             ],
             api_erai: [
@@ -627,9 +644,9 @@ BattlePacket {
                 0,
             ],
             api_edam: [
+                8,
+                24,
                 0,
-                0,
-                2,
                 0,
                 0,
                 0,
@@ -673,10 +690,10 @@ NightBattlePacket {
         31,
     ],
     enemy_nowhps: [
-        65,
+        64,
+        1,
         0,
-        33,
-        0,
+        45,
         0,
         0,
     ],
@@ -700,11 +717,13 @@ NightBattlePacket {
         BattleNightHougeki {
             api_at_eflag: [
                 0,
+                1,
                 0,
                 0,
                 0,
             ],
             api_at_list: [
+                0,
                 0,
                 2,
                 3,
@@ -715,20 +734,24 @@ NightBattlePacket {
                 0,
                 0,
                 0,
+                0,
             ],
             api_df_list: [
                 [
-                    0,
-                    0,
-                ],
-                [
-                    0,
-                ],
-                [
-                    0,
+                    1,
+                    1,
                 ],
                 [
                     2,
+                ],
+                [
+                    3,
+                ],
+                [
+                    0,
+                ],
+                [
+                    3,
                 ],
             ],
             api_si_list: [
@@ -738,6 +761,11 @@ NightBattlePacket {
                     ),
                     Text(
                         "8",
+                    ),
+                ],
+                [
+                    Num(
+                        8,
                     ),
                 ],
                 [
@@ -765,7 +793,10 @@ NightBattlePacket {
                     0,
                 ],
                 [
-                    0,
+                    1,
+                ],
+                [
+                    1,
                 ],
                 [
                     0,
@@ -776,17 +807,21 @@ NightBattlePacket {
                 0,
                 0,
                 0,
+                0,
             ],
             api_damage: [
                 [
-                    48,
                     1,
-                ],
-                [
                     0,
                 ],
                 [
-                    0,
+                    0.1,
+                ],
+                [
+                    5,
+                ],
+                [
+                    58,
                 ],
                 [
                     0,

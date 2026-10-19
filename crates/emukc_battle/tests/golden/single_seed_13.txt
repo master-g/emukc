@@ -689,7 +689,7 @@ BattlePacket {
     ),
     hourai_flag: [
         1,
-        0,
+        1,
         0,
         0,
     ],
@@ -837,18 +837,58 @@ BattlePacket {
                     5,
                 ],
                 [
-                    102,
+                    35,
                 ],
             ],
         },
     ),
-    hougeki2: None,
+    hougeki2: Some(
+        BattleHougeki {
+            api_at_eflag: [
+                0,
+            ],
+            api_at_list: [
+                0,
+            ],
+            api_at_type: [
+                2,
+            ],
+            api_df_list: [
+                [
+                    0,
+                    0,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Text(
+                        "8",
+                    ),
+                    Text(
+                        "8",
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
+                    1,
+                    1,
+                ],
+            ],
+            api_damage: [
+                [
+                    43,
+                    0,
+                ],
+            ],
+        },
+    ),
     hougeki3: None,
     raigeki: None,
 }
 BattleOutcome {
     win_rank: S,
-    mvp: 2,
+    mvp: 1,
     can_midnight: false,
 }
 NightBattlePacket {
@@ -901,6 +941,6 @@ NightBattlePacket {
 }
 BattleOutcome {
     win_rank: S,
-    mvp: 2,
+    mvp: 1,
     can_midnight: false,
 }

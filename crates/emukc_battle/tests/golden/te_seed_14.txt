@@ -5,12 +5,12 @@ BattlePacket {
         1,
     ],
     friendly_nowhps: [
-        42,
+        90,
         90,
         69,
         79,
         59,
-        31,
+        54,
         44,
         43,
         30,
@@ -20,16 +20,16 @@ BattlePacket {
     ],
     enemy_nowhps: [
         0,
+        190,
         0,
-        0,
-        0,
+        8,
         0,
         0,
     ],
     smoke_type: 0,
     balloon_cell: 0,
     atoll_cell: 0,
-    midnight_flag: 0,
+    midnight_flag: 1,
     search: [
         1,
         1,
@@ -680,7 +680,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    2,
+                    3,
                 ],
             ],
             api_si_list: [
@@ -795,13 +795,13 @@ BattlePacket {
                     7,
                 ],
                 [
-                    25,
+                    2,
                 ],
                 [
-                    57,
+                    7,
                 ],
                 [
-                    96,
+                    54,
                 ],
             ],
         },
@@ -810,6 +810,10 @@ BattlePacket {
         BattleHougeki {
             api_at_eflag: [
                 0,
+                1,
+                0,
+                1,
+                0,
                 0,
                 1,
                 0,
@@ -817,31 +821,52 @@ BattlePacket {
             ],
             api_at_list: [
                 0,
+                0,
                 1,
                 1,
                 2,
                 3,
+                3,
+                4,
+                5,
             ],
             api_at_type: [
                 2,
                 0,
+                2,
                 0,
-                7,
-                7,
+                0,
+                0,
+                0,
+                0,
+                0,
             ],
             api_df_list: [
                 [
+                    2,
+                    2,
+                ],
+                [
+                    0,
+                ],
+                [
                     0,
                     0,
+                ],
+                [
+                    5,
                 ],
                 [
                     1,
                 ],
                 [
-                    0,
+                    3,
                 ],
                 [
-                    3,
+                    4,
+                ],
+                [
+                    1,
                 ],
                 [
                     1,
@@ -858,7 +883,15 @@ BattlePacket {
                 ],
                 [
                     Num(
-                        8,
+                        1509,
+                    ),
+                ],
+                [
+                    Text(
+                        "8",
+                    ),
+                    Text(
+                        "8",
                     ),
                 ],
                 [
@@ -867,25 +900,28 @@ BattlePacket {
                     ),
                 ],
                 [
-                    Text(
-                        "21",
-                    ),
-                    Text(
-                        "24",
-                    ),
-                    Text(
-                        "16",
+                    Num(
+                        -1,
                     ),
                 ],
                 [
-                    Text(
-                        "21",
+                    Num(
+                        -1,
                     ),
-                    Text(
-                        "24",
+                ],
+                [
+                    Num(
+                        1504,
                     ),
-                    Text(
-                        "16",
+                ],
+                [
+                    Num(
+                        50,
+                    ),
+                ],
+                [
+                    Num(
+                        90,
                     ),
                 ],
             ],
@@ -895,34 +931,60 @@ BattlePacket {
                     1,
                 ],
                 [
-                    1,
-                ],
-                [
-                    2,
+                    0,
                 ],
                 [
                     1,
+                    1,
                 ],
                 [
-                    2,
+                    0,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    0,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
                 ],
             ],
             api_damage: [
                 [
-                    32,
+                    78,
                     0,
                 ],
                 [
-                    39,
+                    0,
                 ],
                 [
-                    48,
+                    25,
+                    43,
                 ],
                 [
-                    129,
+                    0,
                 ],
                 [
-                    231,
+                    22,
+                ],
+                [
+                    45,
+                ],
+                [
+                    0,
+                ],
+                [
+                    28,
+                ],
+                [
+                    15,
                 ],
             ],
         },
@@ -1021,9 +1083,9 @@ BattlePacket {
     ),
 }
 BattleOutcome {
-    win_rank: S,
+    win_rank: A,
     mvp: 4,
-    can_midnight: false,
+    can_midnight: true,
 }
 NightBattlePacket {
     formation: [
@@ -1049,9 +1111,9 @@ NightBattlePacket {
     ],
     enemy_nowhps: [
         0,
+        190,
         0,
-        0,
-        0,
+        8,
         0,
         0,
     ],
@@ -1071,10 +1133,137 @@ NightBattlePacket {
         11,
         -1,
     ],
-    hougeki: None,
+    hougeki: Some(
+        BattleNightHougeki {
+            api_at_eflag: [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            api_at_list: [
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+            ],
+            api_n_mother_list: [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            api_df_list: [
+                [
+                    3,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+            ],
+            api_si_list: [
+                [
+                    Num(
+                        -1,
+                    ),
+                ],
+                [
+                    Num(
+                        10,
+                    ),
+                ],
+                [
+                    Num(
+                        10,
+                    ),
+                ],
+                [
+                    Num(
+                        -1,
+                    ),
+                ],
+                [
+                    Num(
+                        -1,
+                    ),
+                ],
+                [
+                    Num(
+                        63,
+                    ),
+                ],
+            ],
+            api_cl_list: [
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+                [
+                    1,
+                ],
+            ],
+            api_sp_list: [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ],
+            api_damage: [
+                [
+                    16,
+                ],
+                [
+                    64,
+                ],
+                [
+                    70,
+                ],
+                [
+                    15,
+                ],
+                [
+                    11,
+                ],
+                [
+                    2,
+                ],
+            ],
+        },
+    ),
 }
 BattleOutcome {
-    win_rank: S,
-    mvp: 1,
+    win_rank: A,
+    mvp: 2,
     can_midnight: false,
 }

@@ -16,7 +16,7 @@ BattlePacket {
         75,
         63,
         0,
-        3,
+        43,
         0,
         0,
     ],
@@ -573,7 +573,7 @@ BattlePacket {
                     0.1,
                 ],
                 [
-                    54,
+                    14,
                 ],
                 [
                     31,
@@ -659,7 +659,7 @@ BattlePacket {
 }
 BattleOutcome {
     win_rank: B,
-    mvp: 2,
+    mvp: 5,
     can_midnight: true,
 }
 NightBattlePacket {
@@ -688,7 +688,7 @@ NightBattlePacket {
         75,
         63,
         0,
-        3,
+        43,
         0,
         0,
     ],
@@ -806,7 +806,7 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    1,
+                    5,
                     59,
                 ],
                 [
@@ -827,6 +827,6 @@ NightBattlePacket {
 }
 BattleOutcome {
     win_rank: B,
-    mvp: 2,
+    mvp: 1,
     can_midnight: false,
 }

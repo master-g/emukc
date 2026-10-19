@@ -19,7 +19,7 @@ BattlePacket {
         11,
     ],
     enemy_nowhps: [
-        67,
+        216,
         0,
         0,
         0,
@@ -793,10 +793,10 @@ BattlePacket {
                     6,
                 ],
                 [
-                    197,
+                    83,
                 ],
                 [
-                    112,
+                    43,
                 ],
             ],
         },
@@ -942,13 +942,13 @@ BattlePacket {
                     6,
                 ],
                 [
-                    82,
+                    13,
                 ],
                 [
-                    105,
+                    10,
                 ],
                 [
-                    7,
+                    22,
                 ],
                 [
                     0,
@@ -1077,7 +1077,7 @@ NightBattlePacket {
         32,
     ],
     enemy_nowhps: [
-        67,
+        216,
         0,
         0,
         0,
@@ -1104,6 +1104,7 @@ NightBattlePacket {
         BattleNightHougeki {
             api_at_eflag: [
                 0,
+                1,
                 0,
                 0,
                 0,
@@ -1112,6 +1113,7 @@ NightBattlePacket {
             ],
             api_at_list: [
                 6,
+                0,
                 7,
                 8,
                 9,
@@ -1125,10 +1127,15 @@ NightBattlePacket {
                 0,
                 0,
                 0,
+                0,
             ],
             api_df_list: [
                 [
                     0,
+                ],
+                [
+                    6,
+                    6,
                 ],
                 [
                     0,
@@ -1150,6 +1157,14 @@ NightBattlePacket {
                 [
                     Num(
                         -1,
+                    ),
+                ],
+                [
+                    Text(
+                        "1509",
+                    ),
+                    Text(
+                        "1512",
                     ),
                 ],
                 [
@@ -1184,9 +1199,13 @@ NightBattlePacket {
                 ],
                 [
                     1,
+                    1,
                 ],
                 [
-                    0,
+                    1,
+                ],
+                [
+                    1,
                 ],
                 [
                     1,
@@ -1200,6 +1219,7 @@ NightBattlePacket {
             ],
             api_sp_list: [
                 0,
+                1,
                 0,
                 0,
                 0,
@@ -1208,22 +1228,26 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
+                    23,
+                ],
+                [
+                    3,
+                    4,
+                ],
+                [
+                    37,
+                ],
+                [
+                    38,
+                ],
+                [
+                    10,
+                ],
+                [
+                    11,
+                ],
+                [
                     7,
-                ],
-                [
-                    30,
-                ],
-                [
-                    0,
-                ],
-                [
-                    3,
-                ],
-                [
-                    3,
-                ],
-                [
-                    2,
                 ],
             ],
         },

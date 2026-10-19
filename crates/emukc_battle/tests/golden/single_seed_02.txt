@@ -797,7 +797,7 @@ BattlePacket {
                     1,
                 ],
                 [
-                    118,
+                    41,
                 ],
             ],
         },
@@ -808,7 +808,7 @@ BattlePacket {
 }
 BattleOutcome {
     win_rank: S,
-    mvp: 2,
+    mvp: 5,
     can_midnight: false,
 }
 NightBattlePacket {
@@ -861,6 +861,6 @@ NightBattlePacket {
 }
 BattleOutcome {
     win_rank: S,
-    mvp: 2,
+    mvp: 5,
     can_midnight: false,
 }

@@ -14,9 +14,12 @@ use super::air_base::{ENEMY_FLAT_SHOT, fleet_anti_air, weighted_anti_air};
 use crate::accuracy::{HitOutcome, PROFICIENCY_EXP, plane_proficiency, roll_strike};
 use crate::combined::CombinedFleetRole;
 use crate::damage::{ammo_modifier, apply_cap, calculate_defense_power, resolve_damage};
+use crate::installation::post_cap_multiplier;
 use crate::random::BattleRng;
+use crate::simulation::installation_types::SUPPLY_DEPOT_IDS;
 use crate::targeting::{
-    choice_with_protect, is_air_combat_type, is_airstrike_attack_type, ship_type, target_class,
+    choice_with_protect, installation_type, is_air_combat_type, is_airstrike_attack_type,
+    ship_type, target_class,
 };
 use crate::types::{
     AirState, AirstrikeOutput, BattleAirFire, BattleKouku, BattleKoukuStage1, BattleKoukuStage2,
@@ -496,13 +499,14 @@ pub(super) const AIRSTRIKE_HIT_PERCENT: f64 = 95.0;
 /// Calculate airstrike damage for a single bomber slot (`kcsim.js` `airstrike`).
 ///
 /// Bomb/torpedo stat × √(onslot) + 25; a torpedo bomber that hits takes ×0.8 or
-/// ×1.5 of it, then the cap at 170, then `contact` (触接) and, against a PT imp, its
-/// own roll ([`carrier_strike_roll`](crate::pt_imp::carrier_strike_roll)). `ammo` is the carrier's
+/// ×1.5 of it, then the cap at 170, then `contact` (触接), the target's own roll
+/// ([`special_bonus`]) and the attacker's dock and summer multipliers. `ammo` is the carrier's
 /// ammunition modifier. A miss rolls nothing.
 #[expect(clippy::too_many_arguments)]
 fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
+    attacker: &BattleRuntimeShip,
     slot_item: &KcApiSlotItem,
     onslot: i64,
     defender: &BattleRuntimeShip,
@@ -542,17 +546,59 @@ fn calculate_single_slot_airstrike_damage(
     } else {
         1.0
     };
-    // A PT imp rolls its own multiplier, after the torpedo's.
-    let special = if crate::pt_imp::is_pt(codex, defender) {
-        crate::pt_imp::carrier_strike_roll(rng)
-    } else {
-        1.0
-    };
+    // The target's own roll comes after the torpedo's.
+    let post = special_bonus(codex, rng, defender, !is_torpedo_bomber)
+        * post_cap_multiplier(codex, attacker, defender, true);
     let raw_power = (bomb_power + 25.0 + aerial_correction(defender)) * pre;
     let capped =
-        outcome.power_with(apply_cap(raw_power, 170.0) as f64 * contact * special, critical_damage);
+        outcome.power_with(apply_cap(raw_power, 170.0) as f64 * contact * post, critical_damage);
     let defense = calculate_defense_power(rng, defender.ship.api_soukou[0]);
     resolve_damage(rng, capped, defense, defender.hp(), ammo)
+}
+
+/// What a carrier's strike does to particular targets after the cap, each rolled for as the
+/// source's chain has them, first match only (`kcsim.js:2053-2083` at `69097abc`, `airstrike`,
+/// `enableAirstrikeSpecialBonus`, on by default): 40 times in a hundred the higher figure (50 against a supply depot), else the lower.
+/// A dive bomber on any other target takes her `divebombWeak`. Rolls nothing for a target in none.
+fn special_bonus(
+    codex: &Codex,
+    rng: &mut impl BattleRng,
+    defender: &BattleRuntimeShip,
+    dive_bomber: bool,
+) -> f64 {
+    let id = defender.ship.api_ship_id;
+    let (chance, high, low) = match id {
+        1557 => (0.4, 2.0, 1.4),
+        1586 | 1620 | 1781 | 1782 | 2105..=2108 => (0.4, 2.2, 1.7),
+        _ if crate::pt_imp::is_pt(codex, defender) => (0.4, 0.8, 0.5),
+        _ if installation_type(id) == Some(3) || SUPPLY_DEPOT_IDS.contains(&id) => (0.5, 2.4, 1.5),
+        1665..=1667 => (0.4, 1.7, 1.3),
+        1696..=1698 => (0.4, 1.8, 1.3),
+        1699..=1704 | 2023..=2028 | 2243..=2246 => (0.4, 1.4, 1.2),
+        1708..=1710 => (0.4, 1.3, 1.0),
+        1751 => (0.4, 1.6, 1.3),
+        1755..=1760 => (0.4, 1.2, 0.9),
+        2178 | 2179 | 2196 | 2197 => (0.4, 1.6, 1.4),
+        2188..=2191 => (0.4, 1.9, 1.5),
+        _ if dive_bomber => return dive_bomb_weak(id),
+        _ => return 1.0,
+    };
+    if rng.random_f64_range(0.0, 1.0) < chance {
+        high
+    } else {
+        low
+    }
+}
+
+/// `divebombWeak` (`kcSHIPDATA.js`) of the targets the chain above does not catch first.
+fn dive_bomb_weak(id: i64) -> f64 {
+    match id {
+        1668..=1672 => 1.7,
+        1684..=1686 => 5.0,
+        1687..=1689 => 2.5,
+        1690..=1692 => 2.0,
+        _ => 1.0,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -621,6 +667,7 @@ fn execute_airstrike_phase(
         let damage = calculate_single_slot_airstrike_damage(
             codex,
             rng,
+            ship,
             slot_item,
             ship.ship.api_onslot[slot_idx],
             &defenders[target_idx],
@@ -800,6 +847,66 @@ mod tests {
     use emukc_model::kc2::types::KcSlotItemType3;
 
     #[test]
+    fn a_strike_rolls_the_targets_own_multiplier_after_the_torpedos() {
+        /// Every `f64` draw at `self.0` of the range, counted.
+        struct At(f64, usize);
+        impl crate::random::BattleRng for At {
+            fn random_f64_range(&mut self, min: f64, max: f64) -> f64 {
+                self.1 += 1;
+                min + (max - min) * self.0
+            }
+            fn roll_range_impl(&mut self, min: i64, _max: i64) -> i64 {
+                min
+            }
+        }
+
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let target = |id| {
+            let mut ship = bare_target(&codex, first_ship_mst_by_type(&codex, KcShipType::DD));
+            ship.ship.api_ship_id = id;
+            ship
+        };
+        let bonus = |id, at, dive| {
+            let mut rng = At(at, 0);
+            (special_bonus(&codex, &mut rng, &target(id), dive), rng.1)
+        };
+        // 戦艦棲姫: 2 under 0.4, else 1.4, one draw.
+        assert_eq!(bonus(1557, 0.39, false), (2.0, 1));
+        assert_eq!(bonus(1557, 0.4, false), (1.4, 1));
+        // A supply depot rolls at a half.
+        assert_eq!(bonus(1653, 0.45, false), (2.4, 1));
+        // 離島棲姫 is in no arm: a dive bomber takes her divebombWeak, a torpedo bomber nothing,
+        // and neither draws.
+        assert_eq!(bonus(1668, 0.0, true), (1.7, 0));
+        assert_eq!(bonus(1668, 0.0, false), (1.0, 0));
+        // An ordinary ship draws nothing.
+        assert_eq!(bonus(1501, 0.0, true), (1.0, 0));
+
+        // A torpedo bomber on 戦艦棲姫 draws its own ×0.8 / ×1.5 first: at 0.45 that is 0.8, and
+        // then 1.4 for her.
+        let bomber = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedTorpedoBomber);
+        let raig = codex.manifest.find_slotitem(bomber).unwrap().api_raig as f64;
+        let mut rng = At(0.45, 0);
+        let hime = target(1557);
+        let item = slotitem_with_mst_id(bomber);
+        let damage = calculate_single_slot_airstrike_damage(
+            &codex,
+            &mut rng,
+            &hime,
+            &item,
+            16,
+            &hime,
+            HitOutcome::Hit,
+            1.0,
+            1.0,
+            1.0,
+        );
+        let capped = crate::damage::apply_cap((raig * 4.0 + 25.0) * 0.8, 170.0) as f64;
+        assert_eq!(damage, (capped * 1.4).floor() as i64);
+        assert_eq!(rng.1, 2);
+    }
+
+    #[test]
     fn a_strike_on_a_pt_imp_rolls_its_own_multiplier() {
         /// A die that always draws `0`, and `f64` draws at `self.0` of the range.
         struct At(f64);
@@ -828,6 +935,7 @@ mod tests {
             calculate_single_slot_airstrike_damage(
                 &codex,
                 &mut At(at),
+                target,
                 &item,
                 16,
                 target,
@@ -1466,6 +1574,7 @@ mod tests {
                     calculate_single_slot_airstrike_damage(
                         &codex,
                         &mut rng,
+                        &target,
                         &item,
                         16,
                         &target,
@@ -1503,6 +1612,7 @@ mod tests {
                 calculate_single_slot_airstrike_damage(
                     &codex,
                     &mut rng,
+                    &land,
                     &item,
                     16,
                     &land,
@@ -1513,7 +1623,8 @@ mod tests {
                 )
             })
             .collect();
-        assert_eq!(seen.into_iter().collect::<Vec<_>>(), [20, 37], "25 × 0.8 and 25 × 1.5");
+        // 25 × 0.8 and 25 × 1.5, each × 1.3 or × 1.7 for 砲台小鬼 (`special_bonus`).
+        assert_eq!(seen.into_iter().collect::<Vec<_>>(), [26, 34, 48, 62]);
     }
 
     /// A carrier with 16 scouts, 16 torpedo bombers and fighters to hold the

@@ -16,14 +16,14 @@ BattlePacket {
         336,
         200,
         222,
-        90,
+        118,
         243,
         53,
         80,
         140,
         0,
         0,
-        0,
+        24,
         0,
     ],
     smoke_type: 0,
@@ -580,7 +580,7 @@ BattlePacket {
                     22,
                 ],
                 [
-                    121,
+                    82,
                 ],
                 [
                     10,
@@ -802,7 +802,7 @@ BattlePacket {
                     4,
                 ],
                 [
-                    63,
+                    35,
                 ],
                 [
                     0,
@@ -1006,7 +1006,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    84,
+                    56,
                 ],
                 [
                     29,
@@ -1163,7 +1163,7 @@ NightBattlePacket {
         140,
         0,
         0,
-        0,
+        24,
         0,
     ],
     enemy_maxhps: [
@@ -1187,14 +1187,14 @@ NightBattlePacket {
             api_at_eflag: [
                 0,
                 1,
-                0,
+                1,
                 0,
             ],
             api_at_list: [
                 0,
                 6,
+                7,
                 2,
-                3,
             ],
             api_n_mother_list: [
                 0,
@@ -1204,14 +1204,15 @@ NightBattlePacket {
             ],
             api_df_list: [
                 [
-                    7,
-                    7,
+                    10,
+                    10,
                 ],
                 [
                     5,
                 ],
                 [
-                    6,
+                    3,
+                    3,
                 ],
                 [
                     6,
@@ -1232,13 +1233,16 @@ NightBattlePacket {
                     ),
                 ],
                 [
-                    Num(
-                        -1,
+                    Text(
+                        "1513",
+                    ),
+                    Text(
+                        "1513",
                     ),
                 ],
                 [
                     Num(
-                        10,
+                        -1,
                     ),
                 ],
             ],
@@ -1252,37 +1256,39 @@ NightBattlePacket {
                 ],
                 [
                     2,
+                    2,
                 ],
                 [
-                    1,
+                    0,
                 ],
             ],
             api_sp_list: [
                 1,
                 0,
-                0,
+                3,
                 0,
             ],
             api_damage: [
                 [
-                    89,
-                    93,
+                    104,
+                    0,
                 ],
                 [
                     7,
                 ],
                 [
-                    53,
+                    9,
+                    2,
                 ],
                 [
-                    96,
+                    0,
                 ],
             ],
         },
     ),
 }
 BattleOutcome {
-    win_rank: S,
+    win_rank: B,
     mvp: 1,
     can_midnight: false,
 }
