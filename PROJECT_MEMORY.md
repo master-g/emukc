@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-19 · branch `docs/memory-after-stack`
+Last updated: 2026-10-19 · branch `feat/air-corps-special-bonus`
 
 ## Verified Facts
 
@@ -168,11 +168,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-19] 叠放五项（#251、#197、#199、#200、#198）已合并为 PR #254–#258，`main` 无遗留分支。盘点后把剩余战斗缺口立成 #259（基地航空队特殊加成链，6-4/6-5/7-5 的目标会触发）、#260（空母昼战与空袭的装備ボーナス雷装）；本次只改文档，未跑测试。
+- [2026-10-19] #259 做完，PR #262 未合并（`feat/air-corps-special-bonus`）：fmt、严格 clippy、`test --workspace --no-fail-fast` 1642 通过 0 失败 0 忽略，golden 未变。核对源码时另立 #263（按机体的对舰倍率、跳弹轰炸）与 #264（机体改修的空袭加成）。
 
 ## Next Session
 
-- [2026-10-19] 可做：#259、#260（ready-for-agent）；外部等待 #150、#182。不做：`isSummerCV` 等 19 艘不在常规图（#200 Out of scope）、`bonusSpecialP` 是活动专用。
+- [2026-10-19] 合并 #262 后按用户定的顺序做 #260；#263、#264 与 #260 都改空袭威力，顺序待用户定。外部等待 #150、#182。不做：`isSummerCV` 等 19 艘不在常规图、`bonusSpecialP` 是活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
   改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   源码按 `kancolle-replay@69097abc` 重取 `js/`（`js/simulator-ui/common.js` 有气球格、环礁格表），常数写作 `.39`（勿只搜 `0.39`），装备类型以源码 `type` 为准；`en.kancollewiki.net` 有人机验证。

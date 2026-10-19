@@ -121,6 +121,11 @@ is, and each wave's stage 3 is split by deck the way `api_kouku`'s is: the main 
 land attacker's 0.8. Every target is drawn before the first strike lands, so a strike sent at
 a ship already sunk is wasted. A squadron whose figure is 0 (東海 against a ship) still
 strikes at the formula's base 25, as the carrier battle's torpedo bombers do on land.
+A hit on one of the source's particular targets rolls its own multiplier after the cap
+(`special_bonus`, `airstrikeLBAS`'s chain, first match only; on the regular maps 6-4's
+空母棲姫, 集積地棲姫, 砲台小鬼 and 離島棲姫, 6-5's 空母棲姫 and 7-5's 砲台小鬼). Any other target takes
+her `LBWeak` before the cap and, from anything but a torpedo bomber (land attackers
+included, the source's `isdivebomber`), her `divebombWeak` after it, without a roll (#259).
 The anti-air stage is not simplified the same way: one enemy ship fires on
 each squadron, as in the source, because the carrier battle's estimate (the whole fleet's
 anti-air over 400) empties a squadron against six ordinary ships.
@@ -202,9 +207,6 @@ place in the area as a string.
   has no rule. A squadron emptied in one battle can still gain from a later battle or raid of
   the same sortie, where the source resets it on the way home. Land scouts lose only by being
   wiped out, like the other scouts. The base jet assault and its extra roll are not modelled.
-
-- A strike's own multipliers against particular targets (`airstrikeLBAS`'s chain, `LBWeak`,
-  `divebombWeak`) other than a PT imp's.
 
 - A tired squadron fights as well as a fresh one. Upstream lowers its accuracy by an
   amount nobody has published. The hit roll itself is in

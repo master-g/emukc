@@ -90,6 +90,9 @@ Where it is read (`damage.rs`):
   source's list. A dive bomber (types 7, 11, 57) on a target in none of them takes the target's
   `divebombWeak`, without a roll. Then the dock's and the summer ships' post-cap multipliers, as
   by torpedo (#200).
+- An air corps strike (`air_base.rs` `special_bonus`, `airstrikeLBAS`'s chain): its own arms
+  and figures, which differ from the carrier's (a supply depot 3.5/1.7, 離島棲姫 and kin
+  rolled for), then `LBWeak` before the cap and `divebombWeak` after it on the rest (#259).
 
 ## Who fires at them, and who covers them
 
@@ -108,8 +111,6 @@ Where it is read (`damage.rs`):
 
 ## Known gaps
 
-- An air corps strike's own chain (`airstrikeLBAS`: its per-target rolls beyond the PT imp's,
-  `LBWeak` before the cap and `divebombWeak` after it), which #200 did not take.
 - The summer carrier, French battleship and European princess multipliers (`isSummerCV`,
   `isFrenchBB`, `isEuroWP`, 19 ships in the source, switches on by default): plan 2026-10-15-004 did
   not take them, and the generator does not list them.
