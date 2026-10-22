@@ -9,7 +9,9 @@ use crate::random::BattleRng;
 use crate::simulation::day_attack::DayAttackKind;
 use crate::simulation::shelling::firing_order;
 use crate::simulation::volley::{Volley, Volleys};
-use crate::targeting::{can_opening_asw, choice_with_protect, submarine_candidates};
+use crate::targeting::{
+    can_opening_asw, choice_with_protect, has_opening_asw_shot, submarine_candidates,
+};
 use crate::types::{BattleHougeki, BattleRuntimeShip, EngagementType};
 
 /// Simulate the opening ASW phase (先制対潜). The ships of both sides that can
@@ -89,7 +91,7 @@ fn asw_turn(
     hougeki: &mut BattleHougeki,
 ) {
     let ship = &mut attackers[idx];
-    if !can_opening_asw(codex, ship) {
+    if !can_opening_asw(codex, ship) || !has_opening_asw_shot(codex, ship, defenders) {
         return;
     }
     // 旗艦援護 (かばう), the escort deck included (`shellPhaseTarget` with `isOASW`).

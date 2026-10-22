@@ -10,6 +10,7 @@ use emukc_model::{
 
 use crate::combined::CombinedFleetRole;
 use crate::random::BattleRng;
+use crate::simulation::always_oasw::{ABYSSAL_ALWAYS_OASW_IDS, PLAYER_ALWAYS_OASW_IDS};
 use crate::simulation::installation_types::{
     INSTALLATION_BOMBERS, INSTALLATION_TYPES, LAST_SOURCE_ABYSSAL_ID,
 };
@@ -757,41 +758,180 @@ pub(crate) fn has_active_asw_aircraft(codex: &Codex, ship: &BattleRuntimeShip) -
     })
 }
 
-/// Check if a ship can perform OASW (opening anti-submarine warfare).
+/// The source's player ships (`isPlayable`, `shared.js:220`) have ids below this.
+const PLAYABLE_ID_END: i64 = 1500;
+/// 日向改二, who opens with ASW by her own rule (`BBV.canOASW`, `kcships.js:1936-1943`).
+const HYUUGA_KAI_NI: i64 = 554;
+/// 加賀改二護, a fleet carrier the source rules as a light carrier (`kcSHIPDATA.js` 646).
+const KAGA_KAI_NI_GO: i64 = 646;
+/// 鈴谷航改二 and 熊野航改二, whose sonar does not lower a light carrier's threshold
+/// (`isASWlast`, `kcSHIPDATA.js` 508, 509).
+const ASW_LAST_IDS: [i64; 2] = [508, 509];
+
+/// Whether a ship opens with ASW (`canOASW`, `kcships.js`): 日向改二, the light carriers and
+/// the escorts have rules of their own; any other ship that may attack a submarine opens with
+/// it when the source always lets her, or, being the player's, with 100 anti-submarine and a
+/// sonar.
 pub(crate) fn can_opening_asw(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     if ship.is_sunk() {
         return false;
     }
+    let id = ship.ship.api_ship_id;
     let asw = ship.ship.api_taisen[0];
-    let stype = ship_type(codex, ship);
+    let sonar = has_slotitem_type(codex, ship, KcSlotItemType3::Sonar)
+        || has_slotitem_type(codex, ship, KcSlotItemType3::LargeSonar);
+    if id == HYUUGA_KAI_NI {
+        // S-51J or S-51J改, or two of カ号観測機, オ号観測機改 and オ号観測機改二.
+        let observers =
+            ship.slot_items.iter().filter(|item| matches!(item.api_slotitem_id, 69 | 324 | 325));
+        return has_slotitem_id(ship, 326) || has_slotitem_id(ship, 327) || observers.count() >= 2;
+    }
+    if id == KAGA_KAI_NI_GO || ship_type(codex, ship) == Some(KcShipType::CVL) {
+        return light_carrier_opening_asw(codex, ship, asw, sonar);
+    }
+    if ship_type(codex, ship) == Some(KcShipType::DE) {
+        // `DE.canOASW`, which does not ask `canASW`.
+        let equipment_asw: i64 = ship
+            .slot_items
+            .iter()
+            .filter_map(|item| slotitem_mst(codex, item))
+            .map(|mst| mst.api_tais)
+            .sum();
+        return sonar && asw >= 60 || asw >= 75 && equipment_asw >= 4;
+    }
+    can_asw(codex, ship)
+        && (always_opening_asw(codex, ship) || asw >= 100 && sonar && id < PLAYABLE_ID_END)
+}
 
-    match stype {
-        // DE: ASW >= 60
-        Some(KcShipType::DE) => {
-            asw >= 60
-                && (has_slotitem_type(codex, ship, KcSlotItemType3::Sonar)
-                    || has_slotitem_type(codex, ship, KcSlotItemType3::LargeSonar))
+/// Whether a ship picked to open with ASW still has her shot when her turn comes
+/// (`shellPhaseTarget`, `kcsim.js:1086`): `canASW` again, so a light carrier needs a plane left
+/// after the air battle, and 鈴谷航改二 / 熊野航改二 hold while a surface ship is afloat.
+pub(crate) fn has_opening_asw_shot(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    defenders: &[BattleRuntimeShip],
+) -> bool {
+    can_asw(codex, ship)
+        && (!ASW_LAST_IDS.contains(&ship.ship.api_ship_id)
+            || surface_candidates(codex, defenders).is_empty())
+}
+
+/// `CVL.canOASW` (`kcships.js:2100-2116`): she must carry a dive or torpedo bomber, autogyro or
+/// patrol plane with anti-submarine, whether or not it has aircraft left (her turn asks that,
+/// `has_opening_asw_shot`); then the source's
+/// always, or a torpedo bomber, autogyro or patrol plane at 7 or more with 50 anti-submarine and
+/// a sonar (65 without, or for `ASW_LAST_IDS`), or a sonar and 100.
+fn light_carrier_opening_asw(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    asw: i64,
+    sonar: bool,
+) -> bool {
+    let hunters: Vec<(KcSlotItemType3, i64)> = ship
+        .slot_items
+        .iter()
+        .filter_map(|item| slotitem_mst(codex, item))
+        .filter(|mst| mst.api_tais > 0)
+        .filter_map(|mst| KcSlotItemType3::n(mst.api_type[2]).map(|kind| (kind, mst.api_tais)))
+        .filter(|(kind, _)| {
+            matches!(
+                kind,
+                KcSlotItemType3::CarrierBasedDiveBomber
+                    | KcSlotItemType3::CarrierBasedTorpedoBomber
+                    | KcSlotItemType3::AutoGyro
+                    | KcSlotItemType3::AntiSubmarinePatrol
+            )
+        })
+        .collect();
+    if hunters.is_empty() {
+        return false;
+    }
+    if always_opening_asw(codex, ship) {
+        return true;
+    }
+    let threshold = if sonar && !ASW_LAST_IDS.contains(&ship.ship.api_ship_id) {
+        50
+    } else {
+        65
+    };
+    let strong = hunters
+        .iter()
+        .any(|&(kind, tais)| tais >= 7 && kind != KcSlotItemType3::CarrierBasedDiveBomber);
+    strong && asw >= threshold || sonar && asw >= 100
+}
+
+/// `alwaysOASW`: a ship the source marks, or a player's ship with 50 anti-submarine or more at
+/// level 1, 日向改二 aside (`kcships.js:425`, read from the codex's level-1 figures).
+fn always_opening_asw(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+    let id = ship.ship.api_ship_id;
+    if id < PLAYABLE_ID_END {
+        PLAYER_ALWAYS_OASW_IDS.contains(&id)
+            || id != HYUUGA_KAI_NI
+                && codex.find_ship_extra(id).is_ok_and(|basic| basic.tais[0] >= 50)
+    } else {
+        ABYSSAL_ALWAYS_OASW_IDS.contains(&id)
+    }
+}
+
+/// Whether a ship may attack a submarine at all (her class's `canASW`, `kcships.js`), for
+/// opening ASW: her own anti-submarine for the escorts, a depth charge for the tenders and
+/// 扶桑改二 / 山城改二, aircraft for the aviation ships and light carriers, or for an abyssal one
+/// any anti-submarine of her own (an abyssal light carrier always). Day shelling still asks
+/// `can_attack_submarine_day_shelling` (#285).
+fn can_asw(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+    let id = ship.ship.api_ship_id;
+    // `CVL.canASW` with `isOASW`, which 加賀改二護 takes too.
+    if id == KAGA_KAI_NI_GO || ship_type(codex, ship) == Some(KcShipType::CVL) {
+        return id >= PLAYABLE_ID_END || has_asw_plane_aloft(codex, ship);
+    }
+    let own_asw = || crate::damage::base_asw(codex, ship) > 0.0;
+    let depth_charge = || has_slotitem_type(codex, ship, KcSlotItemType3::DepthCharge);
+    // `CAV.canASW`.
+    let aviation = || {
+        if id < PLAYABLE_ID_END {
+            has_asw_plane_aloft(codex, ship)
+        } else {
+            own_asw()
         }
-        // DD/CL/CT/CLT/AO: ASW >= 100 + sonar
+    };
+    match ship_type(codex, ship) {
         Some(
-            KcShipType::DD | KcShipType::CL | KcShipType::CT | KcShipType::CLT | KcShipType::AO,
-        ) => {
-            asw >= 100
-                && (has_slotitem_type(codex, ship, KcSlotItemType3::Sonar)
-                    || has_slotitem_type(codex, ship, KcSlotItemType3::LargeSonar))
-        }
-        // CVL: ASW >= 65 + has ASW aircraft
-        Some(KcShipType::CVL) => asw >= 65 && has_active_asw_aircraft(codex, ship),
-        // CVB: ASW >= 100 + has ASW aircraft
-        Some(KcShipType::CVB) => asw >= 100 && has_active_asw_aircraft(codex, ship),
-        // BBV: ASW >= 100 + large sonar + ASW aircraft
-        Some(KcShipType::BBV) => {
-            asw >= 100
-                && has_slotitem_type(codex, ship, KcSlotItemType3::LargeSonar)
-                && has_active_asw_aircraft(codex, ship)
-        }
+            KcShipType::DD
+            | KcShipType::CL
+            | KcShipType::CLT
+            | KcShipType::CT
+            | KcShipType::AO
+            | KcShipType::DE,
+        ) => own_asw(),
+        Some(KcShipType::BBV) => matches!(id, 411 | 412) && depth_charge() || aviation(),
+        Some(KcShipType::AS | KcShipType::AR) => depth_charge(),
+        // 第百一号輸送艦 and her 改.
+        Some(KcShipType::LHA) if matches!(id, 727 | 945) => depth_charge(),
+        Some(KcShipType::CAV | KcShipType::AV | KcShipType::LHA) => aviation(),
         _ => false,
     }
+}
+
+/// Whether a ship has aircraft left in a slot of a kind that attacks submarines (`isASWPlane`)
+/// with anti-submarine of its own.
+fn has_asw_plane_aloft(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+    ship.slot_items.iter().zip(ship.ship.api_onslot).any(|(item, onslot)| {
+        onslot > 0
+            && slotitem_mst(codex, item).is_some_and(|mst| {
+                mst.api_tais > 0
+                    && matches!(
+                        KcSlotItemType3::n(mst.api_type[2]),
+                        Some(
+                            KcSlotItemType3::CarrierBasedDiveBomber
+                                | KcSlotItemType3::CarrierBasedTorpedoBomber
+                                | KcSlotItemType3::SeaBasedBomber
+                                | KcSlotItemType3::AutoGyro
+                                | KcSlotItemType3::AntiSubmarinePatrol
+                                | KcSlotItemType3::LargeFlyingBoat
+                        )
+                    )
+            })
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -1023,7 +1163,7 @@ pub(crate) fn day_attack_display_ids(
 mod tests {
     use super::*;
     use crate::test_utils::*;
-    use crate::types::{BattlePhase, BattleRuntimeShip, TargetClass};
+    use crate::types::{BattlePhase, BattleRuntimeShip, BattleShipInput, TargetClass};
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
@@ -1539,6 +1679,153 @@ mod tests {
         ship2.slot_items = vec![slotitem_with_mst_id(sonar_mst_id)];
         let rt2 = BattleRuntimeShip::from(ship2);
         assert!(!can_opening_asw(&codex, &rt2));
+    }
+
+    /// A player's ship `mst_id` at level 99 carrying `items`, her anti-submarine set to `asw`.
+    fn oasw_ship(codex: &Codex, mst_id: i64, items: &[i64], asw: i64) -> BattleRuntimeShip {
+        let mut ship = sample_ship(codex, mst_id, 99);
+        ship.slot_items = items.iter().copied().map(slotitem_with_mst_id).collect();
+        ship.ship.api_taisen[0] = asw;
+        BattleRuntimeShip::from(ship)
+    }
+
+    // Equipment: 九三式水中聴音機 (46), 九四式爆雷投射機 (44, 対潜 5), 九五式爆雷 (226, 4),
+    // 九九式艦爆 (23, 3), 九七式艦攻(九三一空) (82, 7), カ号観測機 (69), オ号観測機改 (324),
+    // S-51J (326).
+
+    #[test]
+    fn oasw_needs_no_sonar_for_the_ships_the_source_always_lets() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 五十鈴改二: 対潜 54 at level 1.
+        assert!(can_opening_asw(&codex, &oasw_ship(&codex, 141, &[], 60)));
+        // 加賀改二護 rules as a light carrier: she needs a bomber with 対潜 even so.
+        assert!(can_opening_asw(&codex, &oasw_ship(&codex, 646, &[82], 80)));
+        assert!(!can_opening_asw(&codex, &oasw_ship(&codex, 646, &[], 80)));
+    }
+
+    #[test]
+    fn oasw_de_with_75_and_four_of_equipment_needs_no_sonar() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 占守改.
+        assert!(can_opening_asw(&codex, &oasw_ship(&codex, 376, &[226], 75)));
+        assert!(!can_opening_asw(&codex, &oasw_ship(&codex, 376, &[226], 74)));
+        assert!(!can_opening_asw(&codex, &oasw_ship(&codex, 376, &[23], 75)));
+    }
+
+    #[test]
+    fn oasw_light_carrier_thresholds() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ryuujou =
+            |items: &[i64], asw| can_opening_asw(&codex, &oasw_ship(&codex, 157, items, asw));
+        assert!(ryuujou(&[82, 46], 50));
+        assert!(!ryuujou(&[82, 46], 49));
+        assert!(ryuujou(&[82], 65));
+        assert!(!ryuujou(&[82], 64));
+        // A dive bomber lets her try, but only a sonar and 100 then.
+        assert!(!ryuujou(&[23, 46], 99));
+        assert!(ryuujou(&[23, 46], 100));
+        // 鈴谷航改二's sonar leaves her at 65.
+        let suzuya = |asw| can_opening_asw(&codex, &oasw_ship(&codex, 508, &[82, 46], asw));
+        assert!(!suzuya(64));
+        assert!(suzuya(65));
+    }
+
+    #[test]
+    fn oasw_hyuuga_kai_ni_and_fusou_kai_ni() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let hyuuga = |items: &[i64]| can_opening_asw(&codex, &oasw_ship(&codex, 554, items, 0));
+        assert!(hyuuga(&[326]));
+        assert!(hyuuga(&[326, 327]));
+        assert!(hyuuga(&[69, 324]));
+        assert!(!hyuuga(&[69]));
+        // 扶桑改二 attacks a submarine with a depth charge, with no aircraft.
+        let fusou = |items: &[i64]| can_opening_asw(&codex, &oasw_ship(&codex, 411, items, 100));
+        assert!(fusou(&[44, 46]));
+        assert!(!fusou(&[46]));
+    }
+
+    #[test]
+    fn oasw_turn_needs_a_plane_left_and_holds_the_asw_last() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let defender =
+            |mst_id| BattleRuntimeShip::new(sample_ship(&codex, mst_id, 50), false, true);
+        let submarines = [defender(ss_mst)];
+        let with_a_destroyer = [defender(ss_mst), defender(dd_mst)];
+
+        // 龍驤 picked with her 九七式艦攻(九三一空), and the air battle took it all.
+        let mut ryuujou = oasw_ship(&codex, 157, &[82, 46], 50);
+        assert!(has_opening_asw_shot(&codex, &ryuujou, &submarines));
+        ryuujou.ship.api_onslot = [0; 5];
+        assert!(can_opening_asw(&codex, &ryuujou));
+        assert!(!has_opening_asw_shot(&codex, &ryuujou, &submarines));
+        // An abyssal light carrier asks no plane (軽母ヌ級, none left either).
+        let (mut nu, slot_items) = codex.new_enemy_ship(1510).unwrap();
+        nu.api_onslot = [0; 5];
+        let nu = BattleRuntimeShip::new(
+            BattleShipInput {
+                ship: nu,
+                slot_items,
+                aircraft_exp: vec![],
+                effect_list: vec![0],
+                married: false,
+            },
+            false,
+            true,
+        );
+        assert!(has_opening_asw_shot(&codex, &nu, &submarines));
+
+        // 鈴谷航改二 waits for the surface ships to go.
+        let suzuya = oasw_ship(&codex, 508, &[82, 46], 65);
+        assert!(has_opening_asw_shot(&codex, &suzuya, &submarines));
+        assert!(!has_opening_asw_shot(&codex, &suzuya, &with_a_destroyer));
+    }
+
+    #[test]
+    fn oasw_abyssal_ships_need_the_source_mark() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let abyssal = |mst_id: i64| {
+            let (mut ship, mut slot_items) = codex.new_enemy_ship(mst_id).unwrap();
+            ship.api_taisen[0] = 120;
+            slot_items.push(slotitem_with_mst_id(46));
+            let input = BattleShipInput {
+                ship,
+                slot_items,
+                aircraft_exp: vec![],
+                effect_list: vec![0],
+                married: false,
+            };
+            BattleRuntimeShip::new(input, false, true)
+        };
+        // 駆逐ハ級後期型elite is marked, and one of the few with anti-submarine in the codex (#284);
+        // 駆逐ロ級後期型elite is not, sonar and 120 or no.
+        assert!(can_opening_asw(&codex, &abyssal(1623)));
+        assert!(!can_opening_asw(&codex, &abyssal(1622)));
+    }
+
+    #[test]
+    fn the_always_oasw_tables_follow_the_source() {
+        // What `scripts/gen_always_oasw.py` prints: ships, sum of their ids.
+        let tally = |ids: &[i64]| (ids.len(), ids.iter().sum::<i64>());
+        assert_eq!(tally(PLAYER_ALWAYS_OASW_IDS), (24, 15_079));
+        assert_eq!(tally(ABYSSAL_ALWAYS_OASW_IDS), (71, 144_657));
+    }
+
+    /// The source's 26: its marked 24 and Visby / Visby改 by their level-1 anti-submarine. A
+    /// change here means the codex's level-1 figures drifted from the source's `ASWbase`.
+    #[test]
+    fn the_player_ships_always_opening_with_asw_are_the_sources() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let always: Vec<i64> = codex
+            .manifest
+            .api_mst_ship
+            .iter()
+            .map(|mst| mst.api_id)
+            .filter(|&id| id < PLAYABLE_ID_END && codex.new_ship(id).is_some())
+            .filter(|&id| always_opening_asw(&codex, &oasw_ship(&codex, id, &[], 0)))
+            .collect();
+        assert_eq!((always.len(), always.iter().sum::<i64>()), (26, 17_208));
     }
 
     #[test]
