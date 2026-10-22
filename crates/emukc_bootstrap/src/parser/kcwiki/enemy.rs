@@ -146,7 +146,7 @@ struct AbyssalAswAsset {
 
 /// The source simulator's anti-submarine of every abyssal ship that has any. kcwiki has none for
 /// most of them and differs on a few, so the source's wins.
-fn load_abyssal_asw() -> Result<BTreeMap<i64, i64>, ParseError> {
+fn load_repo_abyssal_asw() -> Result<BTreeMap<i64, i64>, ParseError> {
     let asset = crate::assets::ABYSSAL_ASW;
     let path = asset.path();
     let (_, raw) = asset.load().map_err(|source| ParseError::io_at(&path, source))?;
@@ -295,7 +295,7 @@ fn parse_enemy_ships(
     path: impl AsRef<Path>,
 ) -> Result<Kc3rdEnemyShipMap, ParseError> {
     let raw = load_json_map::<KcwikiEnemyShip>(path)?;
-    let source_asw = load_abyssal_asw()?;
+    let source_asw = load_repo_abyssal_asw()?;
     let mut ships = Kc3rdEnemyShipMap::new();
 
     for (_, ship) in raw {
@@ -401,7 +401,7 @@ mod tests {
     #[test]
     fn the_abyssal_asw_asset_follows_the_source() {
         // What `scripts/gen_abyssal_asw.py` prints: ships, sum of their ids, sum of their ASW.
-        let asw = load_abyssal_asw().unwrap();
+        let asw = load_repo_abyssal_asw().unwrap();
         let tally = (asw.len(), asw.keys().sum::<i64>(), asw.values().sum::<i64>());
         assert_eq!(tally, (271, 525_470, 20_073));
     }

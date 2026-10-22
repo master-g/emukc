@@ -2338,15 +2338,7 @@ mod tests {
     fn an_abyssal_ships_own_anti_submarine_is_her_datas() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         // 駆逐ラ級: 100 of her own, 46 of her equipment's.
-        let (ship, slot_items) = codex.new_enemy_ship(2264).unwrap();
-        let input = crate::types::BattleShipInput {
-            ship,
-            slot_items,
-            aircraft_exp: vec![],
-            effect_list: vec![0],
-            married: false,
-        };
-        assert_close(base_asw(&codex, &BattleRuntimeShip::new(input, false, true)), 100.0);
+        assert_close(base_asw(&codex, &abyssal_ship(&codex, 2264)), 100.0);
     }
 
     /// A class that attacks submarines with aircraft takes 8, never 8 and 13 together.

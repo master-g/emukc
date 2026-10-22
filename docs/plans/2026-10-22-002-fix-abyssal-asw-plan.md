@@ -11,7 +11,7 @@ execution: code
 Issue #284。来源 `kancolle-replay@69097abc`：`kcSHIPDATA.js` 各深海舰的 `ASW`；`kcsim.js:4132-4147`（`createDefaultShip` 以 `loadEquips(…, true)` 把装备的各项数值加到舰上）、`kcships.js:536-546`。
 
 **基线**：`main`（#271 之后）。
-**非目标**：深海舰火力、雷装、对空、装甲、回避、索敌同样没算装备（`new_enemy_ship` 只取本体值）。这会让敌方打得轻、扛得少，影响面大，golden 也会变，另开 #287。白天、夜战「能否攻击潜艇」用总对潜 `> 0`，与来源 `canASW` 看本体不同，归 #285。
+**非目标**：深海舰火力、雷装、对空、装甲、回避、索敌同样没算装备（`new_enemy_ship` 只取本体值）。这会让敌方打得轻、扛得少，影响面大，golden 也会变，另开 #287。白天「能否攻击潜艇」其余舰种的规则归 #285。
 
 ## 事实
 
@@ -33,6 +33,7 @@ Issue #284。来源 `kancolle-replay@69097abc`：`kcSHIPDATA.js` 各深海舰的
 ### U3 敌舰总对潜
 
 - `Codex::new_enemy_ship` 的 `api_taisen` 取本体加装备 `api_tais` 之和，与来源 `this.ASW`、我方 `api_taisen` 同义。其余数值不动（见非目标）。
+- 白天、夜战「能否攻击潜艇」对 DE/DD/CL/CLT/CT/AO 原先看总对潜 `> 0`；总值含装备后，本体为 0、装备有对潜的 9 艘敌舰（防空棲姫 1628–1630、深海地中海棲姫 バカンスmode 2035–2040）会变成能打潜艇。改为照来源 `DD.canASW` 看本体 `base_asw > 0`（`kcships.js:1858`，夜战 `canASWNight` 同）。我方本体为 0 的 10 艘（神威、Norge/Eidsvold 及改、朝日、Thonburi 及改、南海、野埼）也随来源不再打潜艇。审查时发现。
 
 ### U4 撤 `ABYSSAL_CARRIER_ASW`
 
@@ -42,7 +43,8 @@ Issue #284。来源 `kancolle-replay@69097abc`：`kcSHIPDATA.js` 各深海舰的
 
 - 资产：条数、ID 和、对潜和（271、525470、20073）。
 - codex：深海舰对潜大于 0 的条数等于资产条数，駆逐ラ級（2264）100、駆逐イ級flagship（1564）82。旧 codex 下会失败，与 #182 的测试一样。
-- `new_enemy_ship`：带声纳的敌舰 `api_taisen` 为本体加声纳对潜，`base_asw` 得回本体。
+- `new_enemy_ship`：駆逐ラ級 `api_taisen` 为本体加装备对潜，`base_asw` 得回本体。
+- 防空棲姫（1629）总对潜 5、本体 0，白天、夜战都不打潜艇；駆逐ラ級打。
 - 现有测试按新数据有变化时，按来源改。golden 若变，说明原因。
 
 ### U6 文档

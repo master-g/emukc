@@ -20,7 +20,7 @@ COMMIT = "69097abc"
 URL = f"https://raw.githubusercontent.com/KC3Kai/kancolle-replay/{COMMIT}/js/kcSHIPDATA.js"
 OUT = Path(__file__).resolve().parent.parent / "crates/emukc_bootstrap/assets/abyssal_asw.json"
 # The source's abyssal ships (`isPlayable` is below 1500; 1501 to 3000 are abyssal).
-ABYSSAL = range(1501, 3001)
+ABYSSAL_IDS = range(1501, 3001)
 
 
 def parse(text: str) -> dict[int, int]:
@@ -28,7 +28,7 @@ def parse(text: str) -> dict[int, int]:
     for line in text.splitlines():
         if entry := re.match(r"\t(\d+): \{", line):
             ship = int(entry[1])
-        elif ship in ABYSSAL and (value := re.match(r"\t\tASW: (\d+),", line)):
+        elif ship in ABYSSAL_IDS and (value := re.match(r"\t\tASW: (\d+),", line)):
             asw[ship] = int(value[1])
     return {ship: value for ship, value in asw.items() if value}
 

@@ -169,7 +169,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-22] #271 已合并（PR #286）。#284 做完待审查合并（`fix/abyssal-asw`）：深海舰对潜取来源（`abyssal_asw.json`），敌舰 `api_taisen` 含装备，本机 codex 已重建；fmt、严格 clippy、`test --workspace` 1663 通过 0 失败 0 忽略，golden 未变。
+- [2026-10-22] #271 已合并（PR #286）。#284 做完待审查合并（`fix/abyssal-asw`）：深海舰对潜取来源（`abyssal_asw.json`），敌舰 `api_taisen` 含装备，本机 codex 已重建，两路审查后改了 DD 类「能否打潜艇」看本体；fmt、严格 clippy、`test --workspace` 1664 通过 0 失败 0 忽略，golden 未变。
 
 ## Next Session
 
