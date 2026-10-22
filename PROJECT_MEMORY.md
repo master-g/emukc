@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-22 · branch `main`
+Last updated: 2026-10-22 · branch `feat/opening-asw-rules`
 
 ## Verified Facts
 
@@ -169,11 +169,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-22] #182 已合并（PR #269）。`test/awaiting-ship-extra`：新舰缺 kcwiki 数据时把编号写进 `AWAITING_SHIP_EXTRA`（用户定），三种情形已验证；1652 通过 0 失败 0 忽略。
+- [2026-10-22] 战斗差距开成 #271–#285。#271（先制对潜）做完待合并（`feat/opening-asw-rules`）：fmt、严格 clippy、`test --workspace` 1658 通过 0 失败 0 忽略，golden 未变；CVB 不再先制对潜（来源 CV 无 `canASW`）。
 
 ## Next Session
 
-- [2026-10-22] 战斗差距已比对，待用户挑票后全部开 issue：OASW 细则、大和型 400/401、潜水艦隊 300–302、昼瑞雲 200/201、噴式 CVCI 74–76、Stage2 対空四项、敌方対空 CI、噴進弾幕、噴式強襲、支援艦隊、洋上補給；轰沉与応急修理待用户定。外部等待 #150。不做：`isSummerCV` 等 19 艘不在常规图、`bonusSpecialP` 是活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
+- [2026-10-22] #271 合并后问用户下一张（#272–#285；轰沉与応急修理 #282 用户定要做）。#284：codex 深海舰对潜几乎全缺（889 中 44 有值），名单上的敌舰补齐前多数不先制对潜。外部等待 #150。不做：`isSummerCV` 等 19 艘不在常规图、`bonusSpecialP` 是活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
   改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   源码按 `kancolle-replay@69097abc` 重取 `js/`（`js/simulator-ui/common.js` 有气球格、环礁格表），常数写作 `.39`（勿只搜 `0.39`），装备类型以源码 `type` 为准；`en.kancollewiki.net` 有人机验证。

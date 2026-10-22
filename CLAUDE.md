@@ -273,6 +273,7 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 - 不手改 `crates/emukc_bootstrap/assets/*.json` 与 `main-decoder/out/battle/*.json`；通过 `make decode-main`/decoder 同步流程再生。例外：`assets/map_limited_drops.json`（期间限定掉落清单）与 `assets/map_gauge_rules.json`（多血条图各阶段的推进条件）是手工维护的，改后跑 `make kcnav-normalize`。`assets/map_cell_effects.json`（资源点给什么、渦潮扣什么）也是手工维护的，改后跑 `cargo run -- bootstrap --codex-only` 与 `make drift-accept`。`assets/seasons.json`（季节清单：日期 id、标签、kcwiki start2 提交）也是手工维护的，改后跑 `cargo run -- season sync` 与 `make drift-accept`。
 - 不手改 `crates/emukc_battle/src/simulation/abyssal_night.rs`（敌方夜战空母名单）；用 `python3 scripts/gen_abyssal_night_carriers.py` 从钉住的 `kancolle-replay` 提交再生，脚本打印的条数与各项之和要与 `the_abyssal_tables_follow_the_source` 一致。
 - 不手改 `crates/emukc_battle/src/simulation/installation_types.rs`（陆上设施种类与单独标记）；用 `python3 scripts/gen_installation_types.py` 从钉住的 `kancolle-replay` 提交再生，脚本打印的条数与各项之和要与 `the_installation_tables_follow_the_source` 一致。
+- 不手改 `crates/emukc_battle/src/simulation/abyssal_oasw.rs`（敌方先制对潜名单）；用 `python3 scripts/gen_abyssal_oasw.py` 从钉住的 `kancolle-replay` 提交再生，脚本打印的条数与 ID 之和要与 `the_abyssal_oasw_table_follows_the_source` 一致。
 - 不手改 `crates/emukc_battle/src/simulation/night_attack_table.rs`（夜战攻击种别表）；用 `python3 scripts/gen_night_attack_table.py` 从钉住的 `kancolle-replay` 提交再生，脚本打印的各行要与 `the_night_attack_table_follows_the_source` 一致。
 - 不逐项手改 `tests/gameplay_tests/battle_golden.rs`；行为变化时必须有意重新冻结并解释差异。
 - 不手改 `Cargo.lock`；依赖升级使用 `cargo update -p <crate>`。

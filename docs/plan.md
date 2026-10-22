@@ -41,7 +41,7 @@
 | 1 | ~~Enemy DDs skip torpedo~~ | **RESOLVED** (2026-04-17): 841 enemy ships in `enemy_ship_extra` | — |
 | 2 | ~~Enemy master-data source~~ | **RESOLVED** (2026-04-17): kcwiki bootstrap + 3-tier fallback | — |
 | 3 | **Day battle formula accuracy** | Partially done (改修強化, CV special, CL 軽砲補正, 夜偵, ASW 減甲 landed). Remaining: defense randomization, damage state modifier, artillery spotting, critical hit, ammo modifier, contact modifier, carrier night attack | Medium |
-| 4 | **Missing special OASW** | Isuzu K2 / Tatsuta K2 等無条件 OASW 未実装 | Medium |
+| 4 | ~~Missing special OASW~~ | **RESOLVED** (2026-10-22): the source's `canOASW` ported (#271), see `opening-asw.md` | — |
 | 5 | **Target taxonomy** | Attacker-side land/surface legality not fully wired | Medium |
 | 6 | **Display/response rules** | Still partly hardcoded | Lower |
 | 7 | **Combined fleet / LBAS / support** | 14+ endpoints, major feature gap | Large effort |
@@ -143,7 +143,6 @@ Remaining findings from code audit (2026-04-14) not yet addressed:
 ### Battle
 
 - **`apply_sortie_map_result` returns 0 (non-first-clear) on variant switch** (`sortie_result.rs:398`): If map needs multiple Boss defeats to clear, `api_first_clear` always returns 0. Verified as by-design for stage-variant progression.
-- **Missing special OASW**: Isuzu K2, Tatsuta K2 等改二無条件 OASW.
 - **Installation / PT**: Merged into surface-like bucket. Attacker-side legality not differentiated.
 
 ### Map
