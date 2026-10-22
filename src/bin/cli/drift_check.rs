@@ -532,7 +532,7 @@ mod tests {
             "seasons",
             "remodel_tables",
             "port_api_seed",
-            "abyssal_asw",
+            "abyssal_stats",
         ] {
             assert!(paths.iter().any(|(key, _)| key == name), "{name} is not fingerprinted");
         }

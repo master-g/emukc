@@ -5,7 +5,7 @@ Reads `js/kcSHIPDATA.js` of KC3Kai/kancolle-replay at COMMIT (downloaded, or the
 the first argument) and writes crates/emukc_battle/src/simulation/abyssal_night.rs: every
 abyssal ship with a `nightattack` mark and every one with `hasBuiltInNightCrew`. It prints the
 counts and sums that the test `the_abyssal_tables_follow_the_source` asserts. Their
-anti-submarine is in the codex (`scripts/gen_abyssal_asw.py`).
+anti-submarine is in the codex (`scripts/gen_abyssal_stats.py`).
 
     python3 scripts/gen_abyssal_night_carriers.py [kcSHIPDATA.js]
 """

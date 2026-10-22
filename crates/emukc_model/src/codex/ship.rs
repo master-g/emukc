@@ -763,17 +763,25 @@ mod tests {
         assert_eq!(missing, AWAITING_SHIP_EXTRA, "player ships without ship_extra");
     }
 
-    /// Every abyssal ship has the source's anti-submarine (`scripts/gen_abyssal_asw.py`), which
-    /// kcwiki has for few of them. A codex built before it fails this: rebuild it
-    /// (`bootstrap --codex-only`).
+    /// Every abyssal ship has the source's anti-submarine, evasion, line of sight and luck
+    /// (`scripts/gen_abyssal_stats.py`), which kcwiki has for few of them. A codex built before
+    /// it fails this: rebuild it (`bootstrap --codex-only`).
     #[test]
-    fn abyssal_ships_have_the_sources_anti_submarine() {
+    fn abyssal_ships_have_the_sources_stats() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let hunters = codex.enemy_ship_extra.values().filter(|enemy| enemy.asw > 0).count();
-        assert_eq!(hunters, 271);
-        // 駆逐ラ級, and 駆逐イ級flagship, for whom kcwiki has 60.
-        assert_eq!(codex.find_enemy_ship_extra(2264).unwrap().asw, 100);
+        let above_zero = |stat: fn(&Kc3rdEnemyShip) -> i64| {
+            codex.enemy_ship_extra.values().filter(|enemy| stat(enemy) > 0).count()
+        };
+        assert_eq!(above_zero(|enemy| enemy.asw), 271);
+        assert_eq!(above_zero(|enemy| enemy.evasion), 845);
+        assert_eq!(above_zero(|enemy| enemy.los), 772);
+        assert_eq!(above_zero(|enemy| enemy.luck), 889);
+        // 駆逐ラ級, for whom kcwiki has no evasion, line of sight or luck.
+        let ra = codex.find_enemy_ship_extra(2264).unwrap();
+        assert_eq!([ra.asw, ra.evasion, ra.los, ra.luck], [100, 140, 100, 120]);
+        // 駆逐イ級flagship, for whom kcwiki has ASW 60, and 防空棲姫, evasion 90.
         assert_eq!(codex.find_enemy_ship_extra(1564).unwrap().asw, 82);
+        assert_eq!(codex.find_enemy_ship_extra(1629).unwrap().evasion, 88);
         // In battle her equipment's counts as well: 深海Hedgehog Mk.10 22, her two guns 10 each and
         // her torpedo 4.
         let (ship, _) = codex.new_enemy_ship(2264).unwrap();
@@ -787,14 +795,15 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         // 駆逐ラ級: two 深海5inch連装砲 Mk.30+GFCS (火力 10, 対空 16, 回避 9), a 深海533mm
         // 5連装魚雷+深海SG (雷装 18, 回避 4, 索敵 12) and a 深海Hedgehog Mk.10 (回避 2). Her own
-        // figures are 火力 158, 雷装 158, 対空 148, 装甲 158, 回避 0 and 索敵 0.
+        // figures are 火力 158, 雷装 158, 対空 148, 装甲 158, 回避 140, 索敵 100 and 運 120.
         let (ship, _) = codex.new_enemy_ship(2264).unwrap();
         assert_eq!(ship.api_karyoku, [178, 178]);
         assert_eq!(ship.api_raisou, [176, 176]);
         assert_eq!(ship.api_taiku, [180, 180]);
         assert_eq!(ship.api_soukou, [158, 158]);
-        assert_eq!(ship.api_kaihi, [24, 24]);
-        assert_eq!(ship.api_sakuteki, [12, 12]);
+        assert_eq!(ship.api_kaihi, [164, 164]);
+        assert_eq!(ship.api_sakuteki, [112, 112]);
+        assert_eq!(ship.api_lucky, [120, 120]);
     }
 
     #[test]
