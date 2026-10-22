@@ -85,6 +85,22 @@ mod tests {
     }
 
     /// A reverse conversion used to charge the target's own forward remodel.
+    /// kcwiki lacked 902 until 2026-10; without its `ship_extra` the remodel failed (#182).
+    #[tokio::test]
+    async fn sagiri_kai_ni_takes_a_report_and_two_arsenal_resources() {
+        let context = crate::TestContext::new().await;
+        let pid = new_profile(&context).await;
+        stock_up(&context, pid).await;
+        context.add_use_item(pid, KcUseItemType::ActionReport as i64, 1).await.unwrap();
+        context.add_use_item(pid, KcUseItemType::ArsenalResource as i64, 2).await.unwrap();
+        let ship = context.add_ship(pid, 391).await.unwrap(); // 狭霧改
+
+        context.remodel(pid, ship.api_id).await.unwrap();
+        assert_eq!(mst_of(&context, ship.api_id).await, 902); // 狭霧改二
+        assert_eq!(use_item(&context, pid, KcUseItemType::ActionReport).await, 0);
+        assert_eq!(use_item(&context, pid, KcUseItemType::ArsenalResource).await, 0);
+    }
+
     #[tokio::test]
     async fn yamato_back_to_kai_ni_takes_no_blueprint_or_boiler() {
         let context = crate::TestContext::new().await;
