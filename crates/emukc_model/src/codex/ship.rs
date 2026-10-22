@@ -138,6 +138,15 @@ impl Codex {
             });
         }
 
+        // Her anti-submarine with her equipment's, as a player ship's `api_taisen` holds it (the
+        // source adds every equipment stat, `loadEquips`); her other stats are her own only.
+        let asw = basic.asw
+            + slot_items
+                .iter()
+                .filter_map(|item| self.manifest.find_slotitem(item.api_slotitem_id))
+                .map(|mst| mst.api_tais)
+                .sum::<i64>();
+
         let ship = KcApiShip {
             api_id: 0,
             api_sortno: mst
@@ -168,7 +177,7 @@ impl Codex {
             api_taiku: [basic.aa, basic.aa],
             api_soukou: [basic.armor, basic.armor],
             api_kaihi: [basic.evasion, basic.evasion],
-            api_taisen: [basic.asw, basic.asw],
+            api_taisen: [asw, asw],
             api_sakuteki: [basic.los, basic.los],
             api_lucky: [basic.luck, basic.luck],
             api_locked: 0,
@@ -744,6 +753,23 @@ mod tests {
             .collect();
         missing.sort_unstable();
         assert_eq!(missing, AWAITING_SHIP_EXTRA, "player ships without ship_extra");
+    }
+
+    /// Every abyssal ship has the source's anti-submarine (`scripts/gen_abyssal_asw.py`), which
+    /// kcwiki has for few of them. A codex built before it fails this: rebuild it
+    /// (`bootstrap --codex-only`).
+    #[test]
+    fn abyssal_ships_have_the_sources_anti_submarine() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let hunters = codex.enemy_ship_extra.values().filter(|enemy| enemy.asw > 0).count();
+        assert_eq!(hunters, 271);
+        // 駆逐ラ級, and 駆逐イ級flagship, for whom kcwiki has 60.
+        assert_eq!(codex.find_enemy_ship_extra(2264).unwrap().asw, 100);
+        assert_eq!(codex.find_enemy_ship_extra(1564).unwrap().asw, 82);
+        // In battle her equipment's counts as well: 深海Hedgehog Mk.10 22, her two guns 10 each and
+        // her torpedo 4.
+        let (ship, _) = codex.new_enemy_ship(2264).unwrap();
+        assert_eq!(ship.api_taisen, [146, 146]);
     }
 
     #[test]

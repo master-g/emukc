@@ -3843,9 +3843,7 @@ mod display_narrowing_tests {
 #[cfg(test)]
 mod abyssal_carrier_tests {
     use super::*;
-    use crate::simulation::abyssal_night::{
-        ABYSSAL_CARRIER_ASW, ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_IDS,
-    };
+    use crate::simulation::abyssal_night::{ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_IDS};
     use crate::test_utils::*;
     use crate::types::{BattleRuntimeShip, BattleShipInput, EngagementType, NightBattleInput};
     use emukc_model::codex::Codex;
@@ -3933,11 +3931,6 @@ mod abyssal_carrier_tests {
         assert_eq!(
             (ABYSSAL_NIGHT_CREW_IDS.len(), ABYSSAL_NIGHT_CREW_IDS.iter().sum::<i64>()),
             (74, 161_283)
-        );
-        let asw = |pick: fn(&(i64, i64)) -> i64| ABYSSAL_CARRIER_ASW.iter().map(pick).sum::<i64>();
-        assert_eq!(
-            (ABYSSAL_CARRIER_ASW.len(), asw(|row| row.0), asw(|row| row.1)),
-            (40, 76_829, 3_165)
         );
         // Every one of them is a carrier the game data knows and gives a night aircraft to.
         for id in ABYSSAL_NIGHT_ATTACK

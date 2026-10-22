@@ -719,21 +719,12 @@ pub(crate) fn can_attack_submarine_night_shelling(codex: &Codex, ship: &BattleRu
     }
 }
 
-/// The source's anti-submarine of an abyssal carrier that has any (`ABYSSAL_CARRIER_ASW`).
-pub(crate) fn abyssal_carrier_asw(mst_id: i64) -> Option<i64> {
-    crate::simulation::abyssal_night::ABYSSAL_CARRIER_ASW
-        .iter()
-        .find(|(id, _)| *id == mst_id)
-        .map(|(_, asw)| *asw)
-}
-
 /// A ship's anti-submarine without her equipment or what it grants: grown with her level, plus
-/// 近代化改修, as `Codex::cal_ship_status` builds it. An abyssal carrier's is the source's, the
-/// enemy data in the codex having none for her.
+/// 近代化改修, as `Codex::cal_ship_status` builds it. An abyssal ship's is the enemy data's.
 fn bare_asw(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
     const ASW_MODERNIZATION: usize = 6;
-    if let Some(asw) = abyssal_carrier_asw(ship.ship.api_ship_id) {
-        return asw;
+    if let Ok(enemy) = codex.find_enemy_ship_extra(ship.ship.api_ship_id) {
+        return enemy.asw;
     }
     codex.find_ship_extra(ship.ship.api_ship_id).map_or(0, |basic| {
         Codex::stat_at_level(ship.ship.api_lv, basic.tais) + ship.ship.api_kyouka[ASW_MODERNIZATION]
@@ -1798,8 +1789,7 @@ mod tests {
             };
             BattleRuntimeShip::new(input, false, true)
         };
-        // 駆逐ハ級後期型elite is marked, and one of the few with anti-submarine in the codex (#284);
-        // 駆逐ロ級後期型elite is not, sonar and 120 or no.
+        // 駆逐ハ級後期型elite is marked; 駆逐ロ級後期型elite is not, sonar and 120 or no.
         assert!(can_opening_asw(&codex, &abyssal(1623)));
         assert!(!can_opening_asw(&codex, &abyssal(1622)));
     }
