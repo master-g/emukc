@@ -10,7 +10,7 @@ use emukc_model::{
 
 use crate::combined::CombinedFleetRole;
 use crate::random::BattleRng;
-use crate::simulation::abyssal_oasw::ABYSSAL_ALWAYS_OASW_IDS;
+use crate::simulation::always_oasw::{ABYSSAL_ALWAYS_OASW_IDS, PLAYER_ALWAYS_OASW_IDS};
 use crate::simulation::installation_types::{
     INSTALLATION_BOMBERS, INSTALLATION_TYPES, LAST_SOURCE_ABYSSAL_ID,
 };
@@ -803,10 +803,10 @@ pub(crate) fn can_opening_asw(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
         && (always_opening_asw(codex, ship) || asw >= 100 && sonar && id < PLAYABLE_ID_END)
 }
 
-/// `CVL.canOASW` (`kcships.js:2100-2116`): a dive or torpedo bomber, autogyro or patrol plane
-/// with anti-submarine, carried whether or not it has aircraft left; then the source's always,
-/// or one of them but the dive bomber at 7 or more with 50 anti-submarine and a sonar (65
-/// without, or for `ASW_LAST_IDS`), or a sonar and 100.
+/// `CVL.canOASW` (`kcships.js:2100-2116`): she must carry a dive or torpedo bomber, autogyro or
+/// patrol plane with anti-submarine, whether or not it has aircraft left; then the source's
+/// always, or a torpedo bomber, autogyro or patrol plane at 7 or more with 50 anti-submarine and
+/// a sonar (65 without, or for `ASW_LAST_IDS`), or a sonar and 100.
 fn light_carrier_opening_asw(
     codex: &Codex,
     ship: &BattleRuntimeShip,
@@ -846,13 +846,14 @@ fn light_carrier_opening_asw(
     strong && asw >= threshold || sonar && asw >= 100
 }
 
-/// `alwaysOASW`: a player's ship with 50 anti-submarine or more at level 1, 日向改二 aside
-/// (`kcships.js:425`; the codex's level-1 figures give the source's 26 ships), or an abyssal
-/// ship the source marks.
+/// `alwaysOASW`: a ship the source marks, or a player's ship with 50 anti-submarine or more at
+/// level 1, 日向改二 aside (`kcships.js:425`, read from the codex's level-1 figures).
 fn always_opening_asw(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     let id = ship.ship.api_ship_id;
     if id < PLAYABLE_ID_END {
-        id != HYUUGA_KAI_NI && codex.find_ship_extra(id).is_ok_and(|basic| basic.tais[0] >= 50)
+        PLAYER_ALWAYS_OASW_IDS.contains(&id)
+            || id != HYUUGA_KAI_NI
+                && codex.find_ship_extra(id).is_ok_and(|basic| basic.tais[0] >= 50)
     } else {
         ABYSSAL_ALWAYS_OASW_IDS.contains(&id)
     }
@@ -1739,16 +1740,34 @@ mod tests {
             };
             BattleRuntimeShip::new(input, false, true)
         };
-        // 駆逐ハ級後期型elite is marked; 駆逐ロ級後期型elite is not, sonar and 120 or no.
+        // 駆逐ハ級後期型elite is marked, and one of the few with anti-submarine in the codex (#284);
+        // 駆逐ロ級後期型elite is not, sonar and 120 or no.
         assert!(can_opening_asw(&codex, &abyssal(1623)));
         assert!(!can_opening_asw(&codex, &abyssal(1622)));
     }
 
     #[test]
-    fn the_abyssal_oasw_table_follows_the_source() {
-        // What `scripts/gen_abyssal_oasw.py` prints: ships, sum of their ids.
-        let ids = ABYSSAL_ALWAYS_OASW_IDS;
-        assert_eq!((ids.len(), ids.iter().sum::<i64>()), (71, 144_657));
+    fn the_always_oasw_tables_follow_the_source() {
+        // What `scripts/gen_always_oasw.py` prints: ships, sum of their ids.
+        let tally = |ids: &[i64]| (ids.len(), ids.iter().sum::<i64>());
+        assert_eq!(tally(PLAYER_ALWAYS_OASW_IDS), (24, 15_079));
+        assert_eq!(tally(ABYSSAL_ALWAYS_OASW_IDS), (71, 144_657));
+    }
+
+    /// The source's 26: its marked 24 and Visby / Visby改 by their level-1 anti-submarine. A
+    /// change here means the codex's level-1 figures drifted from the source's `ASWbase`.
+    #[test]
+    fn the_player_ships_always_opening_with_asw_are_the_sources() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let always: Vec<i64> = codex
+            .manifest
+            .api_mst_ship
+            .iter()
+            .map(|mst| mst.api_id)
+            .filter(|&id| id < PLAYABLE_ID_END && codex.new_ship(id).is_some())
+            .filter(|&id| always_opening_asw(&codex, &oasw_ship(&codex, id, &[], 0)))
+            .collect();
+        assert_eq!((always.len(), always.iter().sum::<i64>()), (26, 17_208));
     }
 
     #[test]

@@ -169,7 +169,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-22] 战斗差距开成 #271–#285。#271（先制对潜）做完待合并（`feat/opening-asw-rules`）：fmt、严格 clippy、`test --workspace` 1658 通过 0 失败 0 忽略，golden 未变；CVB 不再先制对潜（来源 CV 无 `canASW`）。
+- [2026-10-22] 战斗差距开成 #271–#285。#271（先制对潜）做完待合并（`feat/opening-asw-rules`）：fmt、严格 clippy、`test --workspace` 1659 通过 0 失败 0 忽略，golden 未变；CVB 不再先制对潜（来源 CV 无 `canASW`）。
 
 ## Next Session
 

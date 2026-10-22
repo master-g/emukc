@@ -20,9 +20,9 @@ use crate::types::{
 
 pub(crate) mod aaci;
 pub(crate) mod abyssal_night;
-pub(crate) mod abyssal_oasw;
 pub(crate) mod air_base;
 pub(crate) mod air_raid;
+pub(crate) mod always_oasw;
 pub(crate) mod asw;
 pub(crate) mod day_attack;
 pub(crate) mod day_cutin;
