@@ -7,7 +7,7 @@ BattlePacket {
     friendly_nowhps: [
         90,
         90,
-        44,
+        32,
         79,
         59,
         56,
@@ -16,7 +16,7 @@ BattlePacket {
         7,
         12,
         31,
-        3,
+        1,
     ],
     enemy_nowhps: [
         243,
@@ -603,7 +603,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    10,
+                    12,
                 ],
                 [
                     40,
@@ -812,7 +812,7 @@ BattlePacket {
                     69,
                 ],
                 [
-                    31,
+                    43,
                 ],
                 [
                     11.1,
@@ -1109,8 +1109,8 @@ BattlePacket {
             api_eydam: [
                 0,
                 0,
-                11,
-                25,
+                13,
+                23,
                 0,
                 0,
             ],
@@ -1134,7 +1134,7 @@ NightBattlePacket {
         7,
         12,
         31,
-        3,
+        1,
     ],
     friendly_maxhps: [
         44,

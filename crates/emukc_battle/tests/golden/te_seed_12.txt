@@ -7,11 +7,11 @@ BattlePacket {
     friendly_nowhps: [
         90,
         83,
-        55,
+        28,
         79,
         59,
         53,
-        14,
+        7,
         43,
         43,
         31,
@@ -609,7 +609,7 @@ BattlePacket {
                     14,
                 ],
                 [
-                    12,
+                    15,
                 ],
                 [
                     23,
@@ -969,7 +969,7 @@ BattlePacket {
                     67,
                 ],
                 [
-                    21,
+                    39,
                 ],
                 [
                     25,
@@ -981,7 +981,7 @@ BattlePacket {
                     13,
                 ],
                 [
-                    1,
+                    10,
                 ],
                 [
                     12,
@@ -1032,7 +1032,7 @@ BattlePacket {
                 0,
                 0,
                 0,
-                18,
+                22,
                 0,
                 0,
                 0,
@@ -1081,7 +1081,7 @@ BattlePacket {
                 0,
                 0,
                 0,
-                18,
+                22,
                 0,
                 3,
             ],
@@ -1100,7 +1100,7 @@ NightBattlePacket {
         1,
     ],
     friendly_nowhps: [
-        14,
+        7,
         43,
         43,
         31,
@@ -1142,20 +1142,20 @@ NightBattlePacket {
     hougeki: Some(
         BattleNightHougeki {
             api_at_eflag: [
+                1,
+                0,
                 0,
                 1,
                 0,
                 0,
-                0,
-                0,
             ],
             api_at_list: [
-                6,
                 0,
                 7,
                 8,
+                2,
                 9,
-                10,
+                11,
             ],
             api_n_mother_list: [
                 0,
@@ -1167,31 +1167,26 @@ NightBattlePacket {
             ],
             api_df_list: [
                 [
-                    0,
-                ],
-                [
-                    11,
-                    11,
-                ],
-                [
-                    2,
-                ],
-                [
-                    2,
-                ],
-                [
-                    0,
+                    9,
+                    9,
                 ],
                 [
                     1,
                 ],
+                [
+                    0,
+                ],
+                [
+                    10,
+                ],
+                [
+                    0,
+                ],
+                [
+                    0,
+                ],
             ],
             api_si_list: [
-                [
-                    Num(
-                        -1,
-                    ),
-                ],
                 [
                     Text(
                         "1509",
@@ -1212,7 +1207,7 @@ NightBattlePacket {
                 ],
                 [
                     Num(
-                        -1,
+                        1505,
                     ),
                 ],
                 [
@@ -1220,13 +1215,15 @@ NightBattlePacket {
                         -1,
                     ),
                 ],
+                [
+                    Num(
+                        63,
+                    ),
+                ],
             ],
             api_cl_list: [
                 [
                     1,
-                ],
-                [
-                    1,
                     1,
                 ],
                 [
@@ -1239,12 +1236,15 @@ NightBattlePacket {
                     2,
                 ],
                 [
-                    2,
+                    1,
+                ],
+                [
+                    1,
                 ],
             ],
             api_sp_list: [
-                0,
                 1,
+                0,
                 0,
                 0,
                 0,
@@ -1252,23 +1252,23 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    14,
+                    3,
+                    2,
                 ],
                 [
-                    18,
-                    7,
+                    65,
                 ],
                 [
-                    83,
+                    27,
                 ],
                 [
-                    88,
+                    4,
                 ],
                 [
-                    28,
+                    5,
                 ],
                 [
-                    33,
+                    13,
                 ],
             ],
         },

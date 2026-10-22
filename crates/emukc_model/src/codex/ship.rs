@@ -138,14 +138,22 @@ impl Codex {
             });
         }
 
-        // Her anti-submarine with her equipment's, as a player ship's `api_taisen` holds it (the
-        // source adds every equipment stat, `loadEquips`); her other stats are her own only.
-        let asw = basic.asw
-            + slot_items
+        // Her stats with her equipment's, as a player ship's hold them (the source adds every
+        // equipment stat, `loadEquips`). Abyssal equipment has no luck.
+        let equipped = |stat: fn(&ApiMstSlotitem) -> i64| {
+            slot_items
                 .iter()
                 .filter_map(|item| self.manifest.find_slotitem(item.api_slotitem_id))
-                .map(|mst| mst.api_tais)
-                .sum::<i64>();
+                .map(stat)
+                .sum::<i64>()
+        };
+        let firepower = basic.firepower + equipped(|mst| mst.api_houg);
+        let torpedo = basic.torpedo + equipped(|mst| mst.api_raig);
+        let aa = basic.aa + equipped(|mst| mst.api_tyku);
+        let armor = basic.armor + equipped(|mst| mst.api_souk);
+        let evasion = basic.evasion + equipped(|mst| mst.api_houk);
+        let asw = basic.asw + equipped(|mst| mst.api_tais);
+        let los = basic.los + equipped(|mst| mst.api_saku);
 
         let ship = KcApiShip {
             api_id: 0,
@@ -172,13 +180,13 @@ impl Codex {
             api_ndock_item: [0, 0],
             api_srate: 0,
             api_cond: 49,
-            api_karyoku: [basic.firepower, basic.firepower],
-            api_raisou: [basic.torpedo, basic.torpedo],
-            api_taiku: [basic.aa, basic.aa],
-            api_soukou: [basic.armor, basic.armor],
-            api_kaihi: [basic.evasion, basic.evasion],
+            api_karyoku: [firepower, firepower],
+            api_raisou: [torpedo, torpedo],
+            api_taiku: [aa, aa],
+            api_soukou: [armor, armor],
+            api_kaihi: [evasion, evasion],
             api_taisen: [asw, asw],
-            api_sakuteki: [basic.los, basic.los],
+            api_sakuteki: [los, los],
             api_lucky: [basic.luck, basic.luck],
             api_locked: 0,
             api_locked_equip: 0,
@@ -770,6 +778,23 @@ mod tests {
         // her torpedo 4.
         let (ship, _) = codex.new_enemy_ship(2264).unwrap();
         assert_eq!(ship.api_taisen, [146, 146]);
+    }
+
+    /// An abyssal ship fights with her equipment's stats on her own, as the source's
+    /// `createDefaultShip` loads them (`loadEquips(…, true)`, `kcships.js:536-546`).
+    #[test]
+    fn an_abyssal_ships_stats_hold_her_equipments() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 駆逐ラ級: two 深海5inch連装砲 Mk.30+GFCS (火力 10, 対空 16, 回避 9), a 深海533mm
+        // 5連装魚雷+深海SG (雷装 18, 回避 4, 索敵 12) and a 深海Hedgehog Mk.10 (回避 2). Her own
+        // figures are 火力 158, 雷装 158, 対空 148, 装甲 158, 回避 0 and 索敵 0.
+        let (ship, _) = codex.new_enemy_ship(2264).unwrap();
+        assert_eq!(ship.api_karyoku, [178, 178]);
+        assert_eq!(ship.api_raisou, [176, 176]);
+        assert_eq!(ship.api_taiku, [180, 180]);
+        assert_eq!(ship.api_soukou, [158, 158]);
+        assert_eq!(ship.api_kaihi, [24, 24]);
+        assert_eq!(ship.api_sakuteki, [12, 12]);
     }
 
     #[test]

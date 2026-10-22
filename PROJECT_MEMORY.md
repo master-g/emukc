@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-22 · branch `fix/abyssal-asw`
+Last updated: 2026-10-22 · branch `fix/abyssal-equipment-stats`
 
 ## Verified Facts
 
@@ -57,7 +57,6 @@ Current verification baseline:
 - [2026-09-20] `start2` 里没有任何字段能把 5 条补给形态舰（743/744/745/748/749，名字以 補 结尾）与普通
   友军舰区分开——`api_sortno`/`api_backs`/`api_aftershipid`/`ship_picturebook.json` 都查过；友军舰队
   graph id 6299/6301/6303 同理。不要再找规则。
-- [2026-10-19] 来源 `kcSHIPDATA.js` 的 `type` 与 codex `api_stype` 一一对应（设施也是：砲台小鬼 BB、集積地/飛行場姫 BBV、PT小鬼群 DD+`isPT`），来源 `AT` = 輸送ワ級 = stype 15（`KcShipType::AP`，两边各 7 艘）；按舰种的规则直接用 `targeting::ship_type`。
 - [2026-09-21] `KC3Kai/kancolle-replay` 的 `js/kcsim.js` 是第二条独立数据链（`COMBINEDCF1-4`
   与 `COMBINEDCONSTS` 复现 wikiwiki 的联合舰队表）。其精度/回避補正对本项目无用。
 - [2026-09-22] 地图数据源：开放前置表对真实 `mapinfo` 逐 id 复现；`KC3Kai/edges.json` **不接**（唯一分歧是上游错）；
@@ -123,7 +122,7 @@ Current verification baseline:
 - [2026-10-14] kcanotify 的 `total-fp` 是对空合计，27 是护卫空母（`cve_ids`），来源见 #116 #117；改修、Bw1、远征列表的计数规则已入 `quest.md`。客户端把 `mission` 列表里没有的远征置 -1（`main.decoded.js:15821`）。
 
 - [2026-10-15] 陆上设施按来源 `installtype` 表判（`installation_types.rs`，脚本再生）；名字匹配只兜底比来源更新的深海舰（id > 2397）。倍率与上限后倍率见 `anti-installation.md`。
-- [2026-10-19] 来源 `SHIPDATA.type` 与 start2 `api_stype` 一一对应（FBB=8、BB=9、BBV=10），`sclass` 全等于 `api_ctype`，`MAINGUNM` 全等于 `api_type[2]==2`，`loadEquips` 不分敌我：按舰种/舰级移植的规则直接读 start2（#193 对拍 100 万例逐位一致）。
+- [2026-10-19] 来源 `SHIPDATA.type` 与 start2 `api_stype` 一一对应（FBB=8、BB=9、BBV=10；设施 砲台小鬼 BB、集積地/飛行場姫 BBV、PT小鬼群 DD+`isPT`；`AT`=輸送ワ級=stype 15），`sclass` 全等于 `api_ctype`，`MAINGUNM` 全等于 `api_type[2]==2`，`loadEquips` 不分敌我：按舰种/舰级移植的规则直接读 start2（#193 对拍 100 万例逐位一致）。
 - [2026-10-15] 测试里 `BattleRuntimeShip::from` 造的是 `is_friendly: false`（注释写反了）：要测「玩家侧」规则（空槽、燃料）得用 `BattleRuntimeShip::new(input, true, true)`。
 - [2026-10-15] 戦果的口径（#147 用户定）与月末 22:00 规则：`war-result-ranking.md`。
 - [2026-10-18] 外部等待：#150 等抓包（#182 已于 10-22 解决）
@@ -131,6 +130,7 @@ Current verification baseline:
 - [2026-10-19] 烟幕：来源默认发动率 0、倍率 1；用户定发动率用 wikiwiki 発動率推定式、倍率用来源 `smokeEst`（`smoke-screen.md`）。气球格：常规图 3-5 H、4-3 N、4-5 T、6-4 N（`barrage-balloons.md`）。空母昼战炮击已是来源公式，不再是 `1.5×机数+55`。
 - [2026-10-19] `sortie_*` 昼战入口收 `impl Into<SortieOrder>`，`(pid, 1)` 照旧可用（冻结的 `battle_golden.rs` 也这样调）。
 - [2026-10-22] 鈴谷/熊野航改二有水面敌舰在就不先制对潜（`isASWlast`，`kcsim.js:1086`），用户定保留；实机未核实。
+- [2026-10-22] 敌舰 `api_*` 是本体加装备总值，`api_eParam` 给本体：`abyssal-ship-stats.md`；码典深海回避/索敌/运多为 0（计划 003）。
 
 ## Failed Attempts / Pitfalls
 
@@ -166,15 +166,16 @@ Current verification baseline:
 | [2026-10-17] 逐种子跑 `--exact`：名字不匹配也退出 0，须判「1 passed」。 | #201 |
 | [2026-10-18] 战斗 golden 读 `.data/codex` 的真实舰船、初始装备与深海数据：重建 codex 后代码不变也会红。先在 `main` 单独提交重冻、写明是数据变化，再做别的；重构不应需要重冻。 | `golden_transcript.rs` 头注释 |
 | [2026-10-19] 对拍时 serde_json 默认解析 JS 打印的小数会差最后一位（不保证往返精确），误报成算法差异：脚本输出 `Float64Array` 的比特位字符串，Rust 用 `f64::from_bits` 比。 | #193 |
+| [2026-10-22] `new_ship` 不设 `api_slot`，`cal_ship_status` 不计装备：`sample_ship` 与演习对手总值不含装备，`base_asw` 求本体偏低；本体雷装故读舰体。 | #287 |
 | [2026-10-19] 按 `api_type[2]` 判炮种会把深海炮算进去（1504 5inch単装高射砲是中口径主炮），来源按装备 id 的标记算。golden 变动要归因时，临时把旧行为加回、看 180 份是否逐字节复原，再写进提交说明。 | #204、#243 |
 
 ## Last Session
 
-- [2026-10-22] #271 已合并（PR #286）。#284 做完待审查合并（`fix/abyssal-asw`）：深海舰对潜取来源（`abyssal_asw.json`），敌舰 `api_taisen` 含装备，本机 codex 已重建，两路审查后改了 DD 类「能否打潜艇」看本体；fmt、严格 clippy、`test --workspace` 1664 通过 0 失败 0 忽略，golden 未变。
+- [2026-10-22] #287 做完未推送（`fix/abyssal-equipment-stats` 两个提交，计划 003）：fmt、严格 clippy、`test --workspace` 全过 0 忽略；golden 判定 1、数值 73 份重冻。
 
 ## Next Session
 
-- [2026-10-22] 下一张 #287（用户定）：敌舰战斗数值加装备，`api_eParam` 仍给本体值，golden 会变；之后 #282（用户定要做）、#285 等。外部等待 #150。不做：`isSummerCV` 等 19 艘不在常规图、`bonusSpecialP` 是活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
+- [2026-10-22] 开 #287 PR（golden 说明见计划 U2）；用户确认后按计划 003 非目标开工单（深海回避/索敌/运、`fleetLoS`、演习对手不计装备数值与 `api_eParam`）。之后 #282（用户定要做）、#285。外部等待 #150。不做：`isSummerCV` 等 19 艘不在常规图、`bonusSpecialP` 是活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
   改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   源码按 `kancolle-replay@69097abc` 重取 `js/`（`js/simulator-ui/common.js` 有气球格、环礁格表），常数写作 `.39`（勿只搜 `0.39`），装备类型以源码 `type` 为准；`en.kancollewiki.net` 有人机验证。

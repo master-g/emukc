@@ -1101,7 +1101,7 @@ impl Ctx {
             store.insert_pending_result(profile_id, snapshot);
         }
 
-        Ok(night_battle_response(&session, night))
+        Ok(night_battle_response(codex, &session, night))
     }
 
     /// `api_req_battle_midnight/sp_midnight` — a single fleet's night-start cell.
@@ -1171,7 +1171,7 @@ impl Ctx {
                 tx.commit().await?;
                 let _ = store.insert_active(profile_id, active);
 
-                Ok(night_battle_response(&session, night_session))
+                Ok(night_battle_response(codex, &session, night_session))
             })
             .await
     }
@@ -1256,6 +1256,7 @@ where
 }
 
 fn night_battle_response(
+    codex: &Codex,
     session: &SortieBattleSession,
     night: SortieNightBattleSession,
 ) -> NightBattleResponse {
@@ -1266,9 +1267,9 @@ fn night_battle_response(
         _ => enemy_main,
     };
     let mut response =
-        build_night_response(session.deck_id, session.night_fleet(), fought, night.packet);
+        build_night_response(codex, session.deck_id, session.night_fleet(), fought, night.packet);
     if let Some(deck) = night.enemy_deck {
-        response = response.with_enemy_decks(enemy_main, enemy_escort, deck);
+        response = response.with_enemy_decks(codex, enemy_main, enemy_escort, deck);
     }
     if session.escort_start().is_some() {
         response.with_main_deck(session.main_deck())
@@ -1364,6 +1365,7 @@ async fn sortie_battle_impl(
                 &mut rng,
             );
             let mut response = build_day_response(
+                codex,
                 setup.active.deck_id,
                 &setup.friend_ships,
                 &setup.enemy.ships,
@@ -1373,7 +1375,7 @@ async fn sortie_battle_impl(
                 response = response.with_escort_deck(&setup.escort_ships);
             }
             if endpoint == SortieBattleEndpoint::EnemyCombined {
-                response = response.with_enemy_escort(&setup.enemy.escort_ships);
+                response = response.with_enemy_escort(codex, &setup.enemy.escort_ships);
             }
             let mut snapshot = setup.result_snapshot(codex, &session);
             snapshot.cell_cost = cell_cost(codex, &setup.active, &session, battle_type);

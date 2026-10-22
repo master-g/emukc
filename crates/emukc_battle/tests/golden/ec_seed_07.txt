@@ -9,7 +9,7 @@ BattlePacket {
         57,
         6,
         43,
-        11,
+        7,
         5,
     ],
     enemy_nowhps: [
@@ -22,7 +22,7 @@ BattlePacket {
         21,
         0,
         0,
-        26,
+        34,
         0,
         0,
     ],
@@ -328,7 +328,7 @@ BattlePacket {
                 0,
                 0,
                 0,
-                32,
+                36,
                 0,
             ],
             api_fydam_list_items: [
@@ -407,7 +407,7 @@ BattlePacket {
                 None,
                 Some(
                     [
-                        32,
+                        36,
                     ],
                 ),
                 None,
@@ -591,7 +591,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    15,
+                    7,
                 ],
                 [
                     0,
@@ -1130,7 +1130,7 @@ NightBattlePacket {
         57,
         6,
         43,
-        11,
+        7,
         5,
     ],
     friendly_maxhps: [
@@ -1172,7 +1172,6 @@ NightBattlePacket {
                 1,
                 0,
                 1,
-                0,
                 1,
             ],
             api_at_list: [
@@ -1181,10 +1180,8 @@ NightBattlePacket {
                 3,
                 3,
                 4,
-                4,
             ],
             api_n_mother_list: [
-                0,
                 0,
                 0,
                 0,
@@ -1201,9 +1198,6 @@ NightBattlePacket {
                 ],
                 [
                     2,
-                ],
-                [
-                    1,
                 ],
                 [
                     1,
@@ -1238,11 +1232,6 @@ NightBattlePacket {
                     ),
                 ],
                 [
-                    Num(
-                        10,
-                    ),
-                ],
-                [
                     Text(
                         "1509",
                     ),
@@ -1267,15 +1256,11 @@ NightBattlePacket {
                 ],
                 [
                     1,
-                ],
-                [
                     2,
-                    1,
                 ],
             ],
             api_sp_list: [
                 1,
-                0,
                 0,
                 0,
                 0,
@@ -1296,11 +1281,8 @@ NightBattlePacket {
                     0,
                 ],
                 [
-                    63,
-                ],
-                [
-                    3,
                     1,
+                    2,
                 ],
             ],
         },

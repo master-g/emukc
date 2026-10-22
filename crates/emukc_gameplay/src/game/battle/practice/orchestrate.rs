@@ -118,7 +118,7 @@ pub fn run_day_battle(
         .and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
 
     let response =
-        build_day_response(input.deck_id, &friend_ships, &enemy_ships, simulation.packet);
+        build_day_response(codex, input.deck_id, &friend_ships, &enemy_ships, simulation.packet);
 
     let snapshot = PracticeBattleResultSnapshot {
         deck_id: input.deck_id,
@@ -209,8 +209,13 @@ pub fn run_night_battle(
     session.enemy = simulation.enemy.clone();
     session.outcome = simulation.outcome.clone();
 
-    let response =
-        build_night_response(session.deck_id, &session.friendly, &session.enemy, simulation.packet);
+    let response = build_night_response(
+        codex,
+        session.deck_id,
+        &session.friendly,
+        &session.enemy,
+        simulation.packet,
+    );
 
     let snapshot = PracticeBattleResultSnapshot {
         deck_id: session.deck_id,

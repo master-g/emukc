@@ -820,7 +820,8 @@ mod tests {
         assert_eq!(enemy.ship.api_ship_id, 19991);
         assert_eq!(enemy.ship.api_nowhp, 45);
         assert_eq!(enemy.ship.api_karyoku, [35, 35]);
-        assert_eq!(enemy.ship.api_taiku, [40, 40]);
+        // Her 40 with 深海棲艦戦's 2 and 特四式内火艇's 1.
+        assert_eq!(enemy.ship.api_taiku, [43, 43]);
         assert_eq!(enemy.ship.api_taisen, [30, 30]);
         assert_eq!(enemy.ship.api_onslot, [18, 6, 0, 0, 0]);
         assert_eq!(enemy_slot_ids(&enemy.ship, &enemy.slot_items), [1519, 525, -1, -1, -1]);
@@ -861,7 +862,8 @@ mod tests {
         assert_eq!(enemy.ship.api_bull, 0);
         assert_eq!(enemy.ship.api_nowhp, 45);
         assert_eq!(enemy.ship.api_karyoku, [35, 35]);
-        assert_eq!(enemy.ship.api_taiku, [40, 40]);
+        // Her 40 with 深海棲艦戦's 2 and 特四式内火艇's 1.
+        assert_eq!(enemy.ship.api_taiku, [43, 43]);
         assert_eq!(enemy.ship.api_taisen, [30, 30]);
         assert_eq!(enemy.ship.api_onslot, [18, 6, 0, 0, 0]);
         assert_eq!(enemy_slot_ids(&enemy.ship, &enemy.slot_items), [1519, 525, -1, -1, -1]);

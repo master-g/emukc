@@ -2404,7 +2404,11 @@ mod tests {
     #[test]
     fn a_torpedo_bomber_does_not_make_a_carrier_fire_torpedoes() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        // 赤城 has none of her own, with her 九七式艦攻's 5 that `cal_ship_status` adds.
+        // 軽母ヌ級 has none of her own; her 深海棲艦攻 adds 4.
+        let nu = abyssal_ship(&codex, 1510);
+        assert_eq!(nu.ship.api_raisou[0], 4);
+        assert!(!can_closing_torpedo_ship(&codex, &nu));
+        // 赤城 neither, with her 九七式艦攻's 5 that `cal_ship_status` adds.
         let mut akagi = sample_ship(&codex, ship_mst_id_by_name(&codex, "赤城"), 99);
         akagi.ship.api_raisou[0] = 5;
         let akagi = BattleRuntimeShip::new(akagi, true, true);
