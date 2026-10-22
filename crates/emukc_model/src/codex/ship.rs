@@ -725,18 +725,25 @@ mod tests {
         }
     }
 
+    /// Player ships start2 has and kcwiki's ship data does not yet, in id order, each with its
+    /// issue. Such a ship cannot be built until kcwiki catches up.
+    const AWAITING_SHIP_EXTRA: &[i64] = &[];
+
     /// `ship_extra` carries what start2 lacks; a player ship without it cannot be built (#182).
+    /// A new ship missing it fails this until it is listed in [`AWAITING_SHIP_EXTRA`]; a listed
+    /// ship that has its data fails it too: take it off the list and add its gameplay test.
     #[test]
     fn every_player_ship_has_ship_extra() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let missing: Vec<i64> = codex
+        let mut missing: Vec<i64> = codex
             .manifest
             .api_mst_ship
             .iter()
             .filter(|m| m.api_id <= 1500 && codex.find_ship_extra(m.api_id).is_err())
             .map(|m| m.api_id)
             .collect();
-        assert!(missing.is_empty(), "no ship_extra for {missing:?}");
+        missing.sort_unstable();
+        assert_eq!(missing, AWAITING_SHIP_EXTRA, "player ships without ship_extra");
     }
 
     #[test]
