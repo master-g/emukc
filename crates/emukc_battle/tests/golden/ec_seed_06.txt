@@ -6,7 +6,7 @@ BattlePacket {
     ],
     friendly_nowhps: [
         84,
-        20,
+        18,
         7,
         6,
         40,
@@ -15,8 +15,8 @@ BattlePacket {
     enemy_nowhps: [
         336,
         265,
-        114,
-        203,
+        124,
+        200,
         322,
         0,
         0,
@@ -889,7 +889,7 @@ BattlePacket {
                     1,
                 ],
                 [
-                    2,
+                    3,
                 ],
             ],
             api_si_list: [
@@ -1013,10 +1013,10 @@ BattlePacket {
                     23,
                 ],
                 [
-                    57.1,
+                    59.1,
                 ],
                 [
-                    10,
+                    3,
                 ],
             ],
         },
@@ -1115,7 +1115,7 @@ BattlePacket {
     ),
 }
 BattleOutcome {
-    win_rank: B,
+    win_rank: C,
     mvp: 1,
     can_midnight: true,
 }
@@ -1127,7 +1127,7 @@ NightBattlePacket {
     ],
     friendly_nowhps: [
         84,
-        20,
+        18,
         7,
         6,
         40,
@@ -1144,8 +1144,8 @@ NightBattlePacket {
     enemy_nowhps: [
         336,
         265,
-        114,
-        203,
+        124,
+        200,
         322,
         0,
     ],

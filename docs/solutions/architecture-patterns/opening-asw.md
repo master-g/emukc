@@ -55,8 +55,3 @@ boat with 対潜 and aircraft left, or, being abyssal, anti-submarine of their o
 and 646 need one of those with aircraft left, or, being abyssal, nothing; 扶桑改二 and
 山城改二 may use a depth charge instead; 第百一号輸送艦 and her 改 (945, 727), submarine tenders and
 repair ships need a depth charge. Day shelling does not use it yet (#285).
-
-## Known gaps
-
-- An abyssal ship's anti-submarine is the source's, with her equipment's in her total (#284), but
-  her other stats still leave out her equipment (#287).

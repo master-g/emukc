@@ -11,7 +11,7 @@ BattlePacket {
         79,
         52,
         52,
-        27,
+        8,
         43,
         26,
         31,
@@ -19,7 +19,7 @@ BattlePacket {
         32,
     ],
     enemy_nowhps: [
-        107,
+        121,
         0,
         0,
         0,
@@ -896,7 +896,7 @@ BattlePacket {
                     0,
                 ],
                 [
-                    17,
+                    36,
                 ],
                 [
                     8,
@@ -925,7 +925,7 @@ BattlePacket {
                 -1,
                 -1,
                 -1,
-                0,
+                -1,
                 0,
                 0,
                 0,
@@ -939,12 +939,12 @@ BattlePacket {
                 0,
                 0,
                 0,
+                0,
                 1,
                 1,
                 1,
                 1,
                 0,
-                1,
             ],
             api_fdam: [
                 0,
@@ -967,12 +967,12 @@ BattlePacket {
                 0,
                 0,
                 0,
-                10,
-                14,
-                14,
-                11,
                 0,
-                15,
+                10,
+                16,
+                14,
+                10,
+                0,
             ],
             api_erai: [
                 -1,
@@ -991,7 +991,7 @@ BattlePacket {
                 0,
             ],
             api_edam: [
-                64,
+                50,
                 0,
                 0,
                 0,
@@ -1021,7 +1021,7 @@ NightBattlePacket {
         1,
     ],
     friendly_nowhps: [
-        27,
+        8,
         43,
         26,
         31,
@@ -1037,7 +1037,7 @@ NightBattlePacket {
         32,
     ],
     enemy_nowhps: [
-        107,
+        121,
         0,
         0,
         0,
@@ -1057,22 +1057,22 @@ NightBattlePacket {
         -1,
     ],
     flare_pos: [
-        -1,
+        11,
         -1,
     ],
     hougeki: Some(
         BattleNightHougeki {
             api_at_eflag: [
-                0,
                 1,
+                0,
                 0,
                 0,
                 0,
                 0,
             ],
             api_at_list: [
-                6,
                 0,
+                7,
                 8,
                 9,
                 10,
@@ -1088,11 +1088,11 @@ NightBattlePacket {
             ],
             api_df_list: [
                 [
-                    0,
+                    11,
+                    11,
                 ],
                 [
-                    7,
-                    7,
+                    0,
                 ],
                 [
                     0,
@@ -1109,16 +1109,16 @@ NightBattlePacket {
             ],
             api_si_list: [
                 [
-                    Num(
-                        -1,
-                    ),
-                ],
-                [
                     Text(
                         "1509",
                     ),
                     Text(
                         "1512",
+                    ),
+                ],
+                [
+                    Num(
+                        10,
                     ),
                 ],
                 [
@@ -1144,9 +1144,6 @@ NightBattlePacket {
             ],
             api_cl_list: [
                 [
-                    2,
-                ],
-                [
                     1,
                     1,
                 ],
@@ -1160,12 +1157,15 @@ NightBattlePacket {
                     1,
                 ],
                 [
-                    0,
+                    1,
+                ],
+                [
+                    1,
                 ],
             ],
             api_sp_list: [
-                0,
                 1,
+                0,
                 0,
                 0,
                 0,
@@ -1173,23 +1173,23 @@ NightBattlePacket {
             ],
             api_damage: [
                 [
-                    14,
-                ],
-                [
-                    23,
-                    10,
-                ],
-                [
+                    1,
                     18,
                 ],
                 [
-                    10,
+                    37,
                 ],
                 [
-                    7,
+                    52,
                 ],
                 [
-                    0,
+                    3,
+                ],
+                [
+                    2,
+                ],
+                [
+                    1,
                 ],
             ],
         },

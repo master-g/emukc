@@ -610,9 +610,8 @@ mod tests {
                 enemy_data.name
             );
             let (ship, slot_items) = result.unwrap();
+            // Her stats hold her equipment's too: `an_abyssal_ships_stats_hold_her_equipments`.
             assert_eq!(ship.api_nowhp, enemy_data.hp.max(1), "HP mismatch for {ship_id}");
-            assert_eq!(ship.api_karyoku[0], enemy_data.firepower, "FP mismatch for {ship_id}");
-            assert_eq!(ship.api_soukou[0], enemy_data.armor, "Armor mismatch for {ship_id}");
             assert_eq!(
                 slot_items.len(),
                 enemy_data.slots.len(),

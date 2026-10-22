@@ -6,7 +6,7 @@ BattlePacket {
     ],
     friendly_nowhps: [
         90,
-        60,
+        19,
         77,
         79,
         59,
@@ -20,7 +20,7 @@ BattlePacket {
     ],
     enemy_nowhps: [
         111,
-        50,
+        79,
         0,
         0,
         0,
@@ -583,7 +583,7 @@ BattlePacket {
                     87,
                 ],
                 [
-                    30,
+                    71,
                 ],
                 [
                     88,
@@ -660,7 +660,7 @@ BattlePacket {
                     5,
                 ],
                 [
-                    1,
+                    2,
                 ],
                 [
                     1,
@@ -757,14 +757,14 @@ BattlePacket {
                     0,
                 ],
                 [
-                    117,
-                    110,
+                    55,
+                    48,
                 ],
                 [
                     0,
                 ],
                 [
-                    55,
+                    69,
                 ],
                 [
                     63,
@@ -921,13 +921,13 @@ BattlePacket {
                     84,
                 ],
                 [
-                    6,
-                ],
-                [
-                    6,
-                ],
-                [
                     10,
+                ],
+                [
+                    9,
+                ],
+                [
+                    16,
                 ],
             ],
         },
@@ -983,12 +983,12 @@ BattlePacket {
                 0,
                 0,
                 0,
-                7,
+                12,
                 33,
                 0,
                 12,
-                7,
-                7,
+                11,
+                11,
             ],
             api_erai: [
                 -1,
@@ -1008,7 +1008,7 @@ BattlePacket {
             ],
             api_edam: [
                 45,
-                21,
+                34,
                 0,
                 0,
                 0,
@@ -1027,7 +1027,7 @@ BattlePacket {
 }
 BattleOutcome {
     win_rank: A,
-    mvp: 2,
+    mvp: 4,
     can_midnight: true,
 }
 NightBattlePacket {
@@ -1054,7 +1054,7 @@ NightBattlePacket {
     ],
     enemy_nowhps: [
         111,
-        50,
+        79,
         0,
         0,
         0,

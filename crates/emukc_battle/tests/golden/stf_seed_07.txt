@@ -7,7 +7,7 @@ BattlePacket {
     friendly_nowhps: [
         90,
         90,
-        45,
+        33,
         79,
         53,
         53,
@@ -601,7 +601,7 @@ BattlePacket {
                     43,
                 ],
                 [
-                    32,
+                    44,
                 ],
                 [
                     2,

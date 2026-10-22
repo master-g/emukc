@@ -10,6 +10,7 @@ use emukc_battle::{
     BattlePacket, BattleRaigeki, BattleRuntimeShip, BattleShipInput, CombinedFleetRole,
     NightBattlePacket,
 };
+use emukc_model::codex::Codex;
 use emukc_model::kc2::{KcApiShip, KcApiSlotItem};
 
 /// Day battle API response.
@@ -147,7 +148,7 @@ impl DayBattleResponse {
     /// `_getNum(index, "api_ship_ke", "api_ship_ke_combined")` takes indices
     /// from 6 up out of the second array.
     #[must_use]
-    pub fn with_enemy_escort(mut self, escort: &[BattleShipInput]) -> Self {
+    pub fn with_enemy_escort(mut self, codex: &Codex, escort: &[BattleShipInput]) -> Self {
         self.api_ship_ke_combined = Some(escort.iter().map(|ship| ship.ship.api_ship_id).collect());
         self.api_ship_lv_combined = Some(escort.iter().map(|ship| ship.ship.api_lv).collect());
         self.api_e_nowhps_combined = Some(escort.iter().map(|ship| ship.ship.api_nowhp).collect());
@@ -155,7 +156,7 @@ impl DayBattleResponse {
         self.api_eSlot_combined =
             Some(escort.iter().map(|ship| enemy_slot_ids(&ship.ship, &ship.slot_items)).collect());
         self.api_eParam_combined =
-            Some(escort.iter().map(|ship| ship_params(&ship.ship)).collect());
+            Some(escort.iter().map(|ship| enemy_params(codex, &ship.ship)).collect());
         self
     }
 }
@@ -187,6 +188,7 @@ impl NightBattleResponse {
     #[must_use]
     pub fn with_enemy_decks(
         mut self,
+        codex: &Codex,
         main: &[BattleRuntimeShip],
         escort: &[BattleRuntimeShip],
         fought: CombinedFleetRole,
@@ -206,8 +208,9 @@ impl NightBattleResponse {
         let slots = |deck: &[BattleRuntimeShip]| {
             deck.iter().map(|s| enemy_slot_ids(&s.ship, &s.slot_items)).collect()
         };
-        let params =
-            |deck: &[BattleRuntimeShip]| deck.iter().map(|s| ship_params(&s.ship)).collect();
+        let params = |deck: &[BattleRuntimeShip]| {
+            deck.iter().map(|s| enemy_params(codex, &s.ship)).collect()
+        };
 
         self.api_ship_ke = ids(main);
         self.api_ship_lv = lvs(main);
@@ -250,10 +253,19 @@ fn ship_params(ship: &KcApiShip) -> [i64; 4] {
     [ship.api_karyoku[0], ship.api_raisou[0], ship.api_taiku[0], ship.api_soukou[0]]
 }
 
+/// The `api_eParam` quadruple: an abyssal ship's own figures, which leave out the equipment
+/// she fights with; anyone else's (a rival's) as [`ship_params`].
+fn enemy_params(codex: &Codex, ship: &KcApiShip) -> [i64; 4] {
+    codex
+        .find_enemy_ship_extra(ship.api_ship_id)
+        .map_or_else(|_| ship_params(ship), |own| [own.firepower, own.torpedo, own.aa, own.armor])
+}
+
 /// Build a day-battle API response.
 ///
 /// HP arrays come from the ships as they entered the node, not from the packet.
 pub fn build_day_response(
+    codex: &Codex,
     deck_id: i64,
     friendly: &[BattleShipInput],
     enemy: &[BattleShipInput],
@@ -273,7 +285,7 @@ pub fn build_day_response(
         api_e_nowhps: enemy.iter().map(|ship| ship.ship.api_nowhp).collect(),
         api_e_maxhps: enemy.iter().map(|ship| ship.ship.api_maxhp).collect(),
         api_eSlot: enemy.iter().map(|ship| enemy_slot_ids(&ship.ship, &ship.slot_items)).collect(),
-        api_eParam: enemy.iter().map(|ship| ship_params(&ship.ship)).collect(),
+        api_eParam: enemy.iter().map(|ship| enemy_params(codex, &ship.ship)).collect(),
         api_ship_ke_combined: None,
         api_ship_lv_combined: None,
         api_e_nowhps_combined: None,
@@ -314,6 +326,7 @@ pub fn build_day_response(
 ///
 /// HP arrays come from the packet, which already reflects the night phase.
 pub fn build_night_response(
+    codex: &Codex,
     deck_id: i64,
     friendly: &[BattleRuntimeShip],
     enemy: &[BattleRuntimeShip],
@@ -333,7 +346,7 @@ pub fn build_night_response(
         api_e_nowhps: packet.enemy_nowhps,
         api_e_maxhps: packet.enemy_maxhps,
         api_eSlot: enemy.iter().map(|ship| enemy_slot_ids(&ship.ship, &ship.slot_items)).collect(),
-        api_eParam: enemy.iter().map(|ship| ship_params(&ship.ship)).collect(),
+        api_eParam: enemy.iter().map(|ship| enemy_params(codex, &ship.ship)).collect(),
         api_ship_ke_combined: None,
         api_ship_lv_combined: None,
         api_e_nowhps_combined: None,
@@ -450,7 +463,7 @@ mod tests {
             test_input(test_ship(20, 20), vec![], vec![7, 8]),
         ];
 
-        let resp = build_day_response(1, &friendly, &enemy, test_packet());
+        let resp = build_day_response(&Codex::default(), 1, &friendly, &enemy, test_packet());
 
         assert_eq!(resp.api_e_effect_list, vec![vec![0], vec![7, 8]]);
     }
@@ -465,7 +478,7 @@ mod tests {
             test_input(test_ship(20, 20), vec![test_slot_item(525)], vec![0]),
         ];
 
-        let resp = build_day_response(1, &friendly, &enemy, test_packet());
+        let resp = build_day_response(&Codex::default(), 1, &friendly, &enemy, test_packet());
 
         assert_eq!(resp.api_eSlot, vec![[101, -1, -1, -1, -1], [525, -1, -1, -1, -1]]);
     }
@@ -478,12 +491,27 @@ mod tests {
         packet.friendly_nowhps = vec![3];
         packet.enemy_nowhps = vec![0];
 
-        let resp = build_day_response(1, &friendly, &enemy, packet);
+        let resp = build_day_response(&Codex::default(), 1, &friendly, &enemy, packet);
 
         assert_eq!(resp.api_f_nowhps, vec![31]);
         assert_eq!(resp.api_f_maxhps, vec![40]);
         assert_eq!(resp.api_e_nowhps, vec![12]);
         assert_eq!(resp.api_e_maxhps, vec![20]);
+    }
+
+    /// `api_eParam` shows an abyssal ship's own figures (`docs/apilist.txt`: 敵基礎ステータス),
+    /// though she fights with her equipment's as well.
+    #[test]
+    fn day_response_shows_an_abyssal_ships_own_params() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let friendly = vec![test_input(test_ship(10, 10), vec![], vec![0])];
+        // 駆逐ラ級, whose two guns add 火力 20 and 対空 32 and whose torpedo adds 雷装 18.
+        let (ra, slot_items) = codex.new_enemy_ship(2264).unwrap();
+        let enemy = vec![test_input(ra, slot_items, vec![0])];
+
+        let resp = build_day_response(&codex, 1, &friendly, &enemy, test_packet());
+
+        assert_eq!(resp.api_eParam, vec![[158, 158, 148, 158]]);
     }
 }
 
@@ -616,7 +644,7 @@ mod combined_tests {
         };
         let mut rng = SeededRng::new(SEED);
         let simulation = execute_day(codex, context, &mut rng);
-        build_day_response(1, &main, &enemy, simulation.packet).with_escort_deck(&escort)
+        build_day_response(codex, 1, &main, &enemy, simulation.packet).with_escort_deck(&escort)
     }
 
     /// Packet indices of the friendly attackers in one shelling round.
@@ -717,7 +745,7 @@ mod combined_tests {
         let context = BattleContext::head_on(BattleType::Normal, true, main.clone(), enemy.clone());
         let mut rng = SeededRng::new(SEED);
         let simulation = execute_day(&codex, context, &mut rng);
-        let resp = build_day_response(1, &main, &enemy, simulation.packet);
+        let resp = build_day_response(&codex, 1, &main, &enemy, simulation.packet);
 
         let json = serde_json::to_value(&resp).unwrap();
         for key in ["api_f_nowhps_combined", "api_f_maxhps_combined", "api_fParam_combined"] {

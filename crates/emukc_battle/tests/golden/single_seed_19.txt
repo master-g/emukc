@@ -7,7 +7,7 @@ BattlePacket {
     friendly_nowhps: [
         90,
         77,
-        30,
+        15,
         19,
         43,
         31,
@@ -953,7 +953,7 @@ BattlePacket {
                     9,
                 ],
                 [
-                    14,
+                    29,
                 ],
                 [
                     36,
@@ -979,7 +979,7 @@ BattlePacket {
             api_frai: [
                 -1,
                 -1,
-                0,
+                -1,
                 -1,
                 0,
                 -1,
@@ -987,7 +987,7 @@ BattlePacket {
             api_fcl: [
                 0,
                 0,
-                1,
+                0,
                 0,
                 1,
                 0,
@@ -1003,7 +1003,7 @@ BattlePacket {
             api_fydam: [
                 0,
                 0,
-                1,
+                0,
                 0,
                 18,
                 0,
@@ -1025,7 +1025,7 @@ BattlePacket {
                 0,
             ],
             api_edam: [
-                19,
+                18,
                 0,
                 0,
                 0,
@@ -1057,7 +1057,7 @@ NightBattlePacket {
     friendly_nowhps: [
         90,
         77,
-        30,
+        15,
         19,
         43,
         31,
