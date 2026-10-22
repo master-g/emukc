@@ -803,8 +803,22 @@ pub(crate) fn can_opening_asw(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
         && (always_opening_asw(codex, ship) || asw >= 100 && sonar && id < PLAYABLE_ID_END)
 }
 
+/// Whether a ship picked to open with ASW still has her shot when her turn comes
+/// (`shellPhaseTarget`, `kcsim.js:1086`): `canASW` again, so a light carrier needs a plane left
+/// after the air battle, and 鈴谷航改二 / 熊野航改二 hold while a surface ship is afloat.
+pub(crate) fn has_opening_asw_shot(
+    codex: &Codex,
+    ship: &BattleRuntimeShip,
+    defenders: &[BattleRuntimeShip],
+) -> bool {
+    can_asw(codex, ship)
+        && (!ASW_LAST_IDS.contains(&ship.ship.api_ship_id)
+            || surface_candidates(codex, defenders).is_empty())
+}
+
 /// `CVL.canOASW` (`kcships.js:2100-2116`): she must carry a dive or torpedo bomber, autogyro or
-/// patrol plane with anti-submarine, whether or not it has aircraft left; then the source's
+/// patrol plane with anti-submarine, whether or not it has aircraft left (her turn asks that,
+/// `has_opening_asw_shot`); then the source's
 /// always, or a torpedo bomber, autogyro or patrol plane at 7 or more with 50 anti-submarine and
 /// a sonar (65 without, or for `ASW_LAST_IDS`), or a sonar and 100.
 fn light_carrier_opening_asw(
@@ -861,10 +875,15 @@ fn always_opening_asw(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
 
 /// Whether a ship may attack a submarine at all (her class's `canASW`, `kcships.js`), for
 /// opening ASW: her own anti-submarine for the escorts, a depth charge for the tenders and
-/// 扶桑改二 / 山城改二, aircraft for the aviation ships, or for an abyssal one any anti-submarine
-/// of her own. Day shelling still asks `can_attack_submarine_day_shelling` (#285).
+/// 扶桑改二 / 山城改二, aircraft for the aviation ships and light carriers, or for an abyssal one
+/// any anti-submarine of her own (an abyssal light carrier always). Day shelling still asks
+/// `can_attack_submarine_day_shelling` (#285).
 fn can_asw(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     let id = ship.ship.api_ship_id;
+    // `CVL.canASW` with `isOASW`, which 加賀改二護 takes too.
+    if id == KAGA_KAI_NI_GO || ship_type(codex, ship) == Some(KcShipType::CVL) {
+        return id >= PLAYABLE_ID_END || has_asw_plane_aloft(codex, ship);
+    }
     let own_asw = || crate::damage::base_asw(codex, ship) > 0.0;
     let depth_charge = || has_slotitem_type(codex, ship, KcSlotItemType3::DepthCharge);
     // `CAV.canASW`.
@@ -1716,12 +1735,51 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let hyuuga = |items: &[i64]| can_opening_asw(&codex, &oasw_ship(&codex, 554, items, 0));
         assert!(hyuuga(&[326]));
+        assert!(hyuuga(&[326, 327]));
         assert!(hyuuga(&[69, 324]));
         assert!(!hyuuga(&[69]));
         // 扶桑改二 attacks a submarine with a depth charge, with no aircraft.
         let fusou = |items: &[i64]| can_opening_asw(&codex, &oasw_ship(&codex, 411, items, 100));
         assert!(fusou(&[44, 46]));
         assert!(!fusou(&[46]));
+    }
+
+    #[test]
+    fn oasw_turn_needs_a_plane_left_and_holds_the_asw_last() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
+        let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
+        let defender =
+            |mst_id| BattleRuntimeShip::new(sample_ship(&codex, mst_id, 50), false, true);
+        let submarines = [defender(ss_mst)];
+        let with_a_destroyer = [defender(ss_mst), defender(dd_mst)];
+
+        // 龍驤 picked with her 九七式艦攻(九三一空), and the air battle took it all.
+        let mut ryuujou = oasw_ship(&codex, 157, &[82, 46], 50);
+        assert!(has_opening_asw_shot(&codex, &ryuujou, &submarines));
+        ryuujou.ship.api_onslot = [0; 5];
+        assert!(can_opening_asw(&codex, &ryuujou));
+        assert!(!has_opening_asw_shot(&codex, &ryuujou, &submarines));
+        // An abyssal light carrier asks no plane (軽母ヌ級, none left either).
+        let (mut nu, slot_items) = codex.new_enemy_ship(1510).unwrap();
+        nu.api_onslot = [0; 5];
+        let nu = BattleRuntimeShip::new(
+            BattleShipInput {
+                ship: nu,
+                slot_items,
+                aircraft_exp: vec![],
+                effect_list: vec![0],
+                married: false,
+            },
+            false,
+            true,
+        );
+        assert!(has_opening_asw_shot(&codex, &nu, &submarines));
+
+        // 鈴谷航改二 waits for the surface ships to go.
+        let suzuya = oasw_ship(&codex, 508, &[82, 46], 65);
+        assert!(has_opening_asw_shot(&codex, &suzuya, &submarines));
+        assert!(!has_opening_asw_shot(&codex, &suzuya, &with_a_destroyer));
     }
 
     #[test]

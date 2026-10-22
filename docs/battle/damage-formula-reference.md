@@ -212,13 +212,8 @@ Pre-cap: formation, engagement, damage state
 
 Post-cap: critical, ammo
 
-**OASW conditions** (先制対潜):
-- DE: ASW ≥ 60 + sonar
-- DD/CL/CT/CLT/AO: ASW ≥ 100 + sonar
-- CVL: ASW ≥ 65 + ASW aircraft
-- CVB: ASW ≥ 100 + ASW aircraft
-- BBV: ASW ≥ 100 + large sonar + ASW aircraft
-- **Missing**: Isuzu K2, Tatsuta K2 unconditional OASW
+**OASW conditions** (先制対潜): the source's `canOASW` per ship, unconditional ones included
+(#271); see `docs/solutions/architecture-patterns/opening-asw.md`.
 
 **Current code** (`calculate_asw_damage`, `damage.rs`):
 ```rust
@@ -234,7 +229,7 @@ let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
 | W1 | ASW armor penetration (`√(DC_asw − 2) × 0.25`) | No DC-specific armor reduction |
 | W2 | Damage state modifier | Missing |
 | W3 | Defense randomization | Fixed `A×0.7` |
-| W4 | Special unconditional OASW (Isuzu K2, Tatsuta K2) | Missing ship-specific OASW |
+| W4 | Special unconditional OASW (Isuzu K2, Tatsuta K2) | Done (#271) |
 | W5 | Critical hit | Not implemented |
 | W6 | Ammo modifier | Not implemented |
 
@@ -242,7 +237,7 @@ let armor = defender.ship.api_soukou[0].max(0) as f64 * 0.7;
 - Basic power formula `√base×2 + equip×1.5 + class` ✓ (#231; it had `√equip` and summed 8 and 13)
 - ASW synergy values (1.4375, 1.265, 1.15, 1.1) ✓
 - Formation modifiers (diamond 1.2, echelon 1.1, abreast 1.3) ✓
-- OASW threshold conditions for standard ship types ✓
+- OASW conditions per ship, as the source has them ✓ (#271)
 
 ### 2.5 Night Battle (夜戦)
 
@@ -520,6 +515,7 @@ is authoritative and supersedes the per-section "Current code" snippets above.
 | CL fit gun bonus | `light_gun_bonus` |
 | Night recon bonus | `night_recon_bonus` |
 | ASW synergy / DC projector bonus | `calculate_asw_damage` (`has_dc_projector`) |
+| Special unconditional OASW | `can_opening_asw`, `simulation/always_oasw.rs` (#271) |
 
 ### Remaining Gaps
 
@@ -528,7 +524,6 @@ is authoritative and supersedes the per-section "Current code" snippets above.
 | 8 | Critical hit (1.5× + `api_cl`=2) | All | Open — `api_cl` hardcoded to 1; needs trigger rate + post-cap 1.5× + flag |
 | 9 | Contact modifier | Airstrike | Open — pre-cap multiplier when aerial contact established |
 | 13 | ASW armor penetration (`D_bonus`) | ASW | Open — no item-ID armor reduction in the defense formula |
-| 14 | Special unconditional OASW (Isuzu K2 etc.) | ASW | Open / unverified — ship-ID trigger conditions |
 | 15 | Torpedo bomber ×0.8/×1.5 random per slot | Airstrike | Open |
 | 16 | Carrier night air attack | Night | Open — large; `calculate_night_damage` has no carrier-air formula |
 | 17 | Per-bomber-type airstrike cap | Airstrike | Partial — single per-slot `AIRSTRIKE_CAP`; per-type separation unverified |
@@ -575,7 +570,7 @@ Phase 5: Night battle fidelity
 
 Phase 6: ASW refinement
   ├─ [open] ASW armor penetration
-  ├─ [open] Special unconditional OASW
+  ├─ [done] Special unconditional OASW
   └─ [done] DC projector item ID distinction
 ```
 
