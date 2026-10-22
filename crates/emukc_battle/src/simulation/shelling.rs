@@ -15,6 +15,7 @@ use crate::types::{
 };
 use emukc_model::codex::Codex;
 use emukc_model::kc2::start2::ApiMstSlotitem;
+use emukc_model::kc2::types::KcSlotItemType3;
 
 /// One round of day shelling: who fires, at whom, and in what order.
 pub(crate) struct ShellingRound<'a> {
@@ -30,6 +31,8 @@ pub(crate) struct ShellingRound<'a> {
     pub enemy_formation: i64,
     pub engagement: EngagementType,
     pub air_state: Option<&'a AirState>,
+    /// The fleet LOS each side spots with, friendly then enemy ([`fleet_los`]).
+    pub fleet_los: [i64; 2],
 }
 
 /// Simulate one round of day shelling. The two sides fire ship by ship in
@@ -64,10 +67,10 @@ pub(crate) fn simulate_shelling_round(
     let Volleys {
         friendly: friendly_volley,
         enemy: enemy_volley,
+        ..
     } = &round.volleys;
 
-    let friendly_los = fleet_los(friendly_volley.attackers_in(friendly));
-    let enemy_los = fleet_los(enemy_volley.attackers_in(enemy));
+    let [friendly_los, enemy_los] = round.fleet_los;
     // The orders are fixed when the round begins; a ship sunk before its turn
     // comes loses it.
     let can_shell = |ship: &BattleRuntimeShip| can_shell_day_ship(codex, ship);
@@ -118,8 +121,40 @@ pub(crate) fn simulate_shelling_round(
     (!hougeki.api_at_list.is_empty()).then_some(hougeki)
 }
 
-fn fleet_los(ships: &[BattleRuntimeShip]) -> i64 {
-    ships.iter().map(|s| s.ship.api_sakuteki[0].max(0)).sum()
+/// A fleet's line of sight for artillery spotting (`fleetLoS`, `kcships.js:101-117`): each
+/// afloat ship's own, and each recon seaplane's or seaplane bomber's (`B_RECON`) LOS times the
+/// floor of the root of the aircraft it has left. Other equipment and 装備ボーナス add nothing.
+pub(crate) fn fleet_los(codex: &Codex, ships: &[BattleRuntimeShip]) -> i64 {
+    let recon = |ship: &BattleRuntimeShip| -> i64 {
+        ship.slot_items
+            .iter()
+            .zip(ship.ship.api_onslot)
+            .filter_map(|(item, onslot)| {
+                let mst = codex.find::<ApiMstSlotitem>(&item.api_slotitem_id).ok()?;
+                matches!(
+                    KcSlotItemType3::n(mst.api_type[2]),
+                    Some(KcSlotItemType3::SeaBasedRecon | KcSlotItemType3::SeaBasedBomber)
+                )
+                .then(|| mst.api_saku * onslot.max(0).isqrt())
+            })
+            .sum()
+    };
+    ships
+        .iter()
+        .filter(|ship| !ship.is_sunk())
+        .map(|ship| bare_los(codex, ship) + recon(ship))
+        .sum()
+}
+
+/// A ship's line of sight without her equipment or what it grants (`statsBase.LOS`): grown with
+/// her level, as `Codex::cal_ship_status` builds it. An abyssal ship's is the enemy data's.
+fn bare_los(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
+    if let Ok(enemy) = codex.find_enemy_ship_extra(ship.ship.api_ship_id) {
+        return enemy.los;
+    }
+    codex
+        .find_ship_extra(ship.ship.api_ship_id)
+        .map_or(0, |basic| Codex::stat_at_level(ship.ship.api_lv, basic.saku))
 }
 
 /// The ships of one side that `can_fire`, in the order they will: longest
@@ -178,7 +213,7 @@ pub(crate) fn simulate_shelling_side(
     defenders: &mut [BattleRuntimeShip],
     params: &ShellingParams,
 ) -> Option<BattleHougeki> {
-    let los = fleet_los(attackers);
+    let los = fleet_los(codex, attackers);
     let whole = Volley {
         attackers: 0..attackers.len(),
         targets: 0..defenders.len(),
@@ -374,6 +409,32 @@ mod tests {
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
+
+    /// The source's `fleetLoS` (`kcships.js:101-117`): each afloat ship's own LOS, and a recon
+    /// seaplane's or seaplane bomber's LOS times the floor of the root of its aircraft.
+    #[test]
+    fn fleet_los_counts_own_los_and_recon_planes_by_their_aircraft() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 最上改 at Lv50: 22 + floor(37 × 50 / 99) = 40 of her own, 零式水上偵察機 (LOS 5) with 4
+        // aircraft 5 × 2, 零式水上観測機 (6) with 3 6 × 1.
+        let mut mogami = sample_ship(&codex, 73, 50);
+        mogami.slot_items = vec![slotitem_with_mst_id(25), slotitem_with_mst_id(59)];
+        mogami.ship.api_onslot = [4, 3, 0, 0, 0];
+        // 睦月 at Lv99: 17; her 22号対水上電探 (5) does not count.
+        let mut mutsuki = sample_ship(&codex, 1, 99);
+        mutsuki.slot_items = vec![slotitem_with_mst_id(28)];
+        // 如月, sunk, counts nothing.
+        let mut kisaragi = sample_ship(&codex, 2, 99);
+        kisaragi.ship.api_nowhp = 0;
+        let fleet: Vec<_> =
+            [mogami, mutsuki, kisaragi].into_iter().map(BattleRuntimeShip::from).collect();
+        assert_eq!(super::fleet_los(&codex, &fleet), 40 + 10 + 6 + 17);
+
+        // 駆逐ラ級: 100 of her own, her 深海SG's 12 not counted. 重巡リ級flagship: 20, and her
+        // 深海棲艦偵察機 (5) with 4 aircraft 5 × 2.
+        let abyssal = [abyssal_ship(&codex, 2264), abyssal_ship(&codex, 1527)];
+        assert_eq!(super::fleet_los(&codex, &abyssal), 100 + 20 + 10);
+    }
 
     /// Run one day-shelling side and return its hougeki, attacker = enemy side
     /// (so the friendly flagship is the defender) when `attacker_is_enemy`.
@@ -731,6 +792,10 @@ mod tests {
                         enemy_formation: 1,
                         engagement: EngagementType::SameCourse,
                         air_state: Some(&air_state),
+                        fleet_los: [
+                            super::fleet_los(&codex, &friendly),
+                            super::fleet_los(&codex, &enemy),
+                        ],
                     };
                     let hougeki = simulate_shelling_round(
                         &codex,
@@ -1003,6 +1068,7 @@ mod tests {
                     enemy_formation: 1,
                     engagement: EngagementType::SameCourse,
                     air_state: None,
+                    fleet_los: [0; 2],
                 };
                 let hougeki = simulate_shelling_round(
                     codex,

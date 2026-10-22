@@ -10,11 +10,11 @@ use crate::combined::{CombinedFleetRole, CombinedType};
 use crate::config::{BattleFlow, BattlePhaseKind};
 use crate::random::BattleRng;
 use crate::simulation::shelling::ShellingRound;
-use crate::simulation::volley::Volleys;
+use crate::simulation::volley::{Volley, Volleys, deck_ships};
 use crate::state::{BattleState, CombinedLayout};
 use crate::targeting::{any_alive, can_closing_torpedo, can_opening_torpedo, fleet_has_bb_class};
 use crate::types::{
-    AirState, BattleContext, BattleHougeki, BattleSimulation, NightBattleInput,
+    AirState, BattleContext, BattleHougeki, BattleRuntimeShip, BattleSimulation, NightBattleInput,
     NightBattleSimulation,
 };
 
@@ -205,6 +205,7 @@ fn shelling_round(
     }
     let air_state =
         state.kouku().and_then(|k| AirState::from_api_disp_seiku(k.api_stage1.api_disp_seiku));
+    let fleet_los = spotting_los(codex, state, &volleys);
     let round = ShellingRound {
         volleys,
         by_range,
@@ -212,6 +213,7 @@ fn shelling_round(
         enemy_formation: state.enemy_formation_id(),
         engagement: state.engagement(),
         air_state: air_state.as_ref(),
+        fleet_los,
     };
     shelling::simulate_shelling_round(
         codex,
@@ -221,6 +223,19 @@ fn shelling_round(
         &round,
         &mut state.special_attack_used,
     )
+}
+
+/// The fleet LOS each side spots with in a round, friendly then enemy: that of
+/// the deck it fires with, or of the whole fleet in a `combined_all` round
+/// ([`Volleys::combined_all`]). Taken afresh each round, so a ship sunk in the
+/// first round no longer counts in the second; the source keeps `fleetLoS` from
+/// its first roll on (`kcsim.js:3814`), and this departs from it by choice.
+fn spotting_los(codex: &Codex, state: &BattleState, volleys: &Volleys) -> [i64; 2] {
+    let side = |fleet: &[BattleRuntimeShip], volley: &Volley| match volleys.combined_all {
+        true => shelling::fleet_los(codex, fleet),
+        false => shelling::fleet_los(codex, deck_ships(fleet, volley.deck(fleet))),
+    };
+    [side(&state.friendly, &volleys.friendly), side(&state.enemy, &volleys.enemy)]
 }
 
 /// Simulate a day battle for a friendly single fleet against an enemy combined
@@ -481,6 +496,48 @@ mod tests {
     use crate::types::{BattleContext, BattleType};
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::{KcShipType, KcSlotItemType3};
+
+    /// A deck's fleet LOS is taken afresh each round: a ship sunk in the first round no longer
+    /// counts in the second, where the source would keep her (`kcsim.js:3814`).
+    #[test]
+    fn a_ship_sunk_in_one_round_no_longer_spots_in_the_next() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 睦月 and 如月 at Lv99, 17 each; 駆逐ラ級, 100.
+        let friendly = vec![sample_ship(&codex, 1, 99), sample_ship(&codex, 2, 99)];
+        let context = BattleContext::head_on(
+            BattleType::Normal,
+            true,
+            friendly,
+            vec![abyssal_input(&codex, 2264)],
+        );
+        let mut state = BattleState::from_context(&codex, context);
+        let volleys = Volleys::whole(&state.friendly, &state.enemy);
+        assert_eq!(spotting_los(&codex, &state, &volleys), [34, 100]);
+        state.friendly[1].current_hp = 0;
+        assert_eq!(spotting_los(&codex, &state, &volleys), [17, 100]);
+    }
+
+    /// In the battleship round against an enemy combined fleet both its decks are fired at, and
+    /// its main fleet spots with both decks' LOS (`shellPhaseC` passes `combinedAll`,
+    /// `kcships.js:1489`); a single fleet has no other deck.
+    #[test]
+    fn an_enemy_main_fleet_spots_with_both_decks_in_the_battleship_round() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 睦月 at Lv99, 17. 駆逐ラ級 100 in the main fleet; 重巡リ級flagship 20, and 10 for her
+        // 深海棲艦偵察機 (LOS 5) with 4 aircraft, in the escort fleet.
+        let mut context = BattleContext::head_on(
+            BattleType::Normal,
+            true,
+            vec![sample_ship(&codex, 1, 99)],
+            vec![abyssal_input(&codex, 2264)],
+        );
+        context.enemy_escort_ships = vec![abyssal_input(&codex, 1527)];
+        let state = BattleState::from_context(&codex, context);
+        let against_main = Volleys::enemy_combined_round(1, &state.friendly, &state.enemy);
+        assert_eq!(spotting_los(&codex, &state, &against_main), [17, 100]);
+        let battleship_round = Volleys::enemy_combined_round(2, &state.friendly, &state.enemy);
+        assert_eq!(spotting_los(&codex, &state, &battleship_round), [17, 130]);
+    }
 
     #[test]
     fn sortie_day_battle_enables_midnight_when_both_sides_survive() {

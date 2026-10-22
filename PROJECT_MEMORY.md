@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-22 · branch `fix/abyssal-ev-los-luck`
+Last updated: 2026-10-22 · branch `fix/fleet-los`
 
 ## Verified Facts
 
@@ -131,6 +131,7 @@ Current verification baseline:
 - [2026-10-19] `sortie_*` 昼战入口收 `impl Into<SortieOrder>`，`(pid, 1)` 照旧可用（冻结的 `battle_golden.rs` 也这样调）。
 - [2026-10-22] 鈴谷/熊野航改二有水面敌舰在就不先制对潜（`isASWlast`，`kcsim.js:1086`），用户定保留；实机未核实。
 - [2026-10-22] 敌舰 `api_*` 是本体加装备总值、`api_eParam` 给本体；对潜/回避/索敌/运取来源，其余五项取 kcwiki（两边各有错）；未处理的射程/速力差异：`abyssal-ship-stats.md`。
+- [2026-10-22] 弾着観測的舰队索敌每轮重算，用户定偏离来源整场沿用（沉没舰仍计）；实机无证据。
 
 ## Failed Attempts / Pitfalls
 
@@ -171,11 +172,11 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-22] #289 的 PR 待合并（`fix/abyssal-ev-los-luck`，不补计划，用户定）：fmt、严格 clippy、`test --workspace` 1667 过 0 忽略；golden 未变，夜战一处伤害 366→371（数据所致）。
+- [2026-10-22] #290 的 PR #296 待合并（计划 004）：fmt、严格 clippy、`test --workspace` 1670 过 0 忽略；golden 8/180 重冻。
 
 ## Next Session
 
-- [2026-10-22] 合并 #289 的 PR。用户定开的后续：#293 kcwiki 错的四艘、#294 射程/速力。之后 #290、#291、#282（用户定要做）、#285。不做：`isSummerCV` 等 19 艘不在常规图、`bonusSpecialP` 是活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
+- [2026-10-22] 合并 #296（先问）。之后 #291、#282（用户定要做，已顺延 6 次）、#285；#293、#294 待 triage。不做：`isSummerCV` 等 19 艘不在常规图，`bonusSpecialP` 活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
   改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   源码按 `kancolle-replay@69097abc` 重取 `js/`（`js/simulator-ui/common.js` 有气球格、环礁格表），常数写作 `.39`（勿只搜 `0.39`），装备类型以源码 `type` 为准；`en.kancollewiki.net` 有人机验证。

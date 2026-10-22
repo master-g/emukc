@@ -63,6 +63,26 @@ impl Volley {
     pub(crate) fn target_at(&self, idx: usize) -> usize {
         self.targets.start + idx
     }
+
+    /// The deck of `fleet` that fires; a single fleet is all main deck.
+    pub(crate) fn deck(&self, fleet: &[BattleRuntimeShip]) -> CombinedFleetRole {
+        match fleet.get(self.attackers.start).is_some_and(BattleRuntimeShip::is_escort_deck) {
+            true => CombinedFleetRole::Escort,
+            false => CombinedFleetRole::Main,
+        }
+    }
+}
+
+/// The ships of one deck of `fleet`; a single fleet is all main deck and has no escort.
+pub(crate) fn deck_ships(
+    fleet: &[BattleRuntimeShip],
+    deck: CombinedFleetRole,
+) -> &[BattleRuntimeShip] {
+    let escort = fleet.iter().position(BattleRuntimeShip::is_escort_deck).unwrap_or(fleet.len());
+    match deck {
+        CombinedFleetRole::Main => &fleet[..escort],
+        CombinedFleetRole::Escort => &fleet[escort..],
+    }
 }
 
 /// Both sides' fire in a phase.
@@ -70,6 +90,12 @@ impl Volley {
 pub(crate) struct Volleys {
     pub(crate) friendly: Volley,
     pub(crate) enemy: Volley,
+    /// Whether a combined fleet spots with both its decks' LOS rather than the
+    /// firing deck's: in a round in which both decks of the other side are fired
+    /// at (the source's `shellPhaseC`, which passes `combinedAll` to `ASchance`,
+    /// `kcships.js:1489`). Here only the battleship round against an enemy
+    /// combined fleet is one.
+    pub(crate) combined_all: bool,
 }
 
 impl Volleys {
@@ -124,12 +150,15 @@ impl Volleys {
         enemy: &[BattleRuntimeShip],
     ) -> Self {
         let escort = escort_start(enemy);
-        let (fires, fired_at) = match round {
-            0 => (escort..enemy.len(), escort..enemy.len()),
-            1 => (0..escort, 0..escort),
-            _ => (0..escort, 0..enemy.len()),
+        let (fires, fired_at, combined_all) = match round {
+            0 => (escort..enemy.len(), escort..enemy.len(), false),
+            1 => (0..escort, 0..escort, false),
+            _ => (0..escort, 0..enemy.len(), true),
         };
-        Self::between(0..friendly.len(), fires, fired_at)
+        Self {
+            combined_all,
+            ..Self::between(0..friendly.len(), fires, fired_at)
+        }
     }
 
     /// `friendly` fires at `enemy_targets`, and `enemy` fires back at `friendly`.
@@ -147,6 +176,7 @@ impl Volleys {
                 attackers: enemy,
                 targets: friendly,
             },
+            combined_all: false,
         }
     }
 }
@@ -195,6 +225,7 @@ mod tests {
         let Volleys {
             friendly,
             enemy,
+            ..
         } = volleys;
         (friendly.attackers, friendly.targets, enemy.attackers, enemy.targets)
     }
@@ -240,5 +271,14 @@ mod tests {
         assert_eq!(ranges(round(0)), (0..6, 4..10, 4..10, 0..6));
         assert_eq!(ranges(round(1)), (0..6, 0..4, 0..4, 0..6));
         assert_eq!(ranges(round(2)), (0..6, 0..10, 0..4, 0..6));
+        // Only in that last round both decks are fired at, and a combined fleet spots with both.
+        assert_eq!([0, 1, 2].map(|n| round(n).combined_all), [false, false, true]);
+        assert!(!Volleys::whole(&single.friendly, &single.enemy).combined_all);
+        let main_round = Volleys::friendly_deck_round(
+            CombinedFleetRole::Main,
+            &combined.friendly,
+            &combined.enemy,
+        );
+        assert!(!main_round.combined_all);
     }
 }

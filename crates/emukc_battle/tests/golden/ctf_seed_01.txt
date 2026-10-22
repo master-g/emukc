@@ -20,7 +20,7 @@ BattlePacket {
     ],
     enemy_nowhps: [
         198,
-        92,
+        76,
         0,
         0,
         0,
@@ -857,7 +857,7 @@ BattlePacket {
                 0,
                 0,
                 7,
-                0,
+                7,
                 0,
                 0,
             ],
@@ -924,8 +924,14 @@ BattlePacket {
                     ),
                 ],
                 [
-                    Num(
-                        -1,
+                    Text(
+                        "21",
+                    ),
+                    Text(
+                        "24",
+                    ),
+                    Text(
+                        "16",
                     ),
                 ],
                 [
@@ -984,7 +990,7 @@ BattlePacket {
                     22,
                 ],
                 [
-                    14,
+                    30,
                 ],
                 [
                     20,
@@ -1117,7 +1123,7 @@ NightBattlePacket {
     ],
     enemy_nowhps: [
         198,
-        92,
+        76,
         0,
         0,
         0,
