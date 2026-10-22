@@ -95,9 +95,6 @@ pub(crate) struct BattleState {
     balloon_cell: bool,
     /// Whether each side, friendly then enemy, has made its special attack.
     pub(crate) special_attack_used: [bool; 2],
-    /// Each deck's fleet LOS for artillery spotting, friendly then enemy, main then escort, once
-    /// taken (`simulation::spotting_los`).
-    pub(crate) fleet_los: [[Option<i64>; 2]; 2],
 }
 
 impl BattleState {
@@ -182,7 +179,6 @@ impl BattleState {
             smoke_type: 0,
             balloon_cell: false,
             special_attack_used: [context.special_attacks_made.gunnery, false],
-            fleet_los: [[None; 2]; 2],
         }
     }
 
@@ -221,7 +217,6 @@ impl BattleState {
             smoke_type: 0,
             balloon_cell: false,
             special_attack_used: [false; 2],
-            fleet_los: [[None; 2]; 2],
         }
     }
 

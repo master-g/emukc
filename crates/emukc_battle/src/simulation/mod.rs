@@ -10,11 +10,11 @@ use crate::combined::{CombinedFleetRole, CombinedType};
 use crate::config::{BattleFlow, BattlePhaseKind};
 use crate::random::BattleRng;
 use crate::simulation::shelling::ShellingRound;
-use crate::simulation::volley::{Volleys, deck_ships};
+use crate::simulation::volley::{Volley, Volleys, deck_ships};
 use crate::state::{BattleState, CombinedLayout};
 use crate::targeting::{any_alive, can_closing_torpedo, can_opening_torpedo, fleet_has_bb_class};
 use crate::types::{
-    AirState, BattleContext, BattleHougeki, BattleSimulation, NightBattleInput,
+    AirState, BattleContext, BattleHougeki, BattleRuntimeShip, BattleSimulation, NightBattleInput,
     NightBattleSimulation,
 };
 
@@ -226,35 +226,16 @@ fn shelling_round(
 }
 
 /// The fleet LOS each side spots with in a round, friendly then enemy: that of
-/// the deck it fires with, or of every deck it has in a `combined_all` round
-/// ([`Volleys::combined_all`]). A deck's is taken the first time it is asked for
-/// in the day's shelling and kept, as the source keeps `fleetLoS` once the
-/// opening torpedo has cleared it (`kcsim.js:3814`): a ship sunk in the first
-/// round still counts in the second.
-// ponytail: taken when the deck's first round begins; the source waits for the
-// deck's first spotting roll, which may come rounds later (an enemy escort fleet
-// with no recon plane first rolls in the battleship round, through the main
-// fleet's `combinedAll`), so a ship sunk before that roll counts here only.
-fn spotting_los(codex: &Codex, state: &mut BattleState, volleys: &Volleys) -> [i64; 2] {
-    let mut side = |enemy: bool| -> i64 {
-        let (fleet, volley) = match enemy {
-            true => (&state.enemy, &volleys.enemy),
-            false => (&state.friendly, &volleys.friendly),
-        };
-        let decks = match volleys.combined_all {
-            true => vec![CombinedFleetRole::Main, CombinedFleetRole::Escort],
-            false => vec![volley.deck(fleet)],
-        };
-        decks
-            .into_iter()
-            .map(|deck| {
-                let slot = usize::from(deck == CombinedFleetRole::Escort);
-                *state.fleet_los[usize::from(enemy)][slot]
-                    .get_or_insert_with(|| shelling::fleet_los(codex, deck_ships(fleet, deck)))
-            })
-            .sum()
+/// the deck it fires with, or of the whole fleet in a `combined_all` round
+/// ([`Volleys::combined_all`]). Taken afresh each round, so a ship sunk in the
+/// first round no longer counts in the second; the source keeps `fleetLoS` from
+/// its first roll on (`kcsim.js:3814`), and this departs from it by choice.
+fn spotting_los(codex: &Codex, state: &BattleState, volleys: &Volleys) -> [i64; 2] {
+    let side = |fleet: &[BattleRuntimeShip], volley: &Volley| match volleys.combined_all {
+        true => shelling::fleet_los(codex, fleet),
+        false => shelling::fleet_los(codex, deck_ships(fleet, volley.deck(fleet))),
     };
-    [side(false), side(true)]
+    [side(&state.friendly, &volleys.friendly), side(&state.enemy, &volleys.enemy)]
 }
 
 /// Simulate a day battle for a friendly single fleet against an enemy combined
@@ -516,11 +497,10 @@ mod tests {
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::{KcShipType, KcSlotItemType3};
 
-    /// A deck's fleet LOS is taken the first time it fires in the shelling and kept, as the
-    /// source keeps `fleetLoS` once the opening torpedo has cleared it (`kcsim.js:3814`): a ship
-    /// sunk in the first round still counts in the second.
+    /// A deck's fleet LOS is taken afresh each round: a ship sunk in the first round no longer
+    /// counts in the second, where the source would keep her (`kcsim.js:3814`).
     #[test]
-    fn a_decks_fleet_los_is_kept_from_its_first_shelling_round() {
+    fn a_ship_sunk_in_one_round_no_longer_spots_in_the_next() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         // 睦月 and 如月 at Lv99, 17 each; 駆逐ラ級, 100.
         let friendly = vec![sample_ship(&codex, 1, 99), sample_ship(&codex, 2, 99)];
@@ -532,9 +512,9 @@ mod tests {
         );
         let mut state = BattleState::from_context(&codex, context);
         let volleys = Volleys::whole(&state.friendly, &state.enemy);
-        assert_eq!(spotting_los(&codex, &mut state, &volleys), [34, 100]);
+        assert_eq!(spotting_los(&codex, &state, &volleys), [34, 100]);
         state.friendly[1].current_hp = 0;
-        assert_eq!(spotting_los(&codex, &mut state, &volleys), [34, 100]);
+        assert_eq!(spotting_los(&codex, &state, &volleys), [17, 100]);
     }
 
     /// In the battleship round against an enemy combined fleet both its decks are fired at, and
@@ -552,11 +532,11 @@ mod tests {
             vec![abyssal_input(&codex, 2264)],
         );
         context.enemy_escort_ships = vec![abyssal_input(&codex, 1527)];
-        let mut state = BattleState::from_context(&codex, context);
+        let state = BattleState::from_context(&codex, context);
         let against_main = Volleys::enemy_combined_round(1, &state.friendly, &state.enemy);
-        assert_eq!(spotting_los(&codex, &mut state, &against_main), [17, 100]);
+        assert_eq!(spotting_los(&codex, &state, &against_main), [17, 100]);
         let battleship_round = Volleys::enemy_combined_round(2, &state.friendly, &state.enemy);
-        assert_eq!(spotting_los(&codex, &mut state, &battleship_round), [17, 130]);
+        assert_eq!(spotting_los(&codex, &state, &battleship_round), [17, 130]);
     }
 
     #[test]
