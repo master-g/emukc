@@ -548,9 +548,19 @@ pub(crate) fn has_slotitem_id(ship: &BattleRuntimeShip, wanted: i64) -> bool {
 // Phase eligibility — per-ship checks
 // ---------------------------------------------------------------------------
 
+/// Whether a ship has torpedo of her own (`hasTorpStat`, `kcships.js:1000`): her hull's with its
+/// 近代化改修, as `Codex::cal_ship_status` builds it before her equipment's; an abyssal hull's is
+/// the enemy data's. A carrier's torpedo bombers add to her total, a player's and an abyssal
+/// one's alike, but do not make her fire torpedoes.
+fn has_own_torpedo(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+    const TORPEDO_MODERNIZATION: usize = 1;
+    let hull = ship_mst(codex, ship).and_then(|mst| mst.api_raig).map_or(0, |raig| raig[0]);
+    hull + ship.ship.api_kyouka[TORPEDO_MODERNIZATION] > 0
+}
+
 /// Whether a single ship may participate in the opening torpedo phase.
 pub(crate) fn can_opening_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
-    if ship.is_sunk() || ship.ship.api_raisou[0] <= 0 {
+    if ship.is_sunk() || !has_own_torpedo(codex, ship) {
         return false;
     }
 
@@ -569,13 +579,13 @@ pub(crate) fn can_opening_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) 
 }
 
 /// Whether a single ship may participate in the closing torpedo phase.
-pub(crate) fn can_closing_torpedo_ship(_codex: &Codex, ship: &BattleRuntimeShip) -> bool {
+pub(crate) fn can_closing_torpedo_ship(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     // Base torpedo stat is the sole eligibility gate (wikiwiki 戦闘について): any
-    // ship type with `api_raisou[0] > 0` participates — including BBs with a base
+    // ship type with torpedo of her own participates — including BBs with a base
     // torpedo (Bismarck drei, 金剛型第三改装, Гангут, …) that a ship-type whitelist
     // wrongly excluded — while ship types with base torpedo 0 (DE, LHA, most BB,
     // carriers) fall out naturally.
-    if ship.is_sunk() || ship.ship.api_raisou[0] <= 0 {
+    if ship.is_sunk() || !has_own_torpedo(codex, ship) {
         return false;
     }
 
@@ -641,7 +651,7 @@ pub(crate) fn attack_capability_for_phase(
 ) -> AttackCapability {
     match phase {
         BattlePhase::OpeningTorpedo | BattlePhase::ClosingTorpedo => {
-            if ship.is_alive() && ship.ship.api_raisou[0] > 0 {
+            if ship.is_alive() && has_own_torpedo(codex, ship) {
                 AttackCapability::SurfaceOnly
             } else {
                 AttackCapability::CannotAttack
@@ -1906,12 +1916,6 @@ mod tests {
         let rt_sunk = BattleRuntimeShip::new(sunk, false, true);
         assert!(!can_closing_torpedo_ship(&codex, &rt_sunk));
 
-        // Zero raisou: rejected by pre-existing filter
-        let mut zero_raisou = sample_ship(&codex, dd_mst, 50);
-        zero_raisou.ship.api_raisou[0] = 0;
-        let rt_zero_raisou = BattleRuntimeShip::from(zero_raisou);
-        assert!(!can_closing_torpedo_ship(&codex, &rt_zero_raisou));
-
         // A stock BB has base torpedo 0, so the stat gate excludes it (a BB *with*
         // base torpedo is covered by closing_torpedo_includes_battleship_with_base_torpedo).
         let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
@@ -1979,11 +1983,13 @@ mod tests {
     #[test]
     fn opening_torpedo_seaplane_tender_with_minisub() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let av_mst = first_ship_mst_by_type(&codex, KcShipType::AV);
+        // 千歳甲: torpedo 15 of her own.
+        let av_mst = ship_mst_id_by_name(&codex, "千歳甲");
         let minisub = first_slotitem_mst_by_type(&codex, KcSlotItemType3::SpecialSubmarineVessel);
 
         // Base torpedo but no 甲標的 → ineligible (AV is not CLT/SS/SSV).
         let mut bare = sample_ship(&codex, av_mst, 99);
+        bare.slot_items.clear();
         bare.ship.api_raisou[0] = 50;
         let rt_bare = BattleRuntimeShip::new(bare, false, true);
         assert!(
@@ -2354,21 +2360,6 @@ mod tests {
     // ── Closing torpedo eligibility (plan 002 U2: base-torpedo stat is the gate,
     //    no ship-type whitelist) ───────────────────────────────────────────────
 
-    fn closing_torpedo_ship(
-        codex: &Codex,
-        ty: KcShipType,
-        raisou: i64,
-        nowhp: i64,
-        maxhp: i64,
-    ) -> BattleRuntimeShip {
-        let mst = first_ship_mst_by_type(codex, ty);
-        let mut input = sample_ship(codex, mst, 80);
-        input.ship.api_raisou[0] = raisou;
-        input.ship.api_nowhp = nowhp;
-        input.ship.api_maxhp = maxhp;
-        BattleRuntimeShip::new(input, true, true)
-    }
-
     /// U1 / 5.9: a carrier with no attack planes cannot shell in day battle;
     /// loading a bomber makes it eligible. (Complements the fighter-only
     /// integration test in shelling.rs, which keeps planes loaded but non-attacking.)
@@ -2399,10 +2390,26 @@ mod tests {
     #[test]
     fn closing_torpedo_includes_battleship_with_base_torpedo() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let bb = closing_torpedo_ship(&codex, KcShipType::BB, 50, 90, 90);
+        // Bismarck drei: torpedo 16 of her own.
+        let drei = sample_ship(&codex, ship_mst_id_by_name(&codex, "Bismarck drei"), 80);
+        let bb = BattleRuntimeShip::new(drei, true, true);
         assert!(
             can_closing_torpedo_ship(&codex, &bb),
             "a BB with base torpedo > 0 must fire closing torpedo (no type whitelist)"
         );
+    }
+
+    /// Torpedo of her own decides whether she fires one (`hasTorpStat`, `kcships.js:1000`), not
+    /// what her torpedo bombers add to it.
+    #[test]
+    fn a_torpedo_bomber_does_not_make_a_carrier_fire_torpedoes() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 赤城 has none of her own, with her 九七式艦攻's 5 that `cal_ship_status` adds.
+        let mut akagi = sample_ship(&codex, ship_mst_id_by_name(&codex, "赤城"), 99);
+        akagi.ship.api_raisou[0] = 5;
+        let akagi = BattleRuntimeShip::new(akagi, true, true);
+        assert!(!can_closing_torpedo_ship(&codex, &akagi));
+        // 駆逐ラ級 has.
+        assert!(can_closing_torpedo_ship(&codex, &abyssal_ship(&codex, 2264)));
     }
 }

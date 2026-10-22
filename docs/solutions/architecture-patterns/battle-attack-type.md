@@ -45,12 +45,16 @@ The following gates hold (all in `can_*` helpers in `targeting.rs`):
   firepower. Equipment selects the display type only when present — it is not a
   participation gate. (`day_attack_display_ids`)
 - **Closing torpedo is base-torpedo gated, and damage-state gated.** A ship
-  fires closing torpedo when `api_raisou[0] > 0` (base torpedo) **and** it is
+  fires closing torpedo when she has torpedo of her own — her hull's
+  (`api_raig[0]`) with its 近代化改修, the source's `hasTorpStat`
+  (`has_own_torpedo`), so a carrier's torpedo bombers do not count and a forced
+  `api_raisou[0]` does not either — **and** it is
   not chūha-or-worse — strictly `hp() * 2 > api_maxhp` (HP above 50%). There is
   **no ship-type whitelist**: BBs with base torpedo are included; DE / LHA and
   others with base torpedo 0 are excluded. (`can_closing_torpedo_ship`)
 - **Opening torpedo is equipment / type gated, and ignores damage state.**
-  Precondition `api_raisou[0] > 0`. Then: CLT always fires; SS / SSV fire when
+  Precondition: torpedo of her own, as above (ours; the source's `canOpTorp`
+  does not ask it). Then: CLT always fires; SS / SSV fire when
   `api_lv >= 10` **or** equipped with 特殊潜航艇 (甲標的,
   `SpecialSubmarineVessel`); every other ship type fires only when equipped
   with 甲標的. Unlike closing torpedo, **damage state does not block opening
