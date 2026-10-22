@@ -725,6 +725,20 @@ mod tests {
         }
     }
 
+    /// `ship_extra` carries what start2 lacks; a player ship without it cannot be built (#182).
+    #[test]
+    fn every_player_ship_has_ship_extra() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let missing: Vec<i64> = codex
+            .manifest
+            .api_mst_ship
+            .iter()
+            .filter(|m| m.api_id <= 1500 && codex.find_ship_extra(m.api_id).is_err())
+            .map(|m| m.api_id)
+            .collect();
+        assert!(missing.is_empty(), "no ship_extra for {missing:?}");
+    }
+
     #[test]
     fn equipment_bonus_is_part_of_the_ship_stats() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
