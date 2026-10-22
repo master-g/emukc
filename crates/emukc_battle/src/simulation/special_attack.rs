@@ -933,6 +933,7 @@ mod tests {
                     enemy_formation: 1,
                     engagement: EngagementType::SameCourse,
                     air_state: None,
+                    fleet_los: [0; 2],
                 };
                 let hougeki = simulate_shelling_round(
                     &codex,
@@ -1101,6 +1102,7 @@ mod tests {
                     enemy_formation: 1,
                     engagement: crate::types::EngagementType::SameCourse,
                     air_state: None,
+                    fleet_los: [0; 2],
                 };
                 simulate_shelling_round(
                     &codex,
@@ -1197,6 +1199,7 @@ mod tests {
                 enemy_formation: 1,
                 engagement: crate::types::EngagementType::SameCourse,
                 air_state: None,
+                fleet_los: [0; 2],
             };
             let hougeki = simulate_shelling_round(
                 &codex,

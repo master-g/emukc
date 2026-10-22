@@ -36,6 +36,7 @@ the rules that ask it. Here they derive it:
 | Takes part in torpedo phases | `hasTorpStat` | the hull's `api_raig` with 近代化改修 (`targeting::has_own_torpedo`) |
 | Carrier night air attack | `statsBase.FP + statsBase.TP` | the hull's `api_houg`/`api_raig` (`night_air_power`) |
 | Friendly 加重対空 | `statsBase.AA / 2` | total less equipment (`weighted_anti_air`); an enemy takes `sqrt` of her total, as the source does |
+| Fleet LOS for artillery spotting | `statsBase.LOS` (`fleetLoS`) | the level-grown hull figure, an abyssal ship's from the enemy data (`shelling::bare_los`) |
 
 The codex `start2` entries of abyssal ships carry her own firepower, torpedo, anti-air and armour,
 equal to `enemy_ship_extra` for all 889 (2026-10-22), so a hull lookup gives her own figure too.

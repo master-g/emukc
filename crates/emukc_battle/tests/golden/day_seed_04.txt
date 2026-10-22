@@ -6,16 +6,16 @@ BattlePacket {
     ],
     friendly_nowhps: [
         49,
-        60,
+        49,
     ],
     enemy_nowhps: [
-        40,
+        0,
         0,
     ],
     smoke_type: 0,
     balloon_cell: 0,
     atoll_cell: 0,
-    midnight_flag: 1,
+    midnight_flag: 0,
     search: [
         1,
         1,
@@ -224,7 +224,7 @@ BattlePacket {
             ],
             api_at_type: [
                 0,
-                0,
+                2,
                 0,
             ],
             api_df_list: [
@@ -232,6 +232,7 @@ BattlePacket {
                     0,
                 ],
                 [
+                    1,
                     1,
                 ],
                 [
@@ -245,8 +246,11 @@ BattlePacket {
                     ),
                 ],
                 [
-                    Num(
-                        105,
+                    Text(
+                        "105",
+                    ),
+                    Text(
+                        "8",
                     ),
                 ],
                 [
@@ -260,10 +264,11 @@ BattlePacket {
                     0,
                 ],
                 [
-                    0,
+                    1,
+                    1,
                 ],
                 [
-                    0,
+                    2,
                 ],
             ],
             api_damage: [
@@ -271,10 +276,11 @@ BattlePacket {
                     0,
                 ],
                 [
-                    0,
+                    4,
+                    7,
                 ],
                 [
-                    0,
+                    179,
                 ],
             ],
         },
