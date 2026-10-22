@@ -69,7 +69,7 @@ pub(crate) const GEAR_BONUS: RepoAsset = asset!("gear_bonus", embedded);
 pub(crate) const SEASONS: RepoAsset = asset!("seasons", embedded);
 pub(crate) const REMODEL_TABLES: RepoAsset = asset!("remodel_tables", embedded);
 pub(crate) const PORT_API_SEED: RepoAsset = asset!("port_api_seed", embedded);
-pub(crate) const ABYSSAL_ASW: RepoAsset = asset!("abyssal_asw", embedded);
+pub(crate) const ABYSSAL_STATS: RepoAsset = asset!("abyssal_stats", embedded);
 
 /// Every checked-in asset. The cache-list inputs without an embedded copy are
 /// still found next to whatever rules file a caller names (see
@@ -95,7 +95,7 @@ pub const REPO_ASSETS: &[RepoAsset] = &[
     SEASONS,
     REMODEL_TABLES,
     PORT_API_SEED,
-    ABYSSAL_ASW,
+    ABYSSAL_STATS,
     asset!("resource_manifest"),
     asset!("resource_categories"),
     asset!("resource_id_sets"),

@@ -4039,7 +4039,7 @@ mod abyssal_carrier_tests {
         let hougeki = night.packet.hougeki.unwrap();
         let hers = hougeki.api_at_eflag.iter().position(|side| *side == 1).unwrap();
         assert_eq!(hougeki.api_cl_list[hers], [1]);
-        assert_eq!(format!("{:?}", hougeki.api_damage[hers]), "[366]");
+        assert_eq!(format!("{:?}", hougeki.api_damage[hers]), "[371]");
         // At half her hull the deck is shut, and her mark still has her attack.
         let damaged = abyssal(&codex, SOUTH_PACIFIC, 50);
         assert!(!can_night_air_attack(&codex, &damaged));
