@@ -675,7 +675,8 @@ pub(crate) fn attack_capability_for_phase(
 // ASW eligibility
 // ---------------------------------------------------------------------------
 
-/// Whether a ship can attack submarines during day shelling.
+/// Whether a ship can attack submarines during day shelling. The escorts and cruisers need
+/// anti-submarine of their own (`DD.canASW`, `statsBase.ASW`), not just from their equipment.
 pub(crate) fn can_attack_submarine_day_shelling(codex: &Codex, ship: &BattleRuntimeShip) -> bool {
     if ship.is_sunk() || ship.ship.api_taisen[0] <= 0 {
         return false;
@@ -689,7 +690,7 @@ pub(crate) fn can_attack_submarine_day_shelling(codex: &Codex, ship: &BattleRunt
             | KcShipType::CLT
             | KcShipType::CT
             | KcShipType::AO,
-        ) => true,
+        ) => crate::damage::base_asw(codex, ship) > 0.0,
         Some(
             KcShipType::BBV | KcShipType::CAV | KcShipType::AV | KcShipType::LHA | KcShipType::CVL,
         ) => has_active_asw_aircraft(codex, ship),
@@ -711,7 +712,7 @@ pub(crate) fn can_attack_submarine_night_shelling(codex: &Codex, ship: &BattleRu
             | KcShipType::CLT
             | KcShipType::CT
             | KcShipType::AO,
-        ) => ship.ship.api_taisen[0] > 0,
+        ) => crate::damage::base_asw(codex, ship) > 0.0,
         // `canASWNight`: a light carrier needs anti-submarine of her own, with or without
         // aircraft for it; a fleet or armoured carrier does not attack a submarine at night.
         Some(KcShipType::CVL) => can_attack_night_ship(codex, ship) && bare_asw(codex, ship) > 0,
@@ -719,21 +720,12 @@ pub(crate) fn can_attack_submarine_night_shelling(codex: &Codex, ship: &BattleRu
     }
 }
 
-/// The source's anti-submarine of an abyssal carrier that has any (`ABYSSAL_CARRIER_ASW`).
-pub(crate) fn abyssal_carrier_asw(mst_id: i64) -> Option<i64> {
-    crate::simulation::abyssal_night::ABYSSAL_CARRIER_ASW
-        .iter()
-        .find(|(id, _)| *id == mst_id)
-        .map(|(_, asw)| *asw)
-}
-
 /// A ship's anti-submarine without her equipment or what it grants: grown with her level, plus
-/// 近代化改修, as `Codex::cal_ship_status` builds it. An abyssal carrier's is the source's, the
-/// enemy data in the codex having none for her.
+/// 近代化改修, as `Codex::cal_ship_status` builds it. An abyssal ship's is the enemy data's.
 fn bare_asw(codex: &Codex, ship: &BattleRuntimeShip) -> i64 {
     const ASW_MODERNIZATION: usize = 6;
-    if let Some(asw) = abyssal_carrier_asw(ship.ship.api_ship_id) {
-        return asw;
+    if let Ok(enemy) = codex.find_enemy_ship_extra(ship.ship.api_ship_id) {
+        return enemy.asw;
     }
     codex.find_ship_extra(ship.ship.api_ship_id).map_or(0, |basic| {
         Codex::stat_at_level(ship.ship.api_lv, basic.tais) + ship.ship.api_kyouka[ASW_MODERNIZATION]
@@ -1782,6 +1774,21 @@ mod tests {
         assert!(!has_opening_asw_shot(&codex, &suzuya, &with_a_destroyer));
     }
 
+    /// `DD.canASW` asks her own anti-submarine, by day and at night: 防空棲姫's equipment has 対潜
+    /// 5 and she has none of her own.
+    #[test]
+    fn an_escort_with_anti_submarine_from_her_equipment_only_leaves_submarines() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let ship = abyssal_ship(&codex, 1629);
+        assert_eq!(ship.ship.api_taisen[0], 5);
+        assert!(!can_attack_submarine_day_shelling(&codex, &ship));
+        assert!(!can_attack_submarine_night_shelling(&codex, &ship));
+        // 駆逐ラ級 has 100 of her own.
+        let ship = abyssal_ship(&codex, 2264);
+        assert!(can_attack_submarine_day_shelling(&codex, &ship));
+        assert!(can_attack_submarine_night_shelling(&codex, &ship));
+    }
+
     #[test]
     fn oasw_abyssal_ships_need_the_source_mark() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
@@ -1798,8 +1805,7 @@ mod tests {
             };
             BattleRuntimeShip::new(input, false, true)
         };
-        // 駆逐ハ級後期型elite is marked, and one of the few with anti-submarine in the codex (#284);
-        // 駆逐ロ級後期型elite is not, sonar and 120 or no.
+        // 駆逐ハ級後期型elite is marked; 駆逐ロ級後期型elite is not, sonar and 120 or no.
         assert!(can_opening_asw(&codex, &abyssal(1623)));
         assert!(!can_opening_asw(&codex, &abyssal(1622)));
     }

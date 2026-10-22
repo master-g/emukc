@@ -87,12 +87,12 @@ carriers with a `nightattack` mark, and the 74 with `hasBuiltInNightCrew`.
 - The enemy fires by position, as the player does. The source's "enemy always skips to the
   next capable ship" is its NPC friend fleet's night only.
 - An enemy light carrier attacks a submarine at night by the rule above: anti-submarine of
-  her own above zero. `enemy_ship_extra.json` gives every enemy carrier 0, so `bare_asw` takes
-  it from a third generated table, `ABYSSAL_CARRIER_ASW`: the 40 light carriers (30 marked 3,
-  10 with a crew and no mark) whose `ASW` in the source is above zero. One marked 3 takes a
-  submarine without the searchlight; a submarine is all she can take in the dark. After a day
-  battle such a hit is a scratch, as any; in a night-start battle its power counts the same
-  table's figure as her own anti-submarine (`damage::base_asw`, the source's `statsBase.ASW`).
+  her own above zero. `bare_asw` reads it from the codex's enemy data, which takes the source's
+  `ASW` for every abyssal ship (`abyssal_asw.json`, #284): 40 light carriers (30 marked 3, 10
+  with a crew and no mark) have some. One marked 3 takes a submarine without the searchlight; a
+  submarine is all she can take in the dark. After a day battle such a hit is a scratch, as any;
+  in a night-start battle its power counts that figure as her own anti-submarine
+  (`damage::base_asw`, the source's `statsBase.ASW`).
 
 ## The power
 

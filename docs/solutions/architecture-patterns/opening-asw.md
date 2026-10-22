@@ -58,5 +58,5 @@ repair ships need a depth charge. Day shelling does not use it yet (#285).
 
 ## Known gaps
 
-- Most abyssal ships have no anti-submarine in the codex (#284), so most of the 71 fail `can_asw`
-  and do not open with ASW until that data is filled.
+- An abyssal ship's anti-submarine is the source's, with her equipment's in her total (#284), but
+  her other stats still leave out her equipment (#287).

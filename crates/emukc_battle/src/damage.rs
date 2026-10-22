@@ -25,9 +25,8 @@ use crate::random::BattleRng;
 use crate::simulation::installation_types::{FIGHTER_BOMBERS, INSTALLATION_BOMBERS};
 use crate::simulation::night::carrier_torpedo_bonus;
 use crate::targeting::{
-    abyssal_carrier_asw, bonus_gears, count_slotitems, has_slotitem_type, is_airstrike_attack_type,
-    is_ap_shell_type, is_main_gun_type, is_radar_type, is_secondary_gun_type, ship_mst, ship_type,
-    target_class,
+    bonus_gears, count_slotitems, has_slotitem_type, is_airstrike_attack_type, is_ap_shell_type,
+    is_main_gun_type, is_radar_type, is_secondary_gun_type, ship_mst, ship_type, target_class,
 };
 use crate::types::{BattlePhase, BattleRuntimeShip, EngagementType};
 
@@ -931,13 +930,8 @@ pub(crate) fn asw_basic_power(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
 }
 
 /// A ship's own anti-submarine for her attack on a submarine (`statsBase.ASW`): her total less
-/// her equipment's and what its 装備ボーナス grants, leaving level and modernization. An abyssal
-/// carrier the source lets attack one takes the source's figure, the codex giving her none
-/// (`ABYSSAL_CARRIER_ASW`).
+/// her equipment's and what its 装備ボーナス grants, leaving level and modernization.
 pub(crate) fn base_asw(codex: &Codex, ship: &BattleRuntimeShip) -> f64 {
-    if let Some(asw) = abyssal_carrier_asw(ship.ship.api_ship_id) {
-        return asw as f64;
-    }
     (ship.ship.api_taisen[0].max(0) as f64
         - equipment_asw_total(codex, ship)
         - bonus_asw(codex, ship))
@@ -2336,6 +2330,15 @@ mod tests {
         assert_close(asw_power_of(&codex, dd, 60, &[47]), 2.0 * 50f64.sqrt() + 15.0 + 13.0);
         // A seaplane recon's 対潜 (零式水上偵察機, 2) leaves her base and adds nothing.
         assert_close(asw_power_of(&codex, dd, 62, &[47, 25]), 2.0 * 50f64.sqrt() + 15.0 + 13.0);
+    }
+
+    /// An abyssal ship's own anti-submarine is the enemy data's: her total holds her equipment's,
+    /// as the source's does, and leaves it for the equipment term.
+    #[test]
+    fn an_abyssal_ships_own_anti_submarine_is_her_datas() {
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        // 駆逐ラ級: 100 of her own, 46 of her equipment's.
+        assert_close(base_asw(&codex, &abyssal_ship(&codex, 2264)), 100.0);
     }
 
     /// A class that attacks submarines with aircraft takes 8, never 8 and 13 together.

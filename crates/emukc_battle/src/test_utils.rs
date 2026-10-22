@@ -25,6 +25,19 @@ pub(crate) fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipI
     }
 }
 
+/// An abyssal ship as a sortie meets her, at full health.
+pub(crate) fn abyssal_ship(codex: &Codex, mst_id: i64) -> BattleRuntimeShip {
+    let (ship, slot_items) = codex.new_enemy_ship(mst_id).unwrap();
+    let input = BattleShipInput {
+        ship,
+        slot_items,
+        aircraft_exp: vec![],
+        effect_list: vec![0],
+        married: false,
+    };
+    BattleRuntimeShip::new(input, false, true)
+}
+
 pub(crate) fn first_ship_mst_by_type(codex: &Codex, ship_type: KcShipType) -> i64 {
     codex
         .manifest
