@@ -171,12 +171,9 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-27] PR #301（`fix/size-check-media-only`）：长度捷径只留给 png/mp3（#298 后续）；质量门 1672 过、0 忽略。
+- [2026-10-27] PR #303（`docs/account-import-field-map`）：`docs/research/` 账号导入字段对照，抓取脚本补图鉴/预设/付费道具（10-27 快照 48 请求全成功），缓存路径文档改 `<cache_root>`；只动文档与 Python，未跑 cargo。
 
 ## Next Session
 
-- [2026-10-27] #291、#282（用户定要做，已顺延 6 次）、#285；#293、#294、#300 待 triage；#297、#299 已 ready-for-agent。不做：`isSummerCV` 等 19 艘不在常规图，`bonusSpecialP` 活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
-  改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
-  演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
-  源码按 `kancolle-replay@69097abc` 重取 `js/`（`js/simulator-ui/common.js` 有气球格、环礁格表），常数写作 `.39`（勿只搜 `0.39`），装备类型以源码 `type` 为准；`en.kancollewiki.net` 有人机验证。
-  验证客户端演出先读 `main.decoded.js` 与缓存再跑 `make headless-check`；立绘位置比修复前后截图。多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。带种子的战斗测试落空时换种子、不放宽断言。数字先读到再写。
+- [2026-10-27] 用户定先做账号导入（战斗收益低）：按字段对照写计划，第一刀舰娘/装备/舰队/资源；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗的来源、验证与不做清单见 `docs/solutions/best-practices/battle-work-notes.md`。
+  季节＝某天的状态，非常规版。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。数字先读到再写。

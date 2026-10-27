@@ -28,7 +28,7 @@ graceful-degradation behavior when CDNs are unconfigured, and the
 **Download kcs_const.js.**
 
 - Download `gadget_html5/js/kcs_const.js` from the configured `gadgets_cdn`
-  to `z/cache/gadget_html5/js/kcs_const.js` during bootstrap.
+  to `<cache_root>/gadget_html5/js/kcs_const.js` during bootstrap.
 - When the target file does not exist, download it from the first available
   CDN in `gadgets_cdn`.
 - When the target file already exists and `--overwrite` is not passed, skip
@@ -49,7 +49,7 @@ graceful-degradation behavior when CDNs are unconfigured, and the
 **Download version.json.**
 
 - Download `kcs2/version.json` from the configured `game_cdn` to
-  `z/cache/kcs2/version.json` during bootstrap.
+  `<cache_root>/kcs2/version.json` during bootstrap.
 - When the target file does not exist, download it from the configured
   `game_cdn`.
 - When the target file already exists and `--overwrite` is not passed, skip
@@ -89,7 +89,7 @@ repeat runs avoid network entirely when only the Codex build is needed.
 ## Examples
 
 - Fresh clone, `game_cdn` configured, `main.js` absent: bootstrap downloads
-  it to `z/cache/kcs2/js/main.js`.
+  it to `<cache_root>/kcs2/js/main.js`.
 - `gadgets_cdn` empty: bootstrap builds the Codex, then logs a warn and fails
   at the web assets without downloading any of them.
 - A new client: `main.js` of the old version stays in the cache history, and

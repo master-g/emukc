@@ -50,6 +50,9 @@ READ_ONLY = [
     ("api_get_member/useitem", ""),
     ("api_get_member/preset_deck", ""),
     ("api_get_member/practice", ""),
+    ("api_get_member/preset_slot", ""),
+    ("api_get_member/preset_dev_items", ""),
+    ("api_get_member/payitem", ""),
     ("api_req_kousyou/remodel_slotlist", ""),
     ("api_start2/getData", ""),
     # The server filters by tab, so every tab is its own sample.
@@ -98,6 +101,14 @@ def selftest():
     print("port_api_key selftest ok")
 
 
+def book_pages(start2):
+    """The album pages that hold anything: 70 entries a page by sortno, `api_no` from 1 (AlbumAPI)."""
+    for kind, key in ((1, "api_mst_ship"), (2, "api_mst_slotitem")):
+        pages = {(m["api_sortno"] - 1) // 70 + 1 for m in start2[key] if m.get("api_sortno", 0) > 0}
+        for no in sorted(pages):
+            yield "api_get_member/picture_book", f"&api_type={kind}&api_no={no}"
+
+
 def call(host, token, endpoint, extra=""):
     payload = f"api_token={token}&api_verno=1{extra}"
     referer = (
@@ -137,19 +148,26 @@ def main():
     targets = list(READ_ONLY)
     if args.member_id:
         key = port_api_key(args.member_id)
-        targets.append(("api_port/port", f"&api_sort_key=5&spi_sort_order=2&api_port={key}"))
+        # First: the key signs the current second, and the album pages make the run long.
+        targets.insert(0, ("api_port/port", f"&api_sort_key=5&spi_sort_order=2&api_port={key}"))
 
-    for endpoint, extra in targets:
+    start2 = None
+    while targets:
+        endpoint, extra = targets.pop(0)
         name = endpoint.replace("/", "_")
-        if extra:
-            tab = urllib.parse.parse_qs(extra.lstrip("&")).get("api_tab_id")
-            if tab:
-                name += f"_tab{tab[0]}"
+        qs = urllib.parse.parse_qs(extra.lstrip("&"))
+        if "api_tab_id" in qs:
+            name += f"_tab{qs['api_tab_id'][0]}"
+        if "api_no" in qs:
+            name += f"_type{qs['api_type'][0]}_no{qs['api_no'][0]}"
         try:
             data = call(host, token, endpoint, extra)
         except Exception as err:  # a dead session or a 404 is data, not a crash
             print(f"{endpoint:40} FAILED {err}")
             continue
+        if endpoint == "api_start2/getData" and data.get("api_result") == 1 and start2 is None:
+            start2 = data["api_data"]
+            targets.extend(book_pages(start2))
         (out / f"{name}.json").write_text(json.dumps(data, ensure_ascii=False))
         result = data.get("api_result")
         note = "" if result == 1 else f"  <- {data.get('api_result_msg', '')}"
