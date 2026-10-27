@@ -40,7 +40,7 @@ graceful-degradation behavior when CDNs are unconfigured, and the
   version `kcs_const.js` names (`scriptVesion`), from the configured `game_cdn`.
 - A new version keeps the replaced `main.js` in the cache history under the
   version it was recorded at, and is downloaded even when it is as long as the
-  old one (scripts skip the cache's same-length check). An unchanged version
+  old one (only png and mp3 take the cache's same-length check). An unchanged version
   is not downloaded again.
 - When the target file already exists and `--overwrite` is not passed, skip
   the download.

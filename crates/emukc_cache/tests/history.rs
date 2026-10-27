@@ -85,42 +85,43 @@ async fn a_version_bump_of_the_same_size_is_not_downloaded() {
 }
 
 #[tokio::test]
-async fn a_script_is_downloaded_on_every_version_bump() {
-    const SCRIPT: &str = "kcs2/js/main.js";
-    let server = MockServer::start().await;
-    // As long as the old one: a fix that changed a digit.
-    for (verb, version, body) in [
-        ("GET", "6.3.6.0", "main.js of 6.3.6.0"),
-        ("HEAD", "6.3.7.0", "main.js of 6.3.7.0"),
-        ("GET", "6.3.7.0", "main.js of 6.3.7.0"),
-    ] {
-        Mock::given(method(verb))
-            .and(path(format!("/{SCRIPT}")))
-            .and(query_param("version", version))
-            .respond_with(ResponseTemplate::new(200).set_body_string(body))
-            .mount(&server)
-            .await;
+async fn a_bump_of_anything_but_art_or_sound_is_downloaded_at_the_same_length() {
+    for rel_path in ["kcs2/js/main.js", "kcs2/img/album/album_main.json"] {
+        let server = MockServer::start().await;
+        // As long as the old one: an edit that changed a digit.
+        for (verb, version, body) in [
+            ("GET", "59", "content of version 59"),
+            ("HEAD", "60", "content of version 60"),
+            ("GET", "60", "content of version 60"),
+        ] {
+            Mock::given(method(verb))
+                .and(path(format!("/{rel_path}")))
+                .and(query_param("version", version))
+                .respond_with(ResponseTemplate::new(200).set_body_string(body))
+                .mount(&server)
+                .await;
+        }
+        let root = TempDir::new().unwrap();
+        let cache = cache_for(&server, &root);
+        let read = async |version, opt| {
+            let mut buf = String::new();
+            cache
+                .get_with_opt(rel_path, version, &opt)
+                .await
+                .unwrap()
+                .read_to_string(&mut buf)
+                .await
+                .unwrap();
+            buf
+        };
+
+        read("59", GetOption::new()).await;
+        assert_eq!(read("60", GetOption::new()).await, "content of version 60", "{rel_path}");
+
+        assert_eq!(requests(&server, "GET").await, 2, "{rel_path}: the bump is downloaded");
+        assert_eq!(requests(&server, "HEAD").await, 0, "{rel_path}: without asking its length");
+        assert_eq!(read("59", local_only()).await, "content of version 59", "{rel_path}");
     }
-    let root = TempDir::new().unwrap();
-    let cache = cache_for(&server, &root);
-    let read = async |version, opt| {
-        let mut buf = String::new();
-        cache
-            .get_with_opt(SCRIPT, version, &opt)
-            .await
-            .unwrap()
-            .read_to_string(&mut buf)
-            .await
-            .unwrap();
-        buf
-    };
-
-    read("6.3.6.0", GetOption::new()).await;
-    assert_eq!(read("6.3.7.0", GetOption::new()).await, "main.js of 6.3.7.0");
-
-    assert_eq!(requests(&server, "GET").await, 2, "the bump is downloaded");
-    assert_eq!(requests(&server, "HEAD").await, 0, "without asking for its length");
-    assert_eq!(read("6.3.6.0", local_only()).await, "main.js of 6.3.6.0");
 }
 
 #[tokio::test]

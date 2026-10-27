@@ -50,9 +50,10 @@ content can be served again later. Picking a season to serve (L1, below) builds 
   - If the size equals the live file's, the new version is recorded against the live bytes
     and nothing is downloaded. `Last-Modified` is recorded too.
   - A live file with no recorded version is downloaded whatever its size.
-  - A script (`.js`, i.e. `kcs2/js/main.js`) is downloaded whatever its size: an edit to code
-    that keeps its length is likely. Bootstrap fetches `main.js` through the cache too, so a
-    new client keeps the old `main.js` here.
+  - Only art and sound (png, mp3) take the size check; the 2026-10-14 sample held nothing else.
+    Any other versioned file (`main.js`, sprite-sheet and animation JSON, jpg) is downloaded
+    whatever its size, since an edit to text that keeps its length is likely. Bootstrap fetches
+    `main.js` through the cache too, so a new client keeps the old `main.js` here.
   - Otherwise, or on a 404 or error, the GET runs as before. A real change costs one extra
     HEAD.
   - Remote-only lookups such as `version.json` skip the size check.
