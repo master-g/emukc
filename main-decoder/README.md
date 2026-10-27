@@ -4,10 +4,10 @@ Offline decoder for KanColle's current `main.js`, implemented with **Bun + TypeS
 
 ## Inputs
 
-By default the CLI reads:
+By default the CLI reads, under the `cache_root` of `../emukc.config.toml` (`../z/cache` without a config):
 
-- `../z/cache/gadget_html5/js/kcs_const.js`
-- `../z/cache/kcs2/js/main.js`
+- `gadget_html5/js/kcs_const.js`
+- `kcs2/js/main.js`
 
 ## Commands
 

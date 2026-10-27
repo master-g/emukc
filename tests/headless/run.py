@@ -28,11 +28,16 @@ import sqlite3
 import subprocess
 import sys
 import time
+import tomllib
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
+# The cache and mods the server is configured with, relative to its config as the server reads it.
+CONFIG = tomllib.loads((ROOT / "emukc.config.toml").read_text())
+CACHE = ROOT / CONFIG["cache_root"]
+MODS = ROOT / CONFIG.get("mods_root", "z/mods")
 PORT = 27777
 # A scenario takes under a minute; this is for the run that never comes back.
 LIMIT = 300
@@ -905,7 +910,7 @@ def resource_report(work: Path, requested: set[str]) -> dict:
     does not name, and what the server had
     to go to the origin for: a file fetched there is missing from the cache, one refused
     there is an address the origin does not have."""
-    cache_list = ROOT / "z/cache/cache_resources.nedb"
+    cache_list = CACHE / "cache_resources.nedb"
     listed = {json.loads(line)["path"] for line in cache_list.read_text().splitlines() if line}
     log = re.sub(r"\x1b\[[0-9;]*m", "", (work / "server.log").read_text())
     return {
@@ -939,8 +944,8 @@ def workspace(scenario: str) -> tuple[Path, Path]:
         "\n".join(
             [
                 f'workspace_root = "{work}"',
-                f'cache_root = "{ROOT / "z/cache"}"',
-                f'mods_root = "{ROOT / "z/mods"}"',
+                f'cache_root = "{CACHE}"',
+                f'mods_root = "{MODS}"',
                 f'bind = "127.0.0.1:{PORT}"',
                 *([f'season = "{SEASON_OF[scenario]}"'] if scenario in SEASON_OF else []),
                 *kept,

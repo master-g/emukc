@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 use emukc_cache::KacheError;
-use emukc_cache::{IntoVersion, Kache};
+use emukc_cache::{GetOption, IntoVersion, Kache};
 use emukc_model::codex::Codex;
 
 use errors::CacheListMakingError;
@@ -19,6 +19,7 @@ pub mod manifest;
 mod source;
 
 pub(crate) use manifest::{has_repo_item_up_coverage, repo_item_up_slot_id};
+pub(crate) use source::kcs2::plain::parse_main_js_version;
 pub(crate) use source::kcs2::resources::ship::has_enemy_ship_coverage;
 pub(crate) use source::kcs2::resources::slot::has_btxt_flat_coverage;
 
@@ -757,7 +758,7 @@ async fn check_decoder_assets_are_current(
     strategy: &CacheListMakeStrategy,
     allow_stale_assets: bool,
 ) -> Result<(), CacheListMakingError> {
-    let live = source::kcs2::plain::parse_main_js_version(kache).await?;
+    let live = parse_main_js_version(kache, &GetOption::new_remote_only()).await?;
 
     // Only the asset the chosen strategy actually reads is worth checking.
     let (asset_name, stamped) = if *strategy == CacheListMakeStrategy::Manifest {
@@ -978,8 +979,22 @@ mod tests {
         repo_root().join("crates/emukc_bootstrap/assets/resource_manifest.json")
     }
 
+    /// A path of the server's config, relative to it as the server reads it; `default` with no config.
+    fn config_path(key: &str, default: &str) -> PathBuf {
+        let config = fs::read_to_string(repo_root().join("emukc.config.toml")).unwrap_or_default();
+        // ponytail: a line scan, not a TOML parser; reads `<key> = "<path>"`, add the
+        // `toml` crate if the config ever needs more
+        let path = config
+            .lines()
+            .find_map(|line| {
+                line.strip_prefix(key)?.trim_start().strip_prefix('=')?.split('"').nth(1)
+            })
+            .unwrap_or(default);
+        repo_root().join(path)
+    }
+
     fn make_kache() -> Kache {
-        let cache_root = repo_root().join("z/cache");
+        let cache_root = config_path("cache_root", "z/cache");
         let db_path = repo_root().join(".data/tmp").join(format!(
             "kache-make-list-test-{}.redb",
             std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
@@ -987,7 +1002,7 @@ mod tests {
         fs::create_dir_all(db_path.parent().unwrap()).unwrap();
         Kache::builder()
             .with_cache_root(cache_root)
-            .with_mods_root(Some(repo_root().join("z/mods")))
+            .with_mods_root(Some(config_path("mods_root", "z/mods")))
             .with_db_path(db_path.to_string_lossy().into_owned())
             .with_proxy(Some("socks5://127.0.0.1:1086".to_string()))
             .with_gadgets_cdn("w00g.kancolle-server.com".to_string())

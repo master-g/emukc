@@ -24,19 +24,20 @@ pub(super) async fn make(cache: &Kache, list: &mut CacheList) -> Result<(), Cach
         list.add_unversioned(format!("kcs2/{res}"));
     }
 
-    let mainjs_ver = parse_main_js_version(cache).await?;
+    let mainjs_ver = parse_main_js_version(cache, &GetOption::new_remote_only()).await?;
     debug!("main.js version: {mainjs_ver}");
     list.add("kcs2/js/main.js".to_string(), &mainjs_ver);
 
     Ok(())
 }
 
-pub(in crate::make_list) async fn parse_main_js_version(
+/// The client script version `kcs_const.js` names, the file fetched with `opt`.
+pub(crate) async fn parse_main_js_version(
     cache: &Kache,
+    opt: &GetOption,
 ) -> Result<String, KacheError> {
-    let version_const_file = cache
-        .get_with_opt("gadget_html5/js/kcs_const.js", NoVersion, &GetOption::new_remote_only())
-        .await?;
+    let version_const_file =
+        cache.get_with_opt("gadget_html5/js/kcs_const.js", NoVersion, opt).await?;
 
     let reader = BufReader::new(version_const_file);
     let mut lines = reader.lines();

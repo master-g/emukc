@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-22 · branch `fix/fleet-los`
+Last updated: 2026-10-27 · PR #298
 
 ## Verified Facts
 
@@ -21,9 +21,7 @@ Current verification baseline:
 
 - [2026-07-30] CLI 战斗模拟强制关掉 `god_mode`、`one_hit_kill`，本地 `game_config.json` 不影响种子可重现性
   （`src/bin/cli/battle.rs::load_codex_without_debug_policy`）。
-- [2026-09-19] `make update` = `bootstrap --overwrite --force-update` → decode `--sync-assets
-  --sync-battle-assets --sync-resource-manifest` → `cache make-list --overwrite`；实测 6.3.2.1、6.3.5.0。
-  `make-list` 默认策略会吸收 `cache_rules.json` 的新显式路径，不需要 `--manifest`。
+- [2026-09-19] `make update` 实测 6.3.2.1、6.3.5.0；`make-list` 默认策略会吸收 `cache_rules.json` 的新显式路径，不需要 `--manifest`。
 - [2026-09-19] `obfuscator-io-deobfuscator`(ben-sb 1.0.6) 不能替代 `main-decoder`：0/55 battle 字段、
   304 s / 5.1 GB，对比本项目 55/55 / ~20 s。不要再评估。
 - [2026-09-19] 两条版本轴：`kcs_const.js` 的 `scriptVesion`（上游拼写错误）是客户端脚本版本，驱动
@@ -100,7 +98,7 @@ Current verification baseline:
   `robots.txt` 点名禁 ClaudeBot，对它的请求由用户确认或用户自己执行，agent 不主动发。
 - [2026-10-07] 缓存清单：客户端写死的母港 BGM 不在 `api_mst_bgm`；深海 `item_up` 取替换表里 >1500 的目标，其中
   5 个三镜像 404（见 `ABYSSAL_ITEM_UP_HOLES`）；`kcs2/img` 由解码器 `imageLoader`（`UIImageLoader` 链）与手工 `LIST` 取并集。
-  服务运行时占着 `z/cache` 的 redb 锁，`make-list` / `populate` 要先停服，或把 `cache_root` 指到别处。
+  服务运行时占着 `cache_root` 的 redb 锁，`bootstrap` / `make-list` / `populate` 要先停服，或把 `cache_root` 指到别处。
 - [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
 - [2026-10-06] 路由规则的来源（羅針盤シミュ `compass_dev` 分支）与转换：`docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
@@ -125,7 +123,8 @@ Current verification baseline:
 - [2026-10-19] 来源 `SHIPDATA.type` 与 start2 `api_stype` 一一对应（FBB=8、BB=9、BBV=10；设施 砲台小鬼 BB、集積地/飛行場姫 BBV、PT小鬼群 DD+`isPT`；`AT`=輸送ワ級=stype 15），`sclass` 全等于 `api_ctype`，`MAINGUNM` 全等于 `api_type[2]==2`，`loadEquips` 不分敌我：按舰种/舰级移植的规则直接读 start2（#193 对拍 100 万例逐位一致）。
 - [2026-10-15] 测试里 `BattleRuntimeShip::from` 造的是 `is_friendly: false`（注释写反了）：要测「玩家侧」规则（空槽、燃料）得用 `BattleRuntimeShip::new(input, true, true)`。
 - [2026-10-15] 戦果的口径（#147 用户定）与月末 22:00 规则：`war-result-ranking.md`。
-- [2026-10-18] 外部等待：#150 等抓包（#182 已于 10-22 解决）
+- [2026-10-18] 外部等待：#150 等抓包
+- [2026-10-27] 本机缓存只在 exFAT SSD，`z/cache` 已删；SSD 未挂载时解码与无头检查读不到缓存。
 
 - [2026-10-19] 烟幕：来源默认发动率 0、倍率 1；用户定发动率用 wikiwiki 発動率推定式、倍率用来源 `smokeEst`（`smoke-screen.md`）。气球格：常规图 3-5 H、4-3 N、4-5 T、6-4 N（`barrage-balloons.md`）。空母昼战炮击已是来源公式，不再是 `1.5×机数+55`。
 - [2026-10-19] `sortie_*` 昼战入口收 `impl Into<SortieOrder>`，`(pid, 1)` 照旧可用（冻结的 `battle_golden.rs` 也这样调）。
@@ -172,12 +171,12 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-22] #290 的 PR #296 待合并（计划 004）：fmt、严格 clippy、`test --workspace` 1670 过 0 忽略；golden 8/180 重冻。
+- [2026-10-27] PR #298 合并（路径读配置、Makefile、`main.js` 留历史）；质量门 1672 过、headless 过；`bun test` 1 败见 #297。
 
 ## Next Session
 
-- [2026-10-22] 合并 #296（先问）。之后 #291、#282（用户定要做，已顺延 6 次）、#285；#293、#294 待 triage。不做：`isSummerCV` 等 19 艘不在常规图，`bonusSpecialP` 活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
+- [2026-10-27] #291、#282（用户定要做，已顺延 6 次）、#285；#293、#294、#297 待 triage。不做：`isSummerCV` 等 19 艘不在常规图，`bonusSpecialP` 活动专用。来源 `isdivebomber` 含陆攻（`kcEQDATA.js`）。
   改修表 `improvement_coefficients` 含火力与命中/回避十项（#206、#194）。季节＝某天的状态，非常规版。瑞雲 CI 第三件后的显示、是否算照明弹无证据。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。
   演习规则见 `practice-rivals.md`；演习测试不固定种子时基础经验可能为 0。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。大発取整口径（fandom 三段 vs wikiwiki 两段）有实测反例再改。
   源码按 `kancolle-replay@69097abc` 重取 `js/`（`js/simulator-ui/common.js` 有气球格、环礁格表），常数写作 `.39`（勿只搜 `0.39`），装备类型以源码 `type` 为准；`en.kancollewiki.net` 有人机验证。
-  验证客户端演出先读 `main.decoded.js` 与 `z/cache` 再跑 `make headless-check`；立绘位置比修复前后截图。多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。带种子的战斗测试落空时换种子、不放宽断言。数字先读到再写。
+  验证客户端演出先读 `main.decoded.js` 与缓存再跑 `make headless-check`；立绘位置比修复前后截图。多血条图改规则后 `kcnav normalize` → 重建 codex → 再 normalize。带种子的战斗测试落空时换种子、不放宽断言。数字先读到再写。
