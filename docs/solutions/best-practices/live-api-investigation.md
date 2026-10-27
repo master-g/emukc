@@ -59,6 +59,10 @@ a session error before checking the client's `_connect` for that endpoint.
   `scripts/fetch_live_api.py`: `require_info`, `mapinfo`, `slot_item`, `deck`,
   `material`, `ndock`, `kdock`, `mission`, `useitem`, `preset_deck`,
   `practice`, `remodel_slotlist`, `api_start2/getData`, and `questlist` per tab.
+  [2026-10-27] Added: `preset_slot`, `preset_dev_items`, `payitem`, and
+  `picture_book`, one request per album page (`api_type` 1 or 2, `api_no` from
+  1, 70 entries a page). The script derives the pages that hold anything from the
+  `api_start2` it has just fetched.
 - **Read-only but signed** — `api_port/port`. The key comes from
   `emukc_crypto::PortApiKey` (authoritative) or the mirror in the script; both
   are pinned to the same five vectors so they cannot drift. The seed table they
