@@ -9,9 +9,9 @@
 CARGO ?= cargo
 # PROFILE: release | debug; 切换所有 cargo 目标的编译档位
 PROFILE ?= release
-# CONCURRENT: cache populate 并发数 (CLI 必填项的默认值)
+# CONCURRENT: cache populate 并发数
 CONCURRENT ?= 16
-# SCENARIO: battle sim 预设场景 (fresh_1_1 | leveled_for_mid_boss)
+# SCENARIO: battle sim 的预设场景 (crates/emukc_gameplay/src/scenario/mod.rs), 或 headless-check 的场景 (tests/headless/run.py)
 SCENARIO ?= fresh_1_1
 # SEED: battle sim RNG 种子 (同种子 + 场景可复现整场出击)
 SEED ?= 1
@@ -34,9 +34,12 @@ else
 BATTLE_SIM_FIND_FLAG := --find $(FIND) --max-seeds $(MAX_SEEDS)
 endif
 
+# 子目标递归调用时不打印 Entering/Leaving directory
+MAKEFLAGS += --no-print-directory
+
 .DEFAULT_GOAL := help
 
-.PHONY: help build run serve serve-dump test clippy fmt bootstrap decode-main update drift-check drift-accept route-rules-sync route-rules-update route-oracle gear-bonus-sync gear-bonus-update gear-bonus-oracle remodel-tables-oracle kcnav-sync kcnav-normalize kcnav-update cache-make-list cache-populate cache-list-oracle battle-sim headless-check clean-debug
+.PHONY: help build serve serve-dump test clippy fmt bootstrap decode-main update update-all drift-check drift-accept route-rules-update route-oracle gear-bonus-update gear-bonus-oracle remodel-tables-oracle kcnav-sync kcnav-normalize cache-make-list cache-populate cache-list-oracle battle-sim headless-check clean-debug
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -44,9 +47,6 @@ help: ## 显示本帮助
 
 build: ## 编译 workspace
 	$(CARGO) build $(CARGO_PROFILE_FLAG)
-
-run: ## 启动服务器
-	$(CARGO) run $(CARGO_PROFILE_FLAG)
 
 serve: ## 启动服务器 (serve)
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- serve
@@ -70,18 +70,22 @@ decode-main: ## decode main.js 并同步全部资源资产到 rust 项目
 	cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest
 
 update: ## 全链更新游戏资源: bootstrap → 解码同步资产 → 重建 codex → 漂移报告 → 改装表/装備ボーナス对拍 → 生成缓存清单
-	$(CARGO) run $(CARGO_PROFILE_FLAG) -- bootstrap --overwrite --force-update
-	cd main-decoder && bun run decode -- --sync-assets --sync-battle-assets --sync-resource-manifest
+	$(MAKE) bootstrap
+	$(MAKE) decode-main
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- bootstrap --codex-only
 	@echo "--- 资产漂移报告 (不阻断; review 过 diff 后跑 make drift-accept) ---"
-	-$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
+	-$(MAKE) drift-check
 	@echo "--- 改装表对拍新客户端 (不阻断; 有差异则修 main-decoder/src/remodel-tables.ts) ---"
-	-cd main-decoder && bun run remodel-tables-oracle
+	-$(MAKE) remodel-tables-oracle
 	@echo "--- 装備ボーナス对拍新客户端 (不阻断; 有差异则订正 main-decoder/gear-bonus-corrections.json) ---"
-	-cd main-decoder && bun run gear-bonus-oracle
+	-$(MAKE) gear-bonus-oracle
 	@echo "--- 缓存清单对拍新客户端 (不阻断; 对的是现有清单, 报出的目录先 cache-make-list 再看) ---"
-	-cd main-decoder && bun run cache-list-oracle
-	$(CARGO) run $(CARGO_PROFILE_FLAG) -- cache make-list --overwrite
+	-$(MAKE) cache-list-oracle
+	$(MAKE) cache-make-list
+
+update-all: ## update 之后按新清单填充缓存: 只下载缺的与版本变了的文件 (CONCURRENT=$(CONCURRENT))
+	$(MAKE) update
+	$(MAKE) cache-populate
 
 drift-check: ## 比对已同步资产与基线, 有漂移则退出非零
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
@@ -89,13 +93,11 @@ drift-check: ## 比对已同步资产与基线, 有漂移则退出非零
 drift-accept: ## review 过 diff 之后, 把当前资产记为新基线
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check --accept
 
-route-rules-sync: ## 下载钉住提交的羅針盤シミュ源码 (路由规则的来源) 到 .data/temp
+route-rules-update: ## 从钉住的羅針盤シミュ源码再生路由规则资产: 取源到 .data/temp → 解析 → 归一化 → 漂移报告
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- route-rules sync
-
-route-rules-update: route-rules-sync ## 从钉住的源码再生路由规则资产: 取源 → 解析 → 归一化 → 漂移报告
 	cd main-decoder && bun run route-rules
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- route-rules normalize
-	-$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
+	-$(MAKE) drift-check
 
 kcnav-sync: ## 从 KCNav 下载掉落与敌方编成的原始响应到 .data/temp/kcnav (单线程, 可续传; MAP=1-1 限定地图, INTERVAL=2 请求间隔秒)
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- kcnav sync --interval $(or $(INTERVAL),2) $(if $(MAP),--map $(MAP),)
@@ -103,17 +105,13 @@ kcnav-sync: ## 从 KCNav 下载掉落与敌方编成的原始响应到 .data/tem
 kcnav-normalize: ## 把已下载的 KCNav 响应归一化成一份文档 (不联网)
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- kcnav normalize
 
-kcnav-update: kcnav-sync kcnav-normalize drift-check ## 刷新 KCNav 数据: 下载 → 归一化 → 漂移报告
-
 route-oracle: ## 用来源代码对拍已转换的路由规则 (需先 route-rules-update 并重建 codex), 报告写到 .data/temp
 	cd main-decoder && bun run route-oracle
 
-gear-bonus-sync: ## 下载钉住提交的 KC3Kai 文件 (装備ボーナス表的来源) 到 .data/temp
+gear-bonus-update: ## 从钉住的 KC3Kai 文件再生装備ボーナス资产: 取源到 .data/temp → 转换 → 漂移报告 (之后重建 codex)
 	$(CARGO) run $(CARGO_PROFILE_FLAG) -- gear-bonus sync
-
-gear-bonus-update: gear-bonus-sync ## 从钉住的源码再生装備ボーナス资产: 取源 → 转换 → 漂移报告 (之后重建 codex)
 	cd main-decoder && bun run gear-bonus
-	-$(CARGO) run $(CARGO_PROFILE_FLAG) -- battle drift-check
+	-$(MAKE) drift-check
 
 gear-bonus-oracle: ## 用客户端 main.js 的加成函数对拍装備ボーナス (需先 decode-main 并重建 codex), 报告写到 .data/temp
 	cd main-decoder && bun run gear-bonus-oracle
