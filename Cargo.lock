@@ -1624,6 +1624,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
+ "wiremock",
  "zip",
 ]
 

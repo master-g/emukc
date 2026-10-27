@@ -1,11 +1,13 @@
 //! Download the resources
 
+use emukc_cache::{GetOption, Kache, KacheError, NoVersion};
 use emukc_crypto::md5_file;
 use emukc_network::{client::new_reqwest_client, download::DownloadError, reqwest};
 use futures::{StreamExt, TryStreamExt, stream::FuturesUnordered};
 use std::sync::Arc;
 use thiserror::Error;
 
+use crate::make_list::parse_main_js_version;
 use crate::progress::{
     download_aggregate_style, log_with_mp, new_multi_progress, new_progress_bar,
     new_progress_bar_on_mp, new_spinner_on_mp,
@@ -35,6 +37,9 @@ pub enum BootstrapDownloadError {
     /// Download error
     #[error(transparent)]
     Download(#[from] emukc_network::download::DownloadError),
+
+    #[error(transparent)]
+    Cache(#[from] KacheError),
 
     /// All configured CDN sources failed for a required web asset.
     #[error("all CDN sources failed for web asset {path}")]
@@ -288,41 +293,21 @@ pub async fn download_all(
     Ok(())
 }
 
-/// Web assets to download from CDN.
-struct WebAsset {
-    path: &'static str,
-    cdn_kind: CdnKind,
-}
-
-#[derive(Clone, Copy)]
-enum CdnKind {
-    Gadgets,
-    Game,
-}
-
-const WEB_ASSETS: &[WebAsset] = &[
-    WebAsset {
-        path: "gadget_html5/js/kcs_const.js",
-        cdn_kind: CdnKind::Gadgets,
-    },
-    WebAsset {
-        path: "kcs2/js/main.js",
-        cdn_kind: CdnKind::Game,
-    },
-    WebAsset {
-        path: "kcs2/version.json",
-        cdn_kind: CdnKind::Game,
-    },
-];
+const KCS_CONST: &str = "gadget_html5/js/kcs_const.js";
+const MAIN_JS: &str = "kcs2/js/main.js";
+const VERSION_JSON: &str = "kcs2/version.json";
 
 /// Download key web assets (`kcs_const.js`, `main.js`, `version.json`) from CDN.
 ///
-/// Each asset is fetched into a temporary file next to its destination and only
-/// moved into place once the transfer succeeds, so a failed run never damages the
-/// copy already on disk. Files that already exist are skipped unless `overwrite`
-/// is true. If any asset cannot be fetched — because every CDN failed or because
-/// none is configured — the whole call fails with
-/// [`BootstrapDownloadError::WebAssetUnavailable`].
+/// They are fetched through the cache. `main.js` is asked for at the client
+/// version `kcs_const.js` names, so a new version keeps the one it replaces in
+/// the cache history and an unchanged one is not downloaded again; the other two
+/// carry no version and are fetched anew. A failed download leaves the copy
+/// already on disk as it was. Files that already exist are skipped unless
+/// `overwrite` is true. If any asset cannot be fetched — because every CDN
+/// failed or because none is configured — the whole call fails with
+/// [`BootstrapDownloadError::WebAssetUnavailable`]. The cache database is opened
+/// here, so the server must not be running.
 #[expect(
     clippy::result_large_err,
     reason = "carries the download error whole, once per bootstrap run"
@@ -334,80 +319,60 @@ pub async fn download_web_assets(
     proxy: Option<&str>,
     overwrite: bool,
 ) -> Result<(), BootstrapDownloadError> {
-    let client = Arc::new(new_reqwest_client(proxy, None).map_err(|source| {
-        BootstrapDownloadError::ReqwestClient {
-            proxy: proxy.map(ToOwned::to_owned),
-            source,
+    for (cdns, cdn_name, first_asset) in
+        [(gadgets_cdn, "gadgets_cdn", KCS_CONST), (game_cdn, "game_cdn", MAIN_JS)]
+    {
+        if cdns.is_empty() {
+            warn!(
+                "No {cdn_name} configured — set {cdn_name} in emukc.config.toml, or pass --skip-web-assets."
+            );
+            return Err(BootstrapDownloadError::WebAssetUnavailable {
+                path: first_asset.to_owned(),
+            });
         }
-    })?);
+    }
 
-    let mp = new_multi_progress();
+    let kache = Kache::builder()
+        .with_cache_root(cache_root.to_path_buf())
+        .with_gadgets_cdns(gadgets_cdn.to_vec())
+        .with_content_cdns(game_cdn.to_vec())
+        .with_proxy(proxy.map(ToOwned::to_owned))
+        .build()?;
+    // An unversioned file is served from disk when it is there, unless it is to be fetched anew.
+    let unversioned = if overwrite {
+        GetOption::new_remote_only()
+    } else {
+        GetOption::new_non_mod()
+    };
     let mut failures: Vec<&'static str> = Vec::new();
 
-    for asset in WEB_ASSETS {
-        let (cdns, cdn_name) = match asset.cdn_kind {
-            CdnKind::Gadgets => (gadgets_cdn, "gadgets_cdn"),
-            CdnKind::Game => (game_cdn, "game_cdn"),
+    let version = match parse_main_js_version(&kache, &unversioned).await {
+        Ok(version) => Some(version),
+        Err(e) => {
+            warn!("Failed to download {KCS_CONST}: {e}");
+            failures.push(KCS_CONST);
+            None
+        }
+    };
+
+    // Without the version `kcs_const.js` names there is no main.js to ask for.
+    if overwrite || !cache_root.join(MAIN_JS).exists() {
+        let fetched = match &version {
+            Some(version) => kache
+                .get_with_opt(MAIN_JS, version.as_str(), &GetOption::new_non_mod())
+                .await
+                .inspect_err(|e| warn!("Failed to download {MAIN_JS}: {e}"))
+                .is_ok(),
+            None => false,
         };
-
-        if cdns.is_empty() {
-            log_with_mp(&mp, || {
-                warn!(
-                    "No {cdn_name} configured for {} — set {cdn_name} in emukc.config.toml, or pass --skip-web-assets.",
-                    asset.path,
-                );
-            });
-            failures.push(asset.path);
-            continue;
+        if !fetched {
+            failures.push(MAIN_JS);
         }
+    }
 
-        let dest = cache_root.join(asset.path);
-        if dest.exists() && !overwrite {
-            debug!("Skipping {} — already exists", asset.path);
-            continue;
-        }
-
-        // same directory as `dest`, so the rename below is atomic
-        let tmp = dest.with_extension("part");
-        let mut downloaded = false;
-
-        for cdn in cdns {
-            let cdn = cdn.trim_end_matches('/');
-            let url = format!("http://{cdn}/{}", asset.path);
-
-            let result = emukc_network::download::Request::builder()
-                .url(&url)
-                .save_as(&tmp)
-                .overwrite(true)
-                .skip_header_check(true)
-                .build()?
-                .execute(Some((*client).clone()))
-                .await;
-
-            match result {
-                Ok(()) => {
-                    std::fs::rename(&tmp, &dest)?;
-                    log_with_mp(&mp, || {
-                        info!("Downloaded {} from {}", asset.path, url);
-                    });
-                    downloaded = true;
-                    break;
-                }
-                Err(e) => {
-                    let _ = std::fs::remove_file(&tmp);
-                    log_with_mp(&mp, || {
-                        warn!("Failed to download {} from {}: {e}", asset.path, url);
-                    });
-                }
-            }
-        }
-
-        if !downloaded {
-            log_with_mp(&mp, || {
-                warn!("All CDN sources failed for {}", asset.path);
-            });
-            failures.push(asset.path);
-        }
+    if let Err(e) = kache.get_with_opt(VERSION_JSON, NoVersion, &unversioned).await {
+        warn!("Failed to download {VERSION_JSON}: {e}");
+        failures.push(VERSION_JSON);
     }
 
     if let Some(first) = failures.first() {
@@ -423,6 +388,13 @@ pub async fn download_web_assets(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::io::AsyncReadExt;
+    use wiremock::{
+        Mock, MockServer, ResponseTemplate,
+        matchers::{method, path, query_param},
+    };
+
+    const WEB_ASSETS: [&str; 3] = [KCS_CONST, MAIN_JS, VERSION_JSON];
 
     #[tokio::test]
     async fn web_assets_fail_when_no_cdn_is_configured() {
@@ -437,12 +409,12 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn failed_download_keeps_the_existing_file_and_leaves_no_temp() {
+    async fn failed_download_keeps_the_existing_files() {
         let root = tempfile::tempdir().unwrap();
         let cdns = vec!["invalid.example.invalid".to_owned()];
 
         for asset in WEB_ASSETS {
-            let dest = root.path().join(asset.path);
+            let dest = root.path().join(asset);
             std::fs::create_dir_all(dest.parent().unwrap()).unwrap();
             std::fs::write(&dest, b"original").unwrap();
         }
@@ -454,13 +426,66 @@ mod tests {
         );
 
         for asset in WEB_ASSETS {
-            let dest = root.path().join(asset.path);
-            assert_eq!(std::fs::read(&dest).unwrap(), b"original", "{} was modified", asset.path);
-            assert!(
-                !dest.with_extension("part").exists(),
-                "temp file left behind for {}",
-                asset.path
-            );
+            let dest = root.path().join(asset);
+            assert_eq!(std::fs::read(&dest).unwrap(), b"original", "{asset} was modified");
         }
+    }
+
+    #[tokio::test]
+    async fn a_new_main_js_keeps_the_one_it_replaces() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path(format!("/{KCS_CONST}")))
+            .respond_with(
+                ResponseTemplate::new(200)
+                    .set_body_string(r#"VersionInfo.scriptVesion = "6.3.7.0";"#),
+            )
+            .mount(&server)
+            .await;
+        // As long as the old one, which a script's version bump does not take as unchanged.
+        for verb in ["HEAD", "GET"] {
+            Mock::given(method(verb))
+                .and(path(format!("/{MAIN_JS}")))
+                .and(query_param("version", "6.3.7.0"))
+                .respond_with(ResponseTemplate::new(200).set_body_string("main.js of 6.3.7.0"))
+                .mount(&server)
+                .await;
+        }
+        Mock::given(method("GET"))
+            .and(path(format!("/{VERSION_JSON}")))
+            .respond_with(ResponseTemplate::new(200).set_body_string("{}"))
+            .mount(&server)
+            .await;
+
+        let root = tempfile::tempdir().unwrap();
+        let main_js = root.path().join(MAIN_JS);
+        std::fs::create_dir_all(main_js.parent().unwrap()).unwrap();
+        std::fs::write(&main_js, "main.js of 6.3.6.0").unwrap();
+        let cache = || {
+            Kache::builder()
+                .with_cache_root(root.path().to_path_buf())
+                .with_gadgets_cdn(server.uri())
+                .with_content_cdn(server.uri())
+                .build()
+                .unwrap()
+        };
+        // Dropped at the end of the statement, so the download below can open the database.
+        cache().set_version(MAIN_JS, Some("6.3.6.0")).await.unwrap();
+
+        let cdns = vec![server.uri()];
+        download_web_assets(root.path(), &cdns, &cdns, None, true).await.unwrap();
+
+        assert_eq!(std::fs::read_to_string(&main_js).unwrap(), "main.js of 6.3.7.0");
+        let cache = cache();
+        assert_eq!(cache.get_cached_version(MAIN_JS).await.unwrap().as_deref(), Some("6.3.7.0"));
+        let mut kept = String::new();
+        cache
+            .get_with_opt(MAIN_JS, "6.3.6.0", &GetOption::new().disable_remote().disable_mod())
+            .await
+            .unwrap()
+            .read_to_string(&mut kept)
+            .await
+            .unwrap();
+        assert_eq!(kept, "main.js of 6.3.6.0");
     }
 }

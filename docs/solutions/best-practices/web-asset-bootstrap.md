@@ -10,7 +10,7 @@ applies_when:
   - "Running cargo run -- bootstrap to fetch kcs_const.js, main.js, and version.json"
   - "Handling missing CDN configuration or --force-update / --skip-web-assets flags"
 tags: [bootstrap, web-assets, kcs-const, main-js, version-json, cdn]
-related_components: [emukc_network]
+related_components: [emukc_network, emukc_cache]
 ---
 
 # Web asset bootstrap download contract
@@ -36,12 +36,15 @@ graceful-degradation behavior when CDNs are unconfigured, and the
 
 **Download main.js.**
 
-- Download `kcs2/js/main.js` from the configured `game_cdn` to
-  `z/cache/kcs2/js/main.js` during bootstrap.
-- When the target file does not exist, download it from the configured
-  `game_cdn`.
+- Fetch `kcs2/js/main.js` through the resource cache (`Kache`) at the client
+  version `kcs_const.js` names (`scriptVesion`), from the configured `game_cdn`.
+- A new version keeps the replaced `main.js` in the cache history under the
+  version it was recorded at, and is downloaded even when it is as long as the
+  old one (scripts skip the cache's same-length check). An unchanged version
+  is not downloaded again.
 - When the target file already exists and `--overwrite` is not passed, skip
-  the download and log at debug level.
+  the download.
+- The cache database is opened for this, so the server must not be running.
 
 **Download version.json.**
 
@@ -54,17 +57,15 @@ graceful-degradation behavior when CDNs are unconfigured, and the
 
 **Graceful degradation when CDN is unconfigured.**
 
-- When `gadgets_cdn` is an empty list, skip the `kcs_const.js` download and
-  emit a warn-level log stating that `gadgets_cdn` must be configured.
-- When `game_cdn` is an empty list, skip the `main.js` and `version.json`
-  downloads and emit a warn-level log stating that `game_cdn` must be
-  configured.
+- When `gadgets_cdn` or `game_cdn` is an empty list, download none of the
+  three, emit a warn-level log naming the list that must be configured, and
+  fail with `WebAssetUnavailable` (the cache needs both lists).
 
 **Force update restores web assets.**
 
-- On `cargo run -- bootstrap --force-update` with CDN configured, first
-  delete the old `kcs_const.js` and `version.json`, then re-download all
-  three files.
+- On `cargo run -- bootstrap --force-update` with CDN configured, fetch
+  `kcs_const.js` and `version.json` anew, and `main.js` when its version
+  changed.
 
 **Skip web assets flag.**
 
@@ -89,8 +90,10 @@ repeat runs avoid network entirely when only the Codex build is needed.
 
 - Fresh clone, `game_cdn` configured, `main.js` absent: bootstrap downloads
   it to `z/cache/kcs2/js/main.js`.
-- `gadgets_cdn` empty: bootstrap skips `kcs_const.js`, logs a warn, and
-  continues with the Codex build.
+- `gadgets_cdn` empty: bootstrap builds the Codex, then logs a warn and fails
+  at the web assets without downloading any of them.
+- A new client: `main.js` of the old version stays in the cache history, and
+  `kcs_const.js` and `version.json` are replaced.
 - `--skip-web-assets`: no network calls; only the Codex build runs.
 
 ## Related

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 use emukc_cache::KacheError;
-use emukc_cache::{IntoVersion, Kache};
+use emukc_cache::{GetOption, IntoVersion, Kache};
 use emukc_model::codex::Codex;
 
 use errors::CacheListMakingError;
@@ -19,6 +19,7 @@ pub mod manifest;
 mod source;
 
 pub(crate) use manifest::{has_repo_item_up_coverage, repo_item_up_slot_id};
+pub(crate) use source::kcs2::plain::parse_main_js_version;
 pub(crate) use source::kcs2::resources::ship::has_enemy_ship_coverage;
 pub(crate) use source::kcs2::resources::slot::has_btxt_flat_coverage;
 
@@ -757,7 +758,7 @@ async fn check_decoder_assets_are_current(
     strategy: &CacheListMakeStrategy,
     allow_stale_assets: bool,
 ) -> Result<(), CacheListMakingError> {
-    let live = source::kcs2::plain::parse_main_js_version(kache).await?;
+    let live = parse_main_js_version(kache, &GetOption::new_remote_only()).await?;
 
     // Only the asset the chosen strategy actually reads is worth checking.
     let (asset_name, stamped) = if *strategy == CacheListMakeStrategy::Manifest {
