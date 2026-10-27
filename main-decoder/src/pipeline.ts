@@ -11,7 +11,7 @@ import {
 } from "./battle-knowledge.ts";
 import { decodeBundle } from "./decode.ts";
 import { formatJavaScript } from "./format.ts";
-import { loadLocalSources, writeTextFile } from "./io.ts";
+import { loadLocalSources, writeJsonAsset, writeTextFile } from "./io.ts";
 import { extractModuleGraph } from "./module-graph.ts";
 import { extractAudioResources, toAudioResourcesAsset } from "./audio-resources.ts";
 import { extractCacheRules, toCacheRulesAsset } from "./cache-rules.ts";
@@ -120,24 +120,24 @@ async function writeArtifacts(result: PipelineResult, options: PipelineOptions):
     await writeTextFile(artifacts.resourceManifestFile, `${JSON.stringify(result.resourceManifest, null, 2)}\n`);
   }
   if (options.syncBattleAssets === true) {
-    await writeTextFile(resolve(bootstrapAssetsDir, "battle_protocol_fields.json"), `${JSON.stringify(battleProtocolFieldsAsset, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "battle_resource_rules.json"), `${JSON.stringify(battleResourceRulesAsset, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "battle_module_index.json"), `${JSON.stringify(battleModuleIndexAsset, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "battle_slot_resource_triggers.json"), `${JSON.stringify(battleSlotResourceTriggersAsset, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "battle_attack_type_acceptance.json"), `${JSON.stringify(battleAttackTypeAcceptanceAsset, null, 2)}\n`);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "battle_protocol_fields.json"), battleProtocolFieldsAsset);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "battle_resource_rules.json"), battleResourceRulesAsset);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "battle_module_index.json"), battleModuleIndexAsset);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "battle_slot_resource_triggers.json"), battleSlotResourceTriggersAsset);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "battle_attack_type_acceptance.json"), battleAttackTypeAcceptanceAsset);
   }
   if (options.syncAssets === true) {
-    await writeTextFile(resolve(bootstrapAssetsDir, "resource_categories.json"), `${JSON.stringify(result.resourceCategories, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "resource_id_sets.json"), `${JSON.stringify(result.resourceIdSets, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "audio_resources.json"), `${JSON.stringify(result.audioResources, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "cache_rules.json"), `${JSON.stringify(result.cacheRules, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "ui_resources.json"), `${JSON.stringify(result.uiResources, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "resource_templates.json"), `${JSON.stringify(result.resourceTemplates, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "remodel_tables.json"), `${JSON.stringify(result.remodelTables, null, 2)}\n`);
-    await writeTextFile(resolve(bootstrapAssetsDir, "port_api_seed.json"), `${JSON.stringify(result.portApiSeed, null, 2)}\n`);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "resource_categories.json"), result.resourceCategories);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "resource_id_sets.json"), result.resourceIdSets);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "audio_resources.json"), result.audioResources);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "cache_rules.json"), result.cacheRules);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "ui_resources.json"), result.uiResources);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "resource_templates.json"), result.resourceTemplates);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "remodel_tables.json"), result.remodelTables);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "port_api_seed.json"), result.portApiSeed);
   }
   if (options.syncResourceManifest === true) {
-    await writeTextFile(resolve(bootstrapAssetsDir, "resource_manifest.json"), `${JSON.stringify(result.resourceManifest, null, 2)}\n`);
+    await writeJsonAsset(resolve(bootstrapAssetsDir, "resource_manifest.json"), result.resourceManifest);
   }
   // Module ids change with every client build, so the previous build's files would otherwise
   // stay behind under other names and turn up in searches as if they were current.

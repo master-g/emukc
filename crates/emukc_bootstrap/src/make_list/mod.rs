@@ -106,6 +106,11 @@ pub struct CacheListPathBuildOutput {
     pub diagnostics: CacheListBuildDiagnostics,
 }
 
+/// Paths every mirror serves with a body the game cannot use: an empty 200, checked on
+/// 2026-09-21 and again by the 2026-10-27 `cache populate`. Listing them only leaves every
+/// populate with a missing entry, so `CacheList::add` drops them.
+const UNUSABLE_UPSTREAM_PATHS: &[&str] = &["kcs/sound/kcwjcrloeyiyxw/158288.mp3"];
+
 #[derive(Debug, Clone)]
 pub(crate) struct CacheList {
     pub items: BTreeSet<CacheListItem>,
@@ -124,6 +129,9 @@ impl CacheList {
     }
 
     pub fn add(&mut self, path: String, version: impl IntoVersion) -> &mut Self {
+        if UNUSABLE_UPSTREAM_PATHS.contains(&path.as_str()) {
+            return self;
+        }
         let version = version.into_version();
         self.record_path_authority(&path);
         let item = CacheListItem {
@@ -953,6 +961,15 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    #[test]
+    fn paths_no_mirror_can_serve_are_not_listed() {
+        let mut list = CacheList::new();
+        list.add("kcs/sound/kcwjcrloeyiyxw/158288.mp3".to_string(), 13);
+        list.add("kcs/sound/kcwjcrloeyiyxw/158289.mp3".to_string(), 13);
+        let paths: Vec<_> = list.items.iter().map(|item| item.path.as_str()).collect();
+        assert_eq!(paths, ["kcs/sound/kcwjcrloeyiyxw/158289.mp3"]);
+    }
 
     #[test]
     fn asset_freshness_compares_the_stamped_version_against_the_live_one() {

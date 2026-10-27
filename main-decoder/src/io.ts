@@ -65,3 +65,17 @@ export async function writeTextFile(path: string, content: string): Promise<void
   await mkdir(dirname(path), { recursive: true });
   await Bun.write(path, content);
 }
+
+function withoutStamp(value: unknown): string | undefined {
+  return JSON.stringify(value, (key, inner) => (key === "generatedAt" ? undefined : inner));
+}
+
+// Every decode stamps a fresh generatedAt, so rewriting an asset whose content did not change
+// would show up in git and in the drift check as a change. Leave such a file as it is.
+export async function writeJsonAsset(path: string, value: unknown): Promise<void> {
+  const file = Bun.file(path);
+  if ((await file.exists()) && withoutStamp(await file.json().catch(() => undefined)) === withoutStamp(value)) {
+    return;
+  }
+  await writeTextFile(path, `${JSON.stringify(value, null, 2)}\n`);
+}
