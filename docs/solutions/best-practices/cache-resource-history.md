@@ -26,11 +26,11 @@ content can be served again later. Picking a season to serve (L1, below) builds 
 
 ## Rules
 
-- **The live tree is unchanged.** `z/cache/<path>` is still the current version, so mods,
+- **The live tree is unchanged.** `<cache_root>/<path>` is still the current version, so mods,
   `cache-list-oracle` and the headless check read it as before.
 - **History rows sit next to the live file.** The table `kache_history` in `kache.redb` maps
   `(path, version)` to `(sha256, size, Last-Modified, kept at)`. The bytes live once per content
-  under `z/cache/.history/blobs/<sha[..2]>/<sha>`, no matter how many versions or paths
+  under `<cache_root>/.history/blobs/<sha[..2]>/<sha>`, no matter how many versions or paths
   share them. For example, 2,684 snapshot rows took only 1,092 blobs.
 - **Nothing is overwritten unkept.**
   - Before a download replaces the live file, the file is kept under its recorded version,

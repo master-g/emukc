@@ -88,7 +88,7 @@ The module graph now includes:
 ## CLI options
 
 ```bash
-bun run decode -- --main ../z/cache/kcs2/js/main.js --const ../z/cache/gadget_html5/js/kcs_const.js --out ./out --max-passes 8
+bun run decode -- --main <cache_root>/kcs2/js/main.js --const <cache_root>/gadget_html5/js/kcs_const.js --out ./out --max-passes 8
 bun run decode -- --sync-assets
 bun run decode -- --sync-battle-assets
 bun run decode -- --sync-resource-manifest
