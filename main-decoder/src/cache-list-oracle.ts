@@ -25,6 +25,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { loadClient } from "./client-runtime";
+import { CACHE_ROOT } from "./defaults";
 
 const repoPath = (...parts: string[]) => resolve(import.meta.dir, "../..", ...parts);
 
@@ -40,7 +41,7 @@ const KNOWN_EMPTY: Record<string, string> = {
 const SWEPT = ["map.defaultFiles", "useItem.cardIds", "useItem.underlineIds", "area.sallyIds"];
 
 function main() {
-	const listFile = resolve(process.argv[2] ?? repoPath("z/cache/cache_resources.nedb"));
+	const listFile = resolve(process.argv[2] ?? resolve(CACHE_ROOT, "cache_resources.nedb"));
 	const items = readFileSync(listFile, "utf8")
 		.split("\n")
 		.filter(Boolean)

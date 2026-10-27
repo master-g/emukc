@@ -18,7 +18,7 @@ ways answer most of it, and neither needs a person.
 
 ## Read the client first
 
-`main-decoder/out/main.decoded.js` and the cached resources under `z/cache/kcs2/resources/`
+`main-decoder/out/main.decoded.js` and the cached resources under `<cache_root>/kcs2/resources/`
 answer "what does the client do with this field" by reading. The three open points of 5-6's
 transport gauge were closed that way before any browser ran: the landing spot is in
 `map/005/06_info.json`, the transport counter in `gauge/00506.json`, and the conditions in
@@ -43,7 +43,7 @@ name, then for the getter that wraps it.
    in the saved KCSAPI responses (`api/NNN_<path>.json`).
 
 The report also sorts the resources the client asked for: `off_site` (other hosts),
-`not_in_cache_list` (asked of this server, absent from `z/cache/cache_resources.nedb`),
+`not_in_cache_list` (asked of this server, absent from `<cache_root>/cache_resources.nedb`),
 `fetched_from_origin` and `missing_on_origin` (from the server's log; the last fails the
 run). A file can be missing from the list and still be served, because playing fills the
 cache from the origin, so only the comparison with the list shows a gap. The first run
@@ -282,7 +282,8 @@ screen, pass steps on the command line and read the screenshots:
   expeditions or repairs would have to mind. Between steps the page is frozen.
 - Not a quality gate: it needs the 7 GB resource cache, the decoded `main.js`, Playwright
   and Chrome. Run it after a change the client has to play.
-- The server holds the redb lock of `z/cache`; stop your own server first.
+- The run uses the `cache_root` of `emukc.config.toml`, and the server holds its redb lock; stop
+  your own server first.
 - A page error is the only sign of a broken animation. A sprite that is merely wrong shows
   only in a screenshot someone reads.
 - The air corps scenario does not reach `cond_recovery` (it has no rest step) or the

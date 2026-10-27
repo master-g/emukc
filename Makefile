@@ -4,7 +4,7 @@
 #
 # 前置条件:
 #   - decode-main 需先安装 Bun 依赖 (cd main-decoder && bun install),
-#     且已 bootstrap 出 z/cache/kcs2/js/main.js 与 z/cache/gadget_html5/js/kcs_const.js。
+#     且已 bootstrap 出 <cache_root>/kcs2/js/main.js 与 <cache_root>/gadget_html5/js/kcs_const.js。
 
 CARGO ?= cargo
 # PROFILE: release | debug; 切换所有 cargo 目标的编译档位
