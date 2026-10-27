@@ -698,8 +698,9 @@ impl Kache {
 
     /// A version bump whose file on the CDN is as long as the live one is taken as the same
     /// file: the new version is recorded against the live bytes and nothing is downloaded.
-    /// A live file with no recorded version is downloaded as before, and so is a script: an edit
-    /// to code that keeps its length (a changed digit) is likely, unlike in art or sound.
+    /// A live file with no recorded version is downloaded as before, and so is anything but art
+    /// and sound (png, mp3), the only types that sample held: in a text file such as `main.js` or
+    /// a sprite sheet's JSON an edit that keeps the length (a changed digit) is likely.
     ///
     /// On 2026-10-14, 1,339 bumped files had a new `Last-Modified`; the 667 whose length had not
     /// changed were byte-identical re-uploads, and the 672 whose length had changed all differed.
@@ -713,7 +714,7 @@ impl Kache {
         cdn_list: impl Iterator<Item = &String>,
     ) -> Result<Option<tokio::fs::File>, Error> {
         if version.into_version().is_none()
-            || Path::new(rel_path).extension().is_some_and(|ext| ext == "js")
+            || !Path::new(rel_path).extension().is_some_and(|ext| ext == "png" || ext == "mp3")
             || self.get_cached_version(rel_path).await?.is_none()
             || !Self::is_valid(local_path).await
         {
