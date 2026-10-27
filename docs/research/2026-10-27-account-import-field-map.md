@@ -87,7 +87,9 @@ port 里的 `api_log`、`api_dest_ship_slot`、`api_c_flags`（apilist 说是小
 - require_info 的 `api_unsetslot`：本地按 `type3` 推出的未装备列表，应该和线上一致。
 - `remodel_slotlist` 给出的最低消耗，已经知道是码典的 `dev_mat_min` / `screw_min`（见 `live-api-investigation.md`）。
 
-## 解析用的类型（未实测）
+## 解析用的类型
+
+[2026-10-27] 已拿 10-27 快照实测，第一刀用到的字段都能解析，改了三处：`api_basic.api_member_id` 是字符串；`api_basic` 没有本地加的 `api_max_quests`、`api_extra_supply`、`api_war_result`；舰娘在非活动期没有 `api_sally_area`。以下是实测前的记录。
 
 `emukc_model::kc2` 里已经有这些类型：`KcApiShip`、`KcApiSlotItem`、`KcApiDeckPort`、`KcApiKDock`、`KcApiNDock`、`KcApiUserItem`、`KcApiFurniture`、`KcApiMapInfo`、`KcApiAirBase`、`KcApiPlaneInfo`、`KcApiAirBaseExpandedInfo`、`KcApiMission`、`KcApiPresetDeck`、`KcApiPresetSlot`、`KcApiPresetDevItem`、`KcApiPictureBookShip`、`KcApiPictureBookSlotItem`、`KcApiUserBasic`、`KcApiMaterialElement`，以及三个设置类型。它们能不能原样反序列化线上 JSON 还没试过，第一步要拿快照逐个跑一遍。已知的问题：`port.rs` 里 `api_plane_info` 声明成了 `Vec`，实际是对象；`api_furniture_affect_items` 也声明错了（见 `live-api-investigation.md`）。导入时 port 应该按字段取，不要整体解析。
 
@@ -100,5 +102,7 @@ port 里的 `api_log`、`api_dest_ship_slot`、`api_c_flags`（apilist 说是小
 戦果（`war_result`）在排行榜接口里，那个接口名是混淆过的，还要另外签名。它对导入价值不大，先取 0。
 
 ## 第一刀建议
+
+[2026-10-27] 已实现（`import-account`，见 `docs/solutions/architecture-patterns/account-import.md`）：上表的 `profile`、`material`、`ship`、`slot_item`、`ship_sp_effect_item`、`fleet`、`kdock`、`ndock`、`use_item`、`furniture_record`、`furniture_config`、`oss_settings`、`option_settings`、`game_settings` 各行。对拍结果：340 艘的火力到运、最大 HP、速力全部一致；`api_ndock_item`（未受伤时线上 `[0,0]`、本地 `[1,1]`）、`api_srate`（171 艘差 1）、`api_leng`（19 艘）不一致。这个账号持有的舰娘和装备，码典主数据与同一时刻的线上 `api_start2` 在属性、射程、速力、搭载各字段都一致，所以这三处是公式问题，不是数据来源问题。
 
 舰娘、装备、舰队、资源、使用道具、家具、设置。这一刀的难点是 ID 重映射，验证用的就是上面"对拍"那一节：重算的舰娘属性和线上值对比。任务、海域进度、远征、图鉴、预设放到第二刀。
