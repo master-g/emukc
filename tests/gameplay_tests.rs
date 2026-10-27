@@ -64,6 +64,8 @@ mod remodel_preserve_fields;
 
 #[path = "gameplay_tests/destroy_items_persist.rs"]
 mod destroy_items_persist;
+#[path = "gameplay_tests/import_account.rs"]
+mod import_account;
 
 #[path = "gameplay_tests/airbase.rs"]
 mod airbase;

@@ -34,6 +34,7 @@ pub mod prelude {
         game::SortieStore,
         game::probe_route,
         game::types::*,
+        game::{ImportReport, MissingMasters, missing_masters},
         gameplay::Ctx,
         scenario::{PRESETS, PhaseExpectation, Preset, Scenario, ShipSpec, apply_scenario},
         user::{AccountInfo, AuthInfo, StartGameInfo, UserError},

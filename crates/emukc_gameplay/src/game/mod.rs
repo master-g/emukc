@@ -4,6 +4,9 @@ pub mod battle;
 
 pub use compose::{PowerupResp, SlotDepriveParams};
 pub use expedition::{ExpeditionCompletion, ExpeditionItemReward, ExpeditionStartInfo};
+pub use import::{
+    FieldMismatch, ImportReport, MissingMasters, ShipMismatch, import_account_impl, missing_masters,
+};
 pub(crate) use init::{init_profile_game_data, wipe_profile_game_data};
 pub(crate) use map::{clear_and_unlock_map_impl, unlock_map_impl};
 pub use ranking::{RankingEntry, RankingPage};
@@ -26,6 +29,7 @@ mod expedition;
 mod factory;
 mod fleet;
 mod furniture;
+mod import;
 mod incentive;
 mod init;
 mod kdock;
