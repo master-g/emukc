@@ -13,6 +13,7 @@ mod bootstrap;
 mod cache;
 mod dev;
 mod gear_bonus;
+mod import_account;
 mod kcnav;
 mod map;
 mod route_rules;
@@ -55,6 +56,9 @@ enum Commands {
 
     #[command(about = "Add a quest to the profile")]
     AddQuest(dev::AddQuestArgs),
+
+    #[command(about = "Create an account from a live capture written by scripts/fetch_live_api.py")]
+    ImportAccount(import_account::ImportAccountArgs),
 
     #[command(about = "Prepare the bootstrap files")]
     Bootstrap(bootstrap::BootstrapArgs),
@@ -222,6 +226,13 @@ pub async fn init() -> ExitCode {
                 return ExitCode::FAILURE;
             }
             Ok(())
+        }
+        Some(Commands::ImportAccount(args)) => {
+            let Some(state) = prepare_state(&cfg).await else {
+                eprintln!("Failed to prepare application state");
+                return ExitCode::FAILURE;
+            };
+            import_account::exec(&args, &state).await
         }
         Some(Commands::Battle(args)) => battle::exec(&args, &cfg).await,
         Some(Commands::Bootstrap(args)) => bootstrap::exec(&cfg, &args).await,

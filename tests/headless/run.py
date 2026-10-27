@@ -975,6 +975,14 @@ def main() -> int:
     steps = steps.split()
     work, config = workspace(scenario)
     emukcd = [str(ROOT / "target/debug/emukcd"), "-c", str(config)]
+    # An account imported from a live capture: new-session below then signs in to it
+    # instead of creating the preset's fresh one.
+    if snapshot := os.environ.get("IMPORT_SNAPSHOT"):
+        subprocess.run(
+            [*emukcd, "import-account", "--snapshot", snapshot, "--name", "headless", "--pass", "1234567"],
+            capture_output=True,
+            check=True,
+        )
     session = subprocess.run(
         [*emukcd, "new-session", "--name", "headless", "--pass", "1234567", "--scenario", PRESET_OF.get(scenario, scenario), "--no-open", "--no-start"],
         capture_output=True,
