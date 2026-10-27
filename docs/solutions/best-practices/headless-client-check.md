@@ -50,6 +50,12 @@ cache from the origin, so only the comparison with the list shows a gap. The fir
 found `ship/full_animation` missing from the list and eight libraries loaded from other
 sites; both are fixed (`decoder-first-cachelist-pipeline.md`, `kcs2.rs`).
 
+`IMPORT_SNAPSHOT=<capture dir>` imports a live capture into the workspace first, and
+`new-session` then signs in to that account instead of applying the preset
+(`account-import.md`). The 編成 screen stays black after the port's 編成 button in this
+setup, with a fresh account too; for the imported account, pressing 編成 again in the side
+bar (`c:38,230`) drew it.
+
 A scenario is a preset plus a line of steps in `SCENARIOS`; one named in `PRESET_OF` borrows
 another scenario's preset and differs in its steps. To find the way through a new
 screen, pass steps on the command line and read the screenshots:

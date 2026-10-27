@@ -13,7 +13,8 @@ use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct KcApiUserBasic {
-    /// User ID
+    /// User ID; the live server sends it as a string
+    #[serde(deserialize_with = "int_or_string")]
     pub api_member_id: i64,
     /// User nickname
     pub api_nickname: String,
@@ -82,11 +83,30 @@ pub struct KcApiUserBasic {
     /// Large construction dock unlock flag, not exist in origin API, 0: locked, 1: unlocked
     pub api_large_dock: i64,
     /// Maxium parallel quest count, not exist in origin API
+    #[serde(default)]
     pub api_max_quests: i64,
     /// Extra supply enable flag, [0] expedition, [1] battle
+    #[serde(default)]
     pub api_extra_supply: [i64; 2],
     /// War result points, not exist in origin API
+    #[serde(default)]
     pub api_war_result: i64,
+}
+
+fn int_or_string<'de, D>(deserializer: D) -> Result<i64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum IntOrString {
+        Int(i64),
+        Str(String),
+    }
+    match IntOrString::deserialize(deserializer)? {
+        IntOrString::Int(value) => Ok(value),
+        IntOrString::Str(value) => value.parse().map_err(serde::de::Error::custom),
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, PartialEq, PartialOrd, Debug, enumn::N)]
@@ -209,7 +229,8 @@ pub struct KcApiShip {
     pub api_locked: i64,
     /// Equip any locked equipment, 0: no, 1: yes
     pub api_locked_equip: i64,
-    /// Sally area, used when there is event
+    /// Sally area, used when there is event; the live server leaves it out otherwise
+    #[serde(default)]
     pub api_sally_area: i64,
     /// Special effect item attachment info
     #[serde(skip_serializing_if = "Option::is_none")]

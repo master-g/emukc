@@ -158,6 +158,13 @@ cargo run -- new-session -u admin -p 1234567
 cargo run -- serve
 ```
 
+已有线上账号的抓取（`scripts/fetch_live_api.py` 写出的目录）时，可以用它建账户，再登录：
+
+```bash
+cargo run -- import-account --snapshot z/snapshot/2026-10-27 -u admin -p 1234567
+cargo run -- new-session --name admin --pass 1234567
+```
+
 ---
 
 ## 命令参数速查
