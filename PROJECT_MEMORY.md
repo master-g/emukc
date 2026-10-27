@@ -98,7 +98,7 @@ Current verification baseline:
   `robots.txt` 点名禁 ClaudeBot，对它的请求由用户确认或用户自己执行，agent 不主动发。
 - [2026-10-07] 缓存清单：客户端写死的母港 BGM 不在 `api_mst_bgm`；深海 `item_up` 取替换表里 >1500 的目标，其中
   5 个三镜像 404（见 `ABYSSAL_ITEM_UP_HOLES`）；`kcs2/img` 由解码器 `imageLoader`（`UIImageLoader` 链）与手工 `LIST` 取并集。
-  服务运行时占着 `cache_root` 的 redb 锁，`make-list` / `populate` 要先停服，或把 `cache_root` 指到别处。
+  服务运行时占着 `cache_root` 的 redb 锁，`bootstrap` / `make-list` / `populate` 要先停服，或把 `cache_root` 指到别处。
 - [2026-10-06] 交战形态概率只有 `kcsim.js:3629` 给数值：45/15/30/10（同航/T有利/反航/T不利）。
 - [2026-10-06] 路由规则的来源（羅針盤シミュ `compass_dev` 分支）与转换：`docs/solutions/architecture-patterns/route-rules-from-compass-source.md`。
 - [2026-10-07] 装備ボーナス 的数据链、订正层，以及与 KC3Kai 分歧处以客户端为准：`docs/solutions/architecture-patterns/equipment-stat-bonus.md`。
@@ -171,7 +171,7 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-27] `fix/cache-root-from-config` 两提交未推送（工具路径读配置、Makefile 精简）；质量门（1670 过）与 `headless-check fresh_1_1` 过；`bun test` 1 败见 #297。
+- [2026-10-27] `fix/cache-root-from-config` 三提交未推送（路径读配置、Makefile、`main.js` 留历史）；质量门 1672 过、headless 过；`bun test` 1 败见 #297。
 
 ## Next Session
 
