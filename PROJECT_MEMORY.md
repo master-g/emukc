@@ -171,9 +171,10 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-27] PR #303（`docs/account-import-field-map`）：`docs/research/` 账号导入字段对照，抓取脚本补图鉴/预设/付费道具（10-27 快照 48 请求全成功），缓存路径文档改 `<cache_root>`；只动文档与 Python，未跑 cargo。
+- [2026-10-27] `fix/decode-skip-unchanged-assets`（用户定 1→2，并排除空 mp3）：解码同步不重写只改了 `generatedAt` 的资产；24 个友军图 ID（6332–6363）进 `EVENT_SHIP_HOLES`；158288.mp3 不再进清单。清单 74009→73912，populate 全部成功、退出 0；质量门见 PR。
+  用户确认账号导入计划的三个默认照原样；计划草稿仍未提交，留给 `feat/account-import`。
 
 ## Next Session
 
-- [2026-10-27] 用户定先做账号导入（战斗收益低）：按字段对照写计划，第一刀舰娘/装备/舰队/资源；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗的来源、验证与不做清单见 `docs/solutions/best-practices/battle-work-notes.md`。
+- [2026-10-27] 账号导入（用户定先做，战斗收益低）：三个默认已确认，从 `main` 开 `feat/account-import`，提交计划（status 改 active）后按 U1–U6 实现第一刀；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗的来源、验证与不做清单见 `docs/solutions/best-practices/battle-work-notes.md`。
   季节＝某天的状态，非常规版。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。数字先读到再写。

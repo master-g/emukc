@@ -21,6 +21,8 @@ size limit. Each entry keeps the date it was established.
 - [2026-09-20] 跑完整的 `cache populate` 就是权威的 CDN 存在性探针：它请求每条非 hole 路径，失败清单即
   「上游缺什么」，[2026-09-22] 但它只请求表内路径——`z/cache` 的 336 个
   `btxt_flat` 与 `BTXT_FLAT_IDS` 条数相同，只证明「表内存在」，表外 id 必须单独探测。
+- [2026-10-27] populate 的 404 只是洗牌后第一个镜像的回答（`kache.rs` 遇 404 即返回）。进 hole 表前每条
+  路径换一个镜像再问一次，并配一个已知存在的对照；镜像对 http 回 301 到 https，探测要跟随重定向（`curl -L`）。
 - [2026-09-20] hole 表的流向是 Rust → 资产而非 decoder → Rust：`main-decoder/src/path-rules.ts` 从 Rust 源码
   反解 `EVENT_SHIP_HOLES` / `BTXT_FLAT_IDS` / `CHARACTER_HOLES` 写进 `cache_rules.json`。改 hole 要改 Rust
   常量再 `make decode-main`。
@@ -39,7 +41,10 @@ size limit. Each entry keeps the date it was established.
   api_no 1019。以上三条的依据见 `docs/plans/2026-09-20-bootstrap-cache-audit/README.md` 的 006/008/010 段。
 - [2026-09-21] `kcs/sound/kcwjcrloeyiyxw/158288.mp3` 在全部镜像上都是 200 + 空 body（4 个 w0* 主机实测）。
   `Kache` 现在把「每个镜像都应答且都不可用」返回成 `InvalidFile` 而非 `FailedOnAllCdn`，populate 归入
-  missing 不再重试；注意 `exists_on_remote` 走 HEAD，仍判 `Present`。
+  missing 不再重试；注意 `exists_on_remote` 走 HEAD，仍判 `Present`。[2026-10-27] 10-27 的 populate 仍判它
+  不可用，清单生成时由 `make_list/mod.rs` 的 `UNUSABLE_UPSTREAM_PATHS` 去掉；上游修好了就删那一项。
 - [2026-09-23] drift-check 跟踪 `emukc_bootstrap::assets::REPO_ASSETS` 的全部 15 项（含不可再生的
   `map_ship_drops`），基线 6.3.5.0，入口 `make drift-check` / `make drift-accept`。指纹按规范化后的
   字节算，`_0x` 重命名即使解码知识没变也算漂移。
+- [2026-10-27] 解码同步跳过除 `generatedAt` 外内容不变的资产（`main-decoder/src/io.ts` 的 `writeJsonAsset`），
+  内容没变的重跑既不弄脏工作区也不触发 drift-check；`generatedAt` 因此是「上次内容变化」的时间。
