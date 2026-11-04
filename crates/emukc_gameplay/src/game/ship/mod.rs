@@ -1,13 +1,11 @@
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{
         self,
         item::slot_item,
         ship::{self, morale_timer, sp_effect_item},
     },
-    sea_orm::{
-        ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, TryIntoModel,
-        entity::prelude::*,
-    },
+    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{
     codex::Codex,
@@ -45,7 +43,7 @@ impl Ctx {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let (_, ship) = add_ship_impl(&tx, codex, profile_id, mst_id).await?;
 
@@ -91,7 +89,7 @@ impl Ctx {
     pub async fn get_ships(&self, profile_id: i64) -> Result<Vec<KcApiShip>, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let (ships, sps) = get_ships_impl(&tx, profile_id).await?;
 
@@ -128,7 +126,7 @@ impl Ctx {
         ship_id: i64,
     ) -> Result<KcApiShip, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let ship = toggle_ship_locked_impl(&tx, profile_id, ship_id).await?;
 
@@ -149,7 +147,7 @@ impl Ctx {
         ship_id: i64,
     ) -> Result<KcApiShip, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let ship = open_ship_exslot_impl(&tx, profile_id, ship_id).await?;
 
@@ -178,7 +176,7 @@ impl Ctx {
     ) -> Result<[i64; 5], GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let onslot_max = expand_hangar_slot_impl(&tx, codex, profile_id, ship_id, slot_pos).await?;
 
@@ -201,7 +199,7 @@ impl Ctx {
         slot_item_id: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         set_exslot_item_impl(&tx, profile_id, ship_id, slot_item_id).await?;
 
@@ -227,7 +225,7 @@ impl Ctx {
     ) -> Result<(), GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         set_slot_item_impl(&tx, codex, profile_id, ship_id, slot_idx, slot_item_id).await?;
 
@@ -249,7 +247,7 @@ impl Ctx {
     ) -> Result<(), GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         unset_all_slots_impl(&tx, codex, profile_id, ship_id).await?;
 
@@ -268,7 +266,7 @@ impl Ctx {
     pub async fn update_ship(&self, ship: &KcApiShip) -> Result<(), GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_ship_impl(&tx, codex, ship).await?;
 

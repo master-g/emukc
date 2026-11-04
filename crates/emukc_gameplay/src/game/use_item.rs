@@ -1,8 +1,9 @@
 use emukc_crypto::rng;
 
 use emukc_db::{
+    BeginImmediate,
     entity::profile::item::use_item::{self, ActiveModel},
-    sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, TryIntoModel, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{
     prelude::*,
@@ -31,7 +32,7 @@ impl Ctx {
         amount: i64,
     ) -> Result<KcApiUserItem, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let am = add_use_item_impl(&tx, profile_id, mst_id, amount).await?;
 
@@ -95,7 +96,7 @@ impl Ctx {
         amount: i64,
     ) -> Result<KcApiUserItem, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let am = deduct_use_item_impl(&tx, profile_id, mst_id, amount).await?;
 
@@ -124,7 +125,7 @@ impl Ctx {
     ) -> Result<KcApiUseItemResp, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let resp =
             consume_use_item_impl(&tx, codex, profile_id, mst_id, exchange_type, forced).await?;
@@ -148,7 +149,7 @@ impl Ctx {
         use_type: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         consume_cond_use_item_impl(&tx, profile_id, deck_id, use_type).await?;
 

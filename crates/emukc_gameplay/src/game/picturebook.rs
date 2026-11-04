@@ -1,9 +1,10 @@
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{
         item::{self},
         ship,
     },
-    sea_orm::{ActiveValue, TransactionTrait, TryIntoModel, entity::prelude::*},
+    sea_orm::{ActiveValue, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::profile::picture_book::{PictureBookShip, PictureBookSlotItem};
 
@@ -26,7 +27,7 @@ impl Ctx {
         married: Option<bool>,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         add_ship_to_picturebook_impl(&tx, profile_id, sortno, damaged, married).await?;
 
@@ -47,7 +48,7 @@ impl Ctx {
         sortno: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         add_slot_item_to_picturebook_impl(&tx, profile_id, sortno).await?;
 

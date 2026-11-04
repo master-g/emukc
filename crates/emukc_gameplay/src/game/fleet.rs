@@ -1,6 +1,7 @@
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{fleet, ship},
-    sea_orm::{ActiveValue, QueryOrder, TransactionTrait, TryIntoModel, entity::prelude::*},
+    sea_orm::{ActiveValue, QueryOrder, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::profile::fleet::Fleet;
 use emukc_time::chrono::Utc;
@@ -16,7 +17,7 @@ impl Ctx {
     /// - `index`: The fleet index, must be one of 2, 3, 4.
     pub async fn unlock_fleet(&self, profile_id: i64, index: i64) -> Result<Fleet, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = unlock_fleet_impl(&tx, profile_id, index).await?;
 
@@ -82,7 +83,7 @@ impl Ctx {
         ship_ids: &[i64; 6],
     ) -> Result<Fleet, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
         let m = update_fleet_ships_impl(&tx, profile_id, index, ship_ids).await?;
 
         tx.commit().await?;
@@ -102,7 +103,7 @@ impl Ctx {
         fleets: &[(i64, [i64; 6])],
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
         for (index, ship_ids) in fleets {
             update_fleet_ships_impl(&tx, profile_id, *index, ship_ids).await?;
         }
@@ -126,7 +127,7 @@ impl Ctx {
         name: &str,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_deck_name_impl(&tx, profile_id, index, name).await?;
 

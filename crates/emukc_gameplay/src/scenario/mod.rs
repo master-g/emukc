@@ -10,7 +10,7 @@
 //! sign-up / new-profile / start-game flow); it seeds ship, material, fleet, and
 //! map state only.
 
-use emukc_db::sea_orm::TransactionTrait;
+use emukc_db::BeginImmediate;
 use emukc_model::kc2::{KcApiShip, MaterialCategory, level};
 
 /// Slots a ship can carry equipment in, excluding the reinforcement expansion.
@@ -953,7 +953,7 @@ pub async fn apply_scenario(
 
     if !scenario.unlock_maps.is_empty() || !scenario.clear_maps.is_empty() {
         let codex = &ctx.codex;
-        let tx = ctx.db.begin().await?;
+        let tx = ctx.db.begin_immediate().await?;
         for &map_id in &scenario.unlock_maps {
             unlock_map_impl(&tx, codex, profile_id, map_id).await?;
         }

@@ -119,7 +119,7 @@ P1–P4 修的是运行时会出错的地方，按顺序先做。P5–P7 是类�
 
 都没修，按需另开单元。
 
-- **SQLite 跨进程写锁。** `.begin()` 是延迟事务。服务器运行时跑会写库的 CLI（`new-session --no-start`、`add-quest`、`import-account`），先读后写的事务立即报 `database is locked`。WAL 无效；`BEGIN IMMEDIATE` 有效，要给约 130 处 `.begin()` 包一层。sqlx 默认 busy_timeout 是 5 秒。
+- **SQLite 跨进程写锁。** 已修（`fix/sqlite-immediate-tx`）：`.begin()` 是延迟事务，服务器运行时跑会写库的 CLI，先读后写的事务立即报 `database is locked`（SQLite 只给还没持锁的事务调 busy handler，WAL 无效）。现在全部事务经 `emukc_db::BeginImmediate::begin_immediate` 用 `BEGIN IMMEDIATE`，在 sqlx 默认的 5 秒 busy timeout 内等锁；`clippy.toml` 禁用 `TransactionTrait::begin`。CLI 写事务超过 5 秒仍会报错。
 - **演习对手刷新。** 已修（`fix/practice-rival-refresh`）：原判断在日本时间 15:00 之后与 03:00 之前每次请求都重抽，而 03:00–15:00 之间抽到的对手过了 15:00 也不刷新；现在按最近一次 03:00 或 15:00 判断。
 - **错误映射。** `picture_book.rs` 的非法 `api_type`、`charge.rs` 的非法 `api_kind`、`RewardError::ChoicesLengthMismatch` 是客户端错误却是 500；地图未解锁（`Locked`）是 404；演习对手段位损坏走 `WrongType`，变成 400 且不记日志。
 - **鉴权。** 游戏 API 的 token 无效时返回 HTTP 401，真实服务器返回 `api_result` 201；`auth_middleware` 把数据库错误也折成 401。

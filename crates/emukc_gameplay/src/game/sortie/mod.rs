@@ -5,6 +5,7 @@ mod reconnaissance;
 mod route;
 mod setup;
 
+use emukc_db::BeginImmediate;
 use enemy_ship::{
     build_sortie_enemy_ship, fallback_enemy_composition, resolve_sortie_enemy_fleet,
     select_random_enemy_composition,
@@ -16,7 +17,7 @@ use setup::{SortieBattleEndpoint, resolve_sortie_battle_setup_impl};
 use std::collections::BTreeSet;
 
 use emukc_crypto::rng;
-use emukc_db::sea_orm::{TransactionTrait, entity::prelude::*};
+use emukc_db::sea_orm::entity::prelude::*;
 use emukc_model::{
     codex::{
         Codex,
@@ -244,7 +245,7 @@ impl Ctx {
     ) -> Result<SortieStartResponse, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let fleet_ships = get_fleet_ships_impl(&tx, profile_id, deck_id).await?;
         if fleet_ships.is_empty() {
@@ -483,7 +484,7 @@ impl Ctx {
                 }
 
                 let rids: Vec<i64> = air_strikes.iter().map(|strike| strike.base_rid).collect();
-                let tx = self.db.begin().await?;
+                let tx = self.db.begin_immediate().await?;
                 charge_air_sortie_impl(&tx, codex, profile_id, definition.maparea_id, &rids)
                     .await?;
                 // ponytail: tired on leaving rather than on the way home. Upstream
@@ -575,7 +576,7 @@ impl Ctx {
                     )));
                 }
 
-                let tx = db.begin().await?;
+                let tx = db.begin_immediate().await?;
                 let fleet_ships = get_fleet_ships_impl(&tx, profile_id, active.deck_id).await?;
                 let step = route_next_cell(
                     &tx,
@@ -607,7 +608,7 @@ impl Ctx {
                 }
 
                 // Resolve non-battle node effects (resource gain / maelstrom loss).
-                let tx = db.begin().await?;
+                let tx = db.begin_immediate().await?;
                 // Read before the cell can empty a gauge, as a battle's phase is.
                 let reached_phase = if matches!(next.event_id, 4 | 5) {
                     None
@@ -997,7 +998,7 @@ impl Ctx {
                         ))
                     })?;
 
-                let tx = db.begin().await?;
+                let tx = db.begin_immediate().await?;
                 let settlement = settle_sortie_battle_impl(
                     &tx,
                     codex,
@@ -1161,7 +1162,7 @@ impl Ctx {
         // Same write set as `sortie_battle_impl`, so it takes the same lock.
         store
             .with_profile_lock(profile_id, async {
-                let tx = db.begin().await?;
+                let tx = db.begin_immediate().await?;
 
                 let setup = resolve_sortie_battle_setup_impl(&tx, codex, store, profile_id).await?;
                 setup.validate_endpoint(endpoint)?;
@@ -1375,7 +1376,7 @@ async fn sortie_battle_impl(
 ) -> Result<DayBattleResponse, GameplayError> {
     store
         .with_profile_lock(profile_id, async {
-            let tx = db.begin().await?;
+            let tx = db.begin_immediate().await?;
 
             let setup = resolve_sortie_battle_setup_impl(&tx, codex, store, profile_id).await?;
             setup.validate_endpoint(endpoint)?;

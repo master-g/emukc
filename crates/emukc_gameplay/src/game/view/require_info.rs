@@ -1,6 +1,6 @@
 //! The `require_info` view.
 
-use emukc_db::{entity::profile::item::slot_item, sea_orm::TransactionTrait};
+use emukc_db::{BeginImmediate, entity::profile::item::slot_item};
 use emukc_model::{
     kc2::{
         KcApiFurniture, KcApiGameSetting, KcApiOptionSetting, KcApiOssSetting, KcApiSlotItem,
@@ -83,7 +83,7 @@ impl Ctx {
         let furnitures = self.get_furnitures(profile_id).await?;
 
         let codex = self.codex.as_ref();
-        let tx = self.db.begin().await?;
+        let tx = self.db.begin_immediate().await?;
 
         let (_, basic) = get_user_basic_impl(&tx, profile_id).await?;
         let kdocks = get_kdocks_impl(&tx, profile_id).await?;

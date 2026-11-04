@@ -1,7 +1,8 @@
 use emukc_crypto::SimpleHash;
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{self, kdock, ndock},
-    sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, entity::prelude::*},
 };
 use emukc_model::{
     codex::Codex,
@@ -45,7 +46,7 @@ impl Ctx {
         nickname: &str,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_user_nickname_impl(&tx, profile_id, nickname).await?;
 
@@ -66,7 +67,7 @@ impl Ctx {
         comment: &str,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_user_comment_impl(&tx, profile_id, comment).await?;
 
@@ -87,7 +88,7 @@ impl Ctx {
         firstflag: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_user_first_flag_impl(&tx, profile_id, firstflag).await?;
 
@@ -108,7 +109,7 @@ impl Ctx {
         progress: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_tutorial_progress_impl(&tx, profile_id, progress).await?;
 

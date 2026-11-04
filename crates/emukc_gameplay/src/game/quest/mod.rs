@@ -1,6 +1,7 @@
 use emukc_db::{
+    BeginImmediate,
     entity::profile::quest::{self, progress::Status},
-    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, entity::prelude::*},
 };
 use emukc_model::{
     codex::{Codex, query::FoundInCodex},
@@ -146,12 +147,12 @@ impl Ctx {
     ) -> Result<Vec<quest::progress::Model>, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let mut tx = db.begin().await?;
+        let mut tx = db.begin_immediate().await?;
 
         if update_quests_impl(&tx, codex, profile_id, now).await? {
             tx.commit().await?;
 
-            tx = db.begin().await?;
+            tx = db.begin_immediate().await?;
         }
 
         // Validate composition quests
@@ -159,7 +160,7 @@ impl Ctx {
         holding::validate_equipment_quests(&tx, codex, profile_id).await?;
         tx.commit().await?;
 
-        tx = db.begin().await?;
+        tx = db.begin_immediate().await?;
 
         Ok(quest::progress::Entity::find()
             .filter(quest::progress::Column::ProfileId.eq(profile_id))
@@ -194,7 +195,7 @@ impl Ctx {
         now: chrono::DateTime<chrono::Utc>,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let codex = self.codex.as_ref();
         let quest_manifest = Kc3rdQuest::find_in_codex(codex, &quest_id)?;
@@ -241,7 +242,7 @@ impl Ctx {
     pub async fn quest_start(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_quest_status(&tx, profile_id, quest_id, Status::Activated, Some(codex)).await?;
         update::validate_composition_quests(&tx, codex, profile_id).await?;
@@ -260,7 +261,7 @@ impl Ctx {
     /// - `quest_id`: The quest ID.
     pub async fn quest_stop(&self, profile_id: i64, quest_id: i64) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_quest_status(&tx, profile_id, quest_id, Status::Idle, None).await?;
 
@@ -307,7 +308,7 @@ impl Ctx {
         now: chrono::DateTime<chrono::Utc>,
     ) -> Result<KcApiQuestClearItemGet, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         // find the quest
         let quest = quest::progress::Entity::find()

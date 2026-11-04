@@ -5,7 +5,7 @@ use slot_deprive::slot_deprive_impl;
 use slot_exchange::slot_exchange_impl;
 use std::collections::BTreeMap;
 
-use emukc_db::{entity::profile::ship, sea_orm::TransactionTrait};
+use emukc_db::{BeginImmediate, entity::profile::ship};
 use emukc_model::{
     kc2::{KcApiChargeKind, KcApiChargeResp},
     profile::fleet::Fleet,
@@ -72,7 +72,7 @@ impl Ctx {
     ) -> Result<KcApiChargeResp, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let (resp, outcomes) =
             supply_fleet_impl(&tx, codex, profile_id, ship_ids, mode, supply_aircrafts).await?;
@@ -97,7 +97,7 @@ impl Ctx {
     ) -> Result<ship::Model, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let ship = marriage::marriage_impl(&tx, codex, profile_id, ship_id).await?;
         tx.commit().await?;
@@ -122,7 +122,7 @@ impl Ctx {
     ) -> Result<PowerupResp, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let (result, outcomes) =
             powerup::powerup_impl(&tx, codex, profile_id, ship_id, material_ships, keep_slot_items)
@@ -160,7 +160,7 @@ impl Ctx {
     pub async fn remodel(&self, profile_id: i64, ship_id: i64) -> Result<(), GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         remodel_impl(&tx, codex, profile_id, ship_id).await?;
         tx.commit().await?;
@@ -181,7 +181,7 @@ impl Ctx {
     ) -> Result<SlotDepriveResp, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let resp = slot_deprive_impl(&tx, codex, profile_id, params).await?;
         tx.commit().await?;
@@ -205,7 +205,7 @@ impl Ctx {
         dst_idx: i64,
     ) -> Result<ship::Model, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let ship = slot_exchange_impl(&tx, profile_id, ship_id, src_idx, dst_idx).await?;
 

@@ -137,7 +137,7 @@ pub trait FeatureOps {
 impl<T: HasContext + ?Sized> FeatureOps for T {
     async fn get_feature(&self, profile_id: i64) -> Result<Feature, GameplayError> {
         let db = self.db();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let result = get_feature_impl(&tx, profile_id).await?;
 
@@ -245,11 +245,11 @@ Err(GameplayError::CapacityExceeded(current_count))
 
 ### Pattern: Database Transactions
 
-For operations that modify data, always use transactions:
+For operations that modify data, always use transactions. Open them with `begin_immediate()` (`emukc_db::BeginImmediate`); clippy bans plain `begin()`, whose deferred transaction fails at once with `database is locked` while another process writes the database:
 
 ```rust
 let db = self.db();
-let tx = db.begin().await?;
+let tx = db.begin_immediate().await?;
 
 // ... perform operations on &tx
 

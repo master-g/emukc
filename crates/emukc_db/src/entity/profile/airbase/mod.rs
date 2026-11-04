@@ -20,8 +20,9 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
     // One transaction, so a start cut short cannot keep the column and lose
     // the reset.
     {
-        use sea_orm::{ConnectionTrait, TransactionTrait};
-        let tx = db.begin().await?;
+        use crate::BeginImmediate;
+        use sea_orm::ConnectionTrait;
+        let tx = db.begin_immediate().await?;
         let added = tx
             .execute_unprepared(
                 "ALTER TABLE plane_info ADD COLUMN since timestamp_with_timezone_text NULL",

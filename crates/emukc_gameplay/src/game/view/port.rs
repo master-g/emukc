@@ -1,8 +1,8 @@
 //! The `port` view.
 
+use emukc_db::BeginImmediate;
 use std::collections::BTreeMap;
 
-use emukc_db::sea_orm::TransactionTrait;
 use emukc_model::{
     kc2::{KcApiGameSetting, KcApiShip, KcApiUserBasic, MaterialCategory},
     profile::{fleet::Fleet, material::Material, ndock::RepairDock},
@@ -79,7 +79,7 @@ impl Ctx {
             .with_profile_lock(profile_id, async {
                 let gains = store.take_pending_gains(profile_id);
                 let settled = async {
-                    let tx = self.db.begin().await?;
+                    let tx = self.db.begin_immediate().await?;
 
                     let profile = find_profile(&tx, profile_id).await?;
                     // What the resource cells gave on the way reaches headquarters in port.
