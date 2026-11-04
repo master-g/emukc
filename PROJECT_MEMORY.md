@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-11-04 · branch `fix/stale-repair-dock`
+Last updated: 2026-11-04 · branch `docs/review-followups-status`
 
 ## Verified Facts
 
@@ -131,13 +131,15 @@ Current verification baseline:
 - [2026-10-22] 鈴谷/熊野航改二有水面敌舰在就不先制对潜（`isASWlast`，`kcsim.js:1086`），用户定保留；实机未核实。
 - [2026-10-22] 敌舰 `api_*` 是本体加装备总值、`api_eParam` 给本体；对潜/回避/索敌/运取来源，其余五项取 kcwiki（两边各有错）；未处理的射程/速力差异：`abyssal-ship-stats.md`。
 - [2026-10-22] 弾着観測的舰队索敌每轮重算，用户定偏离来源整场沿用（沉没舰仍计）；实机无证据。
+- [2026-11-04] SQLite 只有 1 个连接（SeaORM 2.0 对 SQLite 强制 `max_connections(1)`），进程内请求全串行，并发测不出竞态；`.begin()` 是延迟事务，另一个进程（写库的 CLI）持写锁时先读后写的事务立即 `database is locked`，WAL 无效，`BEGIN IMMEDIATE` 才行（计划 002 P10）。
 
 ## Failed Attempts / Pitfalls
 
 | Pitfall | Source |
 | --- | --- |
 | populate 基准三坑：`head -200` 清单全是 mp3（带宽受限，收益被掩成 10%，全量实为 49% mp3 + 49% png，要随机抽样）；`Kache::build()` 要求 `cache_root` 已存在，否则 exit 1 且无输出；配置里的相对路径按 config 文件所在目录解析。 | 计划 003 (2026-09-21) |
-| `emukc_bootstrap` 的 `make_list` 两个测试打真实 CDN（`make_kache()` 用 `socks5://127.0.0.1:1086`），网络一抖就 `FailedOnAllCdn`，fail-fast 会让整轮 workspace 测试在该 crate 中断。已加 `skip_if_offline`：只吞这一种错；服务器回空文件（`EOF while parsing`）或坏文件（`kache error: invalid file`）不吞，单独重跑即过（2026-10-14、2026-11-04）。 | session 2026-09-21 |
+| `make_list` 两个测试打真实 CDN（`socks5://127.0.0.1:1086`）。`skip_if_offline` 只吞 `FailedOnAllCdn`；空文件、`kache error: invalid file`、`Db(DatabaseAlreadyOpen)` 不吞，单独重跑即过（10-14、11-04）。 | session 2026-09-21 |
+| `make headless-check SCENARIO=fresh_1_1` 偶尔在标题画面触发 300 秒看门狗（同一二进制一次卡一次过），失败那次没有错误响应、没有 ERROR 日志就当不确定，重跑。 | 2026-11-04 P1 |
 | 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方目标池另算（只打护卫，`escort_deck_start`），切片会连带改掉。须按船过滤。 | session 2026-09-21 |
 | 全量测试用 `cargo test --workspace --no-fail-fast` 并看退出码：默认在第一个失败的 crate 停，通过数偏少；只 grep `test result:` 会漏掉 FAILED 行。 | plan 004 U5 (2026-06-22)、session 2026-10-11 |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
@@ -171,9 +173,9 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-11-04] #306、#307 已合并。`fix/stale-repair-dock`：修理完成时舰船已不存在（解体、做了强化材料）不再让母港报错，直接空出船坞；#307 之前写进别的 profile 船坞的旧行，在该船坞主人打开母港时自行清掉并修好船（测试证明，无需迁移）。
+- [2026-11-04] 计划 002 全部做完、未合并：#308 船坞，P1 #309、P2 #310、P3 #311、P4 #312、P5 #313、P6 #314、P7 #315、P9 #316、P10 #317、P8 #318+#319；本 PR 更新计划状态与执行中的新发现。各 PR 自带 fmt、严格 clippy、全量测试结果（0 失败 0 忽略）。
 
 ## Next Session
 
-- [2026-11-04] 计划 002 按 P1–P10 每项一个分支、一个 PR，串行做，合并逐个问用户。10-27 对拍的三处公式差异开不开 issue 待用户定；第二刀（任务、海域、远征、基地、预设、图鉴形态 #302）未排期；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
-  季节＝某天的状态，非常规版。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。数字先读到再写。
+- [2026-11-04] 逐个问用户合并 #308–#320（本 PR 叠在 #308 上）；#316 与 #319 都改 `auth.rs` 和支付回调的 `st` 字段，后合的要解冲突。计划 002「执行中的新发现」里的条目待用户挑。10-27 对拍三处公式差异开不开 issue 待定；第二刀（#302 等）未排期；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
+  季节＝某天的状态。暂不发版；`CHANGELOG.md` 只到 2026-05，发版前重写。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。数字先读到再写。

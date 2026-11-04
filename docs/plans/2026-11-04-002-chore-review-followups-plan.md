@@ -2,7 +2,7 @@
 title: "Review Follow-ups - Plan"
 type: chore
 date: 2026-11-04
-status: proposed
+status: implemented
 execution: code
 ---
 
@@ -17,6 +17,23 @@ execution: code
 ## 顺序
 
 P1–P4 修的是运行时会出错的地方，按顺序先做。P5–P7 是类型与校验。P8、P9 是清理，可以随时穿插。P10 需要先拿到运行时证据，再决定改不改。
+
+## 进展
+
+每个单元都已开 PR，都还没合并。每个 PR 都过了 fmt、严格 clippy 和完整测试，0 失败 0 忽略；P5、P7 的 golden 不变。
+
+| 单元 | PR | 说明 |
+|---|---|---|
+| P1 | #309 | 游戏 API 仍是 HTTP 200 加 `api_result` -1；客户端不读 `api_result_msg`。 |
+| P2 | #310 | `From<Model> for QuestProgress` 没有调用方，改成 `TryFrom`。 |
+| P3 | #311 | 失败路径的原子性由写法保证，macOS 上造不出写到一半失败。 |
+| P4 | #312 | 连接池只有 1 个连接，以前一次登录挡住所有数据库请求。 |
+| P5 | #313 | 真实的竞态是夜战或归港与结算之间，不是两个相同请求。母港重复入账在单连接下复现不了，照样修了。 |
+| P6 | #314 | 购买上限 10 取自客户端 `Math.min(10, this._count)`。 |
+| P7 | #315 | 测试用 `From<BattleShipInput>` 改成造友舰（原来造敌舰，与文档不符）；`is_sortie` 仍是布尔。 |
+| P8 | #318、#319 | 拆成两个 PR。抑制属性实际 141 处，缺 `Debug` 的公开类型 14 个。 |
+| P9 | #316 | 与 #319 都改 `auth.rs` 和支付回调的 `st` 字段，后合的要解冲突。 |
+| P10 | #317 | 编成跨舰队移船、HTTP/1 重定向主机是 bug，已修；SQLite、锁表不改，见下节。 |
 
 ## Implementation Units
 
@@ -97,3 +114,19 @@ P1–P4 修的是运行时会出错的地方，按顺序先做。P5–P7 是类�
 - 每个 PR 都过 fmt、严格 clippy、`cargo test --workspace`，并报告跳过或忽略的测试。
 - P1、P2、P6 中涉及 handler 的改动，再跑 `make headless-check SCENARIO=fresh_1_1`。
 - P7 必须保持 golden 不变。
+
+## 执行中的新发现
+
+都没修，按需另开单元。
+
+- **SQLite 跨进程写锁。** `.begin()` 是延迟事务。服务器运行时跑会写库的 CLI（`new-session --no-start`、`add-quest`、`import-account`），先读后写的事务立即报 `database is locked`。WAL 无效；`BEGIN IMMEDIATE` 有效，要给约 130 处 `.begin()` 包一层。sqlx 默认 busy_timeout 是 5 秒。
+- **演习对手刷新。** `practice.rs:303` 的判断在日本时间 15:00 之后（以及 03:00 之前）每次请求都成立，对手每次都重抽。
+- **错误映射。** `picture_book.rs` 的非法 `api_type`、`charge.rs` 的非法 `api_kind`、`RewardError::ChoicesLengthMismatch` 是客户端错误却是 500；地图未解锁（`Locked`）是 404；演习对手段位损坏走 `WrongType`，变成 400 且不记日志。
+- **鉴权。** 游戏 API 的 token 无效时返回 HTTP 401，真实服务器返回 `api_result` 201；`auth_middleware` 把数据库错误也折成 401。
+- **store 顺序。** `practice_battle` 在 `tx.commit()` 之前写入待结算的战斗。
+- **`ALTER TABLE`。** `preset/mod.rs:22` 仍吞掉所有错误；`airbase/mod.rs:27` 用 `is_ok()`，任何错误都跳过重置。
+- **批量解体。** 中途遇到不属于自己的船时，前面的船已经解体；没有整批一个事务的接口。
+- **小问题。** `auto/mod.rs` 仍有 `open::that(url).unwrap()`；`net/mod.rs:85` 是第三处 TLS 判断；`find_config_file` 留着 `exe_path.parent().unwrap()`；`quest/mod.rs:224`、`quest/update.rs:232` 的 `serde_json::to_value(..).unwrap()`；`src/bin/cfg/mod.rs:14` 的 `CFG` 写入后没人读；`emukc_crypto` 的 `hash.rs` 两个测试钉着该 crate `Cargo.toml` 的 md5。
+- **可能没用的依赖。** `cargo machete` 标出根 crate 的 `axum-extra`、`emukc_cache` 的 `emukc_db` 与 `emukc_model`、`emukc_bootstrap` 的 `futures-util` 与 `scraper`、`emukc_db` 的 `serde`，未逐个确认。
+- **死代码（只标注）。** `emukc_log` 的 `#[macro_use] extern crate tracing`；`damage.rs` 的 `calculate_single_slot_airstrike_damage`；`res.rs` 的 `ResourceCategory`；`nuke.rs` 里注释掉的 `add_ship_incentives`；`cdn_operations.rs` 的 `setup_test_cache`。
+- **测试工具。** `make headless-check SCENARIO=fresh_1_1` 偶尔在标题画面触发 300 秒看门狗；P4 的登录测试比较两段耗时，机器很忙时可能偶发失败。
