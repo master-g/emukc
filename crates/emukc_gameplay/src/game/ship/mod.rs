@@ -646,10 +646,7 @@ pub(crate) async fn open_ship_exslot_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let ship = ship::Entity::find_by_id(ship_id)
-        .one(c)
-        .await?
-        .ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
+    let ship = find_owned_ship(c, profile_id, ship_id).await?;
 
     deduct_use_item_impl(c, profile_id, KcUseItemType::ReinforceExpansion as i64, 1).await?;
 
@@ -678,7 +675,7 @@ where
 }
 
 /// The ship `ship_id` of `profile_id`; another profile's ship reads as missing.
-async fn find_owned_ship<C>(
+pub(crate) async fn find_owned_ship<C>(
     c: &C,
     profile_id: i64,
     ship_id: i64,
@@ -696,7 +693,7 @@ where
 }
 
 /// The slot item `item_id` of `profile_id`; another profile's item reads as missing.
-async fn find_owned_slot_item<C>(
+pub(crate) async fn find_owned_slot_item<C>(
     c: &C,
     profile_id: i64,
     item_id: i64,

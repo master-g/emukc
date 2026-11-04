@@ -1,3 +1,4 @@
+use crate::game::ship::find_owned_ship;
 use emukc_db::{
     entity::profile::{kdock, ship},
     sea_orm::{ActiveValue, TransactionTrait, entity::prelude::*},
@@ -197,10 +198,7 @@ impl Ctx {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        let ship_model = ship::Entity::find_by_id(ship_id)
-            .one(&tx)
-            .await?
-            .ok_or_else(|| GameplayError::EntryNotFound(format!("ship {ship_id} not found")))?;
+        let ship_model = find_owned_ship(&tx, profile_id, ship_id).await?;
 
         let ship_mst = codex.find::<ApiMstShip>(&ship_model.mst_id)?;
 

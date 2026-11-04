@@ -1,3 +1,4 @@
+use crate::game::ship::find_owned_ship;
 use emukc_db::{
     entity::profile::{item::slot_item, ship},
     sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, entity::prelude::*},
@@ -29,10 +30,7 @@ pub(crate) async fn remodel_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let ship_model = ship::Entity::find_by_id(ship_id)
-        .one(c)
-        .await?
-        .ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ID {ship_id}")))?;
+    let ship_model = find_owned_ship(c, profile_id, ship_id).await?;
 
     let requirements = codex.remodel_requirement(ship_model.mst_id)?;
     let after_mst = codex.find::<ApiMstShip>(&requirements.after)?;

@@ -1,3 +1,4 @@
+use crate::game::ship::find_owned_ship;
 use std::collections::BTreeMap;
 
 use emukc_db::{
@@ -104,10 +105,7 @@ where
             }
         });
 
-    let ship = ship::Entity::find_by_id(ship_id)
-        .one(c)
-        .await?
-        .ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ship_id {ship_id}")))?;
+    let ship = find_owned_ship(c, profile_id, ship_id).await?;
 
     process_equip(c, ship.slot_1, &mut am.mst_id_1, &mut am.stars_1).await?;
     process_equip(c, ship.slot_2, &mut am.mst_id_2, &mut am.stars_2).await?;
@@ -194,11 +192,7 @@ where
             ))
         })?;
 
-    // find target ship
-    let ship = ship::Entity::find_by_id(ship_id)
-        .one(c)
-        .await?
-        .ok_or_else(|| GameplayError::EntryNotFound(format!("ship for ship_id {ship_id}")))?;
+    let ship = find_owned_ship(c, profile_id, ship_id).await?;
 
     let extra = codex.find::<Kc3rdShip>(&ship.mst_id)?;
 
