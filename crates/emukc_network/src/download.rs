@@ -1,9 +1,8 @@
 //! Download requests and responses.
 
 use std::{
-    fs::{OpenOptions, create_dir_all},
-    io::Cursor,
     path::PathBuf,
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use emukc_crypto::SimpleHash;
@@ -12,6 +11,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::client::new_reqwest_client;
+
+/// Tells apart the partial files of concurrent downloads to the same target.
+static PARTIAL_SEQ: AtomicU64 = AtomicU64::new(0);
 
 /// Download request
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -361,7 +363,7 @@ impl Request {
 
         // create parent directory
         let parent = save_as.parent().expect("cannot get parent directory of the save path");
-        create_dir_all(parent).map_err(|source| DownloadError::Io {
+        tokio::fs::create_dir_all(parent).await.map_err(|source| DownloadError::Io {
             action: "creating parent directory",
             url: request_url.clone(),
             save_as: save_as.clone(),
@@ -369,27 +371,30 @@ impl Request {
             source,
         })?;
 
-        // open
-        let mut dest =
-            OpenOptions::new().write(true).create(true).truncate(true).open(&save_as).map_err(
-                |source| DownloadError::Io {
-                    action: "opening destination file",
-                    url: request_url.clone(),
-                    save_as: save_as.clone(),
-                    path: save_as.clone(),
-                    source,
-                },
-            )?;
-
-        // write
-        let mut content = Cursor::new(body);
-        std::io::copy(&mut content, &mut dest).map_err(|source| DownloadError::Io {
-            action: "writing response body",
-            url: request_url,
-            save_as: save_as.clone(),
-            path: save_as,
-            source,
-        })?;
+        // Stage the body beside the target and rename it over, so a failed write never leaves
+        // a truncated file the cache would later serve as present.
+        let seq = PARTIAL_SEQ.fetch_add(1, Ordering::Relaxed);
+        let partial = save_as.with_extension(format!("{}.{seq}.partial", std::process::id()));
+        if let Err(source) = tokio::fs::write(&partial, &body).await {
+            let _ = tokio::fs::remove_file(&partial).await;
+            return Err(DownloadError::Io {
+                action: "writing response body",
+                url: request_url,
+                save_as,
+                path: partial,
+                source,
+            });
+        }
+        if let Err(source) = tokio::fs::rename(&partial, &save_as).await {
+            let _ = tokio::fs::remove_file(&partial).await;
+            return Err(DownloadError::Io {
+                action: "moving downloaded file into place",
+                url: request_url,
+                save_as,
+                path: partial,
+                source,
+            });
+        }
 
         Ok(())
     }
