@@ -169,6 +169,7 @@ pub static GLOBAL_SORTIE_STORE: std::sync::LazyLock<SortieStore> =
 pub struct PracticeStore {
     pending_battles: Mutex<HashMap<i64, PracticeBattleSession>>,
     pending_results: Mutex<HashMap<i64, PracticeBattleResultSnapshot>>,
+    profile_locks: Mutex<HashMap<i64, Arc<AsyncMutex<()>>>>,
 }
 
 impl PracticeStore {
@@ -177,6 +178,7 @@ impl PracticeStore {
         Self {
             pending_battles: Mutex::new(HashMap::new()),
             pending_results: Mutex::new(HashMap::new()),
+            profile_locks: Mutex::new(HashMap::new()),
         }
     }
 
@@ -223,6 +225,24 @@ impl PracticeStore {
     pub fn clear(&self) {
         self.pending_battles.lock().clear();
         self.pending_results.lock().clear();
+    }
+
+    /// Acquire a per-profile serialization lock and run the given future.
+    ///
+    /// This keeps the day battle, the night battle and the settlement of one
+    /// profile from interleaving their read-modify-write cycles on the store.
+    pub async fn with_profile_lock<F, T>(&self, profile_id: i64, f: F) -> T
+    where
+        F: Future<Output = T> + Send,
+    {
+        let lock = self
+            .profile_locks
+            .lock()
+            .entry(profile_id)
+            .or_insert_with(|| Arc::new(AsyncMutex::new(())))
+            .clone();
+        let _guard = lock.lock().await;
+        f.await
     }
 }
 

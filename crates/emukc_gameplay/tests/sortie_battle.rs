@@ -781,3 +781,87 @@ async fn a_failed_settlement_keeps_the_battle_result_for_a_retry() {
     ship::Entity::insert(restored).exec(db).await.unwrap();
     context.sortie_battle_result(pid).await.unwrap();
 }
+
+/// Fight the first cell of 1-1 until the battle offers a night battle.
+async fn day_battle_with_night(context: &Ctx, pid: i64) {
+    for _ in 0..64 {
+        context.start_sortie(pid, 1, 1, 1).await.unwrap();
+        if context.sortie_battle(pid, 1).await.unwrap().api_midnight_flag == 1 {
+            return;
+        }
+        context.sortie_goback_port(pid).await.unwrap();
+    }
+    panic!("1-1 offered no night battle in 64 tries");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_night_battle_asked_for_twice_at_once_is_fought_once() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    // 占守 hits too lightly to sink 1-1's destroyer by day, so the night stays open.
+    let ship = context.add_ship(pid, 517).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+
+    // The night battle never waits on the database, so only two threads released
+    // together can race it.
+    for round in 0..3 {
+        day_battle_with_night(&context, pid).await;
+        let barrier = Arc::new(std::sync::Barrier::new(2));
+        let night = || {
+            let (context, barrier) = (context.clone(), barrier.clone());
+            let runtime = tokio::runtime::Handle::current();
+            tokio::task::spawn_blocking(move || {
+                barrier.wait();
+                runtime.block_on(context.sortie_midnight_battle(pid))
+            })
+        };
+        let (a, b) = tokio::join!(night(), night());
+        let fought = [a.unwrap(), b.unwrap()].iter().filter(|night| night.is_ok()).count();
+        assert_eq!(fought, 1, "one night battle per day battle, round {round}");
+        context.sortie_goback_port(pid).await.unwrap();
+    }
+}
+
+async fn settled_at_sea(context: &Ctx, pid: i64) {
+    let ship = context.add_ship(pid, 951).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+    context.start_sortie(pid, 1, 1, 1).await.unwrap();
+    context.sortie_battle(pid, 1).await.unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn returning_to_port_during_a_settlement_ends_the_sortie() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    settled_at_sea(&context, pid).await;
+
+    let (result, goback) =
+        tokio::join!(context.sortie_battle_result(pid), context.sortie_goback_port(pid));
+    result.unwrap();
+    goback.unwrap();
+    assert!(context.sortie_store().get_active(pid).is_none(), "the fleet is back in port");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn clearing_stale_sortie_state_during_a_settlement_ends_the_sortie() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    settled_at_sea(&context, pid).await;
+
+    let (result, ()) =
+        tokio::join!(context.sortie_battle_result(pid), context.clear_sortie_state_if_any(pid));
+    result.unwrap();
+    assert!(context.sortie_store().get_active(pid).is_none(), "no sortie is left at sea");
+}
+
+#[tokio::test]
+async fn a_failed_port_visit_keeps_the_resource_cell_gains() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    context.sortie_store().add_pending_gain(pid, 0, 100);
+
+    let db = context.db.as_ref();
+    profile::material::Entity::delete_by_id(pid).exec(db).await.unwrap();
+    assert!(context.port_view(pid).await.is_err());
+    assert_eq!(context.sortie_store().pending_gains(pid), Some([100, 0, 0, 0]));
+}

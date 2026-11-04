@@ -137,40 +137,45 @@ impl Ctx {
     ) -> Result<DayBattleResponse, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
-
-        let rival = get_practice_rival_details_impl(&tx, profile_id, enemy_id).await?;
-        let profile = find_profile(&tx, profile_id).await?;
-        let friend_ships = get_fleet_ships_impl(&tx, profile_id, deck_id).await?;
-        if friend_ships.is_empty() {
-            return Err(GameplayError::WrongType(format!(
-                "fleet {deck_id} has no ships for practice battle",
-            )));
-        }
-
-        let friend_ships = build_friend_ships(&tx, &friend_ships).await?;
-        let enemy_ships = build_practice_enemy_ships(codex, &rival)?;
-        let input = PracticeBattleInput {
-            profile_id,
-            deck_id,
-            formation_id,
-            enemy_id,
-            friend_ships,
-            enemy_ships,
-            rival,
-            member_lv: profile.hq_level,
-            member_exp: profile.experience,
-        };
-
         let practice_repo = self.practice_store.as_ref();
-        let _rng = ProductionRng;
-        let mut rng = ProductionRng;
-        let (response, snapshot) = run_day_battle(codex, input, practice_repo, &mut rng)?;
 
-        tx.commit().await?;
-        practice_repo.insert_pending_result(profile_id, snapshot);
+        practice_repo
+            .with_profile_lock(profile_id, async {
+                let tx = db.begin().await?;
 
-        Ok(response)
+                let rival = get_practice_rival_details_impl(&tx, profile_id, enemy_id).await?;
+                let profile = find_profile(&tx, profile_id).await?;
+                let friend_ships = get_fleet_ships_impl(&tx, profile_id, deck_id).await?;
+                if friend_ships.is_empty() {
+                    return Err(GameplayError::WrongType(format!(
+                        "fleet {deck_id} has no ships for practice battle",
+                    )));
+                }
+
+                let friend_ships = build_friend_ships(&tx, &friend_ships).await?;
+                let enemy_ships = build_practice_enemy_ships(codex, &rival)?;
+                let input = PracticeBattleInput {
+                    profile_id,
+                    deck_id,
+                    formation_id,
+                    enemy_id,
+                    friend_ships,
+                    enemy_ships,
+                    rival,
+                    member_lv: profile.hq_level,
+                    member_exp: profile.experience,
+                };
+
+                let _rng = ProductionRng;
+                let mut rng = ProductionRng;
+                let (response, snapshot) = run_day_battle(codex, input, practice_repo, &mut rng)?;
+
+                tx.commit().await?;
+                practice_repo.insert_pending_result(profile_id, snapshot);
+
+                Ok(response)
+            })
+            .await
     }
 
     /// Get the latest practice battle result.
@@ -180,43 +185,53 @@ impl Ctx {
     ) -> Result<PracticeBattleResultResponse, GameplayError> {
         let db = self.db.as_ref();
         let practice_repo = self.practice_store.as_ref();
-        // Taken up front so a second call cannot settle it too; a failed settlement
-        // puts it back for a retry.
-        let pending = practice_repo.take_pending_result(profile_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "practice battle result not found for profile {profile_id}",
-            ))
-        })?;
 
-        let settled = async {
-            let tx = db.begin().await?;
-            let snapshot = update_practice_result_stats(
-                &tx,
-                self.codex.as_ref(),
-                profile_id,
-                pending.clone(),
-                practice_repo,
-            )
-            .await?;
-            update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank.to_string())
-                .await?;
-            let outcome = build_practice_battle_outcome(&snapshot)?;
-            observe(&tx, self.codex.as_ref(), profile_id, &[outcome]).await?;
-            tx.commit().await?;
-            Ok::<_, GameplayError>(snapshot)
-        }
-        .await;
+        practice_repo
+            .with_profile_lock(profile_id, async {
+                // Taken up front so a second call cannot settle it too; a failed settlement
+                // puts it back for a retry.
+                let pending = practice_repo.take_pending_result(profile_id).ok_or_else(|| {
+                    GameplayError::EntryNotFound(format!(
+                        "practice battle result not found for profile {profile_id}",
+                    ))
+                })?;
 
-        match settled {
-            Ok(snapshot) => {
-                practice_repo.clear_pending_battle(profile_id);
-                Ok(build_result_response(snapshot))
-            }
-            Err(e) => {
-                practice_repo.insert_pending_result(profile_id, pending);
-                Err(e)
-            }
-        }
+                let settled = async {
+                    let tx = db.begin().await?;
+                    let snapshot = update_practice_result_stats(
+                        &tx,
+                        self.codex.as_ref(),
+                        profile_id,
+                        pending.clone(),
+                        practice_repo,
+                    )
+                    .await?;
+                    update_rival_status(
+                        &tx,
+                        profile_id,
+                        snapshot.enemy_id,
+                        &snapshot.win_rank.to_string(),
+                    )
+                    .await?;
+                    let outcome = build_practice_battle_outcome(&snapshot)?;
+                    observe(&tx, self.codex.as_ref(), profile_id, &[outcome]).await?;
+                    tx.commit().await?;
+                    Ok::<_, GameplayError>(snapshot)
+                }
+                .await;
+
+                match settled {
+                    Ok(snapshot) => {
+                        practice_repo.clear_pending_battle(profile_id);
+                        Ok(build_result_response(snapshot))
+                    }
+                    Err(e) => {
+                        practice_repo.insert_pending_result(profile_id, pending);
+                        Err(e)
+                    }
+                }
+            })
+            .await
     }
 
     pub async fn practice_midnight_battle(
@@ -225,42 +240,52 @@ impl Ctx {
     ) -> Result<NightBattleResponse, GameplayError> {
         let codex = self.codex.as_ref();
         let practice_repo = self.practice_store.as_ref();
-        let mut rng = ProductionRng;
-        let (response, snapshot) = run_night_battle(codex, profile_id, practice_repo, &mut rng)
-            .ok_or_else(|| {
-                GameplayError::WrongType("night practice battle is not available".to_string())
-            })?;
 
-        let ct_flagship = practice_repo
-            .get_pending_battle(profile_id)
-            .and_then(|s| s.friendly.first().map(|f| f.ship.api_ship_id))
-            .and_then(|sid| codex.manifest.find_ship(sid))
-            .is_some_and(|m| m.api_stype == 21);
+        practice_repo
+            .with_profile_lock(profile_id, async {
+                let mut rng = ProductionRng;
+                let (response, snapshot) =
+                    run_night_battle(codex, profile_id, practice_repo, &mut rng).ok_or_else(
+                        || {
+                            GameplayError::WrongType(
+                                "night practice battle is not available".to_string(),
+                            )
+                        },
+                    )?;
 
-        if let Some(mut existing) = practice_repo.take_pending_result(profile_id) {
-            let base_exp = existing.get_base_exp;
-            let friend_ships = practice_repo
-                .get_pending_battle(profile_id)
-                .map(|session| session.friendly)
-                .unwrap_or_default();
-            existing.win_rank = snapshot.win_rank;
-            existing.mvp = snapshot.mvp;
-            existing.get_exp = calculate_admiral_exp(base_exp, &existing.win_rank.to_string());
-            let (ship_exp, ship_lvup) = calculate_ship_exp(
-                &friend_ships,
-                base_exp,
-                existing.win_rank,
-                existing.mvp,
-                ct_flagship,
-                codex.game_cfg.exp.ct_exp_boost,
-                codex.game_cfg.exp.practice_exp_boost,
-            );
-            existing.get_ship_exp = ship_exp;
-            existing.get_exp_lvup = ship_lvup;
-            practice_repo.insert_pending_result(profile_id, existing);
-        }
+                let ct_flagship = practice_repo
+                    .get_pending_battle(profile_id)
+                    .and_then(|s| s.friendly.first().map(|f| f.ship.api_ship_id))
+                    .and_then(|sid| codex.manifest.find_ship(sid))
+                    .is_some_and(|m| m.api_stype == 21);
 
-        Ok(response)
+                if let Some(mut existing) = practice_repo.take_pending_result(profile_id) {
+                    let base_exp = existing.get_base_exp;
+                    let friend_ships = practice_repo
+                        .get_pending_battle(profile_id)
+                        .map(|session| session.friendly)
+                        .unwrap_or_default();
+                    existing.win_rank = snapshot.win_rank;
+                    existing.mvp = snapshot.mvp;
+                    existing.get_exp =
+                        calculate_admiral_exp(base_exp, &existing.win_rank.to_string());
+                    let (ship_exp, ship_lvup) = calculate_ship_exp(
+                        &friend_ships,
+                        base_exp,
+                        existing.win_rank,
+                        existing.mvp,
+                        ct_flagship,
+                        codex.game_cfg.exp.ct_exp_boost,
+                        codex.game_cfg.exp.practice_exp_boost,
+                    );
+                    existing.get_ship_exp = ship_exp;
+                    existing.get_exp_lvup = ship_lvup;
+                    practice_repo.insert_pending_result(profile_id, existing);
+                }
+
+                Ok(response)
+            })
+            .await
     }
 }
 

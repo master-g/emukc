@@ -715,3 +715,27 @@ async fn a_failed_practice_settlement_keeps_the_result_for_a_retry() {
     context.practice_battle_result(pid).await.unwrap();
     assert!(context.practice_battle_result(pid).await.is_err(), "settled only once");
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_night_battle_asked_for_during_the_settlement_is_refused() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    let ships = add_ships_with_type(&context, pid, KcShipType::BB, 1, 99).await;
+    context.update_fleet_ships(pid, 1, &[ships[0], -1, -1, -1, -1, -1]).await.unwrap();
+    // A battleship alone outlasts the day and seldom sinks a whole rival fleet with it.
+    let rivals = context.get_practice_rivals(pid).await.unwrap().rivals;
+    let offers_night = (0..64).map(|tries| rivals[tries % rivals.len()].id);
+    let mut night_offered = false;
+    for enemy_id in offers_night {
+        if context.practice_battle(pid, 1, 1, enemy_id).await.unwrap().api_midnight_flag == 1 {
+            night_offered = true;
+            break;
+        }
+    }
+    assert!(night_offered, "no rival offered a night battle in 64 tries");
+
+    let (result, night) =
+        tokio::join!(context.practice_battle_result(pid), context.practice_midnight_battle(pid));
+    result.unwrap();
+    assert!(night.is_err(), "a night battle after its settlement would never be counted");
+}

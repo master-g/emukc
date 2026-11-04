@@ -1065,52 +1065,59 @@ impl Ctx {
     ) -> Result<NightBattleResponse, GameplayError> {
         let codex = self.codex.as_ref();
         let store = self.sortie_store.as_ref();
-        let pending = pending_battle(store, profile_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "sortie battle session not found for profile {profile_id}",
-            ))
-        })?;
-        if !pending.outcome.can_midnight {
-            return Err(GameplayError::WrongType(
-                "night battle is not available for this sortie battle".to_string(),
-            ));
-        }
 
-        let mut rng = ProductionRng;
-        let (session, night) = run_night_battle(store, codex, pending, &mut rng);
+        store
+            .with_profile_lock(profile_id, async {
+                let pending = pending_battle(store, profile_id).ok_or_else(|| {
+                    GameplayError::EntryNotFound(format!(
+                        "sortie battle session not found for profile {profile_id}",
+                    ))
+                })?;
+                if !pending.outcome.can_midnight {
+                    return Err(GameplayError::WrongType(
+                        "night battle is not available for this sortie battle".to_string(),
+                    ));
+                }
 
-        if let Some(mut snapshot) = store.take_pending_result(profile_id) {
-            snapshot.special_attacks.extend(night.packet.special_attacks());
-            snapshot.night_fought = true;
-            snapshot.win_rank = night.outcome.win_rank.to_string();
-            snapshot.get_exp = calculate_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
-            snapshot.friendly_nowhps = session.friendly.iter().map(|f| f.hp().max(0)).collect();
-            // Rescored over both decks: a combined night battle only moved
-            // 第2艦隊's HP and damage, but 第1艦隊's share of the node is
-            // still owed and its MVP still has to come from 第1艦隊 alone.
-            let ct_flagship = session
-                .friendly
-                .first()
-                .and_then(|f| codex.manifest.find_ship(f.ship.api_ship_id))
-                .is_some_and(|m| m.api_stype == 21);
-            let rewards = calculate_sortie_deck_rewards(
-                &session.friendly,
-                &snapshot.friendly_nowhps,
-                session.escort_start(),
-                snapshot.get_base_exp,
-                ct_flagship,
-                codex.game_cfg.exp.ct_exp_boost,
-            );
-            snapshot.mvp = rewards.mvp;
-            snapshot.mvp_combined = rewards.mvp_combined;
-            snapshot.get_ship_exp = rewards.get_ship_exp;
-            snapshot.get_exp_lvup = rewards.get_exp_lvup;
-            snapshot.get_ship_exp_combined = rewards.get_ship_exp_combined;
-            snapshot.get_exp_lvup_combined = rewards.get_exp_lvup_combined;
-            store.insert_pending_result(profile_id, snapshot);
-        }
+                let mut rng = ProductionRng;
+                let (session, night) = run_night_battle(store, codex, pending, &mut rng);
 
-        Ok(night_battle_response(codex, &session, night))
+                if let Some(mut snapshot) = store.take_pending_result(profile_id) {
+                    snapshot.special_attacks.extend(night.packet.special_attacks());
+                    snapshot.night_fought = true;
+                    snapshot.win_rank = night.outcome.win_rank.to_string();
+                    snapshot.get_exp =
+                        calculate_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
+                    snapshot.friendly_nowhps =
+                        session.friendly.iter().map(|f| f.hp().max(0)).collect();
+                    // Rescored over both decks: a combined night battle only moved
+                    // 第2艦隊's HP and damage, but 第1艦隊's share of the node is
+                    // still owed and its MVP still has to come from 第1艦隊 alone.
+                    let ct_flagship = session
+                        .friendly
+                        .first()
+                        .and_then(|f| codex.manifest.find_ship(f.ship.api_ship_id))
+                        .is_some_and(|m| m.api_stype == 21);
+                    let rewards = calculate_sortie_deck_rewards(
+                        &session.friendly,
+                        &snapshot.friendly_nowhps,
+                        session.escort_start(),
+                        snapshot.get_base_exp,
+                        ct_flagship,
+                        codex.game_cfg.exp.ct_exp_boost,
+                    );
+                    snapshot.mvp = rewards.mvp;
+                    snapshot.mvp_combined = rewards.mvp_combined;
+                    snapshot.get_ship_exp = rewards.get_ship_exp;
+                    snapshot.get_exp_lvup = rewards.get_exp_lvup;
+                    snapshot.get_ship_exp_combined = rewards.get_ship_exp_combined;
+                    snapshot.get_exp_lvup_combined = rewards.get_exp_lvup_combined;
+                    store.insert_pending_result(profile_id, snapshot);
+                }
+
+                Ok(night_battle_response(codex, &session, night))
+            })
+            .await
     }
 
     /// `api_req_battle_midnight/sp_midnight` — a single fleet's night-start cell.
@@ -1190,22 +1197,30 @@ impl Ctx {
         profile_id: i64,
     ) -> Result<SortieGobackPortResponse, GameplayError> {
         let store = self.sortie_store.as_ref();
-        let removed = store.remove_active(profile_id);
-        if removed.is_none() {
-            return Err(GameplayError::EntryNotFound(format!(
-                "active sortie not found for profile {profile_id}",
-            )));
-        }
+        store
+            .with_profile_lock(profile_id, async {
+                let removed = store.remove_active(profile_id);
+                if removed.is_none() {
+                    return Err(GameplayError::EntryNotFound(format!(
+                        "active sortie not found for profile {profile_id}",
+                    )));
+                }
 
-        clear_pending_sortie_runtime_state(store, profile_id);
+                clear_pending_sortie_runtime_state(store, profile_id);
 
-        Ok(SortieGobackPortResponse::default())
+                Ok(SortieGobackPortResponse::default())
+            })
+            .await
     }
 
     /// Clear any stale sortie state for a profile without erroring if none exists.
     pub async fn clear_sortie_state_if_any(&self, profile_id: i64) {
         let store = self.sortie_store.as_ref();
-        clear_pending_sortie_runtime_state(store, profile_id);
+        store
+            .with_profile_lock(profile_id, async {
+                clear_pending_sortie_runtime_state(store, profile_id);
+            })
+            .await;
     }
 }
 
