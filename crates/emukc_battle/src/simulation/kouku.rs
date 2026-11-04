@@ -509,7 +509,7 @@ pub(super) const AIRSTRIKE_HIT_PERCENT: f64 = 95.0;
 /// rolls nothing.
 #[expect(
     clippy::too_many_arguments,
-    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+    reason = "each argument is a separate input to the damage or power formula; grouping them would only rename the arguments"
 )]
 fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
@@ -677,7 +677,7 @@ pub(super) fn dive_bomb_weak(id: i64) -> f64 {
 /// ships afloat now. `contact` is the side's 触接 multiplier.
 #[expect(
     clippy::too_many_arguments,
-    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+    reason = "each argument is a separate piece of battle state the turn reads or writes; grouping them would only rename the arguments"
 )]
 fn execute_airstrike_phase(
     codex: &Codex,

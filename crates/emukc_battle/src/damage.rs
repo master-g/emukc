@@ -173,7 +173,7 @@ pub(crate) fn balloon_contact(attacker_balloons: i64, target_balloons: i64) -> f
 /// spotting damage pipeline.
 #[expect(
     clippy::too_many_arguments,
-    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+    reason = "each argument is a separate input to the damage or power formula; grouping them would only rename the arguments"
 )]
 pub(crate) fn calculate_shelling_damage(
     codex: &Codex,
@@ -364,7 +364,7 @@ fn night_gun_power(
 /// flies one; it stands in for her guns and torpedoes, and her aircraft's proficiency counts.
 #[expect(
     clippy::too_many_arguments,
-    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+    reason = "each argument is a separate input to the damage or power formula; grouping them would only rename the arguments"
 )]
 pub(crate) fn calculate_night_damage(
     codex: &Codex,
@@ -407,7 +407,7 @@ pub(crate) fn calculate_night_damage(
 /// proficiency where the attack is flown ([`asw_proficiency`]), and none in the opening.
 #[expect(
     clippy::too_many_arguments,
-    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+    reason = "each argument is a separate input to the damage or power formula; grouping them would only rename the arguments"
 )]
 pub(crate) fn calculate_asw_damage(
     codex: &Codex,

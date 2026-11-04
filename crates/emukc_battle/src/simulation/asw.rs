@@ -79,7 +79,7 @@ pub(crate) fn simulate_opening_taisen(
 /// attack. `attackers` and `defenders` are the slices of `volley`.
 #[expect(
     clippy::too_many_arguments,
-    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+    reason = "each argument is a separate piece of battle state the turn reads or writes; grouping them would only rename the arguments"
 )]
 fn asw_turn(
     codex: &Codex,

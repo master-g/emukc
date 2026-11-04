@@ -1364,7 +1364,7 @@ fn zuiun_night_chance(
 /// rest of the night (the source's `star1 = true`), the cut-in's two hits included.
 #[expect(
     clippy::too_many_arguments,
-    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+    reason = "each argument is a separate piece of battle state the turn reads or writes; grouping them would only rename the arguments"
 )]
 fn zuiun_night_attack(
     codex: &Codex,
@@ -1476,7 +1476,7 @@ impl SpecialRow {
 /// multiplier applied before the cap.
 #[expect(
     clippy::too_many_arguments,
-    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+    reason = "each argument is a separate piece of battle state the turn reads or writes; grouping them would only rename the arguments"
 )]
 fn special_attack_row(
     codex: &Codex,
@@ -1642,7 +1642,7 @@ pub(crate) fn simulate_night_hougeki(
 /// One ship's night attack, if it can make one and has a target.
 #[expect(
     clippy::too_many_arguments,
-    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+    reason = "each argument is a separate piece of battle state the turn reads or writes; grouping them would only rename the arguments"
 )]
 fn night_turn(
     codex: &Codex,

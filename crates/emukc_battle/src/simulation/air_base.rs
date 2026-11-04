@@ -325,7 +325,7 @@ fn anti_air_kind(mst: &ApiMstSlotitem) -> AntiAirKind {
 /// then multiplied by 1.8, and against a ship of a combined fleet by 1.1.
 #[expect(
     clippy::too_many_arguments,
-    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+    reason = "each argument is a separate input to the damage or power formula; grouping them would only rename the arguments"
 )]
 fn strike_power(
     rng: &mut impl BattleRng,
