@@ -28,4 +28,9 @@ mod tests {
         println!("{}", hash);
         assert!(password.verify_password(&hash));
     }
+
+    #[test]
+    fn a_malformed_hash_does_not_verify() {
+        assert!(!"password".verify_password("not a bcrypt hash"));
+    }
 }

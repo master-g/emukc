@@ -163,3 +163,24 @@ impl From<Model> for QuestProgress {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn corrupt_requirements_do_not_convert() {
+        let model = Model {
+            id: 1,
+            profile_id: 1,
+            quest_id: 101,
+            status: Status::Activated,
+            progress: Progress::Empty,
+            period: Period::Daily,
+            start_since: Utc::now(),
+            requirement_type: RequirementType::And,
+            requirements: serde_json::json!("not a condition list"),
+        };
+        let _progress: QuestProgress = model.into();
+    }
+}
