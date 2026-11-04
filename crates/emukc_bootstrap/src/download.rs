@@ -213,7 +213,7 @@ pub async fn download_all(
                 pb.inc(1);
             }
 
-            log_with_mp(&mp, || {
+            log_with_mp((*mp).as_ref(), || {
                 info!(
                     "{} downloaded, size: {}, md5: {}, time: {:?}",
                     res.save_as,
@@ -268,7 +268,7 @@ pub async fn download_all(
                         source,
                     })?;
 
-                log_with_mp(&mp, || {
+                log_with_mp((*mp).as_ref(), || {
                     info!("{} unzipped to {}", res.save_as, unzip_to);
                 });
             }

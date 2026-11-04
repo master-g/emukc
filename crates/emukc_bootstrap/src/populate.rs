@@ -134,8 +134,8 @@ async fn run_pass(
     kache: &Arc<Kache>,
     items: Vec<(String, Option<String>)>,
     concurrent: usize,
-    aggregate_pb: &Option<Arc<indicatif::ProgressBar>>,
-    stats_pb: &Option<Arc<indicatif::ProgressBar>>,
+    aggregate_pb: Option<&Arc<indicatif::ProgressBar>>,
+    stats_pb: Option<&Arc<indicatif::ProgressBar>>,
     active_count: &Arc<AtomicUsize>,
 ) -> Vec<FailedItem> {
     let q = concurrent.clamp(1, MAX_CONCURRENT);
@@ -155,10 +155,10 @@ async fn run_pass(
 
             let opt = GetOption::default().disable_mod();
             let kache_clone = kache.clone();
-            let aggregate_pb = aggregate_pb.clone();
+            let aggregate_pb = aggregate_pb.cloned();
             let active_count = active_count.clone();
             let error_count = error_count.clone();
-            let stats_pb = stats_pb.clone();
+            let stats_pb = stats_pb.cloned();
             let failures = failures.clone();
 
             active_count.fetch_add(1, Ordering::Relaxed);
@@ -261,7 +261,8 @@ pub async fn populate(
 
     // Pass 1
     let pass1_failures =
-        run_pass(&kache, all_items, q, &aggregate_pb, &stats_pb, &active_count).await;
+        run_pass(&kache, all_items, q, aggregate_pb.as_ref(), stats_pb.as_ref(), &active_count)
+            .await;
     debug_assert_eq!(
         active_count.load(Ordering::Relaxed),
         0,
@@ -320,7 +321,8 @@ pub async fn populate(
     }
 
     let pass2_failures =
-        run_pass(&kache, retry_items, q, &aggregate_pb, &stats_pb, &active_count).await;
+        run_pass(&kache, retry_items, q, aggregate_pb.as_ref(), stats_pb.as_ref(), &active_count)
+            .await;
     debug_assert_eq!(
         active_count.load(Ordering::Relaxed),
         0,
@@ -358,7 +360,7 @@ pub async fn populate(
     print_populate_summary(&mp, &stats, &failed);
 
     if failed_count + missing_count > 0 {
-        log_with_mp(&mp, || {
+        log_with_mp((*mp).as_ref(), || {
             // A list that could not be written leaves the summary's count with
             // nothing behind it, so fall back to printing the paths themselves
             // rather than sending the user back to the log file.

@@ -421,7 +421,7 @@ fn load_codex(config: &AppConfig) -> Result<Codex> {
         .with_context(|| format!("failed to load codex from {}", codex_root.display()))
 }
 
-fn load_battle_payload(path: &PathBuf) -> Result<Value> {
+fn load_battle_payload(path: &Path) -> Result<Value> {
     let raw = fs::read_to_string(path)
         .with_context(|| format!("failed to read battle payload from {}", path.display()))?;
     let trimmed = raw.trim();

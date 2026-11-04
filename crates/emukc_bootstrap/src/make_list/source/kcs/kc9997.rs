@@ -3,7 +3,7 @@ use emukc_model::thirdparty::CacheSource;
 use crate::{make_list::CacheList, prelude::CacheListMakingError};
 
 pub(super) async fn make(
-    cache_source: &Option<CacheSource>,
+    cache_source: Option<&CacheSource>,
     list: &mut CacheList,
 ) -> Result<(), CacheListMakingError> {
     if let Some(source) = cache_source {

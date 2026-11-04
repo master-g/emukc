@@ -128,7 +128,7 @@ fn find_config_file(arg: &str) -> anyhow::Result<PathBuf> {
     ))
 }
 
-fn needs_quiet_stdout(cmd: &Option<Commands>) -> bool {
+fn needs_quiet_stdout(cmd: Option<&Commands>) -> bool {
     match cmd {
         Some(Commands::Bootstrap(_)) => true,
         Some(Commands::Cache(args)) => args.uses_progress_bars(),
@@ -173,7 +173,7 @@ pub async fn init() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let quiet_stdout = needs_quiet_stdout(&args.command);
+    let quiet_stdout = needs_quiet_stdout(args.command.as_ref());
     let Some(_guard) = new_log_builder()
         .with_log_level(&args.log)
         .with_source_file()

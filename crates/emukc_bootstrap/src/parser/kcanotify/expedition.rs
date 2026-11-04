@@ -71,8 +71,8 @@ fn convert_to_internal_model(
             ship_count: src.total_num,
             flagship_level: src.flagship_level,
             fleet_level: src.total_level,
-            flagship_types: parse_flagship_types(&src.flagship_type),
-            composition: parse_composition(&src.total_condition)?,
+            flagship_types: parse_flagship_types(src.flagship_type.as_deref()),
+            composition: parse_composition(src.total_condition.as_deref())?,
             total_firepower: src.total_firepower,
             total_aa: src.total_fp,
             total_asw: src.total_asw,
@@ -126,7 +126,7 @@ pub fn parse_escort_carriers(
 }
 
 /// Parse the flagship types: "7/27" is a light carrier or an escort carrier.
-fn parse_flagship_types(cond: &Option<String>) -> Vec<i64> {
+fn parse_flagship_types(cond: Option<&str>) -> Vec<i64> {
     cond.iter().flat_map(|s| s.split('/')).filter_map(|s| s.parse().ok()).collect()
 }
 
@@ -142,9 +142,7 @@ fn parse_flagship_types(cond: &Option<String>) -> Vec<i64> {
 /// - "3-1|2-2" -> 1 light cruiser AND 2 destroyers
 /// - "3-1/2-2" -> 1 light cruiser OR 2 destroyers
 /// - "1,2-3" -> 3 ships of any type OR destroyer
-fn parse_composition(
-    cond: &Option<String>,
-) -> Result<Vec<Kc3rdCompositionAlternative>, ParseError> {
+fn parse_composition(cond: Option<&str>) -> Result<Vec<Kc3rdCompositionAlternative>, ParseError> {
     let Some(cond_str) = cond else {
         return Ok(vec![]);
     };
@@ -217,7 +215,7 @@ mod tests {
 
     #[test]
     fn test_parse_composition_simple() {
-        let result = parse_composition(&Some("3-1".to_string())).unwrap();
+        let result = parse_composition(Some("3-1")).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].conditions.len(), 1);
         assert_eq!(result[0].conditions[0].ship_types, vec![3]);
@@ -226,7 +224,7 @@ mod tests {
 
     #[test]
     fn test_parse_composition_and() {
-        let result = parse_composition(&Some("3-1|2-2".to_string())).unwrap();
+        let result = parse_composition(Some("3-1|2-2")).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].conditions.len(), 2);
         assert_eq!(result[0].conditions[0].ship_types, vec![3]);
@@ -237,7 +235,7 @@ mod tests {
 
     #[test]
     fn test_parse_composition_or() {
-        let result = parse_composition(&Some("3-1/2-2".to_string())).unwrap();
+        let result = parse_composition(Some("3-1/2-2")).unwrap();
         assert_eq!(result.len(), 2);
         // First alternative: 1 light cruiser (type 3)
         assert_eq!(result[0].conditions[0].ship_types, vec![3]);
@@ -250,7 +248,7 @@ mod tests {
     #[test]
     fn test_parse_composition_multi_ship_types() {
         // "3-1|1,2-2" -> 1 light cruiser AND 2 ships of type 1/2
-        let result = parse_composition(&Some("3-1|1,2-2".to_string())).unwrap();
+        let result = parse_composition(Some("3-1|1,2-2")).unwrap();
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].conditions[0].ship_types, vec![3]);
         assert_eq!(result[0].conditions[1].ship_types, vec![1, 2]);
@@ -260,7 +258,7 @@ mod tests {
     #[test]
     fn test_parse_composition_multi_branch_or() {
         // OR condition: "2-2/3-1" -> 2 destroyers OR 1 light cruiser
-        let result = parse_composition(&Some("2-2/3-1".to_string())).unwrap();
+        let result = parse_composition(Some("2-2/3-1")).unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(result[0].conditions[0].ship_types, vec![2]);
         assert_eq!(result[0].conditions[0].count, 2);
@@ -270,14 +268,14 @@ mod tests {
 
     #[test]
     fn test_parse_composition_empty() {
-        assert!(parse_composition(&None).unwrap().is_empty());
-        assert!(parse_composition(&Some("".to_string())).unwrap().is_empty());
+        assert!(parse_composition(None).unwrap().is_empty());
+        assert!(parse_composition(Some("")).unwrap().is_empty());
     }
 
     #[test]
     fn test_parse_composition_invalid_format() {
-        assert!(parse_composition(&Some("invalid".to_string())).is_err());
-        assert!(parse_composition(&Some("1-2-3".to_string())).is_err());
+        assert!(parse_composition(Some("invalid")).is_err());
+        assert!(parse_composition(Some("1-2-3")).is_err());
     }
 
     #[test]
@@ -327,10 +325,10 @@ mod tests {
 
     #[test]
     fn test_parse_flagship_types() {
-        assert_eq!(parse_flagship_types(&Some("3".to_string())), vec![3]);
-        assert_eq!(parse_flagship_types(&Some("7/27".to_string())), vec![7, 27]);
-        assert_eq!(parse_flagship_types(&Some("invalid".to_string())), Vec::<i64>::new());
-        assert_eq!(parse_flagship_types(&None), Vec::<i64>::new());
+        assert_eq!(parse_flagship_types(Some("3")), vec![3]);
+        assert_eq!(parse_flagship_types(Some("7/27")), vec![7, 27]);
+        assert_eq!(parse_flagship_types(Some("invalid")), Vec::<i64>::new());
+        assert_eq!(parse_flagship_types(None), Vec::<i64>::new());
     }
 
     /// A kcanotify entry with the given `total-firepower` and `total-fp`.
