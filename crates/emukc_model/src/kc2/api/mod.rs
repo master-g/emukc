@@ -46,7 +46,7 @@ pub struct KcApiUserBasic {
     pub api_playtime: i64,
     /// ???, always 0, not used in main.js
     pub api_tutorial: i64,
-    /// Furniture setting, [0]: floor, [1]: wallpaper, [2]: window, [3]: wallhanging, [4]: shelf, [5]: desk
+    /// Furniture setting, `[0]`: floor, `[1]`: wallpaper, `[2]`: window, `[3]`: wallhanging, `[4]`: shelf, `[5]`: desk
     pub api_furniture: [i64; 6],
     /// Deck count
     pub api_count_deck: i64,
@@ -85,7 +85,7 @@ pub struct KcApiUserBasic {
     /// Maxium parallel quest count, not exist in origin API
     #[serde(default)]
     pub api_max_quests: i64,
-    /// Extra supply enable flag, [0] expedition, [1] battle
+    /// Extra supply enable flag, `[0]` expedition, `[1]` battle
     #[serde(default)]
     pub api_extra_supply: [i64; 2],
     /// War result points, not exist in origin API
@@ -172,9 +172,9 @@ pub struct KcApiShip {
     pub api_ship_id: i64,
     pub api_lv: i64,
     /// Ship experience
-    /// [0]: current
-    /// [1]: needed for next level
-    /// [2]: progress percentage, 0-100
+    /// `[0]`: current
+    /// `[1]`: needed for next level
+    /// `[2]`: progress percentage, 0-100
     pub api_exp: [i64; 3],
     pub api_nowhp: i64,
     pub api_maxhp: i64,
@@ -193,7 +193,7 @@ pub struct KcApiShip {
     /// Takes precedence over `api_maxeq` in the manifest.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub api_onslot_max: Option<[i64; 5]>,
-    /// Modernization, [0]: firepower, [1]: torpedo, [2]: AA, [3]: armor, [4]: luck, [5]: HP, [6]: ASW
+    /// Modernization, `[0]`: firepower, `[1]`: torpedo, `[2]`: AA, `[3]`: armor, `[4]`: luck, `[5]`: HP, `[6]`: ASW
     pub api_kyouka: [i64; 7],
     /// Rarity
     pub api_backs: i64,
@@ -203,27 +203,27 @@ pub struct KcApiShip {
     pub api_slotnum: i64,
     /// Repair time, in milliseconds
     pub api_ndock_time: i64,
-    /// Material consumption for repair, [0]: fuel, [1]: steel
+    /// Material consumption for repair, `[0]`: fuel, `[1]`: steel
     pub api_ndock_item: [i64; 2],
     /// Modernization level, 0 for not modernized
     pub api_srate: i64,
     /// Morale
     pub api_cond: i64,
-    /// fire power, [0]: including equipment, [1]: max
+    /// fire power, `[0]`: including equipment, `[1]`: max
     pub api_karyoku: [i64; 2],
-    /// torpedo, [0]: current, [1]: max
+    /// torpedo, `[0]`: current, `[1]`: max
     pub api_raisou: [i64; 2],
-    /// AA, [0]: current, [1]: max
+    /// AA, `[0]`: current, `[1]`: max
     pub api_taiku: [i64; 2],
-    /// armor, [0]: current, [1]: max
+    /// armor, `[0]`: current, `[1]`: max
     pub api_soukou: [i64; 2],
-    /// evasion, [0]: current, [1]: max
+    /// evasion, `[0]`: current, `[1]`: max
     pub api_kaihi: [i64; 2],
-    /// anti-submarine, [0]: current, [1]: max
+    /// anti-submarine, `[0]`: current, `[1]`: max
     pub api_taisen: [i64; 2],
-    /// line of sight, [0]: current, [1]: max
+    /// line of sight, `[0]`: current, `[1]`: max
     pub api_sakuteki: [i64; 2],
-    /// luck, [0]: current, [1]: max
+    /// luck, `[0]`: current, `[1]`: max
     pub api_lucky: [i64; 2],
     /// Is locked, 0: no, 1: yes
     pub api_locked: i64,
@@ -668,11 +668,11 @@ pub struct KcApiShipQVoiceInfo {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KcApiPictureBookShip {
     pub api_index_no: i64,
-    /// [][0]: default
-    /// [][1]: medium damage
-    /// [][2]: married
-    /// [][3]: ?
-    /// [][4]: ?
+    /// `[][0]`: default
+    /// `[][1]`: medium damage
+    /// `[][2]`: married
+    /// `[][3]`: ?
+    /// `[][4]`: ?
     pub api_state: Vec<[i64; 5]>,
     pub api_q_voice_info: Vec<KcApiShipQVoiceInfo>,
     pub api_table_id: Vec<i64>,
@@ -788,7 +788,7 @@ pub enum KcApiChargeKind {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct KcApiChargeResp {
     pub api_ship: Vec<KcApiChargeShip>,
-    /// [0]: fuel, [1]: ammo, [2]: steel, [3]: bauxite
+    /// `[0]`: fuel, `[1]`: ammo, `[2]`: steel, `[3]`: bauxite
     pub api_material: [i64; 4],
     pub api_use_bou: i64,
 }

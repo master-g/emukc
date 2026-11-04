@@ -3,7 +3,7 @@
 //! The simulator (`X-20A/X-20A.github.io`, branch `compass_dev`, MIT) encodes every map's
 //! branching as one TypeScript function per map. Only a pinned commit is ever fetched, so the
 //! asset converted from it is reproducible; upgrading means changing
-//! [`COMPASS_SOURCE_COMMIT`] and re-running the conversion.
+//! [`COMPASS_SOURCE_COMMIT`](crate::compass_source::COMPASS_SOURCE_COMMIT) and re-running the conversion.
 
 use std::path::{Path, PathBuf};
 

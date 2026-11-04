@@ -57,7 +57,7 @@ pub struct SpMidnightSimulation {
 ///
 /// A night-start cell has no day phase, but the fleets still have to be built
 /// the same way — a combined fleet only behaves like one because
-/// [`BattleState::from_context`] tags both decks, and the night packet's index
+/// `BattleState::from_context` tags both decks, and the night packet's index
 /// remap keys off those tags. So the context goes through the same builder and
 /// only then splits: 第2艦隊 fights, 第1艦隊 is handed back untouched for the
 /// caller to report.
