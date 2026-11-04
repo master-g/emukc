@@ -17,7 +17,10 @@ use emukc_model::{
     kc2::{KcApiEventmap, KcApiMapInfo},
     profile::map_record::MapSelectRank,
 };
-use emukc_time::chrono::{DateTime, Datelike, FixedOffset, TimeZone, Utc};
+use emukc_time::{
+    JST,
+    chrono::{DateTime, Datelike, TimeZone, Utc},
+};
 
 use crate::{err::GameplayError, gameplay::Ctx};
 
@@ -282,9 +285,8 @@ where
 /// (sakamoto-kouji.com 2019/08/04); 「0時を過ぎた時点で勲章などの報酬は貰えなくなります」
 /// (chiebukuro q10146468100).
 pub(crate) fn monthly_reset_due(last_reset_at: Option<DateTime<Utc>>, now: DateTime<Utc>) -> bool {
-    let jst = FixedOffset::east_opt(9 * 3600).unwrap();
-    let today = now.with_timezone(&jst);
-    let month_start = jst.with_ymd_and_hms(today.year(), today.month(), 1, 0, 0, 0).unwrap();
+    let today = now.with_timezone(&JST);
+    let month_start = JST.with_ymd_and_hms(today.year(), today.month(), 1, 0, 0, 0).unwrap();
     last_reset_at.is_none_or(|ts| ts < month_start)
 }
 

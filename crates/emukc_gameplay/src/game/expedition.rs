@@ -13,8 +13,8 @@ use emukc_model::{
     },
 };
 use emukc_time::{
-    KcTime,
-    chrono::{DateTime, Datelike, Duration, FixedOffset, TimeZone, Utc},
+    JST, KcTime,
+    chrono::{DateTime, Datelike, Duration, TimeZone, Utc},
 };
 
 use crate::{err::GameplayError, gameplay::Ctx};
@@ -1392,15 +1392,14 @@ where
 }
 
 fn next_monthly_reset_time(now: DateTime<Utc>) -> DateTime<Utc> {
-    let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-    let now_jst = now.with_timezone(&tokyo_tz);
+    let now_jst = now.with_timezone(&JST);
     let (year, month) = if now_jst.month() == 12 {
         (now_jst.year() + 1, 1)
     } else {
         (now_jst.year(), now_jst.month() + 1)
     };
 
-    tokyo_tz.with_ymd_and_hms(year, month, 1, 5, 0, 0).single().unwrap().with_timezone(&Utc)
+    JST.with_ymd_and_hms(year, month, 1, 5, 0, 0).single().unwrap().with_timezone(&Utc)
 }
 
 pub(super) async fn init<C>(_c: &C, _profile_id: i64) -> Result<(), GameplayError>
