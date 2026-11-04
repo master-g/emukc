@@ -308,7 +308,10 @@ struct FormationAim {
     asw_ev: f64,
 }
 
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "a const table builder; the eight values are the four accuracy and four evasion factors of one formation"
+)]
 const fn aim(
     shell_acc: f64,
     torp_acc: f64,

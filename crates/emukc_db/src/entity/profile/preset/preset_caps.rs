@@ -2,7 +2,10 @@
 
 use sea_orm::entity::prelude::*;
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "preset_caps")]
 pub struct Model {

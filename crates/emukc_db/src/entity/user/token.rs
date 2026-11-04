@@ -2,7 +2,10 @@ use chrono::{DateTime, Utc};
 use emukc_model::user::token::{Token, TokenType};
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM row of the token table; the `Token` it converts to documents each column"
+)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "token")]
 pub struct Model {

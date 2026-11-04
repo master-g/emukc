@@ -15,7 +15,10 @@ use crate::progress::{
 use crate::res::RES_LIST;
 
 /// Error that can occur during the download process
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "the variant fields are the url, path and proxy that the `#[error]` message prints"
+)]
 #[derive(Debug, Error)]
 pub enum BootstrapDownloadError {
     /// IO error
@@ -210,7 +213,7 @@ pub async fn download_all(
                 pb.inc(1);
             }
 
-            log_with_mp(&mp, || {
+            log_with_mp((*mp).as_ref(), || {
                 info!(
                     "{} downloaded, size: {}, md5: {}, time: {:?}",
                     res.save_as,
@@ -265,7 +268,7 @@ pub async fn download_all(
                         source,
                     })?;
 
-                log_with_mp(&mp, || {
+                log_with_mp((*mp).as_ref(), || {
                     info!("{} unzipped to {}", res.save_as, unzip_to);
                 });
             }

@@ -1,4 +1,7 @@
-#![allow(missing_docs)]
+#![expect(
+    missing_docs,
+    reason = "the map enums are the client's gauge, rank and event ids, and `enumn::N` derives an undocumented `pub fn n`"
+)]
 
 use serde::{Deserialize, Serialize};
 use std::sync::LazyLock;

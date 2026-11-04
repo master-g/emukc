@@ -240,7 +240,6 @@ where
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
 /// - `config`: The new configuration.
-#[expect(unused)]
 pub(crate) async fn update_furniture_config_impl<C>(
     c: &C,
     profile_id: i64,
@@ -254,7 +253,7 @@ where
         .one(c)
         .await?;
 
-    let mut am = furniture::config::ActiveModel {
+    let am = furniture::config::ActiveModel {
         id: record.map_or(ActiveValue::NotSet, |r| ActiveValue::Unchanged(r.id)),
         floor: ActiveValue::Set(config.floor),
         wallpaper: ActiveValue::Set(config.wallpaper),

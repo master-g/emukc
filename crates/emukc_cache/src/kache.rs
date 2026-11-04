@@ -403,7 +403,7 @@ impl Kache {
     async fn find_in_local(
         &self,
         rel_path: &str,
-        local_path: &PathBuf,
+        local_path: &Path,
         version: &str,
     ) -> Result<tokio::fs::File, Error> {
         // Fast existence check
@@ -538,7 +538,7 @@ impl Kache {
         &self,
         url: &str,
         rel_path: &str,
-        local_path: &PathBuf,
+        local_path: &Path,
         version: &str,
     ) -> Result<tokio::fs::File, Error> {
         download::Request::builder()
@@ -572,7 +572,7 @@ impl Kache {
     async fn fetch_from_remote(
         &self,
         path: &str,
-        local_path: &PathBuf,
+        local_path: &Path,
         version: &str,
         shuffle: bool,
         check_local: bool,

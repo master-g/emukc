@@ -17,6 +17,7 @@ static CODEX: LazyLock<Arc<Codex>> =
 /// Per-test context with an isolated [`SortieStore`] and [`PracticeStore`].
 ///
 /// Avoids profile-id collisions that occur when tests share one store.
+#[derive(Debug)]
 pub struct TestContext {
     ctx: Ctx,
 }

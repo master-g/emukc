@@ -19,7 +19,10 @@
 //! matrix and asserting every returned cell is a declared `next_cell`) lives in an in-crate
 //! `#[cfg(test)]` module in `crates/emukc_gameplay/src/game/map_route.rs`, which is the only
 //! place that can reach the router's `pub(crate)` surface.
-#![allow(missing_docs)]
+#![expect(
+    missing_docs,
+    reason = "finding and report types follow `battle_rules`' shape, which the module doc describes"
+)]
 
 use std::collections::BTreeSet;
 

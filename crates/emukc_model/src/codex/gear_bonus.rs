@@ -24,7 +24,10 @@ fn is_zero(value: &i64) -> bool {
 /// A set of stat changes, named as in `api_mst_slotitem`.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are the game's stat keys (`houg`, `raig`, ...) as `GearBonus.js` writes them"
+)]
 pub struct GearBonusStats {
     #[serde(skip_serializing_if = "is_zero")]
     pub houg: i64,
@@ -72,7 +75,10 @@ impl GearBonusStats {
 /// Where the table was converted from.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "repo, commit and files of the pinned `KC3Kai` source; the names say it"
+)]
 pub struct GearBonusSource {
     pub repo: String,
     pub commit: String,
@@ -107,7 +113,10 @@ pub struct GearBonusEntry {
 /// One condition and what it grants.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase", deny_unknown_fields)]
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are the condition keys of `GearBonus.js`, camel-cased by serde"
+)]
 pub struct GearBonusRule {
     /// The ship class the rule is listed under.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -159,7 +168,10 @@ pub struct GearBonusRule {
 /// An extra grant for carrying other equipment alongside.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase", deny_unknown_fields)]
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are the synergy keys of `GearBonus.js`, camel-cased by serde"
+)]
 pub struct GearBonusSynergy {
     /// Counters that all have to be above zero. `<name>Nonexist` is above zero when
     /// `<name>` is zero.
@@ -233,7 +245,10 @@ pub struct GearBonusByStars {
 /// One row of [`GearBonusByStars`].
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are the star row keys of `GearBonus.js`, camel-cased by serde"
+)]
 pub struct GearBonusStarRow {
     pub min_stars: usize,
     pub stats: GearBonusStats,

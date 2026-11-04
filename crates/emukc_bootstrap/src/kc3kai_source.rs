@@ -35,7 +35,10 @@ pub fn kc3kai_source_dir(data_root: impl AsRef<Path>) -> PathBuf {
 /// Fetch the pinned files into [`kc3kai_source_dir`], unless they are already there.
 ///
 /// Returns the directory and whether anything was downloaded.
-#[expect(clippy::result_large_err)]
+#[expect(
+    clippy::result_large_err,
+    reason = "carries the download error whole, once per bootstrap run"
+)]
 pub async fn sync_kc3kai_source(
     data_root: impl AsRef<Path>,
     proxy: Option<&str>,
@@ -74,7 +77,10 @@ pub async fn sync_kc3kai_source(
 
 /// The conversion redistributes a table derived from this source, which the MIT license
 /// allows. A different license at the pinned commit has to be looked at by a person.
-#[expect(clippy::result_large_err)]
+#[expect(
+    clippy::result_large_err,
+    reason = "carries the download error whole, once per bootstrap run"
+)]
 fn check_license(path: &Path) -> Result<(), BootstrapDownloadError> {
     let license = std::fs::read_to_string(path)?;
     let first_line = license.lines().next().unwrap_or_default().trim();

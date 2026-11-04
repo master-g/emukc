@@ -4,7 +4,10 @@ use std::sync::LazyLock;
 
 use serde::{Deserialize, Serialize};
 
-#[expect(unused)]
+#[expect(
+    dead_code,
+    reason = "no reader yet; lists the bootstrap resource kinds for when one needs them"
+)]
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ResourceCategory {
     Start2,

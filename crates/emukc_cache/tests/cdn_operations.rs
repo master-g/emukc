@@ -3,7 +3,7 @@
 use emukc_cache::Kache;
 use tempfile::TempDir;
 
-#[allow(dead_code)]
+#[expect(dead_code, reason = "shared fixture that no test in this file calls at the moment")]
 fn setup_test_cache() -> (Kache, TempDir) {
     let temp_dir = TempDir::new().unwrap();
     let cache = Kache::builder()

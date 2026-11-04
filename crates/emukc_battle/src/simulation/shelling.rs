@@ -230,7 +230,10 @@ pub(crate) fn simulate_shelling_side(
 /// What the ship at `idx` fires when its turn comes: nothing, one attack, or
 /// from the flagship the whole of a special attack, which a side makes once in
 /// a battle. Indices are those of the two slices.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate piece of battle state the turn reads or writes; grouping them would only rename the arguments"
+)]
 fn shell_turn(
     codex: &Codex,
     rng: &mut impl BattleRng,

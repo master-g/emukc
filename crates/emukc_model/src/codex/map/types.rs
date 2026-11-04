@@ -138,7 +138,10 @@ pub struct CellMaelstrom {
     pub guess: Option<String>,
 }
 
-#[expect(clippy::trivially_copy_pass_by_ref)]
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde's `skip_serializing_if` passes the field by reference"
+)]
 fn is_zero_f64(value: &f64) -> bool {
     *value == 0.0
 }
@@ -378,7 +381,10 @@ enum CompactShipDropDefinition {
     },
 }
 
-#[expect(clippy::trivially_copy_pass_by_ref)]
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde's `skip_serializing_if` passes the field by reference"
+)]
 fn is_zero(value: &i64) -> bool {
     *value == 0
 }

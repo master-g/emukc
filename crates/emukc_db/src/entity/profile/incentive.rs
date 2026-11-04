@@ -1,5 +1,5 @@
 //! Incentive entity
-#![allow(missing_docs)]
+#![expect(missing_docs, reason = "`enumn::N` derives a `pub fn n` with no doc comment")]
 
 use emukc_model::kc2::{KcApiIncentiveMode, KcApiIncentiveType};
 use sea_orm::entity::prelude::*;
@@ -31,7 +31,10 @@ pub enum IncentiveType {
     Furniture = 5,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM column enum; the variants are the client's incentive mode ids, numbered to match"
+)]
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N,
 )]
@@ -45,7 +48,10 @@ pub enum IncentiveMode {
     MonthlyOrPresent = 3,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "incentive")]
 pub struct Model {

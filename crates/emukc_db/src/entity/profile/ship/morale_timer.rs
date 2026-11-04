@@ -3,7 +3,10 @@
 use chrono::{DateTime, Utc};
 use sea_orm::entity::prelude::*;
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM row type; the module doc names the timer that `last_time_regen` holds"
+)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "ship_morale_timer")]
 pub struct Model {

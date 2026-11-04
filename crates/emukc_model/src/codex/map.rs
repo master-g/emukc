@@ -1,4 +1,7 @@
-#![allow(missing_docs)]
+#![expect(
+    missing_docs,
+    reason = "map definition types mirror the keys of the codex map JSON they are read from"
+)]
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -6,7 +9,10 @@ mod debug;
 mod merge;
 mod types;
 
-#[expect(deprecated)]
+#[expect(
+    deprecated,
+    reason = "the codex still seeds map records from the deprecated default table"
+)]
 use crate::profile::map_record::DEFAULT_MAP_RECORDS;
 use crate::{
     kc2::start2::{ApiManifest, ApiMstMapinfo},
@@ -44,7 +50,10 @@ pub enum MapValidationWarning {
 
 impl MapCatalog {
     pub fn from_manifest(manifest: &ApiManifest) -> Self {
-        #[expect(deprecated)]
+        #[expect(
+            deprecated,
+            reason = "the codex still seeds map records from the deprecated default table"
+        )]
         let defaults = DEFAULT_MAP_RECORDS
             .iter()
             .map(|record| (record.id, record))

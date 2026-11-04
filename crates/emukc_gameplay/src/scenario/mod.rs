@@ -640,6 +640,7 @@ pub enum PhaseExpectation {
 /// Enumerable so the `battle sim` CLI and the sim→validate gate iterate one
 /// shared list — adding a preset to [`PRESETS`] is automatically picked up by
 /// both, keeping them in sync by construction.
+#[derive(Debug)]
 pub struct Preset {
     /// The preset name used on the CLI (`--scenario <name>`).
     pub name: &'static str,

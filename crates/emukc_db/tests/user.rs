@@ -13,14 +13,12 @@ mod test {
         QueryFilter,
     };
 
-    #[allow(unused)]
     fn temp_dir() -> std::path::PathBuf {
         let root =
             std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().parent().unwrap();
         root.join(".data").join("temp")
     }
 
-    #[allow(unused)]
     async fn bootstrap_db() -> DatabaseConnection {
         let db_path = temp_dir().join("emukc.db");
         if db_path.exists() {
@@ -35,7 +33,6 @@ mod test {
         db
     }
 
-    #[allow(unused)]
     async fn mem_db() -> DatabaseConnection {
         let db = Database::connect("sqlite::memory:").await.unwrap();
         entity::bootstrap(&db).await.unwrap();
@@ -70,7 +67,6 @@ mod test {
         }
     }
 
-    #[allow(unused)]
     async fn new_profile(db: &DatabaseConnection, account: &Account, name: &str) -> Profile {
         let profile = entity::profile::Entity::find()
             .filter(entity::profile::Column::AccountId.eq(account.uid))
@@ -97,7 +93,6 @@ mod test {
         }
     }
 
-    #[allow(unused)]
     async fn new_use_item(db: &DatabaseConnection, profile: &Profile, mst_id: i64, count: i64) {
         let user_item = UserItem {
             id: profile.id,

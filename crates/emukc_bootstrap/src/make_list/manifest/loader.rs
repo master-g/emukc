@@ -98,11 +98,13 @@ fn load_decoder_coverage_assets_with_sources(
     let ui_resources = load_optional_json_file(&ui_path)?;
     let resource_templates = load_optional_json_file(&templates_path)?;
     let resource_categories_source =
-        source_for_loaded_asset(categories_source, &resource_categories);
-    let resource_id_sets_source = source_for_loaded_asset(id_sets_source, &resource_id_sets);
-    let audio_resources_source = source_for_loaded_asset(audio_source, &audio_resources);
-    let ui_resources_source = source_for_loaded_asset(ui_source, &ui_resources);
-    let resource_templates_source = source_for_loaded_asset(templates_source, &resource_templates);
+        source_for_loaded_asset(categories_source, resource_categories.as_ref());
+    let resource_id_sets_source =
+        source_for_loaded_asset(id_sets_source, resource_id_sets.as_ref());
+    let audio_resources_source = source_for_loaded_asset(audio_source, audio_resources.as_ref());
+    let ui_resources_source = source_for_loaded_asset(ui_source, ui_resources.as_ref());
+    let resource_templates_source =
+        source_for_loaded_asset(templates_source, resource_templates.as_ref());
 
     Ok((
         DecoderCoverageAssets {
@@ -122,7 +124,7 @@ fn load_decoder_coverage_assets_with_sources(
     ))
 }
 
-fn source_for_loaded_asset<T>(source: DecoderAssetSource, asset: &Option<T>) -> DecoderAssetSource {
+fn source_for_loaded_asset<T>(source: DecoderAssetSource, asset: Option<&T>) -> DecoderAssetSource {
     if source == DecoderAssetSource::Missing || asset.is_some() {
         source
     } else {

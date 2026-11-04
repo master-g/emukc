@@ -3,7 +3,10 @@ use sea_orm::{ActiveValue, entity::prelude::*};
 
 use emukc_model::user::account::Account;
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM row of the account table; the `Account` it converts to documents each column"
+)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "account")]
 pub struct Model {

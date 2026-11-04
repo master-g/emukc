@@ -17,7 +17,7 @@ use crate::state::State;
 
 use super::{AppState, err::ApiError};
 
-#[expect(unused)]
+#[expect(dead_code, reason = "no handler extracts it yet; `GameSession` covers the current routes")]
 #[derive(Clone)]
 pub(super) struct AuthAccount(pub Account);
 

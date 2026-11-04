@@ -323,7 +323,10 @@ fn anti_air_kind(mst: &ApiMstSlotitem) -> AntiAirKind {
 /// submarine at 0.7 to 1 for 対潜 10 or more, else 0.35 to 0.8), times the
 /// land scouts' `scouting`, capped at 220, times `contact`, 陸上攻撃機's
 /// then multiplied by 1.8, and against a ship of a combined fleet by 1.1.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate input to the damage or power formula; grouping them would only rename the arguments"
+)]
 fn strike_power(
     rng: &mut impl BattleRng,
     mst: &ApiMstSlotitem,

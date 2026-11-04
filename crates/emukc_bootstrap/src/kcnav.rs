@@ -170,7 +170,10 @@ fn check_response(raw: &str) -> Result<Value, String> {
 
 /// Download one response unless it is already there. Returns its checked content and whether
 /// a request was made.
-#[expect(clippy::result_large_err)]
+#[expect(
+    clippy::result_large_err,
+    reason = "carries the download error whole, once per bootstrap run"
+)]
 async fn fetch(
     client: &reqwest::Client,
     url: &str,
@@ -206,7 +209,10 @@ async fn fetch(
 ///
 /// Files already on disk are kept, so an interrupted sync resumes where it stopped. A failed
 /// request is counted and the sync moves on; the caller decides what a non-zero count means.
-#[expect(clippy::result_large_err)]
+#[expect(
+    clippy::result_large_err,
+    reason = "carries the download error whole, once per bootstrap run"
+)]
 pub async fn sync_kcnav(
     data_root: impl AsRef<Path>,
     edges: &BTreeMap<String, BTreeSet<i64>>,

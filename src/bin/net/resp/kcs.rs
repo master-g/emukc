@@ -67,12 +67,12 @@ impl KcApiResponse {
         }
     }
 
-    pub fn success_extra<T: Serialize, V: Serialize>(data: &T, extra: &Option<V>) -> Self {
+    pub fn success_extra<T: Serialize, V: Serialize>(data: &T, extra: Option<&V>) -> Self {
         Self {
             api_result: 1,
             api_result_msg: "\u{6210}\u{529f}".to_string(),
             api_data: Some(serde_json::to_value(data).unwrap()),
-            extra: extra.as_ref().map(|e| serde_json::to_value(e).unwrap()),
+            extra: extra.map(|e| serde_json::to_value(e).unwrap()),
         }
     }
 

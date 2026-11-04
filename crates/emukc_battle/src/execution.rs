@@ -46,6 +46,7 @@ pub fn execute_night(
 }
 
 /// A night-start (開幕夜戦) battle: whoever fought, plus 第1艦隊 when it did not.
+#[derive(Debug)]
 pub struct SpMidnightSimulation {
     /// 第1艦隊, which sits a combined night battle out; empty for a single fleet.
     pub main_deck: Vec<BattleRuntimeShip>,

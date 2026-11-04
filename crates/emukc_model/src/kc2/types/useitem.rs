@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N, Debug)]
 pub enum KcUseItemType {
     /// 高速修復材
     Bucket = 1,

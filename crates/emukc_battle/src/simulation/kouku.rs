@@ -507,7 +507,10 @@ pub(super) const AIRSTRIKE_HIT_PERCENT: f64 = 95.0;
 /// ([`crate::damage::with_airstrike_improvement`]). `fit_bonus` is what the slot's 装備ボーナス torpedo
 /// adds to its stat, against land too (`getEquipBonusCVTorp(slot)`, `kcsim.js:2022`). A miss
 /// rolls nothing.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate input to the damage or power formula; grouping them would only rename the arguments"
+)]
 fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -672,7 +675,10 @@ pub(super) fn dive_bomb_weak(id: i64) -> f64 {
 /// ship an earlier one sank is spent on her. `flying` marks the attackers
 /// afloat when the air battle began; the targets are the defenders' surface
 /// ships afloat now. `contact` is the side's 触接 multiplier.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate piece of battle state the turn reads or writes; grouping them would only rename the arguments"
+)]
 fn execute_airstrike_phase(
     codex: &Codex,
     rng: &mut impl BattleRng,

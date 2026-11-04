@@ -48,7 +48,10 @@ pub fn season_shipgraph_path(workspace_root: impl AsRef<Path>, id: &str) -> Path
 
 /// Fetch the start2 of `season` and keep its shipgraph at [`season_shipgraph_path`], unless it
 /// is already there. Returns whether anything was downloaded.
-#[expect(clippy::result_large_err)]
+#[expect(
+    clippy::result_large_err,
+    reason = "carries the download error whole, once per bootstrap run"
+)]
 pub async fn sync_season(
     workspace_root: impl AsRef<Path>,
     season: &Season,

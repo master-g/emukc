@@ -14,7 +14,7 @@ pub(super) fn is_missing_id(id: u64) -> bool {
 }
 
 pub(super) fn make(
-    cache_source: &Option<CacheSource>,
+    cache_source: Option<&CacheSource>,
     list: &mut CacheList,
     strategy: &CacheListMakeStrategy,
 ) {

@@ -40,7 +40,7 @@ pub(super) async fn handler(
 
     Ok(KcApiResponse::success_extra(
         &ships,
-        &Some(Resp {
+        Some(&Resp {
             api_data_deck,
         }),
     ))

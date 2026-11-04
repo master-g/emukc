@@ -20,6 +20,7 @@ fn substr(s: &str, start: usize, len: Option<usize>) -> &str {
 }
 
 /// The `api_port` key.
+#[derive(Debug)]
 pub struct PortApiKey;
 
 impl PortApiKey {

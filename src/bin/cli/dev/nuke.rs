@@ -70,7 +70,7 @@ async fn add_ship_quietly(state: &State, pid: i64) -> Result<()> {
     Ok(())
 }
 
-#[expect(unused)]
+#[expect(dead_code, reason = "kept for manual use; the call in `exec` is commented out")]
 async fn add_ship_incentives(state: &State, pid: i64) -> Result<()> {
     let codex = state.codex();
 

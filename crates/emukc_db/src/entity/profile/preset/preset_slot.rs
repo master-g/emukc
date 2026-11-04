@@ -5,7 +5,10 @@ use emukc_model::profile::preset_slot::{
 };
 use sea_orm::entity::prelude::*;
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM column enum, named for the column it fills in the `Model` below"
+)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum SelectMode {
@@ -18,7 +21,10 @@ pub enum SelectMode {
     B,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "preset_slot")]
 pub struct Model {

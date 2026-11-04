@@ -241,7 +241,10 @@ pub(super) mod test_utils {
     use crate::{net::auth::GameSession, state::State};
 
     pub(super) struct TestContext {
-        #[expect(dead_code)]
+        #[expect(
+            dead_code,
+            reason = "held so the temporary cache directory lives as long as the test state"
+        )]
         pub cache_root: TempDir,
         pub state: Arc<State>,
         pub session: GameSession,

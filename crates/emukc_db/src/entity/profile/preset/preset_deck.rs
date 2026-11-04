@@ -3,7 +3,10 @@
 use emukc_model::profile::preset_deck::PresetDeckItem;
 use sea_orm::entity::prelude::*;
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "preset_deck")]
 pub struct Model {

@@ -11,7 +11,7 @@ use crate::make_list::{
 
 pub(super) fn make(
     mst: &ApiManifest,
-    cache_source: &Option<CacheSource>,
+    cache_source: Option<&CacheSource>,
     sound_rules: &CacheRuleSoundRules,
     decoder_assets: Option<&DecoderCoverageAssets>,
     list: &mut CacheList,
@@ -29,7 +29,7 @@ pub(super) fn make(
 
 fn make_bucket(
     rule: &CacheRuleSoundBucketRule,
-    cache_source: &Option<CacheSource>,
+    cache_source: Option<&CacheSource>,
     cache_source_authoritative: bool,
     list: &mut CacheList,
 ) {
@@ -90,9 +90,9 @@ fn bucket_id_is_known_missing(bucket: &str, voice_id: u64) -> bool {
 
 fn fallback_bucket_ids<'a>(
     bucket: &str,
-    cache_source: &'a Option<CacheSource>,
+    cache_source: Option<&'a CacheSource>,
 ) -> Option<&'a Vec<u64>> {
-    let source = cache_source.as_ref()?;
+    let source = cache_source?;
     match bucket {
         "9997" => Some(&source.voices.event),
         "9998" => Some(&source.voices.abyssal),
@@ -253,7 +253,7 @@ mod tests {
         rules.ship_voices.special_art_ship_ids = vec![1];
         rules.ship_voices.special_voice_ids = vec![900];
 
-        make(&make_manifest(), &None, &rules, None, &mut list);
+        make(&make_manifest(), None, &rules, None, &mut list);
         let paths = list.into_path_set();
 
         assert!(paths.contains("kcs/sound/kcfoo/139081.mp3"));
@@ -279,7 +279,7 @@ mod tests {
             },
         });
 
-        make(&ApiManifest::default(), &cache_source, &rules, None, &mut list);
+        make(&ApiManifest::default(), cache_source.as_ref(), &rules, None, &mut list);
         let paths = list.into_path_set();
 
         assert!(paths.contains("kcs/sound/kc9999/11.mp3"));

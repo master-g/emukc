@@ -17,7 +17,7 @@ pub struct PicturebookConfig {
 /// EmuKC is a single-player emulator; the picture book defaults to fully unlocked because
 /// gating it behind in-game progress is not the typical user expectation.
 /// Override in `[game.picturebook]` in `emukc.config.toml` to opt into the original gating.
-#[expect(clippy::doc_markdown)]
+#[expect(clippy::doc_markdown, reason = "`EmuKC` in the doc is the project name, not code")]
 impl Default for PicturebookConfig {
     fn default() -> Self {
         Self {

@@ -9,7 +9,10 @@ use sea_orm::entity::prelude::*;
 
 use super::{HasTimestampAndPeriod, Period};
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM column enum, named for the column it fills in the `Model` below"
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Status {
@@ -22,7 +25,10 @@ pub enum Status {
     Activated,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM column enum, named for the column it fills in the `Model` below"
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum Progress {
@@ -42,7 +48,10 @@ pub enum Progress {
     Completed,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM column enum, named for the column it fills in the `Model` below"
+)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum RequirementType {
@@ -59,7 +68,10 @@ pub enum RequirementType {
     Sequential,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "quest_progress")]
 pub struct Model {

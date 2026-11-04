@@ -222,7 +222,10 @@ pub struct ApiMstMapinfo {
 }
 
 /// Mission data, for expeditions.
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are `api_mst_mission` keys from start2, named as the client names them"
+)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstMission {
     /// Mission ID.
@@ -387,7 +390,10 @@ pub struct ApiMstShip {
     pub api_tais: Option<[i64; 1]>,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are `api_mst_shipgraph` keys from start2, named as the client names them"
+)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstShipgraph {
     pub api_id: i64,
@@ -471,7 +477,10 @@ impl ApiMstShipgraph {
     }
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are `api_mst_shipupgrade` keys from start2, named as the client names them"
+)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstShipUpgrade {
     pub api_id: i64,               // read as `mst_id_after` in main.js
@@ -491,7 +500,10 @@ pub struct ApiMstShipUpgrade {
     pub api_sortno: i64,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are `api_mst_slotitem` keys from start2, named as the client names them"
+)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstSlotitem {
     pub api_id: i64,
@@ -525,7 +537,10 @@ pub struct ApiMstSlotitem {
     pub api_distance: Option<i64>,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are `api_mst_slotitem_equiptype` keys from start2, named as the client names them"
+)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstSlotitemEquiptype {
     pub api_id: i64,
@@ -533,7 +548,10 @@ pub struct ApiMstSlotitemEquiptype {
     pub api_show_flg: i64,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are `api_mst_stype` keys from start2, named as the client names them"
+)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstStype {
     pub api_id: i64,
@@ -546,7 +564,10 @@ pub struct ApiMstStype {
     pub api_sortno: i64,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "fields are `api_mst_useitem` keys from start2, named as the client names them"
+)]
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ApiMstUseitem {
     pub api_id: i64,

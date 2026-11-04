@@ -249,7 +249,10 @@ fn download_stat_json_blocking() -> Result<String, String> {
 fn parse_stat_json(raw: &str) -> Result<MapCatalog, String> {
     #[derive(serde::Deserialize)]
     struct StatCell {
-        #[expect(dead_code)]
+        #[expect(
+            dead_code,
+            reason = "keeps the struct in step with the stat JSON; the parser numbers cells itself"
+        )]
         cell_id: String,
         event_id: i64,
         event_kind: i64,

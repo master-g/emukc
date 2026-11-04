@@ -1,4 +1,7 @@
-#![allow(missing_docs)]
+#![expect(
+    missing_docs,
+    reason = "rule and report types mirror the keys of the decoded `battle_*.json` assets"
+)]
 
 use std::{
     collections::{BTreeMap, BTreeSet},

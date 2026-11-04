@@ -19,6 +19,7 @@ static RESOURCE_TABLE: LazyLock<Vec<u64>> = LazyLock::new(|| {
 });
 
 /// `SuffixUtils` module.
+#[derive(Debug)]
 pub struct SuffixUtils;
 
 impl SuffixUtils {

@@ -93,7 +93,7 @@ pub fn update_stats_message(pb: &ProgressBar, active: usize, max_concurrent: usi
     pb.set_message(format!("{active}/{max_concurrent} active │ {errors} errors"));
 }
 
-pub fn log_with_mp(mp: &Option<MultiProgress>, f: impl FnOnce()) {
+pub fn log_with_mp(mp: Option<&MultiProgress>, f: impl FnOnce()) {
     match mp {
         Some(mp) => mp.suspend(f),
         None => f(),

@@ -1,10 +1,13 @@
 //! Airbase Entity
-#![allow(missing_docs)]
+#![expect(missing_docs, reason = "`enumn::N` derives a `pub fn n` with no doc comment")]
 
 use emukc_model::profile::airbase::{Airbase, AirbaseAction};
 use sea_orm::entity::prelude::*;
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM column enum; the variants are the client's airbase action ids, numbered to match"
+)]
 #[derive(
     Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N,
 )]
@@ -22,7 +25,10 @@ pub enum Action {
     Resort = 4,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "airbase")]
 pub struct Model {

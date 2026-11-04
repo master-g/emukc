@@ -106,12 +106,14 @@ validator = { version = "0.21.0", features = ["derive"] }
 zip = { version = "9.0.5" }
 
 [workspace.lints.clippy]
+allow_attributes_without_reason = "warn"
 doc_markdown = "warn"
 manual_let_else = "warn"
 match_same_arms = "warn"
 ptr_as_ptr = "warn"
 ptr_cast_constness = "warn"
 redundant_closure_for_method_calls = "warn"
+ref_option = "warn"
 redundant_else = "warn"
 ref_as_ptr = "warn"
 semicolon_if_nothing_returned = "warn"
@@ -120,6 +122,7 @@ undocumented_unsafe_blocks = "warn"
 unwrap_or_default = "warn"
 
 [workspace.lints.rust]
+missing_debug_implementations = "warn"
 missing_docs = "warn"
 unsafe_code = "deny"
 unsafe_op_in_unsafe_fn = "warn"
