@@ -442,4 +442,14 @@ mod tests {
         let row = Entity::find_by_id(1).one(&db).await.unwrap().unwrap();
         assert_eq!(row.war_result_month, 202610);
     }
+
+    /// Adding a column fails for a reason other than "already there", so the
+    /// start fails instead of running without it.
+    #[tokio::test]
+    async fn an_add_column_failure_other_than_duplicate_is_returned() {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        db.execute_unprepared("CREATE VIEW profile AS SELECT 1 AS id").await.unwrap();
+
+        assert!(bootstrap(&db).await.is_err());
+    }
 }

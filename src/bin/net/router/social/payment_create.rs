@@ -217,6 +217,16 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn count_above_the_client_cap_returns_error() {
+        let (state, session) = setup().await;
+        let sku_id = find_valid_sku_id(&state.codex);
+        let at_cap = exec(&state, &session, valid_params(&sku_id.to_string(), "500", "10")).await;
+        assert_eq!(status_of(&at_cap), 1);
+        let over_cap = exec(&state, &session, valid_params(&sku_id.to_string(), "500", "11")).await;
+        assert_eq!(status_of(&over_cap), -1);
+    }
+
+    #[tokio::test]
     async fn manifest_price_overrides_client_price() {
         let (state, session) = setup().await;
         let sku_id = find_valid_sku_id(&state.codex);

@@ -186,3 +186,32 @@ pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use sea_orm::ConnectionTrait;
+
+    use super::*;
+
+    /// A fleet table made before `launch_fully_supplied` gains it, and a
+    /// second start does not trip over the column it added.
+    #[tokio::test]
+    async fn an_older_fleet_table_gains_the_column_once() {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        create_table(&db, Entity).await.unwrap();
+        db.execute_unprepared("ALTER TABLE fleet DROP COLUMN launch_fully_supplied").await.unwrap();
+
+        bootstrap(&db).await.unwrap();
+        bootstrap(&db).await.unwrap();
+    }
+
+    /// Adding the column fails for a reason other than "already there", so
+    /// the start fails instead of running without it.
+    #[tokio::test]
+    async fn an_add_column_failure_other_than_duplicate_is_returned() {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        db.execute_unprepared("CREATE VIEW fleet AS SELECT 1 AS id").await.unwrap();
+
+        assert!(bootstrap(&db).await.is_err());
+    }
+}

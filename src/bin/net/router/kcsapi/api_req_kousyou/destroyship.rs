@@ -49,3 +49,15 @@ pub(super) async fn handler(
         api_unset_list,
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn params_reject_a_bad_id_anywhere_in_the_list() {
+        assert!(
+            serde_urlencoded::from_str::<Params>("api_ship_id=1,x&api_slot_dest_flag=0").is_err()
+        );
+    }
+}
