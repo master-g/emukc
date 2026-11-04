@@ -51,6 +51,9 @@ mod view;
 #[path = "gameplay_tests/useitem_material_sync.rs"]
 mod useitem_material_sync;
 
+#[path = "gameplay_tests/itemuse_cond.rs"]
+mod itemuse_cond;
+
 #[path = "gameplay_tests/remodel_hp_restore.rs"]
 mod remodel_hp_restore;
 #[path = "gameplay_tests/remodel_requirements.rs"]
