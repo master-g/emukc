@@ -13,8 +13,8 @@ use emukc_model::{
     profile::practice::{PracticeConfig, Rival, RivalDetail, RivalFlag, RivalShip, RivalStatus},
 };
 use emukc_time::{
-    KcTime,
-    chrono::{DateTime, Duration, Utc},
+    JST, KcTime,
+    chrono::{DateTime, Duration, Timelike, Utc},
 };
 
 use crate::{err::GameplayError, gameplay::Ctx};
@@ -323,9 +323,7 @@ where
 
     let entry_limit = cal_practice_entry_limit();
 
-    let resp = if rivals.is_empty()
-        || KcTime::is_before_or_after_jst_today_hour(&config.last_generated, 3, 15)
-    {
+    let resp = if rivals.is_empty() || rivals_are_stale(&config.last_generated, &Utc::now()) {
         let selected_type = config.selected_type;
         let r = generate_practice_rivals(c, codex, profile_id, selected_type).await?;
 
@@ -704,6 +702,20 @@ fn draw_practice_rivals(
         .collect()
 }
 
+/// Whether rivals drawn at `last_generated` predate the latest 03:00 or 15:00
+/// JST refresh at or before `now`.
+fn rivals_are_stale(last_generated: &DateTime<Utc>, now: &DateTime<Utc>) -> bool {
+    let now = now.with_timezone(&JST);
+    let today = now.date_naive();
+    let (day, hour) = match now.hour() {
+        15.. => (today, 15),
+        3.. => (today, 3),
+        _ => (today - Duration::days(1), 15),
+    };
+    let refreshed = day.and_hms_opt(hour, 0, 0).unwrap().and_local_timezone(JST).unwrap();
+    *last_generated < refreshed
+}
+
 fn cal_practice_entry_limit() -> Option<i64> {
     let now = Utc::now();
     let jst_0100 = KcTime::jst_today_hour_utc(1);
@@ -920,6 +932,26 @@ mod tests {
 
     use super::*;
     use crate::game::battle::practice::response::calculate_base_exp;
+
+    fn jst(day: u32, hour: u32, minute: u32) -> DateTime<Utc> {
+        use emukc_time::chrono::TimeZone;
+        JST.with_ymd_and_hms(2026, 11, day, hour, minute, 0).unwrap().with_timezone(&Utc)
+    }
+
+    #[test]
+    fn rivals_refresh_once_at_03_00_and_once_at_15_00_jst() {
+        let cases = [
+            ("drawn after 15:00, asked later that evening", jst(4, 15, 30), jst(4, 16, 0), false),
+            ("drawn in the morning, asked after 15:00", jst(4, 10, 0), jst(4, 16, 0), true),
+            ("drawn last evening, asked before 03:00", jst(3, 16, 0), jst(4, 1, 0), false),
+            ("drawn last morning, asked before 03:00", jst(3, 10, 0), jst(4, 1, 0), true),
+            ("drawn after 03:00, asked before 15:00", jst(4, 4, 0), jst(4, 10, 0), false),
+            ("drawn before 03:00, asked after it", jst(4, 2, 0), jst(4, 4, 0), true),
+        ];
+        for (case, last_generated, now, stale) in cases {
+            assert_eq!(rivals_are_stale(&last_generated, &now), stale, "{case}");
+        }
+    }
 
     static CODEX: LazyLock<Codex> =
         LazyLock::new(|| Codex::load_without_cache_source("../../.data/codex").unwrap());

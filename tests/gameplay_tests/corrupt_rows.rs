@@ -73,10 +73,10 @@ mod tests {
         let pid = new_profile(&context, "practice").await;
 
         let info = context.get_practice_rivals(pid).await.unwrap();
-        // Inside the 03:00 to 15:00 JST window, so the next call loads the
-        // stored rivals instead of drawing new ones.
+        // Drawn just now, so the next call loads the stored rivals instead of
+        // drawing new ones.
         let mut cfg = info.cfg.into_active_model();
-        cfg.last_generated = ActiveValue::Set(KcTime::jst_today_hour_utc(4));
+        cfg.last_generated = ActiveValue::Set(emukc_internal::time::chrono::Utc::now());
         cfg.update(context.db()).await.unwrap();
 
         let row =
