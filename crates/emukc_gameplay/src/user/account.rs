@@ -440,4 +440,37 @@ mod tests {
 
         gp.wipe_profile(token, game.profile.id).await.unwrap();
     }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_request_waits_for_another_process_writing_the_database() {
+        let path = std::env::temp_dir().join(format!("emukc-lock-{}.sqlite", std::process::id()));
+        let server = emukc_bootstrap::prelude::prepare(&path, true).await.unwrap();
+        let cli = emukc_bootstrap::prelude::prepare(&path, false).await.unwrap();
+        let gp = Ctx::new(Arc::new(server), Arc::new(Codex::default()));
+        let token = gp.sign_up("server", "1234567").await.unwrap().access_token.token;
+
+        let cli_tx = cli.begin().await.unwrap();
+        account::ActiveModel {
+            uid: ActiveValue::NotSet,
+            name: ActiveValue::Set("cli".to_owned()),
+            secret: ActiveValue::Set(String::new()),
+            create_time: ActiveValue::Set(Utc::now()),
+            last_login: ActiveValue::Set(Utc::now()),
+        }
+        .insert(&cli_tx)
+        .await
+        .unwrap();
+        let cli_commit = tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            cli_tx.commit().await
+        });
+
+        let auth = gp.auth(&token).await;
+        cli_commit.await.unwrap().unwrap();
+        drop(gp);
+        drop(cli);
+        let _ = std::fs::remove_file(&path);
+
+        assert!(auth.is_ok(), "auth during another process's write: {auth:?}");
+    }
 }
