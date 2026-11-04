@@ -6,7 +6,8 @@ use crate::net::prelude::*;
 #[derive(Deserialize, Debug)]
 pub(super) struct Params {
     /// ship id(s) to destroy, comma-separated for batch
-    api_ship_id: String,
+    #[serde(deserialize_with = "crate::net::router::kcsapi::form_utils::deserialize_form_ivec")]
+    api_ship_id: Vec<i64>,
 
     /// 0: keep equipment, 1: destroy equipment
     #[serde(deserialize_with = "crate::net::router::kcsapi::form_utils::deserialize_form_flag")]
@@ -27,10 +28,7 @@ pub(super) async fn handler(
 ) -> KcApiResult {
     let keep_equipment = !params.api_slot_dest_flag;
 
-    for ship_id_str in params.api_ship_id.split(',') {
-        let ship_id: i64 = ship_id_str
-            .parse()
-            .map_err(|_| GameplayError::WrongType(format!("invalid ship id: {ship_id_str}")))?;
+    for ship_id in params.api_ship_id {
         state.destroy_ship(pid, ship_id, keep_equipment).await?;
     }
 
@@ -48,4 +46,16 @@ pub(super) async fn handler(
         api_material: vec![materials.fuel, materials.ammo, materials.steel, materials.bauxite],
         api_unset_list,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn params_reject_a_bad_id_anywhere_in_the_list() {
+        assert!(
+            serde_urlencoded::from_str::<Params>("api_ship_id=1,x&api_slot_dest_flag=0").is_err()
+        );
+    }
 }

@@ -52,6 +52,23 @@ pub(crate) async fn create_table<E: sea_orm::EntityTrait>(
     Ok(())
 }
 
+/// Run an `ALTER TABLE ... ADD COLUMN` statement. A column that already exists
+/// is not an error; SQLite reports it only through the message.
+pub(crate) async fn add_column(db: &sea_orm::DbConn, sql: &str) -> Result<(), sea_orm::DbErr> {
+    use sea_orm::{ConnectionTrait, DbErr, RuntimeErr};
+
+    match db.execute_unprepared(sql).await {
+        Ok(_) => Ok(()),
+        Err(DbErr::Exec(RuntimeErr::SqlxError(e)))
+            if e.as_database_error()
+                .is_some_and(|d| d.message().starts_with("duplicate column name")) =>
+        {
+            Ok(())
+        }
+        Err(e) => Err(e),
+    }
+}
+
 /// Bootstrap the database with the necessary tables
 pub async fn bootstrap(db: &sea_orm::DbConn) -> Result<(), sea_orm::error::DbErr> {
     // user

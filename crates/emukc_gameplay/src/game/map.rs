@@ -385,7 +385,9 @@ fn build_map_info(definition: &MapDefinition, record: &map_record::Model) -> KcA
 }
 
 fn parse_map_select_rank(rank: i64) -> Result<MapSelectRank, GameplayError> {
-    MapSelectRank::n(rank as i32)
+    i32::try_from(rank)
+        .ok()
+        .and_then(MapSelectRank::n)
         .ok_or_else(|| GameplayError::WrongType(format!("invalid map rank {rank}")))
 }
 
@@ -578,6 +580,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_rank_beyond_i32_is_rejected() {
+        // Truncating to i32 would turn this into 1, a valid rank.
+        assert!(parse_map_select_rank((1i64 << 32) + 1).is_err());
+    }
 
     #[test]
     fn a_monthly_gauge_comes_back_at_00_00_jst_on_the_1st() {

@@ -1,6 +1,6 @@
 //! Fleet entity
 
-use crate::entity::create_table;
+use crate::entity::{add_column, create_table};
 use chrono::{DateTime, Utc};
 use emukc_model::profile::fleet::{Fleet, FleetMissionContext, FleetMissionStatus};
 use sea_orm::{ActiveValue, entity::prelude::*};
@@ -172,17 +172,43 @@ impl From<Model> for Fleet {
 /// Bootstrap the fleet table.
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
     create_table(db, Entity).await?;
-    // `launch_fully_supplied` came after the table shipped; the statement
-    // fails harmlessly once it exists. A fleet away on a database made before
-    // it passed the old check, which refused an unsupplied fleet, so `TRUE`.
-    {
-        use sea_orm::ConnectionTrait;
-        let _ = db
-            .execute_unprepared(
-                "ALTER TABLE fleet ADD COLUMN launch_fully_supplied BOOLEAN NOT NULL DEFAULT TRUE",
-            )
-            .await;
-    }
+    // `launch_fully_supplied` came after the table shipped. A fleet away on a
+    // database made before it passed the old check, which refused an
+    // unsupplied fleet, so `TRUE`.
+    add_column(
+        db,
+        "ALTER TABLE fleet ADD COLUMN launch_fully_supplied BOOLEAN NOT NULL DEFAULT TRUE",
+    )
+    .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use sea_orm::ConnectionTrait;
+
+    use super::*;
+
+    /// A fleet table made before `launch_fully_supplied` gains it, and a
+    /// second start does not trip over the column it added.
+    #[tokio::test]
+    async fn an_older_fleet_table_gains_the_column_once() {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        create_table(&db, Entity).await.unwrap();
+        db.execute_unprepared("ALTER TABLE fleet DROP COLUMN launch_fully_supplied").await.unwrap();
+
+        bootstrap(&db).await.unwrap();
+        bootstrap(&db).await.unwrap();
+    }
+
+    /// Adding the column fails for a reason other than "already there", so
+    /// the start fails instead of running without it.
+    #[tokio::test]
+    async fn an_add_column_failure_other_than_duplicate_is_returned() {
+        let db = sea_orm::Database::connect("sqlite::memory:").await.unwrap();
+        db.execute_unprepared("CREATE VIEW fleet AS SELECT 1 AS id").await.unwrap();
+
+        assert!(bootstrap(&db).await.is_err());
+    }
 }

@@ -6,6 +6,9 @@ use crate::state::{PaymentSession, State};
 
 use super::RpcParams;
 
+/// The purchase dialog caps the count at 10 (`main.decoded.js:81491`).
+const MAX_PURCHASE_COUNT: i64 = 10;
+
 pub(super) async fn exec(
     state: &State,
     session: &GameSession,
@@ -38,6 +41,10 @@ pub(super) async fn exec(
 
     if count <= 0 {
         return error_response("count must be positive");
+    }
+
+    if count > MAX_PURCHASE_COUNT {
+        return error_response("count over the purchase limit");
     }
 
     let price = manifest_item.api_price;
@@ -214,6 +221,16 @@ mod tests {
         let params = valid_params(&sku_id.to_string(), "500", "-5");
         let result = exec(&state, &session, params).await;
         assert_eq!(status_of(&result), -1);
+    }
+
+    #[tokio::test]
+    async fn count_above_the_client_cap_returns_error() {
+        let (state, session) = setup().await;
+        let sku_id = find_valid_sku_id(&state.codex);
+        let at_cap = exec(&state, &session, valid_params(&sku_id.to_string(), "500", "10")).await;
+        assert_eq!(status_of(&at_cap), 1);
+        let over_cap = exec(&state, &session, valid_params(&sku_id.to_string(), "500", "11")).await;
+        assert_eq!(status_of(&over_cap), -1);
     }
 
     #[tokio::test]
