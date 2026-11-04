@@ -6,7 +6,7 @@ use crate::state::{PaymentSession, State};
 
 use super::RpcParams;
 
-/// The purchase dialog caps the count at 10 (`main.decoded.js:81489`).
+/// The purchase dialog caps the count at 10 (`main.decoded.js:81491`).
 const MAX_PURCHASE_COUNT: i64 = 10;
 
 pub(super) async fn exec(
