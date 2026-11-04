@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-10-27 · branch `fix/size-check-media-only`
+Last updated: 2026-11-04 · branch `fix/review-bugs`
 
 ## Verified Facts
 
@@ -137,7 +137,7 @@ Current verification baseline:
 | Pitfall | Source |
 | --- | --- |
 | populate 基准三坑：`head -200` 清单全是 mp3（带宽受限，收益被掩成 10%，全量实为 49% mp3 + 49% png，要随机抽样）；`Kache::build()` 要求 `cache_root` 已存在，否则 exit 1 且无输出；配置里的相对路径按 config 文件所在目录解析。 | 计划 003 (2026-09-21) |
-| `emukc_bootstrap` 的 `make_list` 两个测试打真实 CDN（`make_kache()` 用 `socks5://127.0.0.1:1086`），网络一抖就 `FailedOnAllCdn`，fail-fast 会让整轮 workspace 测试在该 crate 中断。已加 `skip_if_offline`：只吞这一种错；服务器回空文件（`EOF while parsing`）不吞，单独重跑即过（2026-10-14）。 | session 2026-09-21 |
+| `emukc_bootstrap` 的 `make_list` 两个测试打真实 CDN（`make_kache()` 用 `socks5://127.0.0.1:1086`），网络一抖就 `FailedOnAllCdn`，fail-fast 会让整轮 workspace 测试在该 crate 中断。已加 `skip_if_offline`：只吞这一种错；服务器回空文件（`EOF while parsing`）或坏文件（`kache error: invalid file`）不吞，单独重跑即过（2026-10-14、2026-11-04）。 | session 2026-09-21 |
 | 联合舰队「deck 1 不开幕对潜/雷击」不能靠切片 attackers——敌方目标池另算（只打护卫，`escort_deck_start`），切片会连带改掉。须按船过滤。 | session 2026-09-21 |
 | 全量测试用 `cargo test --workspace --no-fail-fast` 并看退出码：默认在第一个失败的 crate 停，通过数偏少；只 grep `test result:` 会漏掉 FAILED 行。 | plan 004 U5 (2026-06-22)、session 2026-10-11 |
 | Upgrading sea-orm does NOT clear the `proc-macro-error2` future-incompat warning: `sea-orm-macros` 2.0.3 still pulls `sea-bae 0.2.1`, same as 1.1.20. Do not cite it as an upgrade reason. | session 2026-09-20, `cargo tree -i proc-macro-error2` |
@@ -171,10 +171,9 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-10-27] `feat/account-import` 提交并走 PR 合并：账号导入第一刀 U1–U6，`import-account`。10-27 快照导入 340 舰/1855 装备，逐艘核对通过；headless 母港、编成、改装截图对得上；fmt、严格 clippy、`test --workspace` 1681 过 0 忽略。
-  对拍：战斗属性全一致，`api_ndock_item`/`api_srate`/`api_leng` 不一致，码典主数据已排除，属公式问题（`account-import.md`）。
+- [2026-11-04] 审查后修 9 个 bug：`fix/review-bugs`（计划 001，U1–U8），叠加 `fix/ownership-checks`（另 13 处归属缺口与编成旗舰换位）。两分支各自 fmt、严格 clippy、`test --workspace --no-fail-fast` 通过（1691／1695 过，0 忽略），golden 不变。U4、U5 在 CLI 上复现并复验。未推送、未开 PR。
 
 ## Next Session
 
-- [2026-10-27] 对拍的三处公式差异开不开 issue 待用户定；第二刀（任务、海域、远征、基地、预设、图鉴形态 #302）未排期；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗的来源、验证与不做清单见 `docs/solutions/best-practices/battle-work-notes.md`。
+- [2026-11-04] 两分支待用户决定推送与开 PR（先底层，后叠加）；剩余审查发现按计划 002（P1–P10）逐个开 PR。10-27 对拍的三处公式差异开不开 issue 待用户定；第二刀（任务、海域、远征、基地、预设、图鉴形态 #302）未排期；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
   季节＝某天的状态，非常规版。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。数字先读到再写。
