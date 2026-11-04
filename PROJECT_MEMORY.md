@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-11-04 · branch `docs/review-followups-status`
+Last updated: 2026-11-04 · branch `docs/memory-after-followups`
 
 ## Verified Facts
 
@@ -173,9 +173,9 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-11-04] 计划 002 全部做完、未合并：#308 船坞，P1 #309、P2 #310、P3 #311、P4 #312、P5 #313、P6 #314、P7 #315、P9 #316、P10 #317、P8 #318+#319；本 PR 更新计划状态与执行中的新发现。各 PR 自带 fmt、严格 clippy、全量测试结果（0 失败 0 忽略）。
+- [2026-11-04] 计划 002 全部合并（#308–#320）；#315、#319 rebase 解冲突后重跑全量再合。合并后 `main`：fmt、严格 clippy 过，`test --workspace --no-fail-fast` 46 个二进制 1730 过、0 失败 0 忽略。分支已删。
 
 ## Next Session
 
-- [2026-11-04] 逐个问用户合并 #308–#320（本 PR 叠在 #308 上）；#316 与 #319 都改 `auth.rs` 和支付回调的 `st` 字段，后合的要解冲突。计划 002「执行中的新发现」里的条目待用户挑。10-27 对拍三处公式差异开不开 issue 待定；第二刀（#302 等）未排期；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
+- [2026-11-04] 计划 002「执行中的新发现」待用户挑（SQLite 跨进程写锁、演习对手 15:00 后每次重抽最值得做）。10-27 对拍三处公式差异开不开 issue 待定；第二刀（#302 等）未排期；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
   季节＝某天的状态。暂不发版；`CHANGELOG.md` 只到 2026-05，发版前重写。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。数字先读到再写。
