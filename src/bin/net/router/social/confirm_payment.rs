@@ -2,7 +2,7 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 
 use crate::net::prelude::*;
-use crate::state::State;
+use crate::state::{State, TakeError};
 
 #[derive(Debug, Deserialize)]
 pub(super) struct ConfirmQuery {
@@ -30,23 +30,23 @@ pub(super) async fn handler(
 ) -> Json<serde_json::Value> {
     let state: &State = state.as_ref();
 
-    let Some(session_data) = state.payment_store.get(&query.payment_id) else {
-        return Json(serde_json::json!(ErrorResponse {
-            response_code: "ERROR".to_string(),
-            msg: "payment session not found".to_string(),
-        }));
+    let session_data = match state.payment_store.take_owned(&query.payment_id, pid) {
+        Ok(session_data) => session_data,
+        Err(e) => {
+            let msg = match e {
+                TakeError::NotFound => "payment session not found",
+                TakeError::ProfileMismatch => "profile mismatch",
+            };
+            return Json(serde_json::json!(ErrorResponse {
+                response_code: "ERROR".to_string(),
+                msg: msg.to_string(),
+            }));
+        }
     };
 
-    if session_data.profile_id != pid {
-        return Json(serde_json::json!(ErrorResponse {
-            response_code: "ERROR".to_string(),
-            msg: "profile mismatch".to_string(),
-        }));
-    }
-
-    let session_data = state.payment_store.take(&query.payment_id).unwrap();
-
-    if let Err(_e) = state.add_pay_item(pid, session_data.sku_id, session_data.count).await {
+    if let Err(e) = state.add_pay_item(pid, session_data.sku_id, session_data.count).await {
+        tracing::error!("payment {}: adding the pay item failed: {e}", query.payment_id);
+        state.payment_store.insert(session_data);
         return Json(serde_json::json!(ErrorResponse {
             response_code: "ERROR".to_string(),
             msg: "failed to add item".to_string(),

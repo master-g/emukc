@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt};
+use std::{
+    collections::{HashMap, hash_map::Entry},
+    fmt,
+};
 
 use parking_lot::Mutex;
 
@@ -14,6 +17,15 @@ pub struct PaymentSession {
     pub count: i64,
     pub name: String,
     pub description: String,
+}
+
+/// Why [`PaymentStore::take_owned`] took nothing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TakeError {
+    /// No session has that payment id.
+    NotFound,
+    /// The session belongs to another profile; it stays in the store.
+    ProfileMismatch,
 }
 
 /// In-memory store for payment sessions.
@@ -39,9 +51,20 @@ impl PaymentStore {
         self.sessions.lock().get(payment_id).cloned()
     }
 
-    /// Take a session (consuming remove).
-    pub fn take(&self, payment_id: &str) -> Option<PaymentSession> {
-        self.sessions.lock().remove(payment_id)
+    /// Take the session if it belongs to `profile_id`, checked and removed under one
+    /// lock so two concurrent takes cannot both get it.
+    pub fn take_owned(
+        &self,
+        payment_id: &str,
+        profile_id: i64,
+    ) -> Result<PaymentSession, TakeError> {
+        match self.sessions.lock().entry(payment_id.to_string()) {
+            Entry::Vacant(_) => Err(TakeError::NotFound),
+            Entry::Occupied(entry) if entry.get().profile_id != profile_id => {
+                Err(TakeError::ProfileMismatch)
+            }
+            Entry::Occupied(entry) => Ok(entry.remove()),
+        }
     }
 }
 
@@ -88,7 +111,7 @@ mod tests {
     fn insert_then_take_returns_session_and_removes_it() {
         let store = PaymentStore::new();
         store.insert(test_session("abc-123"));
-        let taken = store.take("abc-123").unwrap();
+        let taken = store.take_owned("abc-123", 1).unwrap();
         assert_eq!(taken.payment_id, "abc-123");
         assert!(store.get("abc-123").is_none());
     }
@@ -97,13 +120,21 @@ mod tests {
     fn get_after_take_returns_none() {
         let store = PaymentStore::new();
         store.insert(test_session("abc-123"));
-        store.take("abc-123");
+        store.take_owned("abc-123", 1).unwrap();
         assert!(store.get("abc-123").is_none());
     }
 
     #[test]
     fn take_on_nonexistent_returns_none() {
         let store = PaymentStore::new();
-        assert!(store.take("nonexistent").is_none());
+        assert_eq!(store.take_owned("nonexistent", 1).unwrap_err(), TakeError::NotFound);
+    }
+
+    #[test]
+    fn take_by_another_profile_leaves_the_session() {
+        let store = PaymentStore::new();
+        store.insert(test_session("abc-123"));
+        assert_eq!(store.take_owned("abc-123", 2).unwrap_err(), TakeError::ProfileMismatch);
+        assert!(store.get("abc-123").is_some());
     }
 }
