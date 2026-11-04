@@ -125,16 +125,20 @@ const DEFAULT_PASS: &str = "1234567";
 async fn start(cfg: &AppConfig, state: state::State) -> Result<()> {
     let info = match state.sign_in(DEFAULT_NAME, DEFAULT_PASS).await {
         Ok(info) => info,
-        Err(_) => {
-            let info = state.sign_up(DEFAULT_NAME, DEFAULT_PASS).await?;
-            state.new_profile(&info.access_token.token, DEFAULT_NAME).await?;
-            add_ship_incentives(&state, 1).await?;
-            add_material_incentives(&state, 1).await?;
-            info
+        Err(_) => state.sign_up(DEFAULT_NAME, DEFAULT_PASS).await?,
+    };
+    let token = &info.access_token.token;
+    let profile_id = match state.account_profiles(token).await?.first() {
+        Some(profile) => profile.id,
+        None => {
+            let profile_id = state.new_profile(token, DEFAULT_NAME).await?.profile.id;
+            add_ship_incentives(&state, profile_id).await?;
+            add_material_incentives(&state, profile_id).await?;
+            profile_id
         }
     };
 
-    let session = state.start_game(&info.access_token.token, 1).await?;
+    let session = state.start_game(token, profile_id).await?;
     let port = cfg.bind.port();
 
     let scheme = if cfg.tls_cert.is_some() && cfg.tls_key.is_some() {
