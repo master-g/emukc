@@ -14,7 +14,7 @@ use emukc_model::{
 };
 use emukc_time::{
     JST, KcTime,
-    chrono::{DateTime, Duration, Utc},
+    chrono::{DateTime, Duration, Timelike, Utc},
 };
 
 use crate::{err::GameplayError, gameplay::Ctx};
@@ -702,11 +702,18 @@ fn draw_practice_rivals(
         .collect()
 }
 
-/// Whether rivals drawn at `last_generated` are out of date at `now`.
+/// Whether rivals drawn at `last_generated` predate the latest 03:00 or 15:00
+/// JST refresh at or before `now`.
 fn rivals_are_stale(last_generated: &DateTime<Utc>, now: &DateTime<Utc>) -> bool {
-    let today = now.with_timezone(&JST).date_naive();
-    let at = |hour| today.and_hms_opt(hour, 0, 0).unwrap().and_local_timezone(JST).unwrap();
-    *last_generated < at(3) || *last_generated >= at(15)
+    let now = now.with_timezone(&JST);
+    let today = now.date_naive();
+    let (day, hour) = match now.hour() {
+        15.. => (today, 15),
+        3.. => (today, 3),
+        _ => (today - Duration::days(1), 15),
+    };
+    let refreshed = day.and_hms_opt(hour, 0, 0).unwrap().and_local_timezone(JST).unwrap();
+    *last_generated < refreshed
 }
 
 fn cal_practice_entry_limit() -> Option<i64> {

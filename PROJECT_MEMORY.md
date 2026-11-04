@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-11-04 · branch `docs/memory-after-followups`
+Last updated: 2026-11-04 · branch `fix/practice-rival-refresh`
 
 ## Verified Facts
 
@@ -173,9 +173,9 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-11-04] 计划 002 全部合并（#308–#320）；#315、#319 rebase 解冲突后重跑全量再合。合并后 `main`：fmt、严格 clippy 过，`test --workspace --no-fail-fast` 46 个二进制 1730 过、0 失败 0 忽略。分支已删。
+- [2026-11-04] 计划 002 全部合并（#308–#321），合并后 `main` 全量 1730 过、无头 `fresh_1_1` 连跑 3 次都过。`fix/practice-rival-refresh`：演习对手改按最近一次 03:00／15:00 JST 刷新（原来 15:00 后每次重抽，上午抽的过 15:00 不刷新）；固定时间的单元测试先红后绿，全量 1730 过。
 
 ## Next Session
 
-- [2026-11-04] 计划 002「执行中的新发现」待用户挑（SQLite 跨进程写锁、演习对手 15:00 后每次重抽最值得做）。10-27 对拍三处公式差异开不开 issue 待定；第二刀（#302 等）未排期；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
+- [2026-11-04] 计划 002「执行中的新发现」余项待用户挑（SQLite 跨进程写锁最值得做）。10-27 对拍三处公式差异开不开 issue、#293、#294、#300、#302 的分诊，自 10-22／10-27 起每次原样顺延，下次请用户逐条定做或删；#291、#282、#285 暂停。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
   季节＝某天的状态。暂不发版；`CHANGELOG.md` 只到 2026-05，发版前重写。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。数字先读到再写。

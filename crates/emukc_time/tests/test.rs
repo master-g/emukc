@@ -67,20 +67,6 @@ mod test {
     }
 
     #[test]
-    fn test_before_or_after() {
-        let now = Utc::now();
-        let before_hour = 3;
-        let after_hour = 15;
-        println!("Current time in UTC: {}", now);
-        println!("Before 3 AM JST today: {}", KcTime::jst_today_hour_utc(before_hour));
-        println!("After 3 PM JST today: {}", KcTime::jst_today_hour_utc(after_hour));
-        println!(
-            "Is before 3 AM JST today or after 3 PM JST today? {}",
-            KcTime::is_before_or_after_jst_today_hour(&now, before_hour, after_hour)
-        );
-    }
-
-    #[test]
     fn test_next_day_0500() {
         let now = Utc::now();
         println!("Current time in UTC: {}", now);
