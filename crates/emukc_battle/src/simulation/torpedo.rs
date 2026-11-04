@@ -222,7 +222,7 @@ mod tests {
         let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
 
         let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, clt_mst, 50))];
-        let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50))];
+        let mut enemy = vec![BattleRuntimeShip::new(sample_ship(&codex, bb_mst, 50), false, true)];
         let mut rng = SeededRng::new(1);
 
         let opening = simulate_opening_torpedo(
@@ -251,7 +251,7 @@ mod tests {
         let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
 
         let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50))];
-        let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, clt_mst, 50))];
+        let mut enemy = vec![BattleRuntimeShip::new(sample_ship(&codex, clt_mst, 50), false, true)];
         let mut rng = SeededRng::new(1);
 
         let opening = simulate_opening_torpedo(
@@ -280,7 +280,7 @@ mod tests {
         let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
 
         let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50))];
-        let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50))];
+        let mut enemy = vec![BattleRuntimeShip::new(sample_ship(&codex, bb_mst, 50), false, true)];
         let mut rng = SeededRng::new(1);
 
         let raigeki = simulate_raigeki(
@@ -309,7 +309,7 @@ mod tests {
         let bb_mst = first_ship_mst_by_type(&codex, KcShipType::BB);
 
         let mut friendly = vec![BattleRuntimeShip::from(sample_ship(&codex, bb_mst, 50))];
-        let mut enemy = vec![BattleRuntimeShip::from(sample_ship(&codex, dd_mst, 50))];
+        let mut enemy = vec![BattleRuntimeShip::new(sample_ship(&codex, dd_mst, 50), false, true)];
         let mut rng = SeededRng::new(1);
 
         let raigeki = simulate_raigeki(
@@ -441,7 +441,7 @@ mod tests {
         let mut sunk = 0;
         for seed in 0..20 {
             let mut friendly = vec![BattleRuntimeShip::from(friend.clone())];
-            let mut enemy = vec![BattleRuntimeShip::from(foe.clone())];
+            let mut enemy = vec![BattleRuntimeShip::new(foe.clone(), false, true)];
             let raigeki = simulate_raigeki(
                 &codex,
                 &mut SeededRng::new(seed),

@@ -1109,7 +1109,7 @@ mod tests {
         enemy.ship.api_maxhp = 200;
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1139,7 +1139,7 @@ mod tests {
         enemy.ship.api_maxhp = 200;
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1174,7 +1174,7 @@ mod tests {
         assert!(friendly_fp > 0, "CVL with fighter should have positive fighter power");
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1202,7 +1202,7 @@ mod tests {
             enemy.ship.api_nowhp = 9999;
             enemy.ship.api_maxhp = 9999;
             let mut friendly = vec![BattleRuntimeShip::from(friend)];
-            let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+            let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
             let mut rng = crate::random::SeededRng::new(seed);
             let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
             kouku.api_stage3.api_ecl_flag[0]
@@ -1427,7 +1427,7 @@ mod tests {
             ship.ship.api_soukou[0] = 200;
             ship.ship.api_nowhp = 200;
             ship.ship.api_maxhp = 200;
-            enemies.push(BattleRuntimeShip::from(ship));
+            enemies.push(BattleRuntimeShip::new(ship, false, true));
         }
         let mut rng = crate::random::SeededRng::new(42);
 
@@ -1560,7 +1560,7 @@ mod tests {
         enemy.ship.api_maxhp = 5;
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
         let mut rng = crate::random::SeededRng::new(4);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);

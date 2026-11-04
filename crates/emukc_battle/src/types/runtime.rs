@@ -287,9 +287,9 @@ pub(crate) struct Landing {
 impl From<BattleShipInput> for BattleRuntimeShip {
     /// Convenience conversion for tests.
     /// Defaults to friendly sortie ship (sinking protection enabled).
-    /// Use `BattleRuntimeShip::new(input, is_enemy, is_sortie)` for specific contexts.
+    /// Use `BattleRuntimeShip::new(input, is_friendly, is_sortie)` for specific contexts.
     fn from(input: BattleShipInput) -> Self {
-        Self::new(input, false, true)
+        Self::new(input, true, true)
     }
 }
 

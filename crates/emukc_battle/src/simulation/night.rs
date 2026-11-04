@@ -1916,7 +1916,7 @@ mod tests {
         enemy_ship.ship.api_karyoku[0] = 1;
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy_ship)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy_ship, false, true)];
         let mut rng = crate::random::SeededRng::new(0);
 
         let hougeki = simulate_night_hougeki(
@@ -1971,7 +1971,7 @@ mod tests {
         enemy_ship.ship.api_karyoku[0] = 1;
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy_ship)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy_ship, false, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
         let hougeki = simulate_night_hougeki(
@@ -2034,7 +2034,7 @@ mod tests {
                     );
                 }
                 let mut friendly = vec![ship];
-                let mut enemy = vec![BattleRuntimeShip::from(submarine.clone())];
+                let mut enemy = vec![BattleRuntimeShip::new(submarine.clone(), false, true)];
                 let hougeki = simulate_night_hougeki(
                     codex,
                     &mut crate::random::SeededRng::new(seed),
@@ -2119,7 +2119,7 @@ mod tests {
             crate::types::NightBattleInput {
                 special_attacks_made: Default::default(),
                 friendly: vec![BattleRuntimeShip::from(carrier)],
-                enemy: vec![BattleRuntimeShip::from(enemy)],
+                enemy: vec![BattleRuntimeShip::new(enemy, false, true)],
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
@@ -3044,7 +3044,11 @@ mod tests {
                 crate::types::NightBattleInput {
                     special_attacks_made: Default::default(),
                     friendly: vec![attacker],
-                    enemy: vec![BattleRuntimeShip::from(sample_ship(&codex, target, 50))],
+                    enemy: vec![BattleRuntimeShip::new(
+                        sample_ship(&codex, target, 50),
+                        false,
+                        true,
+                    )],
                     friendly_formation_id: 1,
                     enemy_formation_id: 1,
                     engagement: EngagementType::SameCourse,
