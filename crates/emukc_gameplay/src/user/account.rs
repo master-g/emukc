@@ -50,13 +50,9 @@ impl Ctx {
     /// * `password` - The password of the new account.
     pub async fn sign_up(&self, username: &str, password: &str) -> Result<AccountInfo, UserError> {
         let db = self.db.as_ref();
+        let name_taken = || account::Entity::find().filter(account::Column::Name.eq(username));
 
-        let tx = db.begin().await?;
-
-        let model =
-            account::Entity::find().filter(account::Column::Name.eq(username)).one(&tx).await?;
-
-        if model.is_some() {
+        if name_taken().one(db).await?.is_some() {
             return Err(UserError::UsernameTaken);
         }
 
@@ -68,7 +64,15 @@ impl Ctx {
             return Err(UserError::PasswordTooShort);
         }
 
-        let secret = password.hash_password();
+        let password = password.to_owned();
+        let secret = off_executor(move || password.hash_password()).await;
+
+        let tx = db.begin().await?;
+
+        // the name may have been taken while hashing
+        if name_taken().one(&tx).await?.is_some() {
+            return Err(UserError::UsernameTaken);
+        }
 
         let now = Utc::now();
         let model = account::ActiveModel {
@@ -102,17 +106,9 @@ impl Ctx {
     /// * `password` - The password of the account.
     pub async fn sign_in(&self, username: &str, password: &str) -> Result<AccountInfo, UserError> {
         let db = self.db.as_ref();
+        let model = find_verified(db, username, password).await?;
+
         let tx = db.begin().await?;
-
-        let model = account::Entity::find()
-            .filter(account::Column::Name.eq(username))
-            .one(&tx)
-            .await?
-            .ok_or(UserError::InvalidUsernameOrPassword)?;
-
-        if !password.verify_password(&model.secret) {
-            return Err(UserError::InvalidUsernameOrPassword);
-        }
 
         let mut active_model: account::ActiveModel = model.into();
         active_model.last_login = ActiveValue::Set(Utc::now());
@@ -231,17 +227,9 @@ impl Ctx {
     /// * `password` - The password of the account.
     pub async fn delete_account(&self, username: &str, password: &str) -> Result<(), UserError> {
         let db = self.db.as_ref();
+        let model = find_verified(db, username, password).await?;
+
         let tx = db.begin().await?;
-
-        let model = account::Entity::find()
-            .filter(account::Column::Name.eq(username))
-            .one(&tx)
-            .await?
-            .ok_or(UserError::InvalidUsernameOrPassword)?;
-
-        if !password.verify_password(&model.secret) {
-            return Err(UserError::InvalidUsernameOrPassword);
-        }
 
         let uid = model.uid;
 
@@ -265,6 +253,35 @@ impl Ctx {
 
         Ok(())
     }
+}
+
+/// Find the account named `username` and check `password` against its hash,
+/// outside any transaction.
+async fn find_verified(
+    db: &impl ConnectionTrait,
+    username: &str,
+    password: &str,
+) -> Result<account::Model, UserError> {
+    let model = account::Entity::find()
+        .filter(account::Column::Name.eq(username))
+        .one(db)
+        .await?
+        .ok_or(UserError::InvalidUsernameOrPassword)?;
+
+    let password = password.to_owned();
+    let secret = model.secret.clone();
+    if !off_executor(move || password.verify_password(&secret)).await {
+        return Err(UserError::InvalidUsernameOrPassword);
+    }
+
+    Ok(model)
+}
+
+/// Run bcrypt, which costs hundreds of milliseconds by design, on the blocking pool.
+/// Callers run it before `begin()`: the SQLite pool has one connection, so a
+/// transaction held across it stalls every other request.
+async fn off_executor<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
+    tokio::task::spawn_blocking(f).await.expect("bcrypt task panicked")
 }
 
 #[cfg(test)]
@@ -356,6 +373,43 @@ mod tests {
         let auth = gp.auth(&access_token).await;
 
         assert!(auth.is_err());
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_sign_in_does_not_hold_the_database_while_checking_the_password() {
+        let gp = new_mock().await;
+        gp.sign_up("test", "1234567").await.unwrap();
+
+        let started = std::time::Instant::now();
+        let sign_in = tokio::spawn({
+            let gp = gp.clone();
+            async move { gp.sign_in("test", "1234567").await.map(|_| started.elapsed()) }
+        });
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let probe_started = std::time::Instant::now();
+        account::Entity::find().count(gp.db.as_ref()).await.unwrap();
+        let probe = probe_started.elapsed();
+        let sign_in = sign_in.await.unwrap().unwrap();
+
+        assert!(
+            probe * 2 < sign_in,
+            "a query issued during sign-in waited {probe:?}, the sign-in took {sign_in:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_wrong_password_is_rejected() {
+        let gp = new_mock().await;
+        gp.sign_up("test", "1234567").await.unwrap();
+
+        assert!(matches!(
+            gp.sign_in("test", "7654321").await,
+            Err(UserError::InvalidUsernameOrPassword)
+        ));
+        assert!(matches!(
+            gp.delete_account("test", "7654321").await,
+            Err(UserError::InvalidUsernameOrPassword)
+        ));
     }
 
     #[tokio::test]
