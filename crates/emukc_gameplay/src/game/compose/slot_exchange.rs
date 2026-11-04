@@ -22,8 +22,15 @@ where
 
     let mut slots = [ship.slot_1, ship.slot_2, ship.slot_3, ship.slot_4, ship.slot_5];
 
-    // swap slots
-    slots.swap(src_slot_idx as usize, dst_slot_idx as usize);
+    let slot_index = |idx: i64| {
+        usize::try_from(idx)
+            .ok()
+            .filter(|&idx| idx < slots.len())
+            .ok_or_else(|| GameplayError::WrongType(format!("slot index {idx}")))
+    };
+    let (src, dst) = (slot_index(src_slot_idx)?, slot_index(dst_slot_idx)?);
+
+    slots.swap(src, dst);
     slots.move_value_to_end(-1);
 
     let mut am = ship.into_active_model();
