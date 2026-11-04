@@ -116,7 +116,7 @@ mod tests {
         let carrier = context.add_ship(pid, AKAGI).await.unwrap().api_id;
         context.update_fleet_ships(pid, 1, &[carrier, -1, -1, -1, -1, -1]).await.unwrap();
         let tomonaga = item(&context, pid, 93, 4).await;
-        context.set_slot_item(carrier, 1, tomonaga).await.unwrap();
+        context.set_slot_item(pid, carrier, 1, tomonaga).await.unwrap();
         context.toggle_slot_item_locked(pid, tomonaga).await.unwrap();
 
         // Locked: shown as done, flagged, and refused.
@@ -142,7 +142,7 @@ mod tests {
         let converted: Vec<_> = left.iter().filter(|i| i.api_slotitem_id == 94).collect();
         assert_eq!(converted.len(), 1, "the converted piece is the reward, not an extra one");
         assert_eq!((converted[0].api_id, converted[0].api_level), (tomonaga, 4));
-        let ship = context.find_ship(carrier).await.unwrap().unwrap();
+        let ship = context.find_ship(pid, carrier).await.unwrap().unwrap();
         assert!(ship.api_slot.contains(&tomonaga), "the ship still carries it");
     }
 
@@ -163,20 +163,20 @@ mod tests {
         context.update_fleet_ships(pid, 1, &[carrier, -1, -1, -1, -1, -1]).await.unwrap();
         let first = item(&context, pid, 21, 0).await;
         let second = item(&context, pid, 21, 0).await;
-        context.set_slot_item(carrier, 0, first).await.unwrap();
+        context.set_slot_item(pid, carrier, 0, first).await.unwrap();
         // The right piece in the wrong slot does not count.
-        context.set_slot_item(carrier, 2, second).await.unwrap();
+        context.set_slot_item(pid, carrier, 2, second).await.unwrap();
         assert_eq!(shown(&context, pid, 678).await.0, 2);
 
-        context.set_slot_item(carrier, 2, -1).await.unwrap();
-        context.set_slot_item(carrier, 1, second).await.unwrap();
+        context.set_slot_item(pid, carrier, 2, -1).await.unwrap();
+        context.set_slot_item(pid, carrier, 1, second).await.unwrap();
         assert_eq!(shown(&context, pid, 678).await, (3, false));
         context.quest_clear_and_claim_reward(pid, 678, Some(vec![0])).await.unwrap();
 
         let left = held(&context, pid).await;
         assert!(!left.iter().any(|i| i.api_id == first || i.api_id == second));
         assert_eq!(left.iter().filter(|i| i.api_slotitem_id == 55).count(), 2);
-        let ship = context.find_ship(carrier).await.unwrap().unwrap();
+        let ship = context.find_ship(pid, carrier).await.unwrap().unwrap();
         assert!(!ship.api_slot.contains(&first) && !ship.api_slot.contains(&second));
     }
 }

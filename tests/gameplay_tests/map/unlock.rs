@@ -84,7 +84,7 @@ mod tests {
         for _attempt in 0..30 {
             // Restore HP/fuel/ammo so retries start from a healthy fleet.
             for id in &ship_ids {
-                let Some(mut ship) = context.find_ship(*id).await.unwrap() else {
+                let Some(mut ship) = context.find_ship(pid, *id).await.unwrap() else {
                     continue;
                 };
                 let mst = context.codex().manifest.find_ship(ship.api_ship_id);

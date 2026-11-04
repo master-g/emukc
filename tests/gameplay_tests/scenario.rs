@@ -32,11 +32,11 @@ mod tests {
         let ids = apply_scenario(&ctx, pid, &scenario).await.unwrap();
         assert_eq!(ids.len(), 2);
 
-        let flag = ctx.find_ship(ids[0]).await.unwrap().unwrap();
+        let flag = ctx.find_ship(pid, ids[0]).await.unwrap().unwrap();
         assert_eq!(flag.api_lv, 20, "flagship level");
         assert_eq!(flag.api_nowhp, 5, "damaged flagship hp override persists");
 
-        let second = ctx.find_ship(ids[1]).await.unwrap().unwrap();
+        let second = ctx.find_ship(pid, ids[1]).await.unwrap().unwrap();
         assert_eq!(second.api_lv, 15, "second ship level");
 
         let mat = ctx.get_materials(pid).await.unwrap();
@@ -65,7 +65,7 @@ mod tests {
         };
         let ids = apply_scenario(&ctx, pid, &scenario).await.unwrap();
 
-        let ship = ctx.find_ship(ids[0]).await.unwrap().unwrap();
+        let ship = ctx.find_ship(pid, ids[0]).await.unwrap().unwrap();
         assert!(ship.api_nowhp < ship.api_maxhp, "override must be below max");
         assert_eq!(ship.api_nowhp, 7);
     }
@@ -125,7 +125,7 @@ mod tests {
         };
         let ids = apply_scenario(&ctx, pid, &scenario).await.unwrap();
 
-        let ship = ctx.find_ship(ids[0]).await.unwrap().unwrap();
+        let ship = ctx.find_ship(pid, ids[0]).await.unwrap().unwrap();
         assert_eq!(ship.api_slotnum, 4);
         let equipped: Vec<i64> = ship.api_slot.iter().copied().filter(|id| *id > 0).collect();
         assert_eq!(equipped.len(), 4, "the fifth declaration is ignored: {:?}", ship.api_slot);
@@ -157,8 +157,8 @@ mod tests {
         let plain_ids = apply_scenario(&ctx, pid, &plain).await.unwrap();
         let modernised_ids = apply_scenario(&ctx, pid, &modernised).await.unwrap();
 
-        let plain_asw = ctx.find_ship(plain_ids[0]).await.unwrap().unwrap().api_taisen[0];
-        let modernised_ship = ctx.find_ship(modernised_ids[0]).await.unwrap().unwrap();
+        let plain_asw = ctx.find_ship(pid, plain_ids[0]).await.unwrap().unwrap().api_taisen[0];
+        let modernised_ship = ctx.find_ship(pid, modernised_ids[0]).await.unwrap().unwrap();
         assert_eq!(modernised_ship.api_kyouka[6], 9);
         assert_eq!(
             modernised_ship.api_taisen[0],
@@ -179,8 +179,8 @@ mod tests {
             ..Default::default()
         };
         let ids = apply_scenario(&ctx, pid, &scenario).await.unwrap();
-        let plain = ctx.find_ship(ids[0]).await.unwrap().unwrap();
-        let modernised = ctx.find_ship(ids[1]).await.unwrap().unwrap();
+        let plain = ctx.find_ship(pid, ids[0]).await.unwrap().unwrap();
+        let modernised = ctx.find_ship(pid, ids[1]).await.unwrap().unwrap();
         let mst = ctx.codex.manifest.api_mst_ship.iter().find(|m| m.api_id == 144).unwrap();
         let gap = |range: Option<[i64; 2]>| range.map(|[min, max]| max - min).unwrap();
 
@@ -199,7 +199,7 @@ mod tests {
         // Slot 0 is the routing carrier; the destroyers behind it are the ones
         // that have to clear the requirement of 100. Level and the sonar are
         // the only two levers a preset has, and both are needed.
-        let ship = ctx.find_ship(ids[1]).await.unwrap().unwrap();
+        let ship = ctx.find_ship(pid, ids[1]).await.unwrap().unwrap();
         assert!(
             ship.api_taisen[0] >= 100,
             "opening ASW needs ASW >= 100, got {}",
@@ -218,7 +218,7 @@ mod tests {
         };
         let ids = apply_scenario(&ctx, pid, &scenario).await.unwrap();
 
-        let ship = ctx.find_ship(ids[0]).await.unwrap().unwrap();
+        let ship = ctx.find_ship(pid, ids[0]).await.unwrap().unwrap();
         assert_eq!(ship.api_nowhp, 9, "equipping must not restore the declared damage");
     }
 

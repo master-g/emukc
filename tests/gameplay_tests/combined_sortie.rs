@@ -181,7 +181,7 @@ mod tests {
         let context = crate::TestContext::new().await;
         let (pid, escort) = combined_profile(&context, "combined-result").await;
 
-        let before = context.find_ship(escort[0]).await.unwrap().unwrap();
+        let before = context.find_ship(pid, escort[0]).await.unwrap().unwrap();
 
         context.start_sortie(pid, 1, 1, 1).await.unwrap();
         context.sortie_combined_battle(pid, 11).await.unwrap();
@@ -202,7 +202,7 @@ mod tests {
         );
         assert_eq!(result.api_get_ship_exp.len(), MAIN_DECK + 1);
 
-        let after = context.find_ship(escort[0]).await.unwrap().unwrap();
+        let after = context.find_ship(pid, escort[0]).await.unwrap().unwrap();
         assert!(after.api_exp[0] > before.api_exp[0], "第2艦隊 must be paid experience");
         assert!(after.api_fuel < before.api_fuel, "第2艦隊 must spend fuel on the node");
     }

@@ -56,7 +56,7 @@ mod tests {
         let json = serde_json::to_string(&ship).unwrap();
         assert!(!json.contains("api_onslot_max"), "field must be absent: {json}");
 
-        let found = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let found = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(found.api_onslot_max, None);
         assert_eq!(plus_of(&context, ship.api_id).await, [None; 5]);
     }
@@ -68,7 +68,7 @@ mod tests {
 
         let ship = context.add_ship(pid, AKAGI_MST_ID).await.unwrap();
 
-        let found = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let found = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(found.api_onslot_max, None);
         let json = serde_json::to_string(&found).unwrap();
         assert!(!json.contains("api_onslot_max"), "field must be absent: {json}");
@@ -82,7 +82,7 @@ mod tests {
         let ship = context.add_ship(pid, AKAGI_MST_ID).await.unwrap();
         set_plus(&context, ship.api_id, [Some(0); 5]).await;
 
-        let found = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let found = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(found.api_onslot_max, None, "all-zero increments must omit the field");
     }
 
@@ -96,7 +96,7 @@ mod tests {
         set_plus(&context, ship.api_id, [Some(2), None, Some(1), None, None]).await;
 
         // find_ship read wrapper
-        let found = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let found = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(found.api_onslot_max, Some([18 + 2, 18, 27 + 1, 10, 0]));
 
         // get_ships read wrapper (port path)
@@ -114,7 +114,7 @@ mod tests {
         set_plus(&context, ship.api_id, [Some(3), Some(1), None, None, Some(2)]).await;
 
         // find -> mutate a regular field -> update, exactly like supply etc.
-        let mut found = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let mut found = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(found.api_onslot_max, Some([21, 19, 27, 10, 2]));
         found.api_cond = 85;
         context.update_ship(&found).await.unwrap();
@@ -122,7 +122,7 @@ mod tests {
         // increments survive the roundtrip and the synthesized value is not
         // written back into the increment columns (no double-add)
         assert_eq!(plus_of(&context, ship.api_id).await, [Some(3), Some(1), None, None, Some(2)]);
-        let again = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let again = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(again.api_onslot_max, Some([21, 19, 27, 10, 2]));
         assert_eq!(again.api_cond, 85);
     }

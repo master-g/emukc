@@ -163,7 +163,7 @@ mod tests {
 
         // cap = maxeq[0] + 1 = 19, not the raw maxeq 18
         assert_eq!(resp.api_ship[0].api_onslot[0], 19);
-        let found = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let found = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(found.api_onslot[0], 19);
     }
 
@@ -196,7 +196,7 @@ mod tests {
                     0
                 }
         });
-        let found = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let found = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(found.api_ship_id, MUTSUKI_KAI_MST_ID);
         assert_eq!(found.api_onslot_max, Some(expected));
     }

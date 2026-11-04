@@ -26,7 +26,7 @@ mod tests {
         let ship = context.add_ship(pid, 1).await.unwrap();
 
         // Set sally_area > 0
-        let mut modified = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let mut modified = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         let target_sally_area = 7;
         modified.api_sally_area = target_sally_area;
         context.update_ship(&modified).await.unwrap();
@@ -43,10 +43,10 @@ mod tests {
 
         // Add an item and equip it to ex-slot
         let item = context.add_slot_item(pid, 25, 0, 0).await.unwrap(); // 25mm単装機銃
-        context.set_exslot_item(ship.api_id, item.api_id).await.unwrap();
+        context.set_exslot_item(pid, ship.api_id, item.api_id).await.unwrap();
 
         // Verify preconditions
-        let before = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let before = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(before.api_sally_area, target_sally_area);
         assert_eq!(before.api_slot_ex, item.api_id);
 
@@ -54,7 +54,7 @@ mod tests {
         context.remodel(pid, ship.api_id).await.unwrap();
 
         // Verify sally_area preserved
-        let after = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let after = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(
             after.api_sally_area, target_sally_area,
             "sally_area should be preserved across remodel"

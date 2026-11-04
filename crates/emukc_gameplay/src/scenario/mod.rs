@@ -923,7 +923,7 @@ pub async fn apply_scenario(
                 (0, 0)
             };
             let item = ctx.add_slot_item(profile_id, mst_id, stars, skill).await?;
-            ctx.set_slot_item(ship.api_id, slot_idx as i64, item.api_id).await?;
+            ctx.set_slot_item(profile_id, ship.api_id, slot_idx as i64, item.api_id).await?;
             equipped_any = true;
         }
 
@@ -932,7 +932,7 @@ pub async fn apply_scenario(
         // nothing equipped the `update_ship` above already was that pass.
         if let Some(hp) = spec.hp.filter(|_| equipped_any) {
             let mut equipped = ctx
-                .find_ship(ship.api_id)
+                .find_ship(profile_id, ship.api_id)
                 .await?
                 .ok_or_else(|| GameplayError::EntryNotFound(format!("ship {}", ship.api_id)))?;
             equipped.api_nowhp = hp;

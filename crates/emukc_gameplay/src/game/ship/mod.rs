@@ -54,16 +54,21 @@ impl Ctx {
         Ok(ship)
     }
 
-    /// Find a ship by ID.
+    /// Find a ship of a profile by ID; another profile's ship reads as `None`.
     ///
     /// # Parameters
     ///
+    /// - `profile_id`: The profile ID.
     /// - `ship_id`: The ship ID.
-    pub async fn find_ship(&self, ship_id: i64) -> Result<Option<KcApiShip>, GameplayError> {
+    pub async fn find_ship(
+        &self,
+        profile_id: i64,
+        ship_id: i64,
+    ) -> Result<Option<KcApiShip>, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
 
-        if let Some((ship, sps)) = find_ship_impl(db, ship_id).await? {
+        if let Some((ship, sps)) = find_ship_impl(db, profile_id, ship_id).await? {
             let mut m: KcApiShip = ship.into();
 
             fill_onslot_max(codex, &ship, &mut m);
@@ -186,17 +191,19 @@ impl Ctx {
     ///
     /// # Parameters
     ///
+    /// - `profile_id`: The profile ID, owner of the ship and the item.
     /// - `ship_id`: The ship ID.
     /// - `slot_item_id`: The slot item ID.
     pub async fn set_exslot_item(
         &self,
+        profile_id: i64,
         ship_id: i64,
         slot_item_id: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        set_exslot_item_impl(&tx, ship_id, slot_item_id).await?;
+        set_exslot_item_impl(&tx, profile_id, ship_id, slot_item_id).await?;
 
         tx.commit().await?;
 
@@ -207,11 +214,13 @@ impl Ctx {
     ///
     /// # Parameters
     ///
+    /// - `profile_id`: The profile ID, owner of the ship and the item.
     /// - `ship_id`: The ship ID.
     /// - `slot_idx`: The slot index.
     /// - `slot_item_id`: The slot item ID.
     pub async fn set_slot_item(
         &self,
+        profile_id: i64,
         ship_id: i64,
         slot_idx: i64,
         slot_item_id: i64,
@@ -220,7 +229,7 @@ impl Ctx {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        set_slot_item_impl(&tx, codex, ship_id, slot_idx, slot_item_id).await?;
+        set_slot_item_impl(&tx, codex, profile_id, ship_id, slot_idx, slot_item_id).await?;
 
         tx.commit().await?;
 
@@ -231,13 +240,18 @@ impl Ctx {
     ///
     /// # Parameters
     ///
+    /// - `profile_id`: The profile ID, owner of the ship.
     /// - `ship_id`: The ship ID.
-    pub async fn unset_all_slots(&self, ship_id: i64) -> Result<(), GameplayError> {
+    pub async fn unset_all_slots(
+        &self,
+        profile_id: i64,
+        ship_id: i64,
+    ) -> Result<(), GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        unset_all_slots_impl(&tx, codex, ship_id).await?;
+        unset_all_slots_impl(&tx, codex, profile_id, ship_id).await?;
 
         tx.commit().await?;
 
@@ -517,12 +531,16 @@ where
 
 pub(crate) async fn find_ship_impl<C>(
     c: &C,
+    profile_id: i64,
     ship_id: i64,
 ) -> Result<Option<(ship::Model, Vec<sp_effect_item::Model>)>, GameplayError>
 where
     C: ConnectionTrait,
 {
-    let ship = ship::Entity::find_by_id(ship_id).one(c).await?;
+    let ship = ship::Entity::find_by_id(ship_id)
+        .filter(ship::Column::ProfileId.eq(profile_id))
+        .one(c)
+        .await?;
 
     let sp_items = if ship.is_some() {
         find_ship_sp_effect_items_impl(c, ship_id).await?
@@ -659,24 +677,55 @@ where
     }
 }
 
+/// The ship `ship_id` of `profile_id`; another profile's ship reads as missing.
+async fn find_owned_ship<C>(
+    c: &C,
+    profile_id: i64,
+    ship_id: i64,
+) -> Result<ship::Model, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    ship::Entity::find_by_id(ship_id)
+        .filter(ship::Column::ProfileId.eq(profile_id))
+        .one(c)
+        .await?
+        .ok_or_else(|| {
+            GameplayError::EntryNotFound(format!("ship {ship_id} of profile {profile_id}"))
+        })
+}
+
+/// The slot item `item_id` of `profile_id`; another profile's item reads as missing.
+async fn find_owned_slot_item<C>(
+    c: &C,
+    profile_id: i64,
+    item_id: i64,
+) -> Result<slot_item::Model, GameplayError>
+where
+    C: ConnectionTrait,
+{
+    slot_item::Entity::find_by_id(item_id)
+        .filter(slot_item::Column::ProfileId.eq(profile_id))
+        .one(c)
+        .await?
+        .ok_or_else(|| {
+            GameplayError::EntryNotFound(format!("slot item {item_id} of profile {profile_id}"))
+        })
+}
+
 pub(crate) async fn set_exslot_item_impl<C>(
     c: &C,
+    profile_id: i64,
     ship_id: i64,
     slot_item_id: i64,
 ) -> Result<ship::Model, GameplayError>
 where
     C: ConnectionTrait,
 {
-    let ship = ship::Entity::find_by_id(ship_id)
-        .one(c)
-        .await?
-        .ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
+    let ship = find_owned_ship(c, profile_id, ship_id).await?;
 
     {
-        let slot_item_model =
-            slot_item::Entity::find_by_id(slot_item_id).one(c).await?.ok_or_else(|| {
-                GameplayError::EntryNotFound(format!("slot item with id {slot_item_id} not found"))
-            })?;
+        let slot_item_model = find_owned_slot_item(c, profile_id, slot_item_id).await?;
         ensure_not_in_squadron(c, &slot_item_model).await?;
         let mut am = slot_item_model.into_active_model();
 
@@ -695,6 +744,7 @@ where
 pub(crate) async fn set_slot_item_impl<C>(
     c: &C,
     codex: &Codex,
+    profile_id: i64,
     ship_id: i64,
     slot_idx: i64,
     slot_item_id: i64,
@@ -702,18 +752,11 @@ pub(crate) async fn set_slot_item_impl<C>(
 where
     C: ConnectionTrait,
 {
-    // find target ship
-    let mut ship = ship::Entity::find_by_id(ship_id)
-        .one(c)
-        .await?
-        .ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
+    let mut ship = find_owned_ship(c, profile_id, ship_id).await?;
 
     // find slot item to set
     if slot_item_id > 0 {
-        let slot_item_model =
-            slot_item::Entity::find_by_id(slot_item_id).one(c).await?.ok_or_else(|| {
-                GameplayError::EntryNotFound(format!("slot item with id {slot_item_id} not found"))
-            })?;
+        let slot_item_model = find_owned_slot_item(c, profile_id, slot_item_id).await?;
         ensure_not_in_squadron(c, &slot_item_model).await?;
 
         let mut am = slot_item_model.into_active_model();
@@ -777,15 +820,13 @@ where
 pub(crate) async fn unset_all_slots_impl<C>(
     c: &C,
     codex: &Codex,
+    profile_id: i64,
     ship_id: i64,
 ) -> Result<(), GameplayError>
 where
     C: ConnectionTrait,
 {
-    let mut ship = ship::Entity::find_by_id(ship_id)
-        .one(c)
-        .await?
-        .ok_or_else(|| GameplayError::EntryNotFound(format!("ship with id {ship_id} not found")))?;
+    let mut ship = find_owned_ship(c, profile_id, ship_id).await?;
 
     for m in find_slot_items_by_id_impl(
         c,

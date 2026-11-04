@@ -26,10 +26,9 @@ pub(super) async fn handler(
     let fleets = state.get_fleets(pid).await?;
     let api_deck_data = fleets.into_iter().map(std::convert::Into::into).collect();
 
-    let ship = state.find_ship(params.api_shipid).await?.ok_or(ApiError::NotFound(format!(
-        "ship {} not found for profile {}",
-        params.api_shipid, pid
-    )))?;
+    let ship = state.find_ship(pid, params.api_shipid).await?.ok_or(ApiError::NotFound(
+        format!("ship {} not found for profile {}", params.api_shipid, pid),
+    ))?;
 
     let unset_slot = state.get_unset_slot_items(pid).await?;
     let api_slot_data = state.codex.convert_unused_slot_items_to_api(&unset_slot)?;

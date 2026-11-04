@@ -186,8 +186,8 @@ async fn exercise_times_remaining(context: &Ctx, profile_id: i64, quest_id: i64)
         .unwrap()
 }
 
-async fn set_ship_level(context: &Ctx, ship_id: i64, level_req: i64) {
-    let mut ship = context.find_ship(ship_id).await.unwrap().unwrap();
+async fn set_ship_level(context: &Ctx, pid: i64, ship_id: i64, level_req: i64) {
+    let mut ship = context.find_ship(pid, ship_id).await.unwrap().unwrap();
     let exp_now = level::ship_level_required_exp(level_req);
     let (_, next_exp) = level::exp_to_ship_level(exp_now);
     ship.api_lv = level_req;
@@ -206,7 +206,7 @@ async fn add_ships_with_type(
     let mut ship_ids = Vec::with_capacity(count);
     for _ in 0..count {
         let ship = context.add_ship(profile_id, mst_id).await.unwrap();
-        set_ship_level(context, ship.api_id, level_req).await;
+        set_ship_level(context, profile_id, ship.api_id, level_req).await;
         ship_ids.push(ship.api_id);
     }
     ship_ids
