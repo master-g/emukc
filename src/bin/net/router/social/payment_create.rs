@@ -6,6 +6,9 @@ use crate::state::{PaymentSession, State};
 
 use super::RpcParams;
 
+/// The purchase dialog caps the count at 10 (`main.decoded.js:81489`).
+const MAX_PURCHASE_COUNT: i64 = 10;
+
 pub(super) async fn exec(
     state: &State,
     session: &GameSession,
@@ -38,6 +41,10 @@ pub(super) async fn exec(
 
     if count <= 0 {
         return error_response("count must be positive");
+    }
+
+    if count > MAX_PURCHASE_COUNT {
+        return error_response("count over the purchase limit");
     }
 
     let price = manifest_item.api_price;

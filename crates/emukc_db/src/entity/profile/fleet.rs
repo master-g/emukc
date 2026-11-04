@@ -1,6 +1,6 @@
 //! Fleet entity
 
-use crate::entity::create_table;
+use crate::entity::{add_column, create_table};
 use chrono::{DateTime, Utc};
 use emukc_model::profile::fleet::{Fleet, FleetMissionContext, FleetMissionStatus};
 use sea_orm::{ActiveValue, entity::prelude::*};
@@ -172,17 +172,14 @@ impl From<Model> for Fleet {
 /// Bootstrap the fleet table.
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
     create_table(db, Entity).await?;
-    // `launch_fully_supplied` came after the table shipped; the statement
-    // fails harmlessly once it exists. A fleet away on a database made before
-    // it passed the old check, which refused an unsupplied fleet, so `TRUE`.
-    {
-        use sea_orm::ConnectionTrait;
-        let _ = db
-            .execute_unprepared(
-                "ALTER TABLE fleet ADD COLUMN launch_fully_supplied BOOLEAN NOT NULL DEFAULT TRUE",
-            )
-            .await;
-    }
+    // `launch_fully_supplied` came after the table shipped. A fleet away on a
+    // database made before it passed the old check, which refused an
+    // unsupplied fleet, so `TRUE`.
+    add_column(
+        db,
+        "ALTER TABLE fleet ADD COLUMN launch_fully_supplied BOOLEAN NOT NULL DEFAULT TRUE",
+    )
+    .await?;
 
     Ok(())
 }

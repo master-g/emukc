@@ -335,17 +335,14 @@ pub fn default_active_model(account_id: i64, nickname: &str) -> ActiveModel {
 pub async fn bootstrap(db: &sea_orm::DatabaseConnection) -> Result<(), sea_orm::error::DbErr> {
     // profile
     create_table(db, Entity).await?;
-    // The month of 戦果 came after the table shipped; the statements fail harmlessly once the
-    // columns exist. Month 0 starts at the next experience gained.
-    {
-        use sea_orm::ConnectionTrait;
-        for column in ["war_result_month", "war_result_base_exp"] {
-            let _ = db
-                .execute_unprepared(&format!(
-                    "ALTER TABLE profile ADD COLUMN {column} BIGINT NOT NULL DEFAULT 0"
-                ))
-                .await;
-        }
+    // The month of 戦果 came after the table shipped. Month 0 starts at the next experience
+    // gained.
+    for column in ["war_result_month", "war_result_base_exp"] {
+        crate::entity::add_column(
+            db,
+            &format!("ALTER TABLE profile ADD COLUMN {column} BIGINT NOT NULL DEFAULT 0"),
+        )
+        .await?;
     }
     // settings
     {

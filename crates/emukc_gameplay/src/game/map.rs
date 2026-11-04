@@ -385,7 +385,9 @@ fn build_map_info(definition: &MapDefinition, record: &map_record::Model) -> KcA
 }
 
 fn parse_map_select_rank(rank: i64) -> Result<MapSelectRank, GameplayError> {
-    MapSelectRank::n(rank as i32)
+    i32::try_from(rank)
+        .ok()
+        .and_then(MapSelectRank::n)
         .ok_or_else(|| GameplayError::WrongType(format!("invalid map rank {rank}")))
 }
 
