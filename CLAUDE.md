@@ -241,7 +241,7 @@ There is no CI server — `.github/` holds agent prompts/skills, not workflows. 
 
 - Rust workspace，edition 2024，`rust-version = "1.96.0"`；`rust-toolchain.toml` 使用 stable，并安装 `rustfmt`、`clippy`。
 - HTTP/异步层：Axum 0.8、Tokio 1.x、Tower/Tower HTTP；日志使用 `tracing`。
-- 持久化：SeaORM 1.1 + SQLite；资源缓存使用 redb；配置使用 TOML。
+- 持久化：SeaORM 2.0 + SQLite；资源缓存使用 redb；配置使用 TOML。
 - `main-decoder/` 是 Bun + TypeScript 子项目，负责从 `main.js` 解码并生成 Rust 侧消费的战斗/资源资产。
 
 ## 命令
