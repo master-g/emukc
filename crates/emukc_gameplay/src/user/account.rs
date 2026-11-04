@@ -358,6 +358,43 @@ mod tests {
         assert!(auth.is_err());
     }
 
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_sign_in_does_not_hold_the_database_while_checking_the_password() {
+        let gp = new_mock().await;
+        gp.sign_up("test", "1234567").await.unwrap();
+
+        let started = std::time::Instant::now();
+        let sign_in = tokio::spawn({
+            let gp = gp.clone();
+            async move { gp.sign_in("test", "1234567").await.map(|_| started.elapsed()) }
+        });
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        let probe_started = std::time::Instant::now();
+        account::Entity::find().count(gp.db.as_ref()).await.unwrap();
+        let probe = probe_started.elapsed();
+        let sign_in = sign_in.await.unwrap().unwrap();
+
+        assert!(
+            probe * 2 < sign_in,
+            "a query issued during sign-in waited {probe:?}, the sign-in took {sign_in:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_wrong_password_is_rejected() {
+        let gp = new_mock().await;
+        gp.sign_up("test", "1234567").await.unwrap();
+
+        assert!(matches!(
+            gp.sign_in("test", "7654321").await,
+            Err(UserError::InvalidUsernameOrPassword)
+        ));
+        assert!(matches!(
+            gp.delete_account("test", "7654321").await,
+            Err(UserError::InvalidUsernameOrPassword)
+        ));
+    }
+
     #[tokio::test]
     async fn deleting_an_account_removes_its_game_data() {
         use emukc_db::entity::profile::{fleet, furniture, material};
