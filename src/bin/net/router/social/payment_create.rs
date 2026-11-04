@@ -230,4 +230,23 @@ mod tests {
         let stored = state.payment_store.get(payment_id).unwrap();
         assert_eq!(stored.price, manifest_item.api_price);
     }
+
+    #[tokio::test]
+    async fn manifest_name_and_description_override_the_client() {
+        let (state, session) = setup().await;
+        let sku_id = find_valid_sku_id(&state.codex);
+        let manifest_item = state.codex.find::<ApiMstPayitem>(&sku_id).unwrap();
+
+        let mut params = valid_params(&sku_id.to_string(), "500", "1");
+        let item = &mut params.params.as_mut().unwrap().items.as_mut().unwrap()[0];
+        item.name = "<script>alert(1)</script>".to_string();
+        item.description = "<img src=x onerror=alert(1)>".to_string();
+        let result = exec(&state, &session, params).await;
+        assert_eq!(status_of(&result), 1);
+
+        let payment_id = result["data"]["payment_id"].as_str().unwrap();
+        let stored = state.payment_store.get(payment_id).unwrap();
+        assert_eq!(stored.name, manifest_item.api_name);
+        assert_eq!(stored.description, manifest_item.api_description);
+    }
 }
