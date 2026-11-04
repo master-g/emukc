@@ -8,6 +8,7 @@ mod expedition_lists;
 mod factory_progress;
 mod improvement;
 mod limited_day;
+mod missing_master;
 mod periodic_reset;
 mod progress;
 mod reward;
