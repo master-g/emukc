@@ -111,6 +111,24 @@ impl Ctx {
         })
     }
 
+    /// The profiles of the account behind `access_token`, oldest first.
+    ///
+    /// # Arguments
+    ///
+    /// * `access_token` - The access token of the account.
+    pub async fn account_profiles(&self, access_token: &str) -> Result<Vec<Profile>, UserError> {
+        let db = self.db.as_ref();
+
+        let account_model = verify_access_token(db, access_token).await?;
+        let profiles = profile::Entity::find()
+            .filter(profile::Column::AccountId.eq(account_model.uid))
+            .order_by_asc(profile::Column::Id)
+            .all(db)
+            .await?;
+
+        Ok(profiles.into_iter().map(Into::into).collect())
+    }
+
     /// Select a world for the profile.
     ///
     /// # Arguments
