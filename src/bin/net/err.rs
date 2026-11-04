@@ -116,6 +116,7 @@ impl IntoResponse for ApiError {
             | ApiError::BadRequest(e)
             | ApiError::Unauthorized(e)
             | ApiError::Conflict(e) => e,
+            ApiError::Validation(e) => e.to_string(),
             _ => self.to_string(),
         };
         (status, body).into_response()
