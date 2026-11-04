@@ -2,7 +2,7 @@ use anyhow::{Result, bail};
 use clap::Args;
 use emukc_internal::gameplay::prelude::{PRESETS, Preset, apply_scenario};
 
-use crate::{cfg::AppConfig, state::State};
+use crate::{cfg::AppConfig, cli::auto::session_url, state::State};
 
 /// Bootstrap command arguments
 #[derive(Args, Debug)]
@@ -59,14 +59,14 @@ pub async fn exec(args: &NewSessionArgs, cfg: &AppConfig, state: &State) -> Resu
         None => state.new_profile(token, &args.name).await?.profile.id,
     };
     let session = state.start_game(token, profile_id).await?;
-    let port = cfg.bind.port();
 
-    let url = format!("http://localhost:{port}/emukc?api_token={}", session.session.token);
+    let url = session_url(cfg, &session.session.token);
     println!("{url}");
 
-    if !args.no_open {
-        // open the url in the default browser
-        open::that(url).unwrap();
+    if !args.no_open
+        && let Err(e) = open::that(&url)
+    {
+        warn!("Failed to open the browser: {e}");
     }
 
     Ok(())

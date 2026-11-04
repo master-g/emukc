@@ -7,8 +7,6 @@ use crate::state::{State, TakeError};
 #[derive(Debug, Deserialize)]
 pub(super) struct CancelQuery {
     payment_id: String,
-    #[allow(dead_code)]
-    st: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -126,7 +124,6 @@ mod tests {
         let pid = Pid(session.profile.id);
         let query = axum::extract::Query(CancelQuery {
             payment_id: payment_id.to_string(),
-            st: None,
         });
         handler(state_ext, pid, query).await.0
     }

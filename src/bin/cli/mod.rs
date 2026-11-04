@@ -120,12 +120,6 @@ fn find_config_file(arg: &str) -> anyhow::Result<PathBuf> {
         return Ok(config_path);
     }
 
-    let env_path = std::env::var("EMUKC_CONFIG")?;
-    let env_path = PathBuf::from(env_path);
-    if env_path.exists() {
-        return Ok(env_path);
-    }
-
     Err(anyhow::anyhow!(
         "Configuration file not found at '{}', '{}', or '{}'",
         arg,
@@ -249,7 +243,8 @@ pub async fn init() -> ExitCode {
             serve::exec(&args, &cfg, &state).await
         }
         None => auto::exec(&cfg).await,
-        _ => Ok(()),
+        // returned before the config is loaded
+        Some(Commands::Version) => Ok(()),
     };
 
     if let Err(e) = output {
@@ -261,5 +256,16 @@ pub async fn init() -> ExitCode {
         ExitCode::FAILURE
     } else {
         ExitCode::SUCCESS
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_missing_config_file_reports_where_it_looked() {
+        let err = find_config_file("definitely-not-here.emukc.toml").unwrap_err();
+        assert!(err.to_string().contains("Configuration file not found"), "got: {err}");
     }
 }
