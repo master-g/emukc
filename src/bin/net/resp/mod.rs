@@ -2,7 +2,7 @@ use axum::response::IntoResponse;
 use emukc_internal::{model::codex::CodexError, prelude::GameplayError};
 pub use kcs::KcApiResponse;
 
-use super::err::ApiError;
+use super::err::{ApiError, INTERNAL_ERROR_TEXT};
 
 mod kcs;
 
@@ -35,6 +35,11 @@ impl From<CodexError> for KcApiError {
 
 impl IntoResponse for KcApiError {
     fn into_response(self) -> axum::response::Response {
+        // The game client treats any api_result other than 1 as failure, so errors stay HTTP 200.
+        if self.0.status().is_server_error() {
+            error!("{}", self.0);
+            return KcApiResponse::failure(INTERNAL_ERROR_TEXT).into_response();
+        }
         KcApiResponse::failure(self.0.to_string().as_str()).into_response()
     }
 }

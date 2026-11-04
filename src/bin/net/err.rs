@@ -14,8 +14,17 @@ pub enum ApiError {
     #[error("Invalid token")]
     InvalidToken,
 
+    #[error("Bad request: {0}")]
+    BadRequest(String),
+
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+
     #[error("Not found: {0}")]
     NotFound(String),
+
+    #[error("Conflict: {0}")]
+    Conflict(String),
 
     #[error("Internal error: {0}")]
     Internal(String),
@@ -33,8 +42,15 @@ impl From<UserError> for ApiError {
             UserError::TokenInvalid | UserError::TokenExpired => Self::InvalidToken,
             UserError::UserNotFound => Self::NotFound("User not found".to_string()),
             UserError::ProfileNotFound => Self::NotFound("Profile not found".to_string()),
+            UserError::UsernameTaken | UserError::ProfileExists => {
+                Self::Conflict(value.to_string())
+            }
+            UserError::UsernameTooShort | UserError::PasswordTooShort => {
+                Self::BadRequest(value.to_string())
+            }
+            UserError::InvalidUsernameOrPassword => Self::Unauthorized(value.to_string()),
             UserError::Db(db_err) => Self::Internal(db_err.to_string()),
-            _ => Self::Unknown(value.to_string()),
+            UserError::Gameplay(e) => Self::from(e),
         }
     }
 }
@@ -44,14 +60,14 @@ impl From<GameplayError> for ApiError {
         match value {
             GameplayError::ProfileNotFound(e) => Self::NotFound(e.to_string()),
             GameplayError::Db(db_err) => Self::Internal(db_err.to_string()),
-            GameplayError::BadManifest(e)
-            | GameplayError::WrongType(e)
+            GameplayError::WrongType(e)
             | GameplayError::Insufficient(e)
-            | GameplayError::QuestStatusInvalid(e) => Self::Internal(e),
-            GameplayError::ManifestNotFound(e) | GameplayError::CapacityExceeded(e) => {
+            | GameplayError::QuestStatusInvalid(e) => Self::BadRequest(e),
+            GameplayError::CapacityExceeded(e) => Self::BadRequest(e.to_string()),
+            GameplayError::BadManifest(e) => Self::Internal(e),
+            GameplayError::ManifestNotFound(e) | GameplayError::ShipCreationFailed(e) => {
                 Self::Internal(e.to_string())
             }
-            GameplayError::ShipCreationFailed(e) => Self::Internal(e.to_string()),
             GameplayError::Codex(e) => Self::Internal(e.to_string()),
             GameplayError::EntryNotFound(e) | GameplayError::Locked(e) => Self::NotFound(e),
             GameplayError::Json(e) => Self::Internal(e.to_string()),
@@ -71,17 +87,38 @@ impl From<CodexError> for ApiError {
     }
 }
 
+/// Text sent to clients in place of a server error's details, which go to the log.
+pub const INTERNAL_ERROR_TEXT: &str = "Internal server error";
+
+impl ApiError {
+    pub fn status(&self) -> StatusCode {
+        match self {
+            ApiError::MissingToken | ApiError::BadRequest(_) | ApiError::Validation(_) => {
+                StatusCode::BAD_REQUEST
+            }
+            ApiError::InvalidToken | ApiError::Unauthorized(_) => StatusCode::UNAUTHORIZED,
+            ApiError::NotFound(_) => StatusCode::NOT_FOUND,
+            ApiError::Conflict(_) => StatusCode::CONFLICT,
+            ApiError::Internal(_) | ApiError::Unknown(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        match self {
-            ApiError::MissingToken => (StatusCode::BAD_REQUEST, self.to_string()).into_response(),
-            ApiError::InvalidToken => (StatusCode::UNAUTHORIZED, self.to_string()).into_response(),
-            ApiError::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-            ApiError::Internal(e) | ApiError::Unknown(e) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, e).into_response()
-            }
-            ApiError::Validation(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+        let status = self.status();
+        if status.is_server_error() {
+            error!("{self}");
+            return (status, INTERNAL_ERROR_TEXT).into_response();
         }
+        let body = match self {
+            ApiError::NotFound(e)
+            | ApiError::BadRequest(e)
+            | ApiError::Unauthorized(e)
+            | ApiError::Conflict(e) => e,
+            _ => self.to_string(),
+        };
+        (status, body).into_response()
     }
 }
 
