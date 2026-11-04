@@ -3,6 +3,10 @@
 
 #[cfg(test)]
 mod tests {
+    use emukc_internal::db::{
+        entity::profile::ndock,
+        sea_orm::{ActiveModelTrait, ActiveValue, ColumnTrait, EntityTrait, QueryFilter},
+    };
     use emukc_internal::prelude::*;
 
     async fn new_profile(context: &crate::TestContext, username: &str) -> i64 {
@@ -116,5 +120,60 @@ mod tests {
                 "({from_slot_idx}, {to_slot_idx}) gave {result:?}"
             );
         }
+    }
+
+    async fn damaged_ship(context: &crate::TestContext, pid: i64) -> i64 {
+        let ship = context.add_ship(pid, 1).await.unwrap();
+        let mut damaged = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
+        damaged.api_nowhp = 1;
+        context.update_ship(&damaged).await.unwrap();
+        ship.api_id
+    }
+
+    async fn finish_dock_now(context: &crate::TestContext, pid: i64, ship_id: i64) {
+        let dock = ndock::Entity::find()
+            .filter(ndock::Column::ProfileId.eq(pid))
+            .filter(ndock::Column::Index.eq(1))
+            .one(context.db())
+            .await
+            .unwrap()
+            .unwrap();
+        let mut am: ndock::ActiveModel = dock.into();
+        am.status = ActiveValue::Set(ndock::Status::Busy);
+        am.ship_id = ActiveValue::Set(ship_id);
+        am.complete_time = ActiveValue::Set(Some(
+            emukc_internal::time::chrono::Utc::now()
+                - emukc_internal::time::chrono::Duration::seconds(1),
+        ));
+        am.update(context.db()).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn a_finished_repair_frees_the_dock_when_its_ship_is_gone() {
+        let context = crate::TestContext::new().await;
+        let pid = new_profile(&context, "dock-scrap").await;
+        let ship_id = damaged_ship(&context, pid).await;
+
+        context.ndock_start_repair(pid, 1, ship_id, false).await.unwrap();
+        context.destroy_ship(pid, ship_id, true).await.unwrap();
+        finish_dock_now(&context, pid, ship_id).await;
+
+        let docks = context.get_ndocks(pid).await.unwrap();
+        assert!(docks[0].context.is_none(), "dock 1 {:?}", docks[0]);
+    }
+
+    #[tokio::test]
+    async fn a_dock_left_holding_another_profiles_ship_clears_and_heals_it() {
+        let context = crate::TestContext::new().await;
+        let owner = new_profile(&context, "dock-stale-a").await;
+        let other = new_profile(&context, "dock-stale-b").await;
+        let ship_id = damaged_ship(&context, other).await;
+
+        finish_dock_now(&context, owner, ship_id).await;
+
+        let docks = context.get_ndocks(owner).await.unwrap();
+        assert!(docks[0].context.is_none(), "dock 1 {:?}", docks[0]);
+        let ship = context.find_ship(other, ship_id).await.unwrap().unwrap();
+        assert_eq!(ship.api_nowhp, ship.api_maxhp);
     }
 }

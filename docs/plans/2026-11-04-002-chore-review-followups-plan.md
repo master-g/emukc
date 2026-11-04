@@ -8,7 +8,7 @@ execution: code
 
 # Review Follow-ups - Plan
 
-2026-11-04 审查中，9 个已确认的 bug 由 `2026-11-04-001-fix-review-bugs-plan.md` 修复，另有 13 处所有权检查缺口在 `fix/ownership-checks` 中补上。本计划处理审查剩下的发现：先是请求路径上会出错的地方，再是类型与校验，最后是机械清理和 lint 收紧。
+2026-11-04 审查中，9 个已确认的 bug 由 `2026-11-04-001-fix-review-bugs-plan.md` 修复，另有 13 处所有权检查缺口在 `fix/ownership-checks` 中补上。#307 之前写进别的 profile 船坞的旧行无需迁移，由 `fix/stale-repair-dock` 确认会自行清掉，并修好船坞里舰船已不存在时母港报错的问题。本计划处理审查剩下的发现：先是请求路径上会出错的地方，再是类型与校验，最后是机械清理和 lint 收紧。
 
 **基线**：`fix/ownership-checks` 合并之后的 `main`。
 **规则**：每个 P 单元单独一个 PR，标题用 Conventional Commits；能写出失败测试的单元，测试先单独提交；每个 PR 都过 fmt、严格 clippy、`cargo test --workspace`，并在说明里写出 golden 是否变化。
