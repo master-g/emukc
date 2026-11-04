@@ -243,7 +243,8 @@ pub async fn init() -> ExitCode {
             serve::exec(&args, &cfg, &state).await
         }
         None => auto::exec(&cfg).await,
-        _ => Ok(()),
+        // returned before the config is loaded
+        Some(Commands::Version) => Ok(()),
     };
 
     if let Err(e) = output {
