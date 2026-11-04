@@ -1713,7 +1713,6 @@ dependencies = [
  "emukc_db",
  "emukc_gameplay",
  "emukc_log",
- "emukc_macros",
  "emukc_model",
  "emukc_network",
  "emukc_time",
@@ -1728,10 +1727,6 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
 ]
-
-[[package]]
-name = "emukc_macros"
-version = "0.1.0"
 
 [[package]]
 name = "emukc_model"
