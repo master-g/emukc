@@ -598,11 +598,12 @@ impl Ctx {
                 let locked_enemy_composition =
                     select_locked_enemy_composition(active.map_id, stage, next.cell_no);
 
-                if let Some(mut state) = store.get_active(profile_id) {
+                // The fleet reaches the cell in the store only once its effects commit.
+                let mut arrived = store.get_active(profile_id);
+                if let Some(state) = arrived.as_mut() {
                     state.current_cell_id = next_cell_id;
                     state.visited_cell_ids = step.visited_cell_ids;
                     state.locked_enemy_composition = locked_enemy_composition.clone();
-                    let _ = store.insert_active(profile_id, state);
                 }
 
                 // Resolve non-battle node effects (resource gain / maelstrom loss).
@@ -641,17 +642,15 @@ impl Ctx {
                     None
                 };
                 if let Some(found) = &found
-                    && let Some(mut state) = store.get_active(profile_id)
+                    && let Some(state) = arrived.as_mut()
                 {
                     state.recon_rewards.push(found.clone());
-                    let _ = store.insert_active(profile_id, state);
                 }
                 // The cargo is counted where it is landed: later damage does not shrink it.
                 if stage.transport_gauge && next.event_id == LANDING_EVENT_ID {
                     let points = fleet_transport_points_impl(&tx, codex, &fleet_ships).await?;
-                    if let Some(mut state) = store.get_active(profile_id) {
+                    if let Some(state) = arrived.as_mut() {
                         state.landing_tp = Some(points);
-                        let _ = store.insert_active(profile_id, state);
                     }
                 }
                 // A map without raids asks nothing more here, not even a random number.
@@ -682,9 +681,8 @@ impl Ctx {
                         };
                         let raid =
                             air_raid_impl(&tx, codex, profile_id, active.map_id, fleets).await?;
-                        if let Some(mut state) = store.get_active(profile_id) {
+                        if let Some(state) = arrived.as_mut() {
                             state.raided = true;
-                            let _ = store.insert_active(profile_id, state);
                         }
                         Some(raid)
                     } else {
@@ -715,6 +713,9 @@ impl Ctx {
                     observe(&tx, codex, profile_id, &[outcome]).await?;
                 }
                 tx.commit().await?;
+                if let Some(state) = arrived {
+                    let _ = store.insert_active(profile_id, state);
+                }
                 cell_effect::put_by(store, profile_id, itemget.as_deref());
                 cell_effect::put_by(
                     store,
@@ -966,56 +967,64 @@ impl Ctx {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
         let store = self.sortie_store.as_ref();
-        let tx = db.begin().await?;
 
-        let snapshot = store.take_pending_result(profile_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "sortie battle result not found for profile {profile_id}",
-            ))
-        })?;
-        let session = take_day_battle_result(store, profile_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "sortie battle session not found for profile {profile_id}",
-            ))
-        })?;
-        let mut active = store.get_active(profile_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!(
-                "active sortie not found for profile {profile_id}",
-            ))
-        })?;
-        let catalog = active_map_catalog(codex);
-        let definition = catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
-            GameplayError::EntryNotFound(format!("map definition {} not found", active.map_id))
-        })?;
-
-        let settlement = settle_sortie_battle_impl(
-            &tx,
-            codex,
-            profile_id,
-            definition,
-            &active,
-            snapshot,
-            &session.packet.enemy_nowhps,
-        )
-        .await?;
-
-        record_strike_losses_impl(
-            &tx,
-            profile_id,
-            definition.maparea_id,
-            &session.packet.air_base_attack,
-        )
-        .await?;
-
-        observe(&tx, codex, profile_id, &settlement.outcomes).await?;
-
-        tx.commit().await?;
-
-        // Refresh stage identity from DB before deciding sortie fate.
-        // apply_sortie_map_result may have changed stage_id via gauge clear.
-        // Serialize the in-memory state mutation to prevent TOCTOU races.
+        // The result and the battle leave the store only once the settlement has
+        // committed, so a failed settlement can be retried; the lock keeps a second
+        // call from settling the same battle meanwhile.
         store
             .with_profile_lock(profile_id, async {
+                let snapshot = store.get_pending_result(profile_id).ok_or_else(|| {
+                    GameplayError::EntryNotFound(format!(
+                        "sortie battle result not found for profile {profile_id}",
+                    ))
+                })?;
+                let session = pending_battle(store, profile_id).ok_or_else(|| {
+                    GameplayError::EntryNotFound(format!(
+                        "sortie battle session not found for profile {profile_id}",
+                    ))
+                })?;
+                let mut active = store.get_active(profile_id).ok_or_else(|| {
+                    GameplayError::EntryNotFound(format!(
+                        "active sortie not found for profile {profile_id}",
+                    ))
+                })?;
+                let catalog = active_map_catalog(codex);
+                let definition =
+                    catalog.as_ref().map_definition(active.map_id).ok_or_else(|| {
+                        GameplayError::EntryNotFound(format!(
+                            "map definition {} not found",
+                            active.map_id
+                        ))
+                    })?;
+
+                let tx = db.begin().await?;
+                let settlement = settle_sortie_battle_impl(
+                    &tx,
+                    codex,
+                    profile_id,
+                    definition,
+                    &active,
+                    snapshot,
+                    &session.packet.enemy_nowhps,
+                )
+                .await?;
+
+                record_strike_losses_impl(
+                    &tx,
+                    profile_id,
+                    definition.maparea_id,
+                    &session.packet.air_base_attack,
+                )
+                .await?;
+
+                observe(&tx, codex, profile_id, &settlement.outcomes).await?;
+
+                tx.commit().await?;
+                store.take_pending_result(profile_id);
+                take_day_battle_result(store, profile_id);
+
+                // Refresh stage identity from DB before deciding sortie fate.
+                // apply_sortie_map_result may have changed stage_id via gauge clear.
                 let stage_refreshed = refresh_sortie_stage(db, codex, profile_id, &mut active).await?;
                 if !stage_refreshed {
                     tracing::debug!(
@@ -1166,9 +1175,9 @@ impl Ctx {
                 let mut active = setup.active;
                 active.pending_battle_cell_id = Some(active.current_cell_id);
                 active.special_attacks_made.record(&snapshot.special_attacks);
-                store.insert_pending_result(profile_id, snapshot);
 
                 tx.commit().await?;
+                store.insert_pending_result(profile_id, snapshot);
                 let _ = store.insert_active(profile_id, active);
 
                 Ok(night_battle_response(codex, &session, night_session))
@@ -1379,7 +1388,6 @@ async fn sortie_battle_impl(
             }
             let mut snapshot = setup.result_snapshot(codex, &session);
             snapshot.cell_cost = cell_cost(codex, &setup.active, &session, battle_type);
-            store.insert_pending_result(profile_id, snapshot);
 
             let mut active = setup.active;
             active.pending_battle_cell_id = Some(active.current_cell_id);
@@ -1387,6 +1395,7 @@ async fn sortie_battle_impl(
             active.smoke_used |= session.packet.smoke_type > 0;
 
             tx.commit().await?;
+            store.insert_pending_result(profile_id, snapshot);
             let _ = store.insert_active(profile_id, active);
             Ok(response)
         })

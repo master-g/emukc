@@ -536,9 +536,9 @@ mod tests {
         let fighter = deployed_fighter(&context, pid).await;
         let ship = context.add_ship(pid, 951).await.unwrap();
 
-        let err = context.set_slot_item(ship.api_id, 0, fighter).await.unwrap_err();
+        let err = context.set_slot_item(pid, ship.api_id, 0, fighter).await.unwrap_err();
         assert!(err.to_string().contains("airbase"), "{err}");
-        let err = context.set_exslot_item(ship.api_id, fighter).await.unwrap_err();
+        let err = context.set_exslot_item(pid, ship.api_id, fighter).await.unwrap_err();
         assert!(err.to_string().contains("airbase"), "the ex-slot is no way round: {err}");
     }
 
@@ -587,7 +587,7 @@ mod tests {
         let pid = profile(&context, "airbase-ship-scrap").await;
         let gun = context.add_slot_item(pid, 2, 0, 0).await.unwrap().api_id;
         let ship = context.add_ship(pid, 951).await.unwrap();
-        context.set_slot_item(ship.api_id, 0, gun).await.unwrap();
+        context.set_slot_item(pid, ship.api_id, 0, gun).await.unwrap();
 
         let err = context.destroy_items(pid, &[gun]).await.unwrap_err();
         assert!(err.to_string().contains("ship"), "{err}");

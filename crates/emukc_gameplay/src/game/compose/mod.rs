@@ -193,11 +193,13 @@ impl Ctx {
     ///
     /// # Parameters
     ///
+    /// - `profile_id`: The profile ID, owner of the ship.
     /// - `ship_id`: The ship ID.
     /// - `src_idx`: The source slot index.
     /// - `dst_idx`: The target slot index.
     pub async fn slot_exchange(
         &self,
+        profile_id: i64,
         ship_id: i64,
         src_idx: i64,
         dst_idx: i64,
@@ -205,7 +207,7 @@ impl Ctx {
         let db = self.db.as_ref();
         let tx = db.begin().await?;
 
-        let ship = slot_exchange_impl(&tx, ship_id, src_idx, dst_idx).await?;
+        let ship = slot_exchange_impl(&tx, profile_id, ship_id, src_idx, dst_idx).await?;
 
         tx.commit().await?;
 

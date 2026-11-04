@@ -38,8 +38,8 @@ mod tests {
         context.find_use_item(pid, item as i64).await.map_or(0, |item| item.api_count)
     }
 
-    async fn mst_of(context: &crate::TestContext, ship_id: i64) -> i64 {
-        context.find_ship(ship_id).await.unwrap().unwrap().api_ship_id
+    async fn mst_of(context: &crate::TestContext, pid: i64, ship_id: i64) -> i64 {
+        context.find_ship(pid, ship_id).await.unwrap().unwrap().api_ship_id
     }
 
     /// kcwiki writes "needs one" as `true`, which used to become 0.
@@ -52,11 +52,11 @@ mod tests {
 
         // No blueprint at all: the deduction finds no row to take it from.
         assert!(context.remodel(pid, ship.api_id).await.is_err());
-        assert_eq!(mst_of(&context, ship.api_id).await, 172);
+        assert_eq!(mst_of(&context, pid, ship.api_id).await, 172);
 
         context.add_use_item(pid, KcUseItemType::Blueprint as i64, 1).await.unwrap();
         context.remodel(pid, ship.api_id).await.unwrap();
-        assert_eq!(mst_of(&context, ship.api_id).await, 173); // Bismarck zwei
+        assert_eq!(mst_of(&context, pid, ship.api_id).await, 173); // Bismarck zwei
         assert_eq!(use_item(&context, pid, KcUseItemType::Blueprint).await, 0);
     }
 
@@ -76,7 +76,7 @@ mod tests {
         let ship = context.add_ship(pid, 136).await.unwrap(); // 大和改
 
         context.remodel(pid, ship.api_id).await.unwrap();
-        assert_eq!(mst_of(&context, ship.api_id).await, 911); // 大和改二
+        assert_eq!(mst_of(&context, pid, ship.api_id).await, 911); // 大和改二
         let items = context.get_slot_items(pid).await.unwrap();
         let count = |id: i64| items.iter().filter(|item| item.api_slotitem_id == id).count();
         assert_eq!((count(BOILER), count(TURBINE)), (0, 2));
@@ -96,7 +96,7 @@ mod tests {
         let ship = context.add_ship(pid, 391).await.unwrap(); // 狭霧改
 
         context.remodel(pid, ship.api_id).await.unwrap();
-        assert_eq!(mst_of(&context, ship.api_id).await, 902); // 狭霧改二
+        assert_eq!(mst_of(&context, pid, ship.api_id).await, 902); // 狭霧改二
         assert_eq!(use_item(&context, pid, KcUseItemType::ActionReport).await, 0);
         assert_eq!(use_item(&context, pid, KcUseItemType::ArsenalResource).await, 0);
     }
@@ -113,7 +113,7 @@ mod tests {
         let ship = context.add_ship(pid, 916).await.unwrap(); // 大和改二重
 
         context.remodel(pid, ship.api_id).await.unwrap();
-        assert_eq!(mst_of(&context, ship.api_id).await, 911); // 大和改二
+        assert_eq!(mst_of(&context, pid, ship.api_id).await, 911); // 大和改二
         assert_eq!(use_item(&context, pid, KcUseItemType::Blueprint).await, 3);
         let boilers = context
             .get_slot_items(pid)

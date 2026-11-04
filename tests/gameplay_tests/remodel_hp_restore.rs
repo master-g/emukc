@@ -27,7 +27,7 @@ mod tests {
         assert_eq!(ship.api_nowhp, 13, "base ship should start at full HP");
 
         // Damage the ship: set HP to 5
-        let mut damaged = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let mut damaged = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(damaged.api_maxhp, 13);
         damaged.api_nowhp = 5;
         context.update_ship(&damaged).await.unwrap();
@@ -42,7 +42,7 @@ mod tests {
         context.remodel(pid, ship.api_id).await.unwrap();
 
         // Verify HP fully restored to new max
-        let remodeled = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let remodeled = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(
             remodeled.api_nowhp, remodeled.api_maxhp,
             "ship HP should be fully restored after remodel"
@@ -74,7 +74,7 @@ mod tests {
         context.remodel(pid, ship.api_id).await.unwrap();
 
         // Verify HP = new max HP (higher than before)
-        let remodeled = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let remodeled = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(
             remodeled.api_nowhp, remodeled.api_maxhp,
             "ship at full HP before remodel should still have nowhp == maxhp after"

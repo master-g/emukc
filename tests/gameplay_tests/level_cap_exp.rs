@@ -36,7 +36,7 @@ mod tests {
         context.update_ship(&ship).await.unwrap();
 
         // Verify state
-        let loaded = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let loaded = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(loaded.api_lv, 99, "ship should be at level 99");
         assert!(loaded.api_lv <= 99, "unmarried ship should not exceed level 99");
     }
@@ -78,7 +78,7 @@ mod tests {
         ship.api_exp[1] = next_exp;
         context.update_ship(&ship).await.unwrap();
 
-        let loaded = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let loaded = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(
             loaded.api_lv, 99,
             "unmarried ship level must be clamped to 99 even with excess exp"
@@ -96,7 +96,7 @@ mod tests {
         context.update_ship(&ship).await.unwrap();
 
         // Ship should now be married (api_lv > 99)
-        let loaded = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let loaded = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert!(loaded.api_lv >= 100, "married ship should be level 100+");
 
         // Add more exp, verify level can increase
@@ -109,7 +109,7 @@ mod tests {
         ship.api_exp[1] = next_exp;
         context.update_ship(&ship).await.unwrap();
 
-        let reloaded = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let reloaded = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert!(
             reloaded.api_lv >= 110,
             "married ship should be able to level past 99 (got {})",

@@ -88,20 +88,20 @@ async fn set_fleet_return_time(
     am.update(context.db()).await.unwrap();
 }
 
-async fn get_ship_supply(context: &Ctx, ship_id: i64) -> (i64, i64) {
-    let ship = context.find_ship(ship_id).await.unwrap().unwrap();
+async fn get_ship_supply(context: &Ctx, pid: i64, ship_id: i64) -> (i64, i64) {
+    let ship = context.find_ship(pid, ship_id).await.unwrap().unwrap();
     (ship.api_fuel, ship.api_bull)
 }
 
-async fn set_ship_supply(context: &Ctx, ship_id: i64, fuel: i64, ammo: i64) {
-    let mut ship = context.find_ship(ship_id).await.unwrap().unwrap();
+async fn set_ship_supply(context: &Ctx, pid: i64, ship_id: i64, fuel: i64, ammo: i64) {
+    let mut ship = context.find_ship(pid, ship_id).await.unwrap().unwrap();
     ship.api_fuel = fuel;
     ship.api_bull = ammo;
     context.update_ship(&ship).await.unwrap();
 }
 
-async fn set_ship_condition(context: &Ctx, ship_id: i64, condition: i64) {
-    let mut ship = context.find_ship(ship_id).await.unwrap().unwrap();
+async fn set_ship_condition(context: &Ctx, pid: i64, ship_id: i64, condition: i64) {
+    let mut ship = context.find_ship(pid, ship_id).await.unwrap().unwrap();
     ship.api_cond = condition;
     context.update_ship(&ship).await.unwrap();
 }
@@ -119,8 +119,8 @@ async fn expedition_result_updates_records_and_quest_progress() {
         context.quest_add(pid, 401).await.unwrap();
     }
     context.quest_start(pid, 401).await.unwrap();
-    set_ship_condition(&context, ship_1, 43).await;
-    set_ship_condition(&context, ship_2, 43).await;
+    set_ship_condition(&context, pid, ship_1, 43).await;
+    set_ship_condition(&context, pid, ship_2, 43).await;
 
     context.start_expedition(pid, 1, 1).await.unwrap();
     make_fleet_ready_for_result(&context, pid, 1).await;
@@ -204,7 +204,7 @@ async fn an_expedition_short_of_its_composition_sails_and_fails_on_return() {
     set_fleet_ships(&context, pid, 1, &[cl, dd_1, dd_2]).await;
     // Morale that survives the return, so only the composition can fail it.
     for ship in [cl, dd_1, dd_2] {
-        set_ship_condition(&context, ship, 43).await;
+        set_ship_condition(&context, pid, ship, 43).await;
     }
 
     let started = context.start_expedition(pid, 1, 10).await.unwrap();
@@ -224,7 +224,7 @@ async fn an_expedition_short_of_its_composition_sails_and_fails_on_return() {
     set_fleet_ships(&context, pid, 1, &[cl, cl_2, dd]).await;
     // Morale drops on return; 40 would come back fatigued.
     for ship in [cl, cl_2, dd] {
-        set_ship_condition(&context, ship, 43).await;
+        set_ship_condition(&context, pid, ship, 43).await;
     }
     context.start_expedition(pid, 1, 10).await.unwrap();
     make_fleet_ready_for_result(&context, pid, 1).await;
@@ -241,13 +241,13 @@ async fn expedition_start_deducts_ship_fuel() {
     let ship_2 = add_ship_with_type(&context, pid, 2, 1).await;
     set_fleet_ships(&context, pid, 1, &[ship_1, ship_2]).await;
 
-    let before_1 = get_ship_supply(&context, ship_1).await;
-    let before_2 = get_ship_supply(&context, ship_2).await;
+    let before_1 = get_ship_supply(&context, pid, ship_1).await;
+    let before_2 = get_ship_supply(&context, pid, ship_2).await;
 
     context.start_expedition(pid, 1, 1).await.unwrap();
 
-    let after_1 = get_ship_supply(&context, ship_1).await;
-    let after_2 = get_ship_supply(&context, ship_2).await;
+    let after_1 = get_ship_supply(&context, pid, ship_1).await;
+    let after_2 = get_ship_supply(&context, pid, ship_2).await;
 
     assert_eq!(after_1.0, before_1.0 - 4);
     assert_eq!(after_1.1, before_1.1);
@@ -264,10 +264,10 @@ async fn a_ship_not_fully_supplied_sails_and_fails_on_return() {
     let ship_2 = add_ship_with_type(&context, pid, 2, 1).await;
     set_fleet_ships(&context, pid, 1, &[ship_1, ship_2]).await;
 
-    let before_1 = get_ship_supply(&context, ship_1).await;
-    set_ship_supply(&context, ship_1, before_1.0, before_1.1 - 1).await;
-    set_ship_condition(&context, ship_1, 43).await;
-    set_ship_condition(&context, ship_2, 43).await;
+    let before_1 = get_ship_supply(&context, pid, ship_1).await;
+    set_ship_supply(&context, pid, ship_1, before_1.0, before_1.1 - 1).await;
+    set_ship_condition(&context, pid, ship_1, 43).await;
+    set_ship_condition(&context, pid, ship_2, 43).await;
 
     context.start_expedition(pid, 1, 1).await.unwrap();
     let held = rewards_held(&context, pid).await;
@@ -289,16 +289,16 @@ async fn a_launch_cost_takes_a_short_ship_down_to_zero_fuel() {
     let ship_2 = add_ship_with_type(&context, pid, 2, 1).await;
     set_fleet_ships(&context, pid, 1, &[ship_1, ship_2]).await;
 
-    let before_1 = get_ship_supply(&context, ship_1).await;
-    let before_2 = get_ship_supply(&context, ship_2).await;
-    set_ship_supply(&context, ship_1, 3, before_1.1).await;
-    set_ship_condition(&context, ship_1, 43).await;
-    set_ship_condition(&context, ship_2, 43).await;
+    let before_1 = get_ship_supply(&context, pid, ship_1).await;
+    let before_2 = get_ship_supply(&context, pid, ship_2).await;
+    set_ship_supply(&context, pid, ship_1, 3, before_1.1).await;
+    set_ship_condition(&context, pid, ship_1, 43).await;
+    set_ship_condition(&context, pid, ship_2, 43).await;
 
     context.start_expedition(pid, 1, 1).await.unwrap();
 
-    assert_eq!(get_ship_supply(&context, ship_1).await, (0, before_1.1));
-    assert_eq!(get_ship_supply(&context, ship_2).await, (before_2.0 - 4, before_2.1));
+    assert_eq!(get_ship_supply(&context, pid, ship_1).await, (0, before_1.1));
+    assert_eq!(get_ship_supply(&context, pid, ship_2).await, (before_2.0 - 4, before_2.1));
     make_fleet_ready_for_result(&context, pid, 1).await;
     let result = context.complete_expedition(pid, 1).await.unwrap();
     assert_eq!(result.result, ExpeditionResult::Failure);
@@ -315,12 +315,12 @@ async fn a_launch_cost_takes_a_short_ship_down_to_zero_ammo() {
     let ship_3 = add_ship_with_type(&context, pid, 2, 1).await;
     set_fleet_ships(&context, pid, 1, &[ship_1, ship_2, ship_3]).await;
 
-    let before_2 = get_ship_supply(&context, ship_2).await;
-    set_ship_supply(&context, ship_2, before_2.0, 2).await;
+    let before_2 = get_ship_supply(&context, pid, ship_2).await;
+    set_ship_supply(&context, pid, ship_2, before_2.0, 2).await;
 
     context.start_expedition(pid, 1, 3).await.unwrap();
 
-    assert_eq!(get_ship_supply(&context, ship_2).await.1, 0);
+    assert_eq!(get_ship_supply(&context, pid, ship_2).await.1, 0);
     let fleet = context.get_fleet(pid, 1).await.unwrap();
     assert!(fleet.mission.is_some());
 }
@@ -334,12 +334,12 @@ async fn expedition_recall_and_result_do_not_restore_start_supply_costs() {
     let ship_2 = add_ship_with_type(&context, pid, 2, 1).await;
     set_fleet_ships(&context, pid, 1, &[ship_1, ship_2]).await;
 
-    let before_1 = get_ship_supply(&context, ship_1).await;
-    let before_2 = get_ship_supply(&context, ship_2).await;
+    let before_1 = get_ship_supply(&context, pid, ship_1).await;
+    let before_2 = get_ship_supply(&context, pid, ship_2).await;
 
     context.start_expedition(pid, 1, 1).await.unwrap();
-    let started_1 = get_ship_supply(&context, ship_1).await;
-    let started_2 = get_ship_supply(&context, ship_2).await;
+    let started_1 = get_ship_supply(&context, pid, ship_1).await;
+    let started_2 = get_ship_supply(&context, pid, ship_2).await;
     set_fleet_return_time(&context, pid, 1, Utc::now() + Duration::minutes(12)).await;
     context.recall_expedition(pid, 1).await.unwrap();
     make_fleet_ready_for_result(&context, pid, 1).await;
@@ -347,8 +347,8 @@ async fn expedition_recall_and_result_do_not_restore_start_supply_costs() {
 
     assert_eq!(started_1.0, before_1.0 - 4);
     assert_eq!(started_2.0, before_2.0 - 4);
-    assert_eq!(get_ship_supply(&context, ship_1).await, started_1);
-    assert_eq!(get_ship_supply(&context, ship_2).await, started_2);
+    assert_eq!(get_ship_supply(&context, pid, ship_1).await, started_1);
+    assert_eq!(get_ship_supply(&context, pid, ship_2).await, started_2);
 }
 
 #[tokio::test]
@@ -384,8 +384,8 @@ async fn expedition_failure_from_fatigue_still_grants_failure_exp() {
     let ship_1 = add_ship_with_type(&context, pid, 2, 1).await;
     let ship_2 = add_ship_with_type(&context, pid, 2, 1).await;
     set_fleet_ships(&context, pid, 1, &[ship_1, ship_2]).await;
-    set_ship_condition(&context, ship_1, 42).await;
-    set_ship_condition(&context, ship_2, 42).await;
+    set_ship_condition(&context, pid, ship_1, 42).await;
+    set_ship_condition(&context, pid, ship_2, 42).await;
 
     context.start_expedition(pid, 1, 1).await.unwrap();
     make_fleet_ready_for_result(&context, pid, 1).await;
@@ -400,8 +400,8 @@ async fn expedition_failure_from_fatigue_still_grants_failure_exp() {
     let (records, _) = context.get_expeditions(pid).await.unwrap();
     let mission_record = records.iter().find(|record| record.mission_id == 1).unwrap();
     assert_eq!(mission_record.state, expedition::Status::Unfinished);
-    assert_eq!(context.find_ship(ship_1).await.unwrap().unwrap().api_cond, 39);
-    assert_eq!(context.find_ship(ship_2).await.unwrap().unwrap().api_cond, 39);
+    assert_eq!(context.find_ship(pid, ship_1).await.unwrap().unwrap().api_cond, 39);
+    assert_eq!(context.find_ship(pid, ship_2).await.unwrap().unwrap().api_cond, 39);
 }
 
 #[tokio::test]
@@ -412,8 +412,8 @@ async fn expedition_exp_pins_unmarried_ship_at_level_99() {
     let ship_1 = add_ship_with_type(&context, pid, 2, 98).await;
     let ship_2 = add_ship_with_type(&context, pid, 2, 1).await;
     set_fleet_ships(&context, pid, 1, &[ship_1, ship_2]).await;
-    set_ship_condition(&context, ship_1, 43).await;
-    set_ship_condition(&context, ship_2, 43).await;
+    set_ship_condition(&context, pid, ship_1, 43).await;
+    set_ship_condition(&context, pid, ship_2, 43).await;
 
     // Park the flagship one exp point below the unmarried level cap.
     let model = ship::Entity::find_by_id(ship_1).one(context.db()).await.unwrap().unwrap();
@@ -442,14 +442,14 @@ async fn morale_recovers_three_points_every_three_minutes_up_to_49() {
     let pid = session.profile.id;
 
     let ship_id = add_ship_with_type(&context, pid, 2, 1).await;
-    set_ship_condition(&context, ship_id, 40).await;
+    set_ship_condition(&context, pid, ship_id, 40).await;
 
     let timer = morale_timer::Entity::find_by_id(pid).one(context.db()).await.unwrap().unwrap();
     let mut am = timer.into_active_model();
     am.last_time_regen = ActiveValue::Set(Some(Utc::now() - Duration::minutes(6)));
     am.update(context.db()).await.unwrap();
 
-    let ship = context.find_ship(ship_id).await.unwrap().unwrap();
+    let ship = context.find_ship(pid, ship_id).await.unwrap().unwrap();
     assert_eq!(ship.api_cond, 40);
 
     let ships = context.get_ships(pid).await.unwrap();
@@ -470,14 +470,14 @@ async fn expedition_type1_great_success_applies_reward_multipliers() {
             1
         };
         let ship_id = add_ship_with_type(&context, pid, 2, level_req).await;
-        set_ship_condition(&context, ship_id, 50).await;
+        set_ship_condition(&context, pid, ship_id, 50).await;
         ship_ids.push(ship_id);
     }
     set_fleet_ships(&context, pid, 1, &ship_ids).await;
 
     context.start_expedition(pid, 1, 8).await.unwrap();
     for ship_id in &ship_ids {
-        set_ship_condition(&context, *ship_id, 43).await;
+        set_ship_condition(&context, pid, *ship_id, 43).await;
     }
     make_fleet_ready_for_result(&context, pid, 1).await;
 
@@ -510,7 +510,7 @@ async fn landing_craft_aboard_on_return_raise_the_reward() {
             1
         };
         let ship_id = add_ship_with_type(&context, pid, 2, level_req).await;
-        set_ship_condition(&context, ship_id, 50).await;
+        set_ship_condition(&context, pid, ship_id, 50).await;
         ship_ids.push(ship_id);
     }
     set_fleet_ships(&context, pid, 1, &ship_ids).await;
@@ -519,10 +519,10 @@ async fn landing_craft_aboard_on_return_raise_the_reward() {
     // Loaded while the fleet is away: the bonus is read on return.
     for ship_id in &ship_ids[..4] {
         let daihatsu = context.add_slot_item(pid, 68, 0, 0).await.unwrap();
-        context.set_slot_item(*ship_id, 0, daihatsu.api_id).await.unwrap();
+        context.set_slot_item(pid, *ship_id, 0, daihatsu.api_id).await.unwrap();
     }
     for ship_id in &ship_ids {
-        set_ship_condition(&context, *ship_id, 43).await;
+        set_ship_condition(&context, pid, *ship_id, 43).await;
     }
     make_fleet_ready_for_result(&context, pid, 1).await;
 
@@ -539,7 +539,7 @@ async fn initial_ship_morale_does_not_jump_on_first_read() {
 
     let ship_id = add_ship_with_type(&context, pid, 2, 1).await;
 
-    let ship = context.find_ship(ship_id).await.unwrap().unwrap();
+    let ship = context.find_ship(pid, ship_id).await.unwrap().unwrap();
     assert_eq!(ship.api_cond, 40);
 
     let ship = context
@@ -565,7 +565,7 @@ async fn expedition_launch_snapshot_is_persisted_on_fleet_and_cleared_after_resu
             1
         };
         let ship_id = add_ship_with_type(&context, pid, 2, level_req).await;
-        set_ship_condition(&context, ship_id, 50).await;
+        set_ship_condition(&context, pid, ship_id, 50).await;
         ship_ids.push(ship_id);
     }
     set_fleet_ships(&context, pid, 1, &ship_ids).await;

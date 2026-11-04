@@ -2,7 +2,7 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 
 use crate::net::prelude::*;
-use crate::state::State;
+use crate::state::{State, TakeError};
 
 #[derive(Debug, Deserialize)]
 pub(super) struct CancelQuery {
@@ -31,17 +31,11 @@ pub(super) async fn handler(
     let state: &State = state.as_ref();
     let payment_id = query.payment_id.clone();
 
-    match state.payment_store.get(&payment_id) {
-        Some(session_data) if session_data.profile_id != pid => {
-            return Json(serde_json::json!(ErrorResponse {
-                response_code: "ERROR".to_string(),
-                msg: "profile mismatch".to_string(),
-            }));
-        }
-        Some(_) => {
-            state.payment_store.take(&payment_id);
-        }
-        None => {}
+    if let Err(TakeError::ProfileMismatch) = state.payment_store.take_owned(&payment_id, pid) {
+        return Json(serde_json::json!(ErrorResponse {
+            response_code: "ERROR".to_string(),
+            msg: "profile mismatch".to_string(),
+        }));
     }
 
     Json(serde_json::json!(CancelResponse {

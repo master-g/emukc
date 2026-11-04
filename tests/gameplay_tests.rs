@@ -51,6 +51,9 @@ mod view;
 #[path = "gameplay_tests/useitem_material_sync.rs"]
 mod useitem_material_sync;
 
+#[path = "gameplay_tests/itemuse_cond.rs"]
+mod itemuse_cond;
+
 #[path = "gameplay_tests/remodel_hp_restore.rs"]
 mod remodel_hp_restore;
 #[path = "gameplay_tests/remodel_requirements.rs"]
@@ -76,8 +79,12 @@ mod sortie_ammo_reaches_battle;
 #[path = "gameplay_tests/ship_onslot_max.rs"]
 mod ship_onslot_max;
 
+#[path = "gameplay_tests/account_profiles.rs"]
+mod account_profiles;
 #[path = "gameplay_tests/ship/hangar_expand.rs"]
 mod hangar_expand;
+#[path = "gameplay_tests/ship/kaisou.rs"]
+mod kaisou;
 
 #[path = "gameplay_tests/api_alignment_e2e.rs"]
 mod api_alignment_e2e;

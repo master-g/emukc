@@ -30,14 +30,14 @@ mod tests {
 
         // Consume ammo down to ~20%, as a deep sortie would.
         let reduced = ship.api_bull / 5;
-        let mut low = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let mut low = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         low.api_bull = reduced;
         context.update_ship(&low).await.unwrap();
 
         // The KcApiShip rebuilt from the persisted model — the same `From<Model>`
         // conversion `build_friend_ships` uses — must carry the reduced
         // ammo, so the battle-side `ammo_modifier` sees real remaining ammo.
-        let reloaded = context.find_ship(ship.api_id).await.unwrap().unwrap();
+        let reloaded = context.find_ship(pid, ship.api_id).await.unwrap().unwrap();
         assert_eq!(
             reloaded.api_bull, reduced,
             "stored ammo must reach the battle ship input api_bull"

@@ -40,7 +40,7 @@ pub(super) async fn handler(
         api_deck_data.iter().flat_map(|deck| deck.api_ship.iter()).filter(|ship_id| **ship_id > 0)
     {
         let ship = state
-            .find_ship(*ship_id)
+            .find_ship(pid, *ship_id)
             .await?
             .ok_or(ApiError::NotFound(format!("ship {ship_id} not found for profile {pid}")))?;
 

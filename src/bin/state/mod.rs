@@ -9,7 +9,7 @@ use crate::cfg::AppConfig;
 
 mod payment_store;
 
-pub use payment_store::{PaymentSession, PaymentStore};
+pub use payment_store::{PaymentSession, PaymentStore, TakeError};
 
 const DB_NAME: &str = "emukc.db";
 

@@ -186,8 +186,8 @@ async fn exercise_times_remaining(context: &Ctx, profile_id: i64, quest_id: i64)
         .unwrap()
 }
 
-async fn set_ship_level(context: &Ctx, ship_id: i64, level_req: i64) {
-    let mut ship = context.find_ship(ship_id).await.unwrap().unwrap();
+async fn set_ship_level(context: &Ctx, pid: i64, ship_id: i64, level_req: i64) {
+    let mut ship = context.find_ship(pid, ship_id).await.unwrap().unwrap();
     let exp_now = level::ship_level_required_exp(level_req);
     let (_, next_exp) = level::exp_to_ship_level(exp_now);
     ship.api_lv = level_req;
@@ -206,7 +206,7 @@ async fn add_ships_with_type(
     let mut ship_ids = Vec::with_capacity(count);
     for _ in 0..count {
         let ship = context.add_ship(profile_id, mst_id).await.unwrap();
-        set_ship_level(context, ship.api_id, level_req).await;
+        set_ship_level(context, profile_id, ship.api_id, level_req).await;
         ship_ids.push(ship.api_id);
     }
     ship_ids
@@ -694,4 +694,24 @@ async fn practice_battle_result_puts_aircraft_counts_back_in_their_slots() {
         ship::Entity::find_by_id(carrier.api_id).one(context.db.as_ref()).await.unwrap().unwrap();
     assert_eq!(after.onslot_1, 0, "the empty slot holds no aircraft");
     assert!(after.onslot_2 > 0, "slot 2 keeps its aircraft");
+}
+
+#[tokio::test]
+async fn a_failed_practice_settlement_keeps_the_result_for_a_retry() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    let ship = context.add_ship(pid, 951).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+    let rivals = context.get_practice_rivals(pid).await.unwrap();
+    context.practice_battle(pid, 1, 1, rivals.rivals[0].id).await.unwrap();
+
+    let db = context.db.as_ref();
+    let flagship = ship::Entity::find_by_id(ship.api_id).one(db).await.unwrap().unwrap();
+    ship::Entity::delete_by_id(ship.api_id).exec(db).await.unwrap();
+    assert!(context.practice_battle_result(pid).await.is_err());
+
+    assert!(context.practice_store().get_pending_result(pid).is_some());
+    ship::Entity::insert(flagship.into_active_model().reset_all()).exec(db).await.unwrap();
+    context.practice_battle_result(pid).await.unwrap();
+    assert!(context.practice_battle_result(pid).await.is_err(), "settled only once");
 }

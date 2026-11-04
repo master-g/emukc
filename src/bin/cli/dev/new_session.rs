@@ -53,7 +53,12 @@ pub async fn exec(args: &NewSessionArgs, cfg: &AppConfig, state: &State) -> Resu
         }
     };
 
-    let session = state.start_game(&info.access_token.token, 1).await?;
+    let token = &info.access_token.token;
+    let profile_id = match state.account_profiles(token).await?.first() {
+        Some(profile) => profile.id,
+        None => state.new_profile(token, &args.name).await?.profile.id,
+    };
+    let session = state.start_game(token, profile_id).await?;
     let port = cfg.bind.port();
 
     let url = format!("http://localhost:{port}/emukc?api_token={}", session.session.token);

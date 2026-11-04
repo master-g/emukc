@@ -760,3 +760,24 @@ async fn sortie_battle_validation_reports_invalid_enemy_ids() {
         finding.kind == emukc_bootstrap::prelude::BattleValidationFindingKind::UnknownSlotitemMstId
     }));
 }
+
+#[tokio::test]
+async fn a_failed_settlement_keeps_the_battle_result_for_a_retry() {
+    let (context, session) = new_game_session().await;
+    let pid = session.profile.id;
+    let ship = context.add_ship(pid, 951).await.unwrap();
+    context.update_fleet_ships(pid, 1, &[ship.api_id, -1, -1, -1, -1, -1]).await.unwrap();
+    context.start_sortie(pid, 1, 1, 1).await.unwrap();
+    context.sortie_battle(pid, 1).await.unwrap();
+
+    let db = context.db.as_ref();
+    let flagship = ship::Entity::find_by_id(ship.api_id).one(db).await.unwrap().unwrap();
+    ship::Entity::delete_by_id(ship.api_id).exec(db).await.unwrap();
+    assert!(context.sortie_battle_result(pid).await.is_err());
+
+    assert!(context.sortie_store().get_pending_result(pid).is_some());
+    assert!(context.sortie_store().get_pending_battle(pid).is_some());
+    let restored = flagship.into_active_model().reset_all();
+    ship::Entity::insert(restored).exec(db).await.unwrap();
+    context.sortie_battle_result(pid).await.unwrap();
+}

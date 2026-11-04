@@ -20,8 +20,13 @@ struct Resp {
     api_ship_data: KcApiShip,
 }
 
-pub(super) async fn handler(state: AppState, Form(params): Form<Params>) -> KcApiResult {
-    let ship = state.slot_exchange(params.api_id, params.api_src_idx, params.api_dst_idx).await?;
+pub(super) async fn handler(
+    state: AppState,
+    Pid(pid): Pid,
+    Form(params): Form<Params>,
+) -> KcApiResult {
+    let ship =
+        state.slot_exchange(pid, params.api_id, params.api_src_idx, params.api_dst_idx).await?;
     let api_ship_data: KcApiShip = ship.into();
 
     Ok(KcApiResponse::success(&Resp {

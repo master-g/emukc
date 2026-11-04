@@ -166,9 +166,9 @@ impl Ctx {
         let _rng = ProductionRng;
         let mut rng = ProductionRng;
         let (response, snapshot) = run_day_battle(codex, input, practice_repo, &mut rng)?;
-        practice_repo.insert_pending_result(profile_id, snapshot);
 
         tx.commit().await?;
+        practice_repo.insert_pending_result(profile_id, snapshot);
 
         Ok(response)
     }
@@ -179,32 +179,44 @@ impl Ctx {
         profile_id: i64,
     ) -> Result<PracticeBattleResultResponse, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
-
         let practice_repo = self.practice_store.as_ref();
-        let snapshot = practice_repo.take_pending_result(profile_id).ok_or_else(|| {
+        // Taken up front so a second call cannot settle it too; a failed settlement
+        // puts it back for a retry.
+        let pending = practice_repo.take_pending_result(profile_id).ok_or_else(|| {
             GameplayError::EntryNotFound(format!(
                 "practice battle result not found for profile {profile_id}",
             ))
         })?;
 
-        let snapshot = update_practice_result_stats(
-            &tx,
-            self.codex.as_ref(),
-            profile_id,
-            snapshot,
-            practice_repo,
-        )
-        .await?;
-        update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank.to_string())
+        let settled = async {
+            let tx = db.begin().await?;
+            let snapshot = update_practice_result_stats(
+                &tx,
+                self.codex.as_ref(),
+                profile_id,
+                pending.clone(),
+                practice_repo,
+            )
             .await?;
-        let outcome = build_practice_battle_outcome(&snapshot)?;
-        observe(&tx, self.codex.as_ref(), profile_id, &[outcome]).await?;
-        practice_repo.clear_pending_battle(profile_id);
+            update_rival_status(&tx, profile_id, snapshot.enemy_id, &snapshot.win_rank.to_string())
+                .await?;
+            let outcome = build_practice_battle_outcome(&snapshot)?;
+            observe(&tx, self.codex.as_ref(), profile_id, &[outcome]).await?;
+            tx.commit().await?;
+            Ok::<_, GameplayError>(snapshot)
+        }
+        .await;
 
-        tx.commit().await?;
-
-        Ok(build_result_response(snapshot))
+        match settled {
+            Ok(snapshot) => {
+                practice_repo.clear_pending_battle(profile_id);
+                Ok(build_result_response(snapshot))
+            }
+            Err(e) => {
+                practice_repo.insert_pending_result(profile_id, pending);
+                Err(e)
+            }
+        }
     }
 
     pub async fn practice_midnight_battle(

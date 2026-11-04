@@ -27,7 +27,7 @@ pub(super) async fn handler(
 ) -> KcApiResult {
     let ships = if let Some(ship_id) = params.api_shipid {
         let ship = state
-            .find_ship(ship_id)
+            .find_ship(pid, ship_id)
             .await?
             .ok_or(ApiError::NotFound(format!("ship with id {ship_id} not found")))?;
         vec![ship]

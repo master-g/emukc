@@ -277,7 +277,7 @@ impl Ctx {
 
         // If this item is equipped on a ship, recalculate that ship's has_locked_euqip
         if m.equip_on > 0 {
-            let result = crate::game::ship::find_ship_impl(&tx, m.equip_on).await?;
+            let result = crate::game::ship::find_ship_impl(&tx, profile_id, m.equip_on).await?;
             if let Some((ship, _)) = result {
                 crate::game::ship::recalculate_ship_status_with_model(&tx, codex, &ship)
                     .await?
