@@ -11,7 +11,7 @@ use emukc_db::sea_orm::{ActiveValue, IntoActiveModel, entity::prelude::*};
 use emukc_model::{
     codex::{
         Codex,
-        map::{CellEffects, CellGain, CellItem, CellMaelstrom},
+        map::{CellEffects, CellGain, CellItem, CellItemKind, CellMaelstrom},
     },
     kc2::MaterialCategory,
 };
@@ -58,14 +58,18 @@ where
     let mut gains = Vec::new();
     for gain in &effect.gains {
         let amount = gain_amount(gain, &catalog.cell_effects, &equipment);
-        match (gain.item.furniture_box(), gain.item.material_id()) {
-            (Some(use_item), _) => {
+        match gain.item.kind() {
+            CellItemKind::FurnitureBox(use_item) => {
                 add_use_item_impl(c, profile_id, use_item, amount).await?;
             }
             // Fuel, ammunition, steel and bauxite wait for the port.
-            (None, Some(1..=4)) => {}
-            (None, material) => {
-                let category = MaterialCategory::from_id(material.unwrap_or_default());
+            CellItemKind::Material(
+                MaterialCategory::Fuel
+                | MaterialCategory::Ammo
+                | MaterialCategory::Steel
+                | MaterialCategory::Bauxite,
+            ) => {}
+            CellItemKind::Material(category) => {
                 add_material_impl(c, codex, profile_id, &[(category, amount)]).await?;
             }
         }
@@ -86,9 +90,14 @@ where
 /// is back in port.
 pub(super) fn put_by(store: &SortieStore, profile_id: i64, gains: Option<&[SortieItemGet]>) {
     for gain in gains.unwrap_or_default() {
-        if let (None, Some(material @ 1..=4)) = (gain.item.furniture_box(), gain.item.material_id())
+        if let CellItemKind::Material(
+            category @ (MaterialCategory::Fuel
+            | MaterialCategory::Ammo
+            | MaterialCategory::Steel
+            | MaterialCategory::Bauxite),
+        ) = gain.item.kind()
         {
-            store.add_pending_gain(profile_id, material as usize - 1, gain.amount);
+            store.add_pending_gain(profile_id, category as usize - 1, gain.amount);
         }
     }
 }

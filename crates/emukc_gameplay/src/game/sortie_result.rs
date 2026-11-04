@@ -7,7 +7,7 @@ use emukc_db::{
 use emukc_model::{
     codex::{
         Codex,
-        map::{MapDefinition, MapStageDefinition, MapVariantDefinition},
+        map::{CellItemKind, MapDefinition, MapStageDefinition, MapVariantDefinition},
     },
     kc2::{KcSortieResultRank, level},
     thirdparty::FleetShipSnapshot,
@@ -202,16 +202,21 @@ where
     // What the reconnaissances found is the fleet's with a B or better at the boss.
     if is_boss_cell && snapshot.win_rank <= KcSortieResultRank::B {
         for found in &active.recon_rewards {
-            let category = emukc_model::kc2::MaterialCategory::from_id(
-                found.item.material_id().unwrap_or_default(),
-            );
-            crate::game::material::add_material_impl(
-                c,
-                codex,
-                profile_id,
-                &[(category, found.amount)],
-            )
-            .await?;
+            match found.item.kind() {
+                CellItemKind::Material(category) => {
+                    crate::game::material::add_material_impl(
+                        c,
+                        codex,
+                        profile_id,
+                        &[(category, found.amount)],
+                    )
+                    .await?;
+                }
+                CellItemKind::FurnitureBox(use_item) => {
+                    crate::game::use_item::add_use_item_impl(c, profile_id, use_item, found.amount)
+                        .await?;
+                }
+            }
         }
     }
     let first_clear = apply_sortie_map_result(
