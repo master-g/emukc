@@ -77,3 +77,44 @@ pub(super) async fn handler(
         api_change_count: count,
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::net::router::kcsapi::test_utils::{app_state, new_test_context};
+
+    #[tokio::test]
+    async fn change_moves_removes_and_disbands_ships() {
+        let context = new_test_context().await;
+        let state = &context.state;
+        let pid = context.session.profile.id;
+        let mut ids = Vec::new();
+        for _ in 0..4 {
+            ids.push(state.add_ship(pid, 1).await.unwrap().api_id);
+        }
+        let [a, b, c, d] = ids[..] else {
+            unreachable!()
+        };
+
+        let cases = [
+            ("flagship to slot 3", 2, a, vec![c, b, a]),
+            ("swap in fleet", 0, b, vec![b, a, c]),
+            ("remove", 1, -1, vec![a, c]),
+            ("keep only flagship", 0, -2, vec![a]),
+            ("add from the port", 3, d, vec![a, b, c, d]),
+        ];
+        for (name, api_ship_idx, api_ship_id, want) in cases {
+            state.update_fleet_ships(pid, 1, &[a, b, c, -1, -1, -1]).await.unwrap();
+            let params = Params {
+                api_ship_idx,
+                api_id: 1,
+                api_ship_id,
+            };
+            handler(app_state(state), Pid(pid), Form(params)).await.unwrap();
+
+            let ships = state.get_fleet(pid, 1).await.unwrap().ships;
+            let got: Vec<i64> = ships.into_iter().filter(|&id| id > 0).collect();
+            assert_eq!(got, want, "{name}");
+        }
+    }
+}
