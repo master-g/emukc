@@ -519,8 +519,10 @@ where
 
     match reward.category {
         Kc3rdQuestRewardCategory::Material => {
-            let mats = vec![(MaterialCategory::from_id(reward.api_id), reward.amount)];
-            add_material_impl(c, codex, profile_id, &mats).await?;
+            let category = MaterialCategory::n(reward.api_id).ok_or_else(|| {
+                GameplayError::WrongType(format!("invalid material category: {}", reward.api_id))
+            })?;
+            add_material_impl(c, codex, profile_id, &[(category, reward.amount)]).await?;
         }
         Kc3rdQuestRewardCategory::Slotitem => {
             for _ in 0..reward.amount.max(1) {
