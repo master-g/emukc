@@ -144,11 +144,12 @@ impl From<QuestProgressStatus> for Progress {
     }
 }
 
-impl From<Model> for QuestProgress {
-    fn from(value: Model) -> Self {
-        let conditions: Vec<Kc3rdQuestCondition> =
-            serde_json::from_value(value.requirements).unwrap();
-        Self {
+impl TryFrom<Model> for QuestProgress {
+    type Error = serde_json::Error;
+
+    fn try_from(value: Model) -> Result<Self, Self::Error> {
+        let conditions: Vec<Kc3rdQuestCondition> = serde_json::from_value(value.requirements)?;
+        Ok(Self {
             id: value.profile_id,
             quest_id: value.quest_id,
             state: value.status.into(),
@@ -160,6 +161,27 @@ impl From<Model> for QuestProgress {
                 RequirementType::OneOf => Kc3rdQuestRequirement::OneOf(conditions),
                 RequirementType::Sequential => Kc3rdQuestRequirement::Sequential(conditions),
             },
-        }
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn corrupt_requirements_do_not_convert() {
+        let model = Model {
+            id: 1,
+            profile_id: 1,
+            quest_id: 101,
+            status: Status::Activated,
+            progress: Progress::Empty,
+            period: Period::Daily,
+            start_since: Utc::now(),
+            requirement_type: RequirementType::And,
+            requirements: serde_json::json!("not a condition list"),
+        };
+        assert!(QuestProgress::try_from(model).is_err());
     }
 }

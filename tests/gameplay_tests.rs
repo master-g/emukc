@@ -81,6 +81,8 @@ mod ship_onslot_max;
 
 #[path = "gameplay_tests/account_profiles.rs"]
 mod account_profiles;
+#[path = "gameplay_tests/corrupt_rows.rs"]
+mod corrupt_rows;
 #[path = "gameplay_tests/ship/hangar_expand.rs"]
 mod hangar_expand;
 #[path = "gameplay_tests/ship/kaisou.rs"]

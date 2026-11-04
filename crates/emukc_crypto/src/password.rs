@@ -13,7 +13,10 @@ impl<T: AsRef<[u8]>> PasswordCrypto for T {
     }
 
     fn verify_password(&self, hash: &str) -> bool {
-        bcrypt::verify(self, hash).unwrap()
+        bcrypt::verify(self, hash).unwrap_or_else(|e| {
+            tracing::error!("stored password hash cannot be verified: {e}");
+            false
+        })
     }
 }
 
@@ -27,5 +30,10 @@ mod tests {
         let hash = password.hash_password();
         println!("{}", hash);
         assert!(password.verify_password(&hash));
+    }
+
+    #[test]
+    fn a_malformed_hash_does_not_verify() {
+        assert!(!"password".verify_password("not a bcrypt hash"));
     }
 }
