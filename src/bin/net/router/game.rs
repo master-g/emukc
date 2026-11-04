@@ -1,7 +1,7 @@
 use axum::{
     Extension, Router,
     extract::{Path, Query},
-    http::Uri,
+    http::{HeaderMap, Uri, header::HOST},
     middleware,
     response::{Html, IntoResponse, Redirect, Response},
     routing::get,
@@ -31,14 +31,26 @@ pub(super) fn router() -> Router {
         )
 }
 
+/// HTTP/2 puts the host in the URI; HTTP/1 sends only a path and a Host header.
+fn request_host<'a>(headers: &'a HeaderMap, uri: &'a Uri) -> &'a str {
+    uri.authority()
+        .map(http::uri::Authority::as_str)
+        .or_else(|| headers.get(HOST).and_then(|h| h.to_str().ok()))
+        .unwrap_or("localhost:8080")
+}
+
 // emukc/index.html
-async fn home(uri: Uri, Extension(session): Extension<GameSession>) -> impl IntoResponse {
+async fn home(
+    headers: HeaderMap,
+    uri: Uri,
+    Extension(session): Extension<GameSession>,
+) -> impl IntoResponse {
     // prepare html
     let html = GameSiteAssets::get("emukc/index.html").unwrap();
     let html = std::str::from_utf8(html.data.as_ref()).unwrap();
 
     // prepare parameters
-    let host = uri.authority().map(http::uri::Authority::as_str).unwrap_or("localhost:8080");
+    let host = request_host(&headers, &uri);
     let parent = format!("//{host}/netgame/social/");
     let parent = urlencoding::encode(&parent);
 
@@ -138,8 +150,13 @@ async fn p(Path(path): Path<String>) -> impl IntoResponse {
 }
 
 // emukc/game/*
-async fn game(uri: Uri, Path(path): Path<String>, Query(query): Query<ViewerQuery>) -> Response {
-    let host = uri.authority().map(http::uri::Authority::as_str).unwrap_or("localhost:8080");
+async fn game(
+    headers: HeaderMap,
+    uri: Uri,
+    Path(path): Path<String>,
+    Query(query): Query<ViewerQuery>,
+) -> Response {
+    let host = request_host(&headers, &uri);
 
     if path.ends_with("hijack.js") {
         let uid = query.viewer.unwrap_or(0);
@@ -161,5 +178,28 @@ async fn game(uri: Uri, Path(path): Path<String>, Query(query): Query<ViewerQuer
     } else {
         // not embedded, redirect to the real path
         Redirect::temporary(format!("//{host}/gadgets/{path}").as_str()).into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::{body::Body, http::Request};
+    use http::header::{HOST, LOCATION};
+    use tower::ServiceExt;
+
+    use super::router;
+
+    #[tokio::test]
+    async fn redirect_keeps_the_host_of_an_http1_request() {
+        // An HTTP/1 request carries its host only in the Host header; the URI is the bare path.
+        let req = Request::builder()
+            .uri("/game/does-not-exist.js")
+            .header(HOST, "example.test:9999")
+            .body(Body::empty())
+            .unwrap();
+
+        let resp = router().oneshot(req).await.unwrap();
+
+        assert_eq!(resp.headers()[LOCATION], "//example.test:9999/gadgets/does-not-exist.js");
     }
 }

@@ -71,7 +71,21 @@ pub(super) async fn handler(
 
     new_fleet.move_value_to_end(-1);
 
-    state.update_fleet_ships(pid, params.api_id, &new_fleet).await?;
+    let mut writes = vec![(params.api_id, new_fleet)];
+    if params.api_ship_id > 0 && origin_ship_idx < 0 {
+        // A ship taken from another fleet swaps with the one it replaces, as the client does.
+        let other = state.get_fleets(pid).await?.into_iter().find_map(|f| {
+            let pos = f.ships.iter().position(|&s| s == params.api_ship_id)?;
+            (f.index != params.api_id).then_some((f, pos))
+        });
+        if let Some((mut other, pos)) = other {
+            other.ships[pos] = *source_ship_id;
+            other.ships.move_value_to_end(-1);
+            writes.push((other.index, other.ships));
+        }
+    }
+
+    state.update_fleets_ships(pid, &writes).await?;
 
     Ok(KcApiResponse::success(&Resp {
         api_change_count: count,
@@ -115,6 +129,29 @@ mod tests {
             let ships = state.get_fleet(pid, 1).await.unwrap().ships;
             let got: Vec<i64> = ships.into_iter().filter(|&id| id > 0).collect();
             assert_eq!(got, want, "{name}");
+        }
+
+        // The client swaps the ship out of its old fleet (DeckModelEdit.__change__).
+        state.unlock_fleet(pid, 2).await.unwrap();
+        let cases = [
+            ("swap with another fleet", 1, vec![a, d, c], vec![b]),
+            ("take from another fleet", 3, vec![a, b, c, d], vec![]),
+        ];
+        for (name, api_ship_idx, want_first, want_second) in cases {
+            state.update_fleet_ships(pid, 1, &[a, b, c, -1, -1, -1]).await.unwrap();
+            state.update_fleet_ships(pid, 2, &[d, -1, -1, -1, -1, -1]).await.unwrap();
+            let params = Params {
+                api_ship_idx,
+                api_id: 1,
+                api_ship_id: d,
+            };
+            handler(app_state(state), Pid(pid), Form(params)).await.unwrap();
+
+            for (index, want) in [(1, want_first), (2, want_second)] {
+                let ships = state.get_fleet(pid, index).await.unwrap().ships;
+                let got: Vec<i64> = ships.into_iter().filter(|&id| id > 0).collect();
+                assert_eq!(got, want, "{name}: fleet {index}");
+            }
         }
     }
 }

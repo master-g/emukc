@@ -90,6 +90,28 @@ impl Ctx {
         Ok(m.into())
     }
 
+    /// Change the ships of several deck ports in one transaction.
+    ///
+    /// # Parameters
+    ///
+    /// - `profile_id`: The profile ID.
+    /// - `fleets`: Pairs of fleet index (1, 2, 3, 4) and its 6 ship IDs.
+    pub async fn update_fleets_ships(
+        &self,
+        profile_id: i64,
+        fleets: &[(i64, [i64; 6])],
+    ) -> Result<(), GameplayError> {
+        let db = self.db.as_ref();
+        let tx = db.begin().await?;
+        for (index, ship_ids) in fleets {
+            update_fleet_ships_impl(&tx, profile_id, *index, ship_ids).await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+
     /// Update deck name.
     ///
     /// # Parameters
