@@ -2,6 +2,9 @@
 
 use chrono::{DateTime, Datelike, FixedOffset, Local, NaiveDate, TimeZone, Timelike, Utc};
 
+/// Japan Standard Time (UTC+9), the clock every game reset follows.
+pub const JST: FixedOffset = FixedOffset::east_opt(9 * 3600).unwrap();
+
 /// A utility struct for time operations in `EmuKC`.
 pub struct KcTime;
 
@@ -42,11 +45,9 @@ impl KcTime {
     /// A `DateTime<Utc>` representing today's specified hour JST.
     pub fn jst_today_hour_utc(hour: u32) -> DateTime<Utc> {
         let now = Utc::now();
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-        let tokyo_now = now.with_timezone(&tokyo_tz);
+        let tokyo_now = now.with_timezone(&JST);
         let today = tokyo_now.date_naive();
-        let n_hour_jst =
-            today.and_hms_opt(hour, 0, 0).unwrap().and_local_timezone(tokyo_tz).unwrap();
+        let n_hour_jst = today.and_hms_opt(hour, 0, 0).unwrap().and_local_timezone(JST).unwrap();
 
         n_hour_jst.with_timezone(&Utc)
     }
@@ -59,15 +60,14 @@ impl KcTime {
     #[must_use]
     pub fn jst_monday_0500_utc() -> DateTime<Utc> {
         let now = Utc::now();
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-        let tokyo_now = now.with_timezone(&tokyo_tz);
+        let tokyo_now = now.with_timezone(&JST);
         let today = tokyo_now.date_naive();
         let weekday = today.weekday().num_days_from_monday();
 
         let this_monday = today - chrono::Duration::days(weekday as i64);
 
         let monday_0500 =
-            tokyo_tz.from_local_datetime(&this_monday.and_hms_opt(5, 0, 0).unwrap()).unwrap();
+            JST.from_local_datetime(&this_monday.and_hms_opt(5, 0, 0).unwrap()).unwrap();
 
         monday_0500.with_timezone(&Utc)
     }
@@ -79,8 +79,7 @@ impl KcTime {
     /// The day of the month in JST.
     pub fn jst_day_of_month() -> u32 {
         let now = Utc::now();
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-        let tokyo_now = now.with_timezone(&tokyo_tz);
+        let tokyo_now = now.with_timezone(&JST);
         let today = tokyo_now.date_naive();
         today.day()
     }
@@ -96,13 +95,12 @@ impl KcTime {
     /// A `DateTime<Utc>` representing the nth day of the month at 5 AM JST.
     pub fn jst_0500_of_nth_day(n: u32) -> DateTime<Utc> {
         let now = Utc::now();
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-        let tokyo_now = now.with_timezone(&tokyo_tz);
+        let tokyo_now = now.with_timezone(&JST);
         let today = tokyo_now.date_naive();
 
         let nth_day = today.with_day(n).unwrap();
         let nth_day_0500_jst =
-            tokyo_tz.from_local_datetime(&nth_day.and_hms_opt(5, 0, 0).unwrap()).unwrap();
+            JST.from_local_datetime(&nth_day.and_hms_opt(5, 0, 0).unwrap()).unwrap();
 
         nth_day_0500_jst.with_timezone(&Utc)
     }
@@ -114,16 +112,14 @@ impl KcTime {
     /// A `DateTime<Utc>` representing the first day of the quarter at 5 AM JST.
     pub fn jst_0500_day_one_of_quarter() -> DateTime<Utc> {
         let now = Utc::now();
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-        let tokyo_now = now.with_timezone(&tokyo_tz);
+        let tokyo_now = now.with_timezone(&JST);
         let today = tokyo_now.date_naive();
 
         let quarter = (today.month() - 1) / 3;
         let first_day_of_quarter = today.with_day(1).unwrap().with_month(quarter * 3 + 1).unwrap();
 
-        let first_day_0500_jst = tokyo_tz
-            .from_local_datetime(&first_day_of_quarter.and_hms_opt(5, 0, 0).unwrap())
-            .unwrap();
+        let first_day_0500_jst =
+            JST.from_local_datetime(&first_day_of_quarter.and_hms_opt(5, 0, 0).unwrap()).unwrap();
 
         first_day_0500_jst.with_timezone(&Utc)
     }
@@ -135,14 +131,13 @@ impl KcTime {
     /// A `DateTime<Utc>` representing the first day of the year at 5 AM JST.
     pub fn jst_0500_day_one_of_year() -> DateTime<Utc> {
         let now = Utc::now();
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-        let tokyo_now = now.with_timezone(&tokyo_tz);
+        let tokyo_now = now.with_timezone(&JST);
         let today = tokyo_now.date_naive();
 
         let first_day_of_year = today.with_day(1).unwrap().with_month(1).unwrap();
 
         let first_day_0500_jst =
-            tokyo_tz.from_local_datetime(&first_day_of_year.and_hms_opt(5, 0, 0).unwrap()).unwrap();
+            JST.from_local_datetime(&first_day_of_year.and_hms_opt(5, 0, 0).unwrap()).unwrap();
 
         first_day_0500_jst.with_timezone(&Utc)
     }
@@ -175,11 +170,9 @@ impl KcTime {
     ///
     /// A `DateTime<Utc>` representing the next day's 5 AM JST.
     pub fn jst_next_day_0500(ts: &DateTime<Utc>) -> DateTime<Utc> {
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
         let next_day = Self::jst_quest_day(ts) + chrono::Duration::days(1);
 
-        tokyo_tz
-            .from_local_datetime(&next_day.and_hms_opt(5, 0, 0).unwrap())
+        JST.from_local_datetime(&next_day.and_hms_opt(5, 0, 0).unwrap())
             .unwrap()
             .with_timezone(&Utc)
     }
@@ -195,8 +188,7 @@ impl KcTime {
     ///
     /// The date of the quest day.
     pub fn jst_quest_day(ts: &DateTime<Utc>) -> NaiveDate {
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-        (ts.with_timezone(&tokyo_tz) - chrono::Duration::hours(5)).date_naive()
+        (ts.with_timezone(&JST) - chrono::Duration::hours(5)).date_naive()
     }
 
     /// Get the next Monday's 5 AM JST (UTC+9) from the given time.
@@ -209,14 +201,12 @@ impl KcTime {
     ///
     /// A `DateTime<Utc>` representing the next Monday's 5 AM JST.
     pub fn jst_next_monday_0500(ts: &DateTime<Utc>) -> DateTime<Utc> {
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
         // The week turns with the quest day: Monday 04:59 still belongs to Sunday.
         let quest_day = Self::jst_quest_day(ts);
         let days_left = 7 - i64::from(quest_day.weekday().num_days_from_monday());
         let next_monday = quest_day + chrono::Duration::days(days_left);
 
-        tokyo_tz
-            .from_local_datetime(&next_monday.and_hms_opt(5, 0, 0).unwrap())
+        JST.from_local_datetime(&next_monday.and_hms_opt(5, 0, 0).unwrap())
             .unwrap()
             .with_timezone(&Utc)
     }
@@ -231,14 +221,13 @@ impl KcTime {
     ///
     /// A `DateTime<Utc>` representing the next 5 AM JST of the nth day of the month.
     pub fn jst_next_1st_day_of_the_month(ts: &DateTime<Utc>) -> DateTime<Utc> {
-        let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-        let tokyo_then = ts.with_timezone(&tokyo_tz);
+        let tokyo_then = ts.with_timezone(&JST);
 
         let current_year = tokyo_then.year();
         let current_month = tokyo_then.month();
 
         let first_day_current_month_jst =
-            tokyo_tz.with_ymd_and_hms(current_year, current_month, 1, 5, 0, 0).unwrap();
+            JST.with_ymd_and_hms(current_year, current_month, 1, 5, 0, 0).unwrap();
 
         if tokyo_then < first_day_current_month_jst {
             first_day_current_month_jst.with_timezone(&Utc)
@@ -250,7 +239,7 @@ impl KcTime {
             };
 
             let first_day_next_month_jst =
-                tokyo_tz.with_ymd_and_hms(next_year, next_month, 1, 5, 0, 0).unwrap();
+                JST.with_ymd_and_hms(next_year, next_month, 1, 5, 0, 0).unwrap();
 
             first_day_next_month_jst.with_timezone(&Utc)
         }
@@ -319,13 +308,12 @@ impl KcTime {
 /// The first 1st-of-the-month 05:00 JST in one of `months` (ascending)
 /// strictly after `ts`.
 fn jst_next_day_one_0500_in(months: &[u32], ts: &DateTime<Utc>) -> DateTime<Utc> {
-    let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-    let year = ts.with_timezone(&tokyo_tz).year();
+    let year = ts.with_timezone(&JST).year();
 
     [year, year + 1]
         .into_iter()
         .flat_map(|year| months.iter().map(move |&month| (year, month)))
-        .map(|(year, month)| tokyo_tz.with_ymd_and_hms(year, month, 1, 5, 0, 0).unwrap())
+        .map(|(year, month)| JST.with_ymd_and_hms(year, month, 1, 5, 0, 0).unwrap())
         .find(|reset| reset.with_timezone(&Utc) > *ts)
         .expect("every year has one of the months")
         .with_timezone(&Utc)
@@ -337,8 +325,7 @@ enum NthDay {
 }
 
 fn jst_next_nth_day_of_the_month(nth_day: NthDay, ts: &DateTime<Utc>) -> DateTime<Utc> {
-    let tokyo_tz = FixedOffset::east_opt(9 * 3600).unwrap();
-    let tokyo_then = ts.with_timezone(&tokyo_tz);
+    let tokyo_then = ts.with_timezone(&JST);
     let mut tokyo_time = tokyo_then;
 
     loop {
@@ -350,9 +337,8 @@ fn jst_next_nth_day_of_the_month(nth_day: NthDay, ts: &DateTime<Utc>) -> DateTim
         };
 
         if day_found {
-            let target_time = tokyo_tz
-                .with_ymd_and_hms(tokyo_time.year(), tokyo_time.month(), day, 5, 0, 0)
-                .unwrap();
+            let target_time =
+                JST.with_ymd_and_hms(tokyo_time.year(), tokyo_time.month(), day, 5, 0, 0).unwrap();
 
             if tokyo_then < target_time {
                 return target_time.with_timezone(&Utc);

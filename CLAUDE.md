@@ -111,7 +111,6 @@ emukc (binary)          - CLI + HTTP server (axum)
       ├── emukc_crypto    - Hashing, token generation
       ├── emukc_time      - Time utilities (re-exports chrono)
       ├── emukc_log       - Logging setup (tracing)
-      ├── emukc_macros    - Proc macros
       └── emukc_app       - Runtime setup (mimalloc, stack size)
 ```
 

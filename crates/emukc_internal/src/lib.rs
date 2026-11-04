@@ -10,7 +10,6 @@ pub use emukc_crypto as crypto;
 pub use emukc_db as db;
 pub use emukc_gameplay as gameplay;
 pub use emukc_log as log;
-pub use emukc_macros as macros;
 pub use emukc_model as model;
 pub use emukc_network as network;
 pub use emukc_time as time;

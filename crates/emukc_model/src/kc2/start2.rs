@@ -254,7 +254,7 @@ pub struct ApiMstPayitem {
     /// Description.
     pub api_description: String,
     /// items get after purchase
-    /// [0]: fuel, [1]: ammo, [2]: steel, [3]: bauxite, [4]: instant construction, [5]: instant repair, [6]: development material, [7]: dock key
+    /// `[0]`: fuel, `[1]`: ammo, `[2]`: steel, `[3]`: bauxite, `[4]`: instant construction, `[5]`: instant repair, `[6]`: development material, `[7]`: dock key
     pub api_item: [i64; 8],
     /// Name.
     pub api_name: String,
@@ -317,7 +317,7 @@ pub struct ApiMstShip {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_getmes: Option<String>,
 
-    /// Firepower. [0] = initial, [1] = max.
+    /// Firepower. `[0]` = initial, `[1]` = max.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_houg: Option<[i64; 2]>,
 
@@ -325,7 +325,7 @@ pub struct ApiMstShip {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_leng: Option<i64>,
 
-    /// Luck. [0] = initial, [1] = max.
+    /// Luck. `[0]` = initial, `[1]` = max.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_luck: Option<[i64; 2]>,
 
@@ -337,11 +337,11 @@ pub struct ApiMstShip {
     pub api_name: String,
 
     /// Power up points provided as material for the modernization of other ships.
-    /// [0]: firepower, [1]: torpedo, [2]: Anti-air, [3]: armor
+    /// `[0]`: firepower, `[1]`: torpedo, `[2]`: Anti-air, `[3]`: armor
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_powup: Option<[i64; 4]>,
 
-    /// Torpedo. [0] = initial, [1] = max.
+    /// Torpedo. `[0]` = initial, `[1]` = max.
     /// `raig` is the Japanese word for `raigeki` which means lightning strike.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_raig: Option<[i64; 2]>,
@@ -359,19 +359,19 @@ pub struct ApiMstShip {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_sortno: Option<i64>,
 
-    /// Armor. [0] = initial, [1] = max.
+    /// Armor. `[0]` = initial, `[1]` = max.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_souk: Option<[i64; 2]>,
 
     /// The ship's type id, see `emukc_model::KcShipType`.
     pub api_stype: i64,
 
-    /// Hitpoints. [0] = initial, [1] = max.
+    /// Hitpoints. `[0]` = initial, `[1]` = max.
     /// `taik` is the Japanese word for `taikyuu` which means endurance.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_taik: Option<[i64; 2]>,
 
-    /// Anti-air. [0] = initial, [1] = max.
+    /// Anti-air. `[0]` = initial, `[1]` = max.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_tyku: Option<[i64; 2]>,
 
@@ -382,7 +382,7 @@ pub struct ApiMstShip {
     /// yomi name
     pub api_yomi: String,
 
-    /// Anti-submarine warfare. [0] = initial.
+    /// Anti-submarine warfare. `[0]` = initial.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub api_tais: Option<[i64; 1]>,
 }
@@ -517,7 +517,7 @@ pub struct ApiMstSlotitem {
     pub api_taik: i64,
     pub api_tais: i64,
     pub api_tyku: i64,
-    /// [0]: category, [1]: picturebook, [2]: equiptype, [3]: category, [4]: icon
+    /// `[0]`: category, `[1]`: picturebook, `[2]`: equiptype, `[3]`: category, `[4]`: icon
     pub api_type: [i64; 5],
     pub api_usebull: String,
     pub api_version: Option<i64>,

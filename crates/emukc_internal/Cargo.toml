@@ -16,7 +16,6 @@ emukc_crypto = { features = ["async"], path = "../emukc_crypto" }
 emukc_db = { path = "../emukc_db" }
 emukc_gameplay = { path = "../emukc_gameplay" }
 emukc_log = { path = "../emukc_log" }
-emukc_macros = { path = "../emukc_macros" }
 emukc_model = { path = "../emukc_model" }
 emukc_network = { path = "../emukc_network" }
 emukc_time = { path = "../emukc_time" }

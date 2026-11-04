@@ -36,10 +36,6 @@ One crate to `use` them all.
 
 This crate contains the logging utilities used by the `EmuKC` project.
 
-## `emukc_macros`
-
-This crate contains the procedural macros used by the `EmuKC` project.
-
 ## `emukc_model`
 
 This crate contains the data model used by the `EmuKC` project.

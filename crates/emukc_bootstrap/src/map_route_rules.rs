@@ -150,7 +150,7 @@ fn flag_unsupported_predicates(
     }
 }
 
-/// Validate one map stage (a [`MapStageDefinition`] / [`MapVariantDefinition`]) for the
+/// Validate one map stage (a [`MapStageDefinition`] / [`MapVariantDefinition`](emukc_model::codex::map::MapVariantDefinition)) for the
 /// structural KTD5 invariants:
 ///
 /// - (a) **Topology** (errors): every `next_cells` entry references a real cell of the stage;

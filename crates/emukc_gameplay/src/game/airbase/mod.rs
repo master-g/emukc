@@ -127,7 +127,7 @@ impl Ctx {
     /// `item_id` below zero clears the slot; the equipment goes back to the
     /// inventory untouched, since a squadron only ever borrows it. Moving a
     /// squadron between slots of the *same* airbase reports both slots, which
-    /// is the 交換時は[2] case in `docs/apilist.txt`. Moving one between two
+    /// is the 交換時は`[2]` case in `docs/apilist.txt`. Moving one between two
     /// airbases is a different endpoint — see [`Ctx::change_deployment_base`].
     ///
     /// A deployment spends bauxite: the equipment's `api_cost` for each
@@ -390,8 +390,8 @@ impl Ctx {
 
     /// Bring the named squadrons of an airbase back to full strength.
     ///
-    /// Each aircraft replaced costs [`SUPPLY_FUEL_PER_PLANE`] fuel and
-    /// [`SUPPLY_BAUXITE_PER_PLANE`] bauxite. A squadron that is full, empty or
+    /// Each aircraft replaced costs `SUPPLY_FUEL_PER_PLANE` fuel and
+    /// `SUPPLY_BAUXITE_PER_PLANE` bauxite. A squadron that is full, empty or
     /// relocating is left alone.
     ///
     /// ponytail: all or nothing. What upstream does when the stock covers only
