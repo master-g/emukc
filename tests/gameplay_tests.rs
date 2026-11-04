@@ -78,6 +78,8 @@ mod ship_onslot_max;
 
 #[path = "gameplay_tests/ship/hangar_expand.rs"]
 mod hangar_expand;
+#[path = "gameplay_tests/ship/kaisou.rs"]
+mod kaisou;
 
 #[path = "gameplay_tests/api_alignment_e2e.rs"]
 mod api_alignment_e2e;
