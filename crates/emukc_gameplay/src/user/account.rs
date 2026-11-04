@@ -50,13 +50,9 @@ impl Ctx {
     /// * `password` - The password of the new account.
     pub async fn sign_up(&self, username: &str, password: &str) -> Result<AccountInfo, UserError> {
         let db = self.db.as_ref();
+        let name_taken = || account::Entity::find().filter(account::Column::Name.eq(username));
 
-        let tx = db.begin().await?;
-
-        let model =
-            account::Entity::find().filter(account::Column::Name.eq(username)).one(&tx).await?;
-
-        if model.is_some() {
+        if name_taken().one(db).await?.is_some() {
             return Err(UserError::UsernameTaken);
         }
 
@@ -68,7 +64,15 @@ impl Ctx {
             return Err(UserError::PasswordTooShort);
         }
 
-        let secret = password.hash_password();
+        let password = password.to_owned();
+        let secret = off_executor(move || password.hash_password()).await;
+
+        let tx = db.begin().await?;
+
+        // the name may have been taken while hashing
+        if name_taken().one(&tx).await?.is_some() {
+            return Err(UserError::UsernameTaken);
+        }
 
         let now = Utc::now();
         let model = account::ActiveModel {
@@ -102,17 +106,9 @@ impl Ctx {
     /// * `password` - The password of the account.
     pub async fn sign_in(&self, username: &str, password: &str) -> Result<AccountInfo, UserError> {
         let db = self.db.as_ref();
+        let model = find_verified(db, username, password).await?;
+
         let tx = db.begin().await?;
-
-        let model = account::Entity::find()
-            .filter(account::Column::Name.eq(username))
-            .one(&tx)
-            .await?
-            .ok_or(UserError::InvalidUsernameOrPassword)?;
-
-        if !password.verify_password(&model.secret) {
-            return Err(UserError::InvalidUsernameOrPassword);
-        }
 
         let mut active_model: account::ActiveModel = model.into();
         active_model.last_login = ActiveValue::Set(Utc::now());
@@ -231,17 +227,9 @@ impl Ctx {
     /// * `password` - The password of the account.
     pub async fn delete_account(&self, username: &str, password: &str) -> Result<(), UserError> {
         let db = self.db.as_ref();
+        let model = find_verified(db, username, password).await?;
+
         let tx = db.begin().await?;
-
-        let model = account::Entity::find()
-            .filter(account::Column::Name.eq(username))
-            .one(&tx)
-            .await?
-            .ok_or(UserError::InvalidUsernameOrPassword)?;
-
-        if !password.verify_password(&model.secret) {
-            return Err(UserError::InvalidUsernameOrPassword);
-        }
 
         let uid = model.uid;
 
@@ -265,6 +253,35 @@ impl Ctx {
 
         Ok(())
     }
+}
+
+/// Find the account named `username` and check `password` against its hash,
+/// outside any transaction.
+async fn find_verified(
+    db: &impl ConnectionTrait,
+    username: &str,
+    password: &str,
+) -> Result<account::Model, UserError> {
+    let model = account::Entity::find()
+        .filter(account::Column::Name.eq(username))
+        .one(db)
+        .await?
+        .ok_or(UserError::InvalidUsernameOrPassword)?;
+
+    let password = password.to_owned();
+    let secret = model.secret.clone();
+    if !off_executor(move || password.verify_password(&secret)).await {
+        return Err(UserError::InvalidUsernameOrPassword);
+    }
+
+    Ok(model)
+}
+
+/// Run bcrypt, which costs hundreds of milliseconds by design, on the blocking pool.
+/// Callers run it before `begin()`: the SQLite pool has one connection, so a
+/// transaction held across it stalls every other request.
+async fn off_executor<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
+    tokio::task::spawn_blocking(f).await.expect("bcrypt task panicked")
 }
 
 #[cfg(test)]
