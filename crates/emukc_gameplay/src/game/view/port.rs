@@ -72,57 +72,76 @@ impl Ctx {
         self.clear_sortie_state_if_any(profile_id).await;
 
         let codex = self.codex.as_ref();
-        let tx = self.db.begin().await?;
+        let store = self.sortie_store.as_ref();
+        // The gains are taken up front so a second visit cannot credit them too; a
+        // failed visit puts them back.
+        let mut view = store
+            .with_profile_lock(profile_id, async {
+                let gains = store.take_pending_gains(profile_id);
+                let settled = async {
+                    let tx = self.db.begin().await?;
 
-        let profile = find_profile(&tx, profile_id).await?;
-        // What the resource cells gave on the way reaches headquarters in port.
-        if let Some([fuel, ammo, steel, bauxite]) = self.sortie_store.pending_gains(profile_id) {
-            let gains = [
-                (MaterialCategory::Fuel, fuel),
-                (MaterialCategory::Ammo, ammo),
-                (MaterialCategory::Steel, steel),
-                (MaterialCategory::Bauxite, bauxite),
-            ];
-            add_material_impl(&tx, codex, profile_id, &gains).await?;
-        }
-        update_materials_impl(&tx, codex, profile_id, profile.hq_level).await?;
-        refresh_proficiency_levels_impl(&tx, profile_id).await?;
+                    let profile = find_profile(&tx, profile_id).await?;
+                    // What the resource cells gave on the way reaches headquarters in port.
+                    if let Some([fuel, ammo, steel, bauxite]) = gains {
+                        let gains = [
+                            (MaterialCategory::Fuel, fuel),
+                            (MaterialCategory::Ammo, ammo),
+                            (MaterialCategory::Steel, steel),
+                            (MaterialCategory::Bauxite, bauxite),
+                        ];
+                        add_material_impl(&tx, codex, profile_id, &gains).await?;
+                    }
+                    update_materials_impl(&tx, codex, profile_id, profile.hq_level).await?;
+                    refresh_proficiency_levels_impl(&tx, profile_id).await?;
 
-        // TODO(#0): update quests here
+                    // TODO(#0): update quests here
 
-        let (relocating_slots, released) = settle_relocations_impl(&tx, profile_id).await?;
-        let returned: Vec<i64> = find_slot_items_by_id_impl(&tx, &released)
-            .await?
-            .into_iter()
-            .map(|item| item.type3)
-            .collect();
-        let returned_unset_slots =
-            get_unset_slot_items_by_types_impl(&tx, profile_id, &returned).await?;
+                    let (relocating_slots, released) =
+                        settle_relocations_impl(&tx, profile_id).await?;
+                    let returned: Vec<i64> = find_slot_items_by_id_impl(&tx, &released)
+                        .await?
+                        .into_iter()
+                        .map(|item| item.type3)
+                        .collect();
+                    let returned_unset_slots =
+                        get_unset_slot_items_by_types_impl(&tx, profile_id, &returned).await?;
 
-        let (_, basic) = get_user_basic_impl(&tx, profile_id).await?;
-        let materials = get_mat_impl(&tx, profile_id).await?;
-        let fleets = get_fleets_impl(&tx, profile_id).await?;
-        let ndocks = get_ndocks_impl(&tx, codex, profile_id).await?;
-        let game_settings: KcApiGameSetting = get_game_settings_impl(&tx, profile_id).await?.into();
+                    let (_, basic) = get_user_basic_impl(&tx, profile_id).await?;
+                    let materials = get_mat_impl(&tx, profile_id).await?;
+                    let fleets = get_fleets_impl(&tx, profile_id).await?;
+                    let ndocks = get_ndocks_impl(&tx, codex, profile_id).await?;
+                    let game_settings: KcApiGameSetting =
+                        get_game_settings_impl(&tx, profile_id).await?.into();
 
-        tx.commit().await?;
-        let _ = self.sortie_store.take_pending_gains(profile_id);
+                    tx.commit().await?;
+                    Ok::<_, GameplayError>(PortView {
+                        basic,
+                        materials: materials.into(),
+                        fleets: fleets.into_iter().map(std::convert::Into::into).collect(),
+                        ndocks: ndocks.into_iter().map(std::convert::Into::into).collect(),
+                        ships: Vec::new(),
+                        port_bgm_id: game_settings.api_p_bgm_id,
+                        combined_type: profile.combined_type,
+                        relocating_slots,
+                        returned_unset_slots,
+                    })
+                }
+                .await;
+                if settled.is_err() {
+                    for (index, amount) in gains.into_iter().flatten().enumerate() {
+                        store.add_pending_gain(profile_id, index, amount);
+                    }
+                }
+                settled
+            })
+            .await?;
 
         // `Ctx::get_ships` owns the `api_onslot_max` and `api_sp_effect_items`
         // filling, which is private to the `ship` module, so ships keep their
         // own read.
-        let ships = self.get_ships(profile_id).await?;
+        view.ships = self.get_ships(profile_id).await?;
 
-        Ok(PortView {
-            basic,
-            materials: materials.into(),
-            fleets: fleets.into_iter().map(std::convert::Into::into).collect(),
-            ndocks: ndocks.into_iter().map(std::convert::Into::into).collect(),
-            ships,
-            port_bgm_id: game_settings.api_p_bgm_id,
-            combined_type: profile.combined_type,
-            relocating_slots,
-            returned_unset_slots,
-        })
+        Ok(view)
     }
 }
