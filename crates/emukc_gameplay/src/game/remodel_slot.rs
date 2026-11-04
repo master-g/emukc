@@ -4,10 +4,7 @@
 //! second ship decides which recipes are on offer today. Rules are documented
 //! in `crates/emukc_model/src/codex/remodel_slot.rs`.
 
-use emukc_db::{
-    entity::profile::item::slot_item,
-    sea_orm::{TransactionTrait, entity::prelude::*},
-};
+use emukc_db::{BeginImmediate, entity::profile::item::slot_item, sea_orm::entity::prelude::*};
 use emukc_model::codex::remodel_slot::{
     AKASHI_KAI_MST_ID, AKASHI_MST_ID, MAX_STARS, RemodelRecipe, recover_success_rate,
     remodel_success_rate,
@@ -200,7 +197,7 @@ impl Ctx {
         let recipe = codex.find_remodel_recipe(recipe_id)?;
         let secretaries = resolve_secretaries(db, profile_id).await?;
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let item = find_owned_item(&tx, profile_id, slot_id, &recipe, false).await?;
         let stars_before = item.level;
@@ -306,7 +303,7 @@ impl Ctx {
         // flagship rule applies; the weekday secretary rules do not.
         resolve_secretaries(db, profile_id).await?;
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         // ponytail: the client's list also hides equipment held by a fleet that
         // is out on an expedition. That is a UI courtesy, not an invariant —

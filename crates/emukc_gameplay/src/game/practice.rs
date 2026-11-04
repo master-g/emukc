@@ -1,11 +1,12 @@
 use emukc_crypto::rng::{self, GameRng};
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{
         self,
         practice::{self, config::RivalType, rival_ship},
         ship,
     },
-    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, entity::prelude::*},
 };
 use emukc_model::{
     codex::Codex,
@@ -100,7 +101,7 @@ impl Ctx {
     ) -> Result<PracticeInfo, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let rivals = get_practice_rivals_impl(&tx, codex, profile_id).await?;
 
@@ -141,7 +142,7 @@ impl Ctx {
 
         practice_repo
             .with_profile_lock(profile_id, async {
-                let tx = db.begin().await?;
+                let tx = db.begin_immediate().await?;
 
                 let rival = get_practice_rival_details_impl(&tx, profile_id, enemy_id).await?;
                 let profile = find_profile(&tx, profile_id).await?;
@@ -197,7 +198,7 @@ impl Ctx {
                 })?;
 
                 let settled = async {
-                    let tx = db.begin().await?;
+                    let tx = db.begin_immediate().await?;
                     let snapshot = update_practice_result_stats(
                         &tx,
                         self.codex.as_ref(),

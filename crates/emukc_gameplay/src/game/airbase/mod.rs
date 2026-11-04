@@ -1,11 +1,12 @@
 use emukc_crypto::rng;
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{
         airbase::{base, plane as plane_db},
         item::slot_item,
         map_record,
     },
-    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, entity::prelude::*},
 };
 use emukc_model::{
     codex::Codex,
@@ -88,7 +89,7 @@ impl Ctx {
         rid: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         unlock_airbase_impl(&tx, profile_id, area_id, rid).await?;
 
@@ -105,7 +106,7 @@ impl Ctx {
     pub async fn get_airbases(&self, profile_id: i64) -> Result<Vec<Airbase>, GameplayError> {
         let db = self.db.as_ref();
         let codex = self.codex.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         ensure_airbases_impl(&tx, codex, profile_id).await?;
         settle_conditions_impl(&tx, profile_id).await?;
@@ -150,7 +151,7 @@ impl Ctx {
             )));
         }
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
         settle_conditions_impl(&tx, profile_id).await?;
@@ -292,7 +293,7 @@ impl Ctx {
             ));
         }
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
         find_owned_airbase(&tx, profile_id, area_id, base_id_src).await?;
@@ -343,7 +344,7 @@ impl Ctx {
         orders: &[(i64, i64)],
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         // What the squadrons regained so far, they regained under the old orders.
         settle_conditions_impl(&tx, profile_id).await?;
@@ -376,7 +377,7 @@ impl Ctx {
         }
 
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let mut am =
             find_owned_airbase(&tx, profile_id, area_id, base_id).await?.into_active_model();
@@ -406,7 +407,7 @@ impl Ctx {
     ) -> Result<SupplyResult, GameplayError> {
         let db = self.db.as_ref();
         let codex = self.codex.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
         settle_conditions_impl(&tx, profile_id).await?;
@@ -465,7 +466,7 @@ impl Ctx {
     ) -> Result<Airbase, GameplayError> {
         let db = self.db.as_ref();
         let codex = self.codex.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let owned = airbases_of_area(&tx, profile_id, area_id).await?;
         let Some(first) = owned.first() else {
@@ -505,7 +506,7 @@ impl Ctx {
         area_id: i64,
     ) -> Result<i64, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         // The level changes the recovery rate from here on.
         settle_conditions_impl(&tx, profile_id).await?;
@@ -549,7 +550,7 @@ impl Ctx {
     ) -> Result<SetPlaneResult, GameplayError> {
         let db = self.db.as_ref();
         let codex = self.codex.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
         deduct_use_item_impl(&tx, profile_id, USE_ITEM_AIR_RATION, 1).await?;
@@ -593,7 +594,7 @@ impl Ctx {
     ) -> Result<SetPlaneResult, GameplayError> {
         let db = self.db.as_ref();
         let codex = self.codex.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         find_owned_airbase(&tx, profile_id, area_id, base_id).await?;
         settle_conditions_impl(&tx, profile_id).await?;

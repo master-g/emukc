@@ -77,8 +77,10 @@ where
     C: ConnectionTrait,
 ```
 
-The inherent method owns the transaction (`db.begin()` … `tx.commit()`); the
-`_impl` function takes `&C` so it can run either on a `DbConn` or inside a
+The inherent method owns the transaction (`db.begin_immediate()` …
+`tx.commit()`; `BEGIN IMMEDIATE`, so a request waits out the busy timeout
+instead of failing while a CLI process writes the same file); the `_impl`
+function takes `&C` so it can run either on a `DbConn` or inside a
 `DatabaseTransaction` opened by another domain. Cross-domain writes SHALL go
 through `_impl` functions, never by calling another inherent method, because a
 nested inherent call would open a second transaction.

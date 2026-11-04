@@ -11,6 +11,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{
         self, fleet,
         furniture::record as furniture_record,
@@ -19,7 +20,7 @@ use emukc_db::{
         settings::game as game_settings,
         ship::{self, sp_effect_item},
     },
-    sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, entity::prelude::*},
 };
 use emukc_model::{
     codex::Codex,
@@ -178,7 +179,7 @@ impl Ctx {
         profile_id: i64,
         snapshot: &LiveSnapshot,
     ) -> Result<ImportReport, GameplayError> {
-        let tx = self.db.begin().await?;
+        let tx = self.db.begin_immediate().await?;
         let report = import_account_impl(&tx, &self.codex, profile_id, snapshot).await?;
         tx.commit().await?;
         Ok(report)

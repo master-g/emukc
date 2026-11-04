@@ -1,4 +1,5 @@
-use emukc_db::sea_orm::{TransactionTrait, entity::prelude::*};
+use emukc_db::BeginImmediate;
+use emukc_db::sea_orm::entity::prelude::*;
 use emukc_model::kc2::{KcApiGameSetting, KcApiOptionSetting, KcApiOssSetting};
 use game::{
     get_game_settings_impl, update_flagship_position_impl, update_friendly_fleet_settings_impl,
@@ -73,7 +74,7 @@ impl Ctx {
         oss_items: &[i64],
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_oss_settings_impl(&tx, profile_id, lan_type, oss_items).await?;
 
@@ -94,7 +95,7 @@ impl Ctx {
         settings: &KcApiOptionSetting,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_options_settings_impl(&tx, profile_id, settings).await?;
 
@@ -111,7 +112,7 @@ impl Ctx {
     /// - `bgm_id`: The BGM ID.
     pub async fn update_port_bgm(&self, profile_id: i64, bgm_id: i64) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_port_bgm_impl(&tx, profile_id, bgm_id).await?;
 
@@ -132,7 +133,7 @@ impl Ctx {
         position_id: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_flagship_position_impl(&tx, profile_id, position_id).await?;
 
@@ -155,7 +156,7 @@ impl Ctx {
         typ: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_friendly_fleet_settings_impl(&tx, profile_id, request, typ).await?;
 

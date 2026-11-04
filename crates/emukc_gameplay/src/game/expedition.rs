@@ -1,7 +1,8 @@
 use emukc_crypto::rng;
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{self, expedition, fleet, item::slot_item, ship},
-    sea_orm::{ActiveValue, IntoActiveModel, QueryFilter, TransactionTrait, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, QueryFilter, entity::prelude::*},
 };
 use emukc_model::{
     codex::Codex,
@@ -104,7 +105,7 @@ impl Ctx {
     ) -> Result<(Vec<expedition::Model>, Option<i64>), GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let records = expedition::Entity::find()
             .filter(expedition::Column::ProfileId.eq(profile_id))
@@ -141,7 +142,7 @@ impl Ctx {
     ) -> Result<ExpeditionStartInfo, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let mission_mst = find_mission_mst(codex, mission_id)
             .ok_or(GameplayError::ManifestNotFound(mission_id))?;
@@ -204,7 +205,7 @@ impl Ctx {
     ) -> Result<ExpeditionCompletion, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let fleet_model = find_fleet(&tx, profile_id, fleet_id).await?;
         if fleet_model.mission_status == fleet::MissionStatus::Idle || fleet_model.mission_id <= 0 {
@@ -410,7 +411,7 @@ impl Ctx {
         fleet_id: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let fleet_model = find_fleet(&tx, profile_id, fleet_id).await?;
         if fleet_model.mission_status != fleet::MissionStatus::InMission {

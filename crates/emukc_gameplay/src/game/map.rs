@@ -4,8 +4,9 @@ use std::{
 };
 
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{map_record, quest::oneshot},
-    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, entity::prelude::*},
 };
 #[cfg(test)]
 use emukc_model::codex::map::MapStageDefinition;
@@ -47,7 +48,7 @@ impl Ctx {
     ) -> Result<Vec<map_record::Model>, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         ensure_map_records_impl(&tx, codex, profile_id).await?;
         refresh_all_map_records_impl(&tx, codex, profile_id).await?;
@@ -61,7 +62,7 @@ impl Ctx {
     pub async fn get_map_infos(&self, profile_id: i64) -> Result<Vec<KcApiMapInfo>, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         ensure_map_records_impl(&tx, codex, profile_id).await?;
         refresh_all_map_records_impl(&tx, codex, profile_id).await?;
@@ -82,7 +83,7 @@ impl Ctx {
     ) -> Result<EventMapRankSelection, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         ensure_map_records_impl(&tx, codex, profile_id).await?;
         refresh_all_map_records_impl(&tx, codex, profile_id).await?;
@@ -137,7 +138,7 @@ impl Ctx {
         }
 
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         find_profile(&tx, profile_id).await?;
         if combined_type > 0 {

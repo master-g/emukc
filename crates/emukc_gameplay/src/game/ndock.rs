@@ -1,10 +1,8 @@
 use crate::game::ship::find_owned_ship;
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{material, ndock, ship},
-    sea_orm::{
-        ActiveValue, IntoActiveModel, QueryOrder, TransactionTrait, TryIntoModel,
-        entity::prelude::*,
-    },
+    sea_orm::{ActiveValue, IntoActiveModel, QueryOrder, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{
     codex::{Codex, repair::RepairCost},
@@ -36,7 +34,7 @@ impl Ctx {
         index: i64,
     ) -> Result<RepairDock, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = unlock_ndock_impl(&tx, profile_id, index).await?;
 
@@ -70,7 +68,7 @@ impl Ctx {
     pub async fn get_ndocks(&self, profile_id: i64) -> Result<Vec<RepairDock>, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let docks = get_ndocks_impl(&tx, codex, profile_id).await?;
 
@@ -86,7 +84,7 @@ impl Ctx {
     /// - `profile_id`: The profile ID.
     pub async fn expand_repair_dock(&self, profile_id: i64) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         expand_repair_dock_impl(&tx, profile_id).await?;
 
@@ -112,7 +110,7 @@ impl Ctx {
     ) -> Result<Option<Material>, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let (m, outcomes) =
             ndock_start_repair_impl(&tx, codex, profile_id, ndock_id, ship_id, highspeed).await?;
@@ -139,7 +137,7 @@ impl Ctx {
     ) -> Result<Material, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let (m, outcomes) = speed_up_ship_repairation_impl(&tx, profile_id, ndock_id).await?;
 

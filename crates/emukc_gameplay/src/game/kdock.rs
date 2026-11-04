@@ -1,6 +1,7 @@
 use emukc_db::{
+    BeginImmediate,
     entity::profile::kdock,
-    sea_orm::{ActiveValue, QueryOrder, TransactionTrait, TryIntoModel, entity::prelude::*},
+    sea_orm::{ActiveValue, QueryOrder, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{kc2::KcUseItemType, profile::kdock::ConstructionDock};
 
@@ -21,7 +22,7 @@ impl Ctx {
         index: i64,
     ) -> Result<ConstructionDock, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = unlock_kdock_impl(&tx, profile_id, index).await?;
 
@@ -69,7 +70,7 @@ impl Ctx {
     /// - `profile_id`: The profile ID.
     pub async fn expand_construction_dock(&self, profile_id: i64) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         expand_construction_dock_impl(&tx, profile_id).await?;
 

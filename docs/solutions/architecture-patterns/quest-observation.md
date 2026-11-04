@@ -52,7 +52,7 @@ The `Ctx` method that owns the transaction SHALL call `observe(&tx, ..)` exactly
 once, after its domain writes are done and before `tx.commit()`:
 
 ```rust
-let tx = db.begin().await?;
+let tx = db.begin_immediate().await?;
 let (resp, outcomes) = supply_fleet_impl(&tx, codex, profile_id, ..).await?;
 observe(&tx, codex, profile_id, &outcomes).await?;
 tx.commit().await?;

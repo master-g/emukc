@@ -8,6 +8,7 @@ use dev_item::{
     register_preset_dev_item_impl, update_preset_dev_item_name_impl,
 };
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{
         fleet,
         preset::{
@@ -15,7 +16,7 @@ use emukc_db::{
             preset_slot::{self},
         },
     },
-    sea_orm::{ActiveValue, TransactionTrait, entity::prelude::*},
+    sea_orm::{ActiveValue, entity::prelude::*},
 };
 use emukc_model::profile::{
     preset_deck::{PresetDeck, PresetDeckItem},
@@ -104,7 +105,7 @@ impl Ctx {
         preset: &PresetDeckItem,
     ) -> Result<preset_deck::Model, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = register_preset_deck_impl(&tx, profile_id, preset).await?;
 
@@ -127,7 +128,7 @@ impl Ctx {
         ship_id: i64,
     ) -> Result<preset_slot::Model, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = register_preset_slot_impl(&tx, profile_id, preset_no, ship_id).await?;
 
@@ -148,7 +149,7 @@ impl Ctx {
         preset_no: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         delete_preset_deck_impl(&tx, profile_id, preset_no).await?;
 
@@ -164,7 +165,7 @@ impl Ctx {
         preset_no: i64,
     ) -> Result<bool, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let locked = toggle_preset_deck_lock_impl(&tx, profile_id, preset_no).await?;
 
@@ -182,7 +183,7 @@ impl Ctx {
         to: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         exchange_preset_decks_impl(&tx, profile_id, from, to).await?;
 
@@ -198,7 +199,7 @@ impl Ctx {
     /// - `profile_id`: The profile ID.
     pub async fn expand_preset_deck_capacity(&self, profile_id: i64) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         expand_preset_deck_capacity_impl(&tx, profile_id).await?;
 
@@ -214,7 +215,7 @@ impl Ctx {
     /// - `profile_id`: The profile ID.
     pub async fn expand_preset_slot_capacity(&self, profile_id: i64) -> Result<i64, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let new_cap = expand_preset_slot_capacity_impl(&tx, profile_id).await?;
 
@@ -237,7 +238,7 @@ impl Ctx {
         preset_no: i64,
     ) -> Result<fleet::Model, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = apply_preset_deck_impl(&tx, profile_id, deck_id, preset_no).await?;
 
@@ -263,7 +264,7 @@ impl Ctx {
     ) -> Result<i64, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let bauxite =
             apply_preset_slot_impl(&tx, codex, profile_id, preset_no, ship_id, mode).await?;
@@ -285,7 +286,7 @@ impl Ctx {
         preset_no: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         delete_preset_slot_impl(&tx, profile_id, preset_no).await?;
 
@@ -306,7 +307,7 @@ impl Ctx {
         preset_no: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         toggle_preset_slot_ex_flag_impl(&tx, profile_id, preset_no).await?;
 
@@ -327,7 +328,7 @@ impl Ctx {
         preset_no: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         toggle_preset_slot_locked_impl(&tx, profile_id, preset_no).await?;
 
@@ -350,7 +351,7 @@ impl Ctx {
         name: &str,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_preset_slot_name_impl(&tx, profile_id, preset_no, name).await?;
 
@@ -391,7 +392,7 @@ impl Ctx {
         preset: &PresetDevItemElement,
     ) -> Result<preset_dev_item::Model, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = register_preset_dev_item_impl(&tx, profile_id, preset).await?;
 
@@ -407,7 +408,7 @@ impl Ctx {
         preset_no: i64,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         delete_preset_dev_item_impl(&tx, profile_id, preset_no).await?;
 
@@ -424,7 +425,7 @@ impl Ctx {
         name: String,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_preset_dev_item_name_impl(&tx, profile_id, preset_no, name).await?;
 
@@ -439,7 +440,7 @@ impl Ctx {
         profile_id: i64,
     ) -> Result<i64, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let new_cap = expand_preset_dev_item_capacity_impl(&tx, profile_id).await?;
 

@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{airbase::plane as plane_db, item::slot_item},
-    sea_orm::{ActiveValue, Condition, TransactionTrait, TryIntoModel, entity::prelude::*},
+    sea_orm::{ActiveValue, Condition, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{prelude::*, profile::slot_item::SlotItem};
 
@@ -140,7 +141,7 @@ impl Ctx {
         let codex = self.codex.as_ref();
 
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = add_slot_item_impl(&tx, codex, profile_id, mst_id, stars, alv).await?;
 
@@ -204,7 +205,7 @@ impl Ctx {
         equip_on: Option<i64>,
     ) -> Result<KcApiSlotItem, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = update_slot_item_impl(&tx, id, stars, alv, equip_on).await?;
 
@@ -271,7 +272,7 @@ impl Ctx {
     ) -> Result<KcApiSlotItem, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = toggle_slot_item_locked_impl(&tx, profile_id, item_id).await?;
 
@@ -306,7 +307,7 @@ impl Ctx {
     ) -> Result<Vec<(MaterialCategory, i64)>, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         // Checked here and not in `destroy_items_impl`: scrapping a ship goes
         // through that `_impl` on purpose, taking its own equipment with it.

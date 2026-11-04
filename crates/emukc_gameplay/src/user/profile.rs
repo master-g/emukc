@@ -1,6 +1,7 @@
 //! Deal with account related stuff.
 
 use emukc_db::{
+    BeginImmediate,
     entity::profile,
     sea_orm::{entity::*, query::*},
 };
@@ -40,7 +41,7 @@ impl Ctx {
     ) -> Result<StartGameInfo, UserError> {
         let db = self.db.as_ref();
         let codex = self.codex.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         // verify access token
         let account_model = verify_access_token(&tx, access_token).await?;
@@ -87,7 +88,7 @@ impl Ctx {
         profile_id: i64,
     ) -> Result<StartGameInfo, UserError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         // verify access token
         let account_model = verify_access_token(&tx, access_token).await?;
@@ -137,7 +138,7 @@ impl Ctx {
     /// * `world_id` - The world ID to select.
     pub async fn select_world(&self, profile_id: i64, world_id: i64) -> Result<(), UserError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let profile_model = profile::Entity::find_by_id(profile_id)
             .one(&tx)
@@ -178,7 +179,7 @@ impl Ctx {
     pub async fn wipe_profile(&self, access_token: &str, profile_id: i64) -> Result<(), UserError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         verify_access_token(&tx, access_token).await?;
 
@@ -186,7 +187,7 @@ impl Ctx {
 
         tx.commit().await?;
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         init_profile_game_data(&tx, codex, profile_id).await?;
 

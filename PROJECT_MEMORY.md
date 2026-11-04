@@ -131,7 +131,7 @@ Current verification baseline:
 - [2026-10-22] 鈴谷/熊野航改二有水面敌舰在就不先制对潜（`isASWlast`，`kcsim.js:1086`），用户定保留；实机未核实。
 - [2026-10-22] 敌舰 `api_*` 是本体加装备总值、`api_eParam` 给本体；对潜/回避/索敌/运取来源，其余五项取 kcwiki（两边各有错）；未处理的射程/速力差异：`abyssal-ship-stats.md`。
 - [2026-10-22] 弾着観測的舰队索敌每轮重算，用户定偏离来源整场沿用（沉没舰仍计）；实机无证据。
-- [2026-11-04] SQLite 只有 1 个连接（SeaORM 2.0 对 SQLite 强制 `max_connections(1)`），进程内请求全串行，并发测不出竞态；`.begin()` 是延迟事务，另一个进程（写库的 CLI）持写锁时先读后写的事务立即 `database is locked`，WAL 无效，`BEGIN IMMEDIATE` 才行（计划 002 P10）。
+- [2026-11-04] SQLite 只有 1 个连接（SeaORM 2.0 强制 `max_connections(1)`），进程内请求全串行。跨进程：SQLite 只给未持锁的事务调 busy handler，延迟事务读后再写遇别的进程持写锁立即 `database is locked`，WAL 无效；事务一律 `begin_immediate()`，`clippy.toml` 禁 `begin()`。
 
 ## Failed Attempts / Pitfalls
 
@@ -173,9 +173,9 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-11-04] 计划 002 全部合并（#308–#321），合并后 `main` 全量 1730 过、无头 `fresh_1_1` 连跑 3 次都过。`fix/practice-rival-refresh`：演习对手改按最近一次 03:00／15:00 JST 刷新（原来 15:00 后每次重抽，上午抽的过 15:00 不刷新）；固定时间的单元测试先红后绿，全量 1730 过。
+- [2026-11-04] `fix/sqlite-immediate-tx`：131 处 `.begin()` 改为 `BEGIN IMMEDIATE`。`a_request_waits_for_another_process_writing_the_database` 先红后绿；真实服务器配 `sqlite3` 持写锁，修前 sign-up 0.56 秒 500，修后等到提交 2.51 秒 200。全量 1731 过。
 
 ## Next Session
 
-- [2026-11-04] 计划 002「执行中的新发现」余项待用户挑（SQLite 跨进程写锁最值得做）。10-27 对拍三处公式差异开不开 issue、#293、#294、#300、#302 的分诊，自 10-22／10-27 起每次原样顺延，下次请用户逐条定做或删；#291、#282、#285 暂停。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
+- [2026-11-04] 计划 002「执行中的新发现」余项待用户挑（SQLite 写锁已修）。10-27 对拍三处公式差异开不开 issue、#293、#294、#300、#302 的分诊，自 10-22／10-27 起每次原样顺延，下次请用户逐条定做或删；#291、#282、#285 暂停。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
   季节＝某天的状态。暂不发版；`CHANGELOG.md` 只到 2026-05，发版前重写。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。数字先读到再写。

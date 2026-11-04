@@ -1,6 +1,7 @@
 use emukc_db::{
+    BeginImmediate,
     entity::profile::material,
-    sea_orm::{ActiveValue, TransactionTrait, TryIntoModel, entity::prelude::*},
+    sea_orm::{ActiveValue, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{codex::Codex, kc2::MaterialCategory, profile::material::Material};
 
@@ -22,7 +23,7 @@ impl Ctx {
     ) -> Result<(), GameplayError> {
         let codex = &self.codex;
         let db = &self.db;
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         add_material_impl(&tx, codex, profile_id, values).await?;
 
@@ -43,7 +44,7 @@ impl Ctx {
         values: &[(MaterialCategory, i64)],
     ) -> Result<Material, GameplayError> {
         let db = &self.db;
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let m = deduct_material_impl(&tx, profile_id, values).await?;
 
@@ -72,7 +73,7 @@ impl Ctx {
     pub async fn update_materials(&self, profile_id: i64) -> Result<Material, GameplayError> {
         let codex = &self.codex;
         let db = &self.db;
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let profile = find_profile(&tx, profile_id).await?;
 

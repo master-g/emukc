@@ -2,6 +2,7 @@
 
 use emukc_crypto::PasswordCrypto;
 use emukc_db::{
+    BeginImmediate,
     entity::{
         profile,
         user::{account, token},
@@ -67,7 +68,7 @@ impl Ctx {
         let password = password.to_owned();
         let secret = off_executor(move || password.hash_password()).await;
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         // the name may have been taken while hashing
         if name_taken().one(&tx).await?.is_some() {
@@ -108,7 +109,7 @@ impl Ctx {
         let db = self.db.as_ref();
         let model = find_verified(db, username, password).await?;
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let mut active_model: account::ActiveModel = model.into();
         active_model.last_login = ActiveValue::Set(Utc::now());
@@ -134,7 +135,7 @@ impl Ctx {
     /// * `token` - The token to authenticate with, usually an access token, or game session token.
     pub async fn auth(&self, token: &str) -> Result<AuthInfo, UserError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         // find token record
         let model = token::Entity::find()
@@ -205,7 +206,7 @@ impl Ctx {
     /// * `access_token` - The access token to logout with.
     pub async fn logout(&self, access_token: &str) -> Result<(), UserError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         // find token record
         let account_model = verify_access_token(&tx, access_token).await?;
@@ -229,7 +230,7 @@ impl Ctx {
         let db = self.db.as_ref();
         let model = find_verified(db, username, password).await?;
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let uid = model.uid;
 
@@ -324,7 +325,7 @@ mod tests {
         let uid = result.account.uid;
 
         let db = gp.db.as_ref();
-        let tx = db.begin().await.unwrap();
+        let tx = db.begin_immediate().await.unwrap();
 
         for _ in 0..3 {
             issue_token(&tx, uid, 0, TokenType::Access).await.unwrap();
@@ -439,5 +440,38 @@ mod tests {
         let game = gp.new_profile(token, "admiral").await.unwrap();
 
         gp.wipe_profile(token, game.profile.id).await.unwrap();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn a_request_waits_for_another_process_writing_the_database() {
+        let path = std::env::temp_dir().join(format!("emukc-lock-{}.sqlite", std::process::id()));
+        let server = emukc_bootstrap::prelude::prepare(&path, true).await.unwrap();
+        let cli = emukc_bootstrap::prelude::prepare(&path, false).await.unwrap();
+        let gp = Ctx::new(Arc::new(server), Arc::new(Codex::default()));
+        let token = gp.sign_up("server", "1234567").await.unwrap().access_token.token;
+
+        let cli_tx = cli.begin_immediate().await.unwrap();
+        account::ActiveModel {
+            uid: ActiveValue::NotSet,
+            name: ActiveValue::Set("cli".to_owned()),
+            secret: ActiveValue::Set(String::new()),
+            create_time: ActiveValue::Set(Utc::now()),
+            last_login: ActiveValue::Set(Utc::now()),
+        }
+        .insert(&cli_tx)
+        .await
+        .unwrap();
+        let cli_commit = tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(300)).await;
+            cli_tx.commit().await
+        });
+
+        let auth = gp.auth(&token).await;
+        cli_commit.await.unwrap().unwrap();
+        drop(gp);
+        drop(cli);
+        let _ = std::fs::remove_file(&path);
+
+        assert!(auth.is_ok(), "auth during another process's write: {auth:?}");
     }
 }

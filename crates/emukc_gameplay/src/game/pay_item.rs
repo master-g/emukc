@@ -1,8 +1,9 @@
 use crate::err::GameplayError;
 use crate::gameplay::Ctx;
 use emukc_db::{
+    BeginImmediate,
     entity::profile::item::pay_item::{self, ActiveModel},
-    sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, TryIntoModel, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, TryIntoModel, entity::prelude::*},
 };
 use emukc_model::{
     prelude::*,
@@ -32,7 +33,7 @@ impl Ctx {
         amount: i64,
     ) -> Result<KcApiUserItem, GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let am = add_pay_item_impl(&tx, profile_id, mst_id, amount).await?;
 
@@ -97,7 +98,7 @@ impl Ctx {
     ) -> Result<bool, GameplayError> {
         let codex = self.codex.as_ref();
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let caution = consume_pay_item_impl(&tx, codex, profile_id, mst_id, forced).await?;
 

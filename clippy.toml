@@ -1,0 +1,3 @@
+disallowed-methods = [
+    { path = "sea_orm::TransactionTrait::begin", reason = "a deferred transaction fails at once while another process writes the database; use emukc_db::BeginImmediate::begin_immediate" },
+]

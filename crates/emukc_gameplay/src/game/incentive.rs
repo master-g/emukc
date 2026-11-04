@@ -1,8 +1,9 @@
 //! Incentive related gameplay operations.
 
 use emukc_db::{
+    BeginImmediate,
     entity::profile::incentive::{self, IncentiveMode, IncentiveType},
-    sea_orm::{QueryOrder, TransactionTrait, entity::*},
+    sea_orm::{QueryOrder, entity::*},
 };
 use emukc_model::kc2::{KcApiIncentiveItem, MaterialCategory, start2::ApiMstShip};
 use prelude::{ConnectionTrait, QueryFilter};
@@ -28,7 +29,7 @@ impl Ctx {
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let ams: Vec<incentive::ActiveModel> = items
             .iter()
@@ -78,7 +79,7 @@ impl Ctx {
         let db = self.db.as_ref();
         let codex = self.codex.as_ref();
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         let items = incentive::Entity::find()
             .filter(incentive::Column::ProfileId.eq(profile_id))

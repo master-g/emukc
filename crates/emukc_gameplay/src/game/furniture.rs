@@ -1,6 +1,7 @@
 use emukc_db::{
+    BeginImmediate,
     entity::profile::{furniture, item::use_item},
-    sea_orm::{ActiveValue, IntoActiveModel, TransactionTrait, entity::prelude::*},
+    sea_orm::{ActiveValue, IntoActiveModel, entity::prelude::*},
 };
 use emukc_model::{
     kc2::{KcApiFurniture, KcUseItemType},
@@ -20,7 +21,7 @@ impl Ctx {
     pub async fn add_furniture(&self, profile_id: i64, mst_id: i64) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
 
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         add_furniture_impl(&tx, profile_id, mst_id).await?;
 
@@ -45,7 +46,7 @@ impl Ctx {
         need_craftman: bool,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         buy_furniture_impl(&tx, profile_id, mst_id, price, need_craftman).await?;
 
@@ -81,7 +82,7 @@ impl Ctx {
         config: &FurnitureConfig,
     ) -> Result<(), GameplayError> {
         let db = self.db.as_ref();
-        let tx = db.begin().await?;
+        let tx = db.begin_immediate().await?;
 
         update_furniture_config_impl(&tx, profile_id, config).await?;
 
