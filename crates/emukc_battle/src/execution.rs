@@ -100,6 +100,7 @@ pub fn execute_sp_midnight(
 
 #[cfg(test)]
 mod tests {
+    use crate::types::Side;
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::{KcShipType, KcSlotItemType3};
 
@@ -148,12 +149,12 @@ mod tests {
         NightBattleInput {
             special_attacks_made: Default::default(),
             friendly: vec![
-                BattleRuntimeShip::new(sample_ship(codex, 79, 99), true, true),
-                BattleRuntimeShip::new(sample_ship(codex, 79, 99), true, true),
+                BattleRuntimeShip::new(sample_ship(codex, 79, 99), Side::Friendly, true),
+                BattleRuntimeShip::new(sample_ship(codex, 79, 99), Side::Friendly, true),
             ],
             enemy: vec![
-                BattleRuntimeShip::new(sample_ship(codex, 412, 99), false, true),
-                BattleRuntimeShip::new(sample_ship(codex, 412, 99), false, true),
+                BattleRuntimeShip::new(sample_ship(codex, 412, 99), Side::Enemy, true),
+                BattleRuntimeShip::new(sample_ship(codex, 412, 99), Side::Enemy, true),
             ],
             friendly_formation_id: 1,
             enemy_formation_id: 1,

@@ -152,6 +152,7 @@ mod tests {
     use crate::test_utils::{
         first_ship_mst_by_type, sample_ship, ship_mst_id_by_name, slotitem_with_mst_id,
     };
+    use crate::types::Side;
 
     #[test]
     fn a_pt_imp_bends_accuracy_and_power_as_the_source_does() {
@@ -169,7 +170,7 @@ mod tests {
         let ship = |ship_type, gear: &[i64]| {
             let mut input = sample_ship(&codex, first_ship_mst_by_type(&codex, ship_type), 1);
             input.slot_items = gear.iter().map(|&id| slotitem_with_mst_id(id)).collect();
-            AntiPt::of(&codex, &BattleRuntimeShip::new(input, true, true))
+            AntiPt::of(&codex, &BattleRuntimeShip::new(input, Side::Friendly, true))
         };
         let close = |a: f64, b: f64| (a - b).abs() < 1e-9;
 
@@ -196,7 +197,7 @@ mod tests {
     #[test]
     fn amagiri_and_the_destroyers_beside_her_aim_at_pt_imps() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
-        let ship = |id| BattleRuntimeShip::new(sample_ship(&codex, id, 99), true, true);
+        let ship = |id| BattleRuntimeShip::new(sample_ship(&codex, id, 99), Side::Friendly, true);
         let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
         let ca = first_ship_mst_by_type(&codex, KcShipType::CA);
         let mut fleet = vec![ship(ca), ship(903), ship(dd), ship(dd)];
@@ -207,7 +208,7 @@ mod tests {
         let enemy = |id| {
             let mut input = sample_ship(&codex, dd, 1);
             input.ship.api_ship_id = id;
-            BattleRuntimeShip::new(input, false, true)
+            BattleRuntimeShip::new(input, Side::Enemy, true)
         };
         let defenders = vec![enemy(dd), enemy(ship_mst_id_by_name(&codex, "PT小鬼群")), enemy(dd)];
         assert_eq!(prefer_pt(&codex, &fleet[2], &defenders, vec![0, 1, 2]), [1]);

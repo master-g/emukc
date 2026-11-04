@@ -1025,7 +1025,7 @@ const AIRSTRIKE_POWER_BONUS: f64 = 25.0;
 mod tests {
     use super::*;
     use crate::test_utils::*;
-    use crate::types::{BattlePhase, BattleRuntimeShip, EngagementType};
+    use crate::types::{BattlePhase, BattleRuntimeShip, EngagementType, Side};
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
@@ -1143,10 +1143,10 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
         let friendly = |role| {
-            BattleRuntimeShip::new(sample_ship(&codex, dd, 1), true, true)
+            BattleRuntimeShip::new(sample_ship(&codex, dd, 1), Side::Friendly, true)
                 .in_combined_fleet(CombinedType::CarrierTaskForce, role)
         };
-        let enemy = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), false, true);
+        let enemy = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), Side::Enemy, true);
 
         // 空母機動, shelling: deck 1 自軍 +2 / 敵軍 +10, deck 2 自軍 +10 / 敵軍 +5.
         let main = friendly(CombinedFleetRole::Main);
@@ -1166,8 +1166,8 @@ mod tests {
     fn combined_correction_is_zero_for_a_single_fleet() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
-        let friendly = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), true, true);
-        let enemy = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), false, true);
+        let friendly = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), Side::Friendly, true);
+        let enemy = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), Side::Enemy, true);
 
         for class in [
             CombinedAttackClass::Shelling,
@@ -1225,7 +1225,7 @@ mod tests {
         let friendly_at = |bull: i64| {
             let mut input = sample_ship(&codex, dd, 1);
             input.ship.api_bull = bull;
-            BattleRuntimeShip::new(input, true, true)
+            BattleRuntimeShip::new(input, Side::Friendly, true)
         };
 
         assert_eq!(ammo_modifier(&codex, &friendly_at(bull_max)), 1.0); // full
@@ -1242,7 +1242,7 @@ mod tests {
         let modifier_at = |bull: i64| {
             let mut input = sample_ship(&codex, dd, 1);
             input.ship.api_bull = bull;
-            ammo_modifier(&codex, &BattleRuntimeShip::new(input, true, true))
+            ammo_modifier(&codex, &BattleRuntimeShip::new(input, Side::Friendly, true))
         };
 
         // Empty ammo → 0.0 (scratch only).
@@ -1271,7 +1271,7 @@ mod tests {
         let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
         let mut input = sample_ship(&codex, dd, 1);
         input.ship.api_bull = 0; // empty
-        let enemy = BattleRuntimeShip::new(input, false, true);
+        let enemy = BattleRuntimeShip::new(input, Side::Enemy, true);
         assert_eq!(ammo_modifier(&codex, &enemy), 1.0);
     }
 
@@ -1285,8 +1285,8 @@ mod tests {
         let shell = |bull: i64, seed: u64| {
             let mut input = sample_ship(&codex, ca, 99);
             input.ship.api_bull = bull;
-            let attacker = BattleRuntimeShip::new(input, true, true);
-            let defender = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), false, true);
+            let attacker = BattleRuntimeShip::new(input, Side::Friendly, true);
+            let defender = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), Side::Enemy, true);
             let mut rng = crate::random::SeededRng::new(seed);
             calculate_shelling_damage(
                 &codex,
@@ -1432,7 +1432,7 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let ship = |number| {
             let input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 1);
-            BattleRuntimeShip::new(input, true, true).in_vanguard(number, 6)
+            BattleRuntimeShip::new(input, Side::Friendly, true).in_vanguard(number, 6)
         };
         let power = |number, class| vanguard_power(&ship(number), class);
         assert_eq!(power(3, CombinedAttackClass::Shelling), 0.5);
@@ -1454,10 +1454,11 @@ mod tests {
             input.ship.api_soukou[0] = 0;
             input.ship.api_nowhp = 9999;
             input.ship.api_maxhp = 9999;
-            BattleRuntimeShip::new(input, false, true)
+            BattleRuntimeShip::new(input, Side::Enemy, true)
         };
         let attacker = |number| {
-            BattleRuntimeShip::new(sample_ship(&codex, cl, 99), true, true).in_vanguard(number, 6)
+            BattleRuntimeShip::new(sample_ship(&codex, cl, 99), Side::Friendly, true)
+                .in_vanguard(number, 6)
         };
         for seed in [1u64, 7, 42] {
             let day = |number| {
@@ -1500,8 +1501,8 @@ mod tests {
         let build = |bull: i64| {
             let mut input = sample_ship(&codex, dd, 99);
             input.ship.api_bull = bull;
-            let attacker = BattleRuntimeShip::new(input, true, true);
-            let defender = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), false, true);
+            let attacker = BattleRuntimeShip::new(input, Side::Friendly, true);
+            let defender = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), Side::Enemy, true);
             (attacker, defender)
         };
 
@@ -1580,8 +1581,8 @@ mod tests {
         let shell = |bull: i64, seed: u64| {
             let mut input = sample_ship(&codex, ca, 99);
             input.ship.api_bull = bull;
-            let attacker = BattleRuntimeShip::new(input, false, true); // enemy attacker
-            let defender = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), true, true);
+            let attacker = BattleRuntimeShip::new(input, Side::Enemy, true); // enemy attacker
+            let defender = BattleRuntimeShip::new(sample_ship(&codex, dd, 1), Side::Friendly, true);
             let mut rng = crate::random::SeededRng::new(seed);
             calculate_shelling_damage(
                 &codex,

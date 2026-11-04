@@ -341,6 +341,7 @@ mod tests {
     use super::*;
     use crate::random::SeededRng;
     use crate::test_utils::{first_ship_mst_by_type, sample_ship, slotitem_with_mst_id};
+    use crate::types::Side;
     use emukc_model::kc2::types::KcShipType;
 
     /// 雷電: 対空 6, 迎撃 2, 対爆 5.
@@ -353,7 +354,7 @@ mod tests {
         // 深海猫艦戦改, 深海地獄艦爆改 and 深海復讐艦攻改, thirty of each.
         carrier.slot_items = [1556, 1557, 1558].map(slotitem_with_mst_id).to_vec();
         carrier.ship.api_onslot = [30, 30, 30, 0, 0];
-        vec![BattleRuntimeShip::new(carrier, false, true)]
+        vec![BattleRuntimeShip::new(carrier, Side::Enemy, true)]
     }
 
     fn base(defending: bool, squadrons: &[(i64, i64)]) -> AirRaidBase {

@@ -29,8 +29,8 @@ use serde::Serialize;
 use crate::{err::GameplayError, gameplay::Ctx};
 
 use emukc_battle::{
-    BattleAirRaid, BattleRng, BattleRuntimeShip, BattleType, CombinedFleetRole, SpecialAttacksMade,
-    simulate_air_raid,
+    BattleAirRaid, BattleRng, BattleRuntimeShip, BattleType, CombinedFleetRole, Side,
+    SpecialAttacksMade, simulate_air_raid,
 };
 
 use super::{
@@ -1258,7 +1258,7 @@ where
         .map(|(index, &ship_id)| {
             let level = composition.levels.get(index).copied().unwrap_or(1);
             build_sortie_enemy_ship(codex, ship_id, level)
-                .map(|ship| BattleRuntimeShip::new(ship, false, true))
+                .map(|ship| BattleRuntimeShip::new(ship, Side::Enemy, true))
         })
         .collect::<Result<Vec<_>, GameplayError>>()?;
 

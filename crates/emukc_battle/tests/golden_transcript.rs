@@ -27,8 +27,8 @@ use std::path::{Path, PathBuf};
 use emukc_battle::{
     AirCorpsInput, AirSquadronInput, AirState, BattleContext, BattleRng, BattleRuntimeShip,
     BattleShipInput, BattleSimulation, BattleType, CombinedFleetRole, CombinedSetup, CombinedType,
-    EngagementType, NightBattleInput, any_alive, execute_day, execute_night, execute_sp_midnight,
-    night_enemy_deck,
+    EngagementType, NightBattleInput, Side, any_alive, execute_day, execute_night,
+    execute_sp_midnight, night_enemy_deck,
 };
 use emukc_crypto::rng::GameRng;
 use emukc_model::codex::Codex;
@@ -134,12 +134,12 @@ fn night_input(codex: &Codex) -> NightBattleInput {
     NightBattleInput {
         special_attacks_made: Default::default(),
         friendly: vec![
-            BattleRuntimeShip::new(attacker(codex), true, true),
-            BattleRuntimeShip::new(attacker(codex), true, true),
+            BattleRuntimeShip::new(attacker(codex), Side::Friendly, true),
+            BattleRuntimeShip::new(attacker(codex), Side::Friendly, true),
         ],
         enemy: vec![
-            BattleRuntimeShip::new(target(codex), false, true),
-            BattleRuntimeShip::new(target(codex), false, true),
+            BattleRuntimeShip::new(target(codex), Side::Enemy, true),
+            BattleRuntimeShip::new(target(codex), Side::Enemy, true),
         ],
         friendly_formation_id: 1,
         enemy_formation_id: 1,

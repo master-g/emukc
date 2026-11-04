@@ -92,9 +92,18 @@ impl VanguardPlace {
     }
 }
 
+/// Which fleet a ship fights in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Side {
+    /// The player's fleet.
+    Friendly,
+    /// The enemy fleet.
+    Enemy,
+}
+
 impl BattleRuntimeShip {
     /// Create a runtime ship for battle simulation.
-    pub fn new(input: BattleShipInput, is_friendly: bool, is_sortie: bool) -> Self {
+    pub fn new(input: BattleShipInput, side: Side, is_sortie: bool) -> Self {
         Self {
             current_hp: input.ship.api_nowhp,
             entry_hp: input.ship.api_nowhp,
@@ -103,7 +112,7 @@ impl BattleRuntimeShip {
             slot_items: input.slot_items,
             aircraft_exp: input.aircraft_exp,
             effect_list: input.effect_list,
-            is_friendly,
+            is_friendly: side == Side::Friendly,
             is_sortie,
             is_flagship: false,
             combined: None,
@@ -287,9 +296,9 @@ pub(crate) struct Landing {
 impl From<BattleShipInput> for BattleRuntimeShip {
     /// Convenience conversion for tests.
     /// Defaults to friendly sortie ship (sinking protection enabled).
-    /// Use `BattleRuntimeShip::new(input, is_friendly, is_sortie)` for specific contexts.
+    /// Use `BattleRuntimeShip::new(input, side, is_sortie)` for specific contexts.
     fn from(input: BattleShipInput) -> Self {
-        Self::new(input, true, true)
+        Self::new(input, Side::Friendly, true)
     }
 }
 

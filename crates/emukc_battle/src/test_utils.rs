@@ -7,7 +7,7 @@ use emukc_model::{
     },
 };
 
-use crate::types::{BattleRuntimeShip, BattleShipInput};
+use crate::types::{BattleRuntimeShip, BattleShipInput, Side};
 
 pub(crate) fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipInput {
     let (mut ship, slot_items) = codex.new_ship(mst_id).unwrap();
@@ -27,7 +27,7 @@ pub(crate) fn sample_ship(codex: &Codex, mst_id: i64, level: i64) -> BattleShipI
 
 /// An abyssal ship as a sortie meets her, at full health.
 pub(crate) fn abyssal_ship(codex: &Codex, mst_id: i64) -> BattleRuntimeShip {
-    BattleRuntimeShip::new(abyssal_input(codex, mst_id), false, true)
+    BattleRuntimeShip::new(abyssal_input(codex, mst_id), Side::Enemy, true)
 }
 
 /// An abyssal ship's battle input, as a sortie meets her.
@@ -117,7 +117,11 @@ pub(crate) fn make_test_ship_ctx(
             effect_list: vec![],
             married: false,
         },
-        is_friendly,
+        if is_friendly {
+            Side::Friendly
+        } else {
+            Side::Enemy
+        },
         is_sortie,
     );
     ship.entry_hp = entry_hp;

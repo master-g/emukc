@@ -402,6 +402,7 @@ mod tests {
     use crate::random::SeededRng;
     use crate::simulation::volley::Volleys;
     use crate::test_utils::*;
+    use crate::types::Side;
     use crate::types::{
         BattleContext, BattlePhase, BattleRuntimeShip, BattleType, DamageCell, EngagementType,
         ShellingParams,
@@ -447,13 +448,18 @@ mod tests {
     ) -> Option<crate::types::BattleHougeki> {
         let bb = first_ship_mst_by_type(codex, KcShipType::BB);
         let dd = first_ship_mst_by_type(codex, KcShipType::DD);
+        let (attacking, defending) = if attacker_is_enemy {
+            (Side::Enemy, Side::Friendly)
+        } else {
+            (Side::Friendly, Side::Enemy)
+        };
         let mut defenders = vec![
-            BattleRuntimeShip::new(sample_ship(codex, bb, 80), !attacker_is_enemy, true),
-            BattleRuntimeShip::new(sample_ship(codex, dd, 80), !attacker_is_enemy, true),
+            BattleRuntimeShip::new(sample_ship(codex, bb, 80), defending, true),
+            BattleRuntimeShip::new(sample_ship(codex, dd, 80), defending, true),
         ];
         let mut attackers = vec![
-            BattleRuntimeShip::new(sample_ship(codex, bb, 80), attacker_is_enemy, true),
-            BattleRuntimeShip::new(sample_ship(codex, bb, 80), attacker_is_enemy, true),
+            BattleRuntimeShip::new(sample_ship(codex, bb, 80), attacking, true),
+            BattleRuntimeShip::new(sample_ship(codex, bb, 80), attacking, true),
         ];
         let mut rng = SeededRng::new(seed);
         simulate_shelling_side(
@@ -784,7 +790,7 @@ mod tests {
                     bbv.ship.api_onslot = [1, 0, 0, 0, 0];
                     bbv.ship.api_soukou[0] = 1000;
                     let mut friendly = vec![BattleRuntimeShip::from(dd)];
-                    let mut enemy = vec![BattleRuntimeShip::new(bbv, false, true)];
+                    let mut enemy = vec![BattleRuntimeShip::new(bbv, Side::Enemy, true)];
                     let round = ShellingRound {
                         volleys: Volleys::between(0..1, 0..1, 0..1),
                         by_range: true,
@@ -1058,7 +1064,7 @@ mod tests {
                         ship.ship.api_nowhp = 4000;
                         ship.ship.api_maxhp = 4000;
                         ship.ship.api_karyoku[0] = 0;
-                        BattleRuntimeShip::new(ship, false, true)
+                        BattleRuntimeShip::new(ship, Side::Enemy, true)
                     })
                     .collect();
                 let round = ShellingRound {

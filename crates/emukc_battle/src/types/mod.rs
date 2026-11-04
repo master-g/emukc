@@ -19,7 +19,7 @@ pub use packet::{
 pub use runtime::{
     AirCorpsInput, AirSquadronInput, BattleContext, BattleOutcome, BattlePacket, BattleRuntimeShip,
     BattleShipInput, BattleSimulation, CombinedSetup, NightBattleInput, NightBattlePacket,
-    NightBattleSimulation, SpecialAttacksMade,
+    NightBattleSimulation, Side, SpecialAttacksMade,
 };
 pub(crate) use runtime::{CombinedMembership, VanguardPlace};
 

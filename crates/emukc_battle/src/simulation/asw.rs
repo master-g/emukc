@@ -128,7 +128,7 @@ fn asw_turn(
 #[cfg(test)]
 mod tests {
     use crate::test_utils::*;
-    use crate::types::{BattleContext, BattleType};
+    use crate::types::{BattleContext, BattleType, Side};
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
@@ -183,9 +183,10 @@ mod tests {
             let mut ship = sample_ship(&codex, dd_mst, 99);
             ship.ship.api_taisen[0] = 100;
             ship.slot_items = vec![slotitem_with_mst_id(sonar_mst_id)];
-            BattleRuntimeShip::new(ship, true, true)
+            BattleRuntimeShip::new(ship, Side::Friendly, true)
         };
-        let submarine = || BattleRuntimeShip::new(sample_ship(&codex, ss_mst, 80), false, true);
+        let submarine =
+            || BattleRuntimeShip::new(sample_ship(&codex, ss_mst, 80), Side::Enemy, true);
 
         let shielded = (0..200u64).any(|seed| {
             let mut friendly = vec![hunter(), hunter()];
