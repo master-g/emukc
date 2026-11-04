@@ -519,8 +519,10 @@ where
 
     match reward.category {
         Kc3rdQuestRewardCategory::Material => {
-            let mats = vec![(MaterialCategory::from_id(reward.api_id), reward.amount)];
-            add_material_impl(c, codex, profile_id, &mats).await?;
+            let category = MaterialCategory::n(reward.api_id).ok_or_else(|| {
+                GameplayError::WrongType(format!("invalid material category: {}", reward.api_id))
+            })?;
+            add_material_impl(c, codex, profile_id, &[(category, reward.amount)]).await?;
         }
         Kc3rdQuestRewardCategory::Slotitem => {
             for _ in 0..reward.amount.max(1) {
@@ -585,4 +587,48 @@ where
         .await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use emukc_db::prelude::new_mem_db;
+    use emukc_model::{
+        codex::Codex,
+        thirdparty::{Kc3rdQuestReward, Kc3rdQuestRewardCategory},
+    };
+
+    use super::apply_single_reward;
+    use crate::{err::GameplayError, gameplay::Ctx};
+
+    /// A material reward whose id names no material is an error, not fuel.
+    #[tokio::test]
+    async fn a_material_reward_with_an_unknown_id_is_refused() {
+        let db = new_mem_db().await.unwrap();
+        let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
+        let context = Ctx::new(Arc::new(db), Arc::new(codex));
+        let account = context.sign_up("quest-bad-mat", "1234567").await.unwrap();
+        let profile =
+            context.new_profile(&account.access_token.token, "quest-bad-mat").await.unwrap();
+        let pid = context
+            .start_game(&account.access_token.token, profile.profile.id)
+            .await
+            .unwrap()
+            .profile
+            .id;
+        let fuel = context.get_materials(pid).await.unwrap().fuel;
+
+        let reward = Kc3rdQuestReward {
+            api_id: 99,
+            category: Kc3rdQuestRewardCategory::Material,
+            amount: 100,
+            stars: 0,
+        };
+        let result =
+            apply_single_reward(context.db.as_ref(), context.codex.as_ref(), pid, &reward).await;
+
+        assert!(matches!(result, Err(GameplayError::WrongType(_))), "got {result:?}");
+        assert_eq!(context.get_materials(pid).await.unwrap().fuel, fuel);
+    }
 }

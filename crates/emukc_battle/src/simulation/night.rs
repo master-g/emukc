@@ -1780,6 +1780,7 @@ fn night_turn(
 mod tests {
     use super::*;
     use crate::test_utils::*;
+    use crate::types::Side;
     use crate::types::{
         BattleRuntimeShip, DamageCell, EngagementType, NightBattleParams, SiListId,
     };
@@ -1916,7 +1917,7 @@ mod tests {
         enemy_ship.ship.api_karyoku[0] = 1;
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy_ship)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy_ship, Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(0);
 
         let hougeki = simulate_night_hougeki(
@@ -1971,7 +1972,7 @@ mod tests {
         enemy_ship.ship.api_karyoku[0] = 1;
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy_ship)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy_ship, Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
         let hougeki = simulate_night_hougeki(
@@ -2034,7 +2035,7 @@ mod tests {
                     );
                 }
                 let mut friendly = vec![ship];
-                let mut enemy = vec![BattleRuntimeShip::from(submarine.clone())];
+                let mut enemy = vec![BattleRuntimeShip::new(submarine.clone(), Side::Enemy, true)];
                 let hougeki = simulate_night_hougeki(
                     codex,
                     &mut crate::random::SeededRng::new(seed),
@@ -2119,7 +2120,7 @@ mod tests {
             crate::types::NightBattleInput {
                 special_attacks_made: Default::default(),
                 friendly: vec![BattleRuntimeShip::from(carrier)],
-                enemy: vec![BattleRuntimeShip::from(enemy)],
+                enemy: vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)],
                 friendly_formation_id: 1,
                 enemy_formation_id: 1,
                 engagement: EngagementType::SameCourse,
@@ -2145,7 +2146,7 @@ mod tests {
         friend.ship.api_soukou[0] = 0;
         friend.ship.api_nowhp = 100;
         friend.ship.api_maxhp = 100;
-        let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
+        let mut friendly = vec![BattleRuntimeShip::new(friend, Side::Friendly, true)];
 
         // Enemy with massive firepower to deal lethal damage
         let mut enemy = sample_ship(&codex, dd_mst, 99);
@@ -2154,7 +2155,7 @@ mod tests {
         enemy.ship.api_soukou[0] = 200;
         enemy.ship.api_nowhp = 500;
         enemy.ship.api_maxhp = 500;
-        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)];
 
         let mut rng = crate::random::SeededRng::new(42);
 
@@ -2195,7 +2196,7 @@ mod tests {
         friend.ship.api_soukou[0] = 0;
         friend.ship.api_nowhp = 10;
         friend.ship.api_maxhp = 100;
-        let mut friendly = vec![BattleRuntimeShip::new(friend, true, false)]; // is_sortie=false
+        let mut friendly = vec![BattleRuntimeShip::new(friend, Side::Friendly, false)]; // is_sortie=false
 
         // Enemy with massive firepower
         let mut enemy = sample_ship(&codex, dd_mst, 99);
@@ -2204,7 +2205,7 @@ mod tests {
         enemy.ship.api_soukou[0] = 200;
         enemy.ship.api_nowhp = 500;
         enemy.ship.api_maxhp = 500;
-        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, false)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, false)];
 
         let mut rng = crate::random::SeededRng::new(42);
 
@@ -3044,7 +3045,11 @@ mod tests {
                 crate::types::NightBattleInput {
                     special_attacks_made: Default::default(),
                     friendly: vec![attacker],
-                    enemy: vec![BattleRuntimeShip::from(sample_ship(&codex, target, 50))],
+                    enemy: vec![BattleRuntimeShip::new(
+                        sample_ship(&codex, target, 50),
+                        Side::Enemy,
+                        true,
+                    )],
                     friendly_formation_id: 1,
                     enemy_formation_id: 1,
                     engagement: EngagementType::SameCourse,
@@ -3211,7 +3216,7 @@ mod tests {
         let mut ship = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CVL), 99);
         ship.slot_items = [AVIATION_PERSONNEL_IDS[0], NF, KK].map(slotitem_with_mst_id).to_vec();
         ship.ship.api_onslot = [0, 1, 0, 0, 0];
-        let rt = BattleRuntimeShip::new(ship, true, true);
+        let rt = BattleRuntimeShip::new(ship, Side::Friendly, true);
         assert_eq!(carrier_night_cut_ins(&codex, &rt), []);
     }
 
@@ -3505,7 +3510,7 @@ mod tests {
         friend.ship.api_soukou[0] = 0;
         friend.ship.api_nowhp = 100;
         friend.ship.api_maxhp = 100;
-        let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
+        let mut friendly = vec![BattleRuntimeShip::new(friend, Side::Friendly, true)];
         let entry_hp = friendly[0].hp();
 
         // Enemy with lethal firepower.
@@ -3515,7 +3520,7 @@ mod tests {
         enemy.ship.api_soukou[0] = 200;
         enemy.ship.api_nowhp = 500;
         enemy.ship.api_maxhp = 500;
-        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)];
 
         let mut rng = crate::random::SeededRng::new(42);
         let hougeki = simulate_night_hougeki(
@@ -3569,14 +3574,19 @@ mod tests {
     ) -> Option<BattleNightHougeki> {
         let bb = first_ship_mst_by_type(codex, KcShipType::BB);
         let dd = first_ship_mst_by_type(codex, KcShipType::DD);
+        let (defending, attacking) = if defender_is_enemy {
+            (Side::Enemy, Side::Friendly)
+        } else {
+            (Side::Friendly, Side::Enemy)
+        };
         let mut pair = vec![
-            BattleRuntimeShip::new(sample_ship(codex, bb, 80), !defender_is_enemy, true),
-            BattleRuntimeShip::new(sample_ship(codex, dd, 80), !defender_is_enemy, true),
+            BattleRuntimeShip::new(sample_ship(codex, bb, 80), defending, true),
+            BattleRuntimeShip::new(sample_ship(codex, dd, 80), defending, true),
         ];
         let mut lone_input = sample_ship(codex, bb, 80);
         lone_input.ship.api_nowhp = 999;
         lone_input.ship.api_maxhp = 999;
-        let mut lone = vec![BattleRuntimeShip::new(lone_input, defender_is_enemy, true)];
+        let mut lone = vec![BattleRuntimeShip::new(lone_input, attacking, true)];
 
         let mut rng = crate::random::SeededRng::new(seed);
         let params = NightBattleParams {
@@ -3845,7 +3855,9 @@ mod abyssal_carrier_tests {
     use super::*;
     use crate::simulation::abyssal_night::{ABYSSAL_NIGHT_ATTACK, ABYSSAL_NIGHT_CREW_IDS};
     use crate::test_utils::*;
-    use crate::types::{BattleRuntimeShip, BattleShipInput, EngagementType, NightBattleInput};
+    use crate::types::{
+        BattleRuntimeShip, BattleShipInput, EngagementType, NightBattleInput, Side,
+    };
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
 
@@ -3871,7 +3883,7 @@ mod abyssal_carrier_tests {
             effect_list: vec![0],
             married: false,
         };
-        BattleRuntimeShip::new(input, false, true)
+        BattleRuntimeShip::new(input, Side::Enemy, true)
     }
 
     /// A destroyer nobody sinks in one night, carrying `equipment`.

@@ -1,6 +1,6 @@
 //! Ship experience settlement, shared by sortie, practice and expedition.
 
-use emukc_model::kc2::level;
+use emukc_model::kc2::{KcSortieResultRank, level};
 
 /// The experience state of a ship after a gain has been applied.
 ///
@@ -55,13 +55,13 @@ pub(crate) fn settle_ship_exp(exp_now: i64, gain: i64, married: bool) -> ShipExp
 }
 
 /// Calculate admiral experience from base exp and win rank.
-pub(crate) fn calculate_admiral_exp(base_exp: i64, win_rank: &str) -> i64 {
+pub(crate) fn calculate_admiral_exp(base_exp: i64, win_rank: KcSortieResultRank) -> i64 {
     match win_rank {
-        "S" => (base_exp as f64 * 0.12).round() as i64,
-        "A" => (base_exp as f64 * 0.1).round() as i64,
-        "B" => (base_exp as f64 * 0.08).round() as i64,
-        "C" => (base_exp as f64 * 0.05).round() as i64,
-        _ => (base_exp as f64 * 0.03).round() as i64,
+        KcSortieResultRank::S => (base_exp as f64 * 0.12).round() as i64,
+        KcSortieResultRank::A => (base_exp as f64 * 0.1).round() as i64,
+        KcSortieResultRank::B => (base_exp as f64 * 0.08).round() as i64,
+        KcSortieResultRank::C => (base_exp as f64 * 0.05).round() as i64,
+        KcSortieResultRank::D | KcSortieResultRank::E => (base_exp as f64 * 0.03).round() as i64,
     }
 }
 

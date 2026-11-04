@@ -19,6 +19,7 @@ use emukc_db::{
     },
 };
 use emukc_model::codex::map::RoutePredicate;
+use emukc_model::kc2::KcSortieResultRank;
 use emukc_model::{
     codex::{
         Codex,
@@ -125,7 +126,7 @@ fn successful_boss_snapshot() -> SortieBattleResultSnapshot {
         cell_cost: None,
         special_attacks: Vec::new(),
         enemy_ship_types: vec![],
-        win_rank: "S".to_string(),
+        win_rank: KcSortieResultRank::S,
         get_exp: 0,
         member_lv: 0,
         member_exp: 0,
@@ -214,7 +215,7 @@ async fn combined_midnight_battle_is_fought_by_the_escort_deck_alone() {
             cell_cost: None,
             special_attacks: Vec::new(),
             enemy_ship_types: vec![0; session.enemy_ship_ids.len()],
-            win_rank: session.outcome.win_rank.to_string(),
+            win_rank: session.outcome.win_rank,
             get_exp: 0,
             member_lv: 1,
             member_exp: 0,
@@ -318,7 +319,7 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
                 .iter()
                 .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
                 .collect(),
-            win_rank: session.outcome.win_rank.to_string(),
+            win_rank: session.outcome.win_rank,
             get_exp: 0,
             member_lv: 1,
             member_exp: 0,
@@ -342,7 +343,6 @@ async fn sortie_midnight_battle_updates_pending_snapshot() {
     assert!(response.api_hougeki.is_some());
 
     let updated_snapshot = store.take_pending_result(profile_id).unwrap();
-    assert!(!updated_snapshot.win_rank.is_empty());
     assert!(updated_snapshot.mvp >= 1);
 
     let stored = pending_battle(store, profile_id).unwrap();
@@ -2131,7 +2131,7 @@ async fn settle_win_at(
     profile_id: i64,
     definition: &MapDefinition,
     label: &str,
-    win_rank: &str,
+    win_rank: KcSortieResultRank,
 ) -> SortieSettlement {
     settle_win_carrying(context, profile_id, definition, label, win_rank, None).await
 }
@@ -2142,7 +2142,7 @@ async fn settle_win_carrying(
     profile_id: i64,
     definition: &MapDefinition,
     label: &str,
-    win_rank: &str,
+    win_rank: KcSortieResultRank,
     landing_tp: Option<i64>,
 ) -> SortieSettlement {
     settle_win_with(context, profile_id, definition, label, win_rank, landing_tp, Vec::new()).await
@@ -2154,7 +2154,7 @@ async fn settle_win_with(
     profile_id: i64,
     definition: &MapDefinition,
     label: &str,
-    win_rank: &str,
+    win_rank: KcSortieResultRank,
     landing_tp: Option<i64>,
     recon_rewards: Vec<SortieItemGet>,
 ) -> SortieSettlement {
@@ -2186,7 +2186,7 @@ async fn settle_win_with(
         definition,
         &active,
         SortieBattleResultSnapshot {
-            win_rank: win_rank.to_string(),
+            win_rank,
             ..successful_boss_snapshot()
         },
         // The enemy flagship is sunk.
@@ -2219,34 +2219,36 @@ async fn map_7_5_is_cleared_one_gauge_after_another() {
 
     assert_eq!(stage().await, "phase1");
     assert_eq!(definition.chained_gauge("phase1"), Some((1, 2)));
-    settle_win_at(&context, profile_id, &definition, "K", "S").await;
+    settle_win_at(&context, profile_id, &definition, "K", KcSortieResultRank::S).await;
     assert_eq!(stage().await, "phase1");
-    settle_win_at(&context, profile_id, &definition, "K", "S").await;
+    settle_win_at(&context, profile_id, &definition, "K", KcSortieResultRank::S).await;
     assert_eq!(stage().await, "phase2");
     assert_eq!(definition.chained_gauge("phase2"), Some((2, 3)));
 
     // The first boss is still on the map, but the gauge is no longer its.
-    settle_win_at(&context, profile_id, &definition, "K", "S").await;
+    settle_win_at(&context, profile_id, &definition, "K", KcSortieResultRank::S).await;
     assert_eq!(staged_map_record(&context, profile_id, &definition).await.defeat_count, Some(0));
 
     // The emptied second gauge waits for an S rank at M; an A rank there is not one.
     for _ in 0..3 {
-        settle_win_at(&context, profile_id, &definition, "Q", "S").await;
+        settle_win_at(&context, profile_id, &definition, "Q", KcSortieResultRank::S).await;
     }
-    settle_win_at(&context, profile_id, &definition, "M", "A").await;
+    settle_win_at(&context, profile_id, &definition, "M", KcSortieResultRank::A).await;
     assert_eq!(stage().await, "phase2");
     let record = staged_map_record(&context, profile_id, &definition).await;
     assert_eq!((record.defeat_count, record.cleared), (Some(3), false));
-    settle_win_at(&context, profile_id, &definition, "M", "S").await;
+    settle_win_at(&context, profile_id, &definition, "M", KcSortieResultRank::S).await;
     assert_eq!(stage().await, "phase3");
     assert_eq!(definition.chained_gauge("phase3"), Some((3, 3)));
 
     for _ in 0..2 {
-        let settlement = settle_win_at(&context, profile_id, &definition, "T", "S").await;
+        let settlement =
+            settle_win_at(&context, profile_id, &definition, "T", KcSortieResultRank::S).await;
         assert_eq!(settlement.first_clear, 0);
     }
     assert!(!staged_map_record(&context, profile_id, &definition).await.cleared);
-    let settlement = settle_win_at(&context, profile_id, &definition, "T", "S").await;
+    let settlement =
+        settle_win_at(&context, profile_id, &definition, "T", KcSortieResultRank::S).await;
     assert_eq!(settlement.first_clear, 1);
     let record = staged_map_record(&context, profile_id, &definition).await;
     assert!(record.cleared);
@@ -2259,14 +2261,14 @@ async fn map_7_5_opens_its_last_gauge_when_m_was_won_first() {
     let definition = context.codex.map_catalog().map_definition(75).unwrap().clone();
 
     for _ in 0..2 {
-        settle_win_at(&context, profile_id, &definition, "K", "S").await;
+        settle_win_at(&context, profile_id, &definition, "K", KcSortieResultRank::S).await;
     }
-    settle_win_at(&context, profile_id, &definition, "M", "S").await;
+    settle_win_at(&context, profile_id, &definition, "M", KcSortieResultRank::S).await;
     for _ in 0..2 {
-        settle_win_at(&context, profile_id, &definition, "Q", "S").await;
+        settle_win_at(&context, profile_id, &definition, "Q", KcSortieResultRank::S).await;
     }
     assert_eq!(staged_map_stage(&context, profile_id, &definition).await, "phase2");
-    settle_win_at(&context, profile_id, &definition, "Q", "S").await;
+    settle_win_at(&context, profile_id, &definition, "Q", KcSortieResultRank::S).await;
     assert_eq!(staged_map_stage(&context, profile_id, &definition).await, "phase3");
 }
 
@@ -2276,11 +2278,12 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
     let definition = context.codex.map_catalog().map_definition(56).unwrap().clone();
     let stage = || staged_map_stage(&context, profile_id, &definition);
 
-    settle_win_carrying(&context, profile_id, &definition, "G", "S", Some(280)).await;
+    settle_win_carrying(&context, profile_id, &definition, "G", KcSortieResultRank::S, Some(280))
+        .await;
     assert_eq!(stage().await, "phase2");
     // No gauge here: the next one, N's, is shown, and wins at G do not move it.
     assert_eq!(definition.chained_gauge("phase2"), Some((2, 2)));
-    settle_win_at(&context, profile_id, &definition, "G", "S").await;
+    settle_win_at(&context, profile_id, &definition, "G", KcSortieResultRank::S).await;
     assert_eq!(stage().await, "phase2");
     assert_eq!(staged_map_record(&context, profile_id, &definition).await.defeat_count, Some(0));
 
@@ -2327,7 +2330,7 @@ async fn map_5_6_opens_its_second_start_by_reaching_r() {
     assert_eq!(definition.stage("phase3").unwrap().start_source_cells().len(), 2);
 
     for _ in 0..2 {
-        settle_win_at(&context, profile_id, &definition, "N", "S").await;
+        settle_win_at(&context, profile_id, &definition, "N", KcSortieResultRank::S).await;
     }
     assert_eq!(stage().await, "phase4");
     assert_eq!(definition.chained_gauge("phase4"), Some((3, 3)));
@@ -2356,13 +2359,16 @@ async fn what_the_reconnaissances_found_is_given_with_a_b_or_better_at_the_boss(
     };
     let (ammo, devmat) = held().await;
 
-    settle_win_with(&context, profile_id, &definition, "J", "C", None, found()).await;
+    settle_win_with(&context, profile_id, &definition, "J", KcSortieResultRank::C, None, found())
+        .await;
     assert_eq!(held().await, (ammo, devmat), "a C rank brings nothing home");
     // F is a battle on the way, not the boss.
-    settle_win_with(&context, profile_id, &definition, "F", "S", None, found()).await;
+    settle_win_with(&context, profile_id, &definition, "F", KcSortieResultRank::S, None, found())
+        .await;
     assert_eq!(held().await, (ammo, devmat));
 
-    settle_win_with(&context, profile_id, &definition, "J", "B", None, found()).await;
+    settle_win_with(&context, profile_id, &definition, "J", KcSortieResultRank::B, None, found())
+        .await;
     assert_eq!(held().await, (ammo + 150, devmat + 3));
 }
 
@@ -2379,25 +2385,59 @@ async fn map_5_6_empties_its_transport_gauge_by_what_the_fleet_lands() {
     };
 
     // Sinking the flagship without having passed the landing cell lands nothing.
-    let settled = settle_win_at(&context, profile_id, &definition, "G", "S").await;
+    let settled =
+        settle_win_at(&context, profile_id, &definition, "G", KcSortieResultRank::S).await;
     assert_eq!(landing_hp(settled), (280, 280, 0));
     assert_eq!(landed().await, 0);
 
     // An A rank lands seven tenths, a B rank nothing.
-    let settled = settle_win_carrying(&context, profile_id, &definition, "G", "A", Some(100)).await;
+    let settled = settle_win_carrying(
+        &context,
+        profile_id,
+        &definition,
+        "G",
+        KcSortieResultRank::A,
+        Some(100),
+    )
+    .await;
     assert_eq!(landing_hp(settled), (280, 280, 70));
-    let settled = settle_win_carrying(&context, profile_id, &definition, "G", "B", Some(100)).await;
+    let settled = settle_win_carrying(
+        &context,
+        profile_id,
+        &definition,
+        "G",
+        KcSortieResultRank::B,
+        Some(100),
+    )
+    .await;
     assert_eq!(landing_hp(settled), (280, 210, 0));
     assert_eq!(landed().await, 70);
 
     // A battle elsewhere is not a landing.
-    let settled = settle_win_carrying(&context, profile_id, &definition, "A", "S", Some(100)).await;
+    let settled = settle_win_carrying(
+        &context,
+        profile_id,
+        &definition,
+        "A",
+        KcSortieResultRank::S,
+        Some(100),
+    )
+    .await;
     assert!(settled.landing_hp.is_none());
 
     // The last delivery takes only what is left and opens the next phase.
-    settle_win_carrying(&context, profile_id, &definition, "G", "S", Some(100)).await;
+    settle_win_carrying(&context, profile_id, &definition, "G", KcSortieResultRank::S, Some(100))
+        .await;
     assert_eq!(landed().await, 170);
-    let settled = settle_win_carrying(&context, profile_id, &definition, "G", "S", Some(200)).await;
+    let settled = settle_win_carrying(
+        &context,
+        profile_id,
+        &definition,
+        "G",
+        KcSortieResultRank::S,
+        Some(200),
+    )
+    .await;
     assert_eq!(landing_hp(settled), (280, 110, 110));
     assert_eq!(staged_map_stage(&context, profile_id, &definition).await, "phase2");
     assert_eq!(landed().await, 0);

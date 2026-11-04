@@ -830,6 +830,7 @@ pub(crate) fn roll_strike_on_base(rng: &mut impl BattleRng, hit_percent: f64) ->
 mod tests {
     use super::*;
     use crate::random::SeededRng;
+    use crate::types::Side;
 
     /// A die that always shows the same face.
     struct Fixed(i64);
@@ -921,7 +922,7 @@ mod tests {
 
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let input = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 1);
-        let attacker = BattleRuntimeShip::new(input, true, true);
+        let attacker = BattleRuntimeShip::new(input, Side::Friendly, true);
         let mut dd = attacker.clone();
         dd.is_friendly = false;
         let mut pt = dd.clone();
@@ -968,7 +969,7 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let ship = |ship_type, number| {
             let input = sample_ship(&codex, first_ship_mst_by_type(&codex, ship_type), 1);
-            BattleRuntimeShip::new(input, false, true).in_vanguard(number, 6)
+            BattleRuntimeShip::new(input, Side::Enemy, true).in_vanguard(number, 6)
         };
         let dodge =
             |ship_type, number, kind| vanguard_dodge(&codex, &ship(ship_type, number), kind);
@@ -983,7 +984,7 @@ mod tests {
 
         let in_line = BattleRuntimeShip::new(
             sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 1),
-            false,
+            Side::Enemy,
             true,
         );
         assert_eq!(vanguard_dodge(&codex, &in_line, AttackKind::Shelling), 1.0);
@@ -998,7 +999,7 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let ship = |ship_type| {
             let input = sample_ship(&codex, first_ship_mst_by_type(&codex, ship_type), 1);
-            BattleRuntimeShip::new(input, true, true)
+            BattleRuntimeShip::new(input, Side::Friendly, true)
         };
         let attacker = ship(KcShipType::CL).in_vanguard(1, 6);
         let (dd, ca) = (ship(KcShipType::DD), ship(KcShipType::CA));
@@ -1205,7 +1206,7 @@ mod tests {
             let mut ship = sample_ship(&codex, SUZUYA_CARRIER_KAI_NI, 99);
             ship.ship.api_cond = 50;
             ship.slot_items = gear.iter().copied().map(slotitem_with_mst_id).collect();
-            BattleRuntimeShip::new(ship, true, true)
+            BattleRuntimeShip::new(ship, Side::Friendly, true)
         };
         let (bare, armed) = (ship(&[]), ship(&[TENZAN_RADAR, TENZAN_RADAR]));
         // Sparkling (1.2, torpedo 1.3), a formation of 1.1 and a cut-in of 1.5 multiply it all.
@@ -1359,7 +1360,7 @@ mod tests {
                 item
             })
             .collect();
-        BattleRuntimeShip::new(ship, true, true)
+        BattleRuntimeShip::new(ship, Side::Friendly, true)
     }
 
     /// Each attack takes its own improvement accuracy into the flat accuracy, before the

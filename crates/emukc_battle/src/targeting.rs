@@ -1165,7 +1165,7 @@ pub(crate) fn day_attack_display_ids(
 mod tests {
     use super::*;
     use crate::test_utils::*;
-    use crate::types::{BattlePhase, BattleRuntimeShip, BattleShipInput, TargetClass};
+    use crate::types::{BattlePhase, BattleRuntimeShip, BattleShipInput, Side, TargetClass};
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
@@ -1200,7 +1200,7 @@ mod tests {
     fn enemy_combined(codex: &Codex) -> (BattleRuntimeShip, Vec<BattleRuntimeShip>) {
         use crate::combined::CombinedFleetRole::{Escort, Main};
         let dd = first_ship_mst_by_type(codex, KcShipType::DD);
-        let ship = || BattleRuntimeShip::new(sample_ship(codex, dd, 50), false, true);
+        let ship = || BattleRuntimeShip::new(sample_ship(codex, dd, 50), Side::Enemy, true);
         let decks = [Main, Main, Escort, Escort];
         let defenders = decks.into_iter().map(|deck| ship().in_enemy_deck(deck)).collect();
         (BattleRuntimeShip::from(sample_ship(codex, dd, 50)), defenders)
@@ -1752,7 +1752,7 @@ mod tests {
         let ss_mst = first_ship_mst_by_type(&codex, KcShipType::SS);
         let dd_mst = first_ship_mst_by_type(&codex, KcShipType::DD);
         let defender =
-            |mst_id| BattleRuntimeShip::new(sample_ship(&codex, mst_id, 50), false, true);
+            |mst_id| BattleRuntimeShip::new(sample_ship(&codex, mst_id, 50), Side::Enemy, true);
         let submarines = [defender(ss_mst)];
         let with_a_destroyer = [defender(ss_mst), defender(dd_mst)];
 
@@ -1773,7 +1773,7 @@ mod tests {
                 effect_list: vec![0],
                 married: false,
             },
-            false,
+            Side::Enemy,
             true,
         );
         assert!(has_opening_asw_shot(&codex, &nu, &submarines));
@@ -1813,7 +1813,7 @@ mod tests {
                 effect_list: vec![0],
                 married: false,
             };
-            BattleRuntimeShip::new(input, false, true)
+            BattleRuntimeShip::new(input, Side::Enemy, true)
         };
         // 駆逐ハ級後期型elite is marked; 駆逐ロ級後期型elite is not, sonar and 120 or no.
         assert!(can_opening_asw(&codex, &abyssal(1623)));
@@ -1881,7 +1881,7 @@ mod tests {
         chuha.ship.api_raisou[0] = 50;
         chuha.ship.api_maxhp = 10;
         chuha.ship.api_nowhp = 5;
-        let rt_chuha = BattleRuntimeShip::new(chuha, false, true);
+        let rt_chuha = BattleRuntimeShip::new(chuha, Side::Enemy, true);
         assert!(!can_closing_torpedo_ship(&codex, &rt_chuha), "hp=5, maxhp=10 → chūha");
 
         // Shōha (still > 50%): hp = maxhp/2 + 1 → eligible
@@ -1889,7 +1889,7 @@ mod tests {
         shoha.ship.api_raisou[0] = 50;
         shoha.ship.api_maxhp = 10;
         shoha.ship.api_nowhp = 6;
-        let rt_shoha = BattleRuntimeShip::new(shoha, false, true);
+        let rt_shoha = BattleRuntimeShip::new(shoha, Side::Enemy, true);
         assert!(can_closing_torpedo_ship(&codex, &rt_shoha), "hp=6, maxhp=10 → shōha");
 
         // Odd maxhp boundary: maxhp=7, hp=3 → 3*2=6 ≤ 7 → chūha
@@ -1897,7 +1897,7 @@ mod tests {
         odd_chuha.ship.api_raisou[0] = 50;
         odd_chuha.ship.api_maxhp = 7;
         odd_chuha.ship.api_nowhp = 3;
-        let rt_odd_chuha = BattleRuntimeShip::new(odd_chuha, false, true);
+        let rt_odd_chuha = BattleRuntimeShip::new(odd_chuha, Side::Enemy, true);
         assert!(!can_closing_torpedo_ship(&codex, &rt_odd_chuha), "hp=3, maxhp=7 → chūha");
 
         // Odd maxhp boundary: maxhp=7, hp=4 → 4*2=8 > 7 → eligible
@@ -1905,7 +1905,7 @@ mod tests {
         odd_shoha.ship.api_raisou[0] = 50;
         odd_shoha.ship.api_maxhp = 7;
         odd_shoha.ship.api_nowhp = 4;
-        let rt_odd_shoha = BattleRuntimeShip::new(odd_shoha, false, true);
+        let rt_odd_shoha = BattleRuntimeShip::new(odd_shoha, Side::Enemy, true);
         assert!(can_closing_torpedo_ship(&codex, &rt_odd_shoha), "hp=4, maxhp=7 → shōha");
 
         // Zero hp: rejected by is_sunk() pre-check
@@ -1913,7 +1913,7 @@ mod tests {
         sunk.ship.api_raisou[0] = 50;
         sunk.ship.api_maxhp = 10;
         sunk.ship.api_nowhp = 0;
-        let rt_sunk = BattleRuntimeShip::new(sunk, false, true);
+        let rt_sunk = BattleRuntimeShip::new(sunk, Side::Enemy, true);
         assert!(!can_closing_torpedo_ship(&codex, &rt_sunk));
 
         // A stock BB has base torpedo 0, so the stat gate excludes it (a BB *with*
@@ -1934,7 +1934,7 @@ mod tests {
         chuha_clt.ship.api_raisou[0] = 50;
         chuha_clt.ship.api_maxhp = 10;
         chuha_clt.ship.api_nowhp = 3;
-        let rt = BattleRuntimeShip::new(chuha_clt, false, true);
+        let rt = BattleRuntimeShip::new(chuha_clt, Side::Enemy, true);
         assert!(can_opening_torpedo_ship(&codex, &rt), "opening torpedo ignores damage state");
     }
 
@@ -1947,7 +1947,7 @@ mod tests {
 
         let mut low = sample_ship(&codex, ss_mst, 9);
         low.ship.api_raisou[0] = 50;
-        let rt_low = BattleRuntimeShip::new(low, false, true);
+        let rt_low = BattleRuntimeShip::new(low, Side::Enemy, true);
         assert!(
             !can_opening_torpedo_ship(&codex, &rt_low),
             "SS Lv 9 without 甲標的 must not open-torpedo"
@@ -1955,7 +1955,7 @@ mod tests {
 
         let mut at10 = sample_ship(&codex, ss_mst, 10);
         at10.ship.api_raisou[0] = 50;
-        let rt_10 = BattleRuntimeShip::new(at10, false, true);
+        let rt_10 = BattleRuntimeShip::new(at10, Side::Enemy, true);
         assert!(can_opening_torpedo_ship(&codex, &rt_10), "SS Lv 10 opens torpedo equipment-free");
     }
 
@@ -1970,7 +1970,7 @@ mod tests {
         let mut low = sample_ship(&codex, ss_mst, 5);
         low.ship.api_raisou[0] = 50;
         low.slot_items = vec![slotitem_with_mst_id(minisub)];
-        let rt = BattleRuntimeShip::new(low, false, true);
+        let rt = BattleRuntimeShip::new(low, Side::Enemy, true);
         assert!(
             can_opening_torpedo_ship(&codex, &rt),
             "Lv 5 SS with 甲標的 opens torpedo (equipment path)"
@@ -1991,7 +1991,7 @@ mod tests {
         let mut bare = sample_ship(&codex, av_mst, 99);
         bare.slot_items.clear();
         bare.ship.api_raisou[0] = 50;
-        let rt_bare = BattleRuntimeShip::new(bare, false, true);
+        let rt_bare = BattleRuntimeShip::new(bare, Side::Enemy, true);
         assert!(
             !can_opening_torpedo_ship(&codex, &rt_bare),
             "an AV without 甲標的 cannot open-torpedo"
@@ -2001,7 +2001,7 @@ mod tests {
         let mut armed = sample_ship(&codex, av_mst, 99);
         armed.ship.api_raisou[0] = 50;
         armed.slot_items = vec![slotitem_with_mst_id(minisub)];
-        let rt_armed = BattleRuntimeShip::new(armed, false, true);
+        let rt_armed = BattleRuntimeShip::new(armed, Side::Enemy, true);
         assert!(
             can_opening_torpedo_ship(&codex, &rt_armed),
             "an AV with 甲標的 opens torpedo (equipment path)"
@@ -2015,7 +2015,7 @@ mod tests {
         let mut input = sample_ship(codex, mst_id, 50);
         input.ship.api_maxhp = maxhp;
         input.ship.api_nowhp = nowhp;
-        BattleRuntimeShip::new(input, false, true)
+        BattleRuntimeShip::new(input, Side::Enemy, true)
     }
 
     #[test]
@@ -2141,7 +2141,7 @@ mod tests {
         assert_eq!(cover(&enemy), Some((1, false)));
 
         let friendly = [CombinedFleetRole::Main, CombinedFleetRole::Escort].map(|role| {
-            BattleRuntimeShip::new(sample_ship(&codex, dd, 50), true, true)
+            BattleRuntimeShip::new(sample_ship(&codex, dd, 50), Side::Friendly, true)
                 .in_combined_fleet(CombinedType::CarrierTaskForce, role)
         });
         assert_eq!(cover(&friendly), Some((1, true)));
@@ -2392,7 +2392,7 @@ mod tests {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         // Bismarck drei: torpedo 16 of her own.
         let drei = sample_ship(&codex, ship_mst_id_by_name(&codex, "Bismarck drei"), 80);
-        let bb = BattleRuntimeShip::new(drei, true, true);
+        let bb = BattleRuntimeShip::new(drei, Side::Friendly, true);
         assert!(
             can_closing_torpedo_ship(&codex, &bb),
             "a BB with base torpedo > 0 must fire closing torpedo (no type whitelist)"
@@ -2411,7 +2411,7 @@ mod tests {
         // 赤城 neither, with her 九七式艦攻's 5 that `cal_ship_status` adds.
         let mut akagi = sample_ship(&codex, ship_mst_id_by_name(&codex, "赤城"), 99);
         akagi.ship.api_raisou[0] = 5;
-        let akagi = BattleRuntimeShip::new(akagi, true, true);
+        let akagi = BattleRuntimeShip::new(akagi, Side::Friendly, true);
         assert!(!can_closing_torpedo_ship(&codex, &akagi));
         // 駆逐ラ級 has.
         assert!(can_closing_torpedo_ship(&codex, &abyssal_ship(&codex, 2264)));

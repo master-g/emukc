@@ -913,6 +913,7 @@ mod tests {
     use super::*;
     use crate::test_utils::*;
     use crate::types::BattleRuntimeShip;
+    use crate::types::Side;
     use emukc_model::codex::Codex;
     use emukc_model::kc2::types::KcShipType;
     use emukc_model::kc2::types::KcSlotItemType3;
@@ -1109,7 +1110,7 @@ mod tests {
         enemy.ship.api_maxhp = 200;
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1139,7 +1140,7 @@ mod tests {
         enemy.ship.api_maxhp = 200;
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1174,7 +1175,7 @@ mod tests {
         assert!(friendly_fp > 0, "CVL with fighter should have positive fighter power");
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1202,7 +1203,7 @@ mod tests {
             enemy.ship.api_nowhp = 9999;
             enemy.ship.api_maxhp = 9999;
             let mut friendly = vec![BattleRuntimeShip::from(friend)];
-            let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+            let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)];
             let mut rng = crate::random::SeededRng::new(seed);
             let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
             kouku.api_stage3.api_ecl_flag[0]
@@ -1246,19 +1247,19 @@ mod tests {
             escort.ship.api_taiku[0] = 900;
             let (mut friendly, mut enemies) = if friendly_side {
                 (
-                    vec![BattleRuntimeShip::new(carrier, true, true)],
+                    vec![BattleRuntimeShip::new(carrier, Side::Friendly, true)],
                     vec![
-                        BattleRuntimeShip::new(screen, false, true),
-                        BattleRuntimeShip::new(escort, false, true),
+                        BattleRuntimeShip::new(screen, Side::Enemy, true),
+                        BattleRuntimeShip::new(escort, Side::Enemy, true),
                     ],
                 )
             } else {
                 (
                     vec![
-                        BattleRuntimeShip::new(screen, true, true),
-                        BattleRuntimeShip::new(escort, true, true),
+                        BattleRuntimeShip::new(screen, Side::Friendly, true),
+                        BattleRuntimeShip::new(escort, Side::Friendly, true),
                     ],
-                    vec![BattleRuntimeShip::new(carrier, false, true)],
+                    vec![BattleRuntimeShip::new(carrier, Side::Enemy, true)],
                 )
             };
             let mut rng = crate::random::SeededRng::new(seed);
@@ -1310,10 +1311,10 @@ mod tests {
         ];
         carrier.ship.api_onslot = [30, 12, 3, 0, 0];
         let defender = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
-        let defenders = vec![BattleRuntimeShip::new(defender, true, true)];
+        let defenders = vec![BattleRuntimeShip::new(defender, Side::Friendly, true)];
 
         for seed in 0..50 {
-            let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), false, true)];
+            let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), Side::Enemy, true)];
             let mut rng = crate::random::SeededRng::new(seed);
             let (flew, shot, _) =
                 fly_through_anti_air(&codex, &mut rng, &mut attackers, &defenders);
@@ -1334,11 +1335,11 @@ mod tests {
         carrier.ship.api_onslot = [30, 3, 0, 0, 0];
         let mut defender = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
         defender.ship.api_taiku[0] = 200;
-        let mut defenders = vec![BattleRuntimeShip::new(defender, true, true)];
+        let mut defenders = vec![BattleRuntimeShip::new(defender, Side::Friendly, true)];
         defenders[0].smoke = 1;
 
         for seed in 0..20 {
-            let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), false, true)];
+            let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), Side::Enemy, true)];
             let mut rng = crate::random::SeededRng::new(seed);
             let (_, shot, _) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &defenders);
             assert_eq!(attackers[0].ship.api_onslot[..2], [29, 2], "seed {seed}");
@@ -1356,13 +1357,13 @@ mod tests {
         carrier.slot_items = vec![slotitem_with_mst_id(bomber), slotitem_with_mst_id(bomber)];
         carrier.ship.api_onslot = [60, 60, 0, 0, 0];
         let mut akizuki = sample_ship(&codex, 421, 50);
-        let plain = vec![BattleRuntimeShip::new(akizuki.clone(), true, true)];
+        let plain = vec![BattleRuntimeShip::new(akizuki.clone(), Side::Friendly, true)];
         akizuki.slot_items = [122, 122, 106].map(slotitem_with_mst_id).to_vec();
-        let armed = vec![BattleRuntimeShip::new(akizuki.clone(), true, true)];
+        let armed = vec![BattleRuntimeShip::new(akizuki.clone(), Side::Friendly, true)];
 
         let (mut fired, mut held) = (0, 0);
         for seed in 0..100 {
-            let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), false, true)];
+            let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), Side::Enemy, true)];
             let mut rng = crate::random::SeededRng::new(seed);
             let (_, shot, fire) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &armed);
             let Some(fire) = fire else {
@@ -1383,22 +1384,22 @@ mod tests {
         assert!(fired > held && held > 0, "{fired} fired, {held} held");
 
         // Without the equipment there is none.
-        let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), false, true)];
+        let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(1);
         let (_, shot, fire) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &plain);
         assert!(fire.is_none());
         assert!(shot >= 2);
 
         // An enemy fleet fires none.
-        let enemy = vec![BattleRuntimeShip::new(akizuki, false, true)];
-        let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), true, true)];
+        let enemy = vec![BattleRuntimeShip::new(akizuki, Side::Enemy, true)];
+        let mut attackers = vec![BattleRuntimeShip::new(carrier.clone(), Side::Friendly, true)];
         let (.., fire) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &enemy);
         assert!(fire.is_none());
 
         // Fighters alone bring none on, and nothing is drawn for it.
         let fighter = first_slotitem_mst_by_type(&codex, KcSlotItemType3::CarrierBasedFighter);
         carrier.slot_items = vec![slotitem_with_mst_id(fighter), slotitem_with_mst_id(fighter)];
-        let mut attackers = vec![BattleRuntimeShip::new(carrier, false, true)];
+        let mut attackers = vec![BattleRuntimeShip::new(carrier, Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(1);
         let mut untouched = crate::random::SeededRng::new(1);
         let (flew, _, fire) = fly_through_anti_air(&codex, &mut rng, &mut attackers, &armed);
@@ -1427,7 +1428,7 @@ mod tests {
             ship.ship.api_soukou[0] = 200;
             ship.ship.api_nowhp = 200;
             ship.ship.api_maxhp = 200;
-            enemies.push(BattleRuntimeShip::from(ship));
+            enemies.push(BattleRuntimeShip::new(ship, Side::Enemy, true));
         }
         let mut rng = crate::random::SeededRng::new(42);
 
@@ -1461,8 +1462,8 @@ mod tests {
         enemy.slot_items = vec![slotitem_with_mst_id(bomber_id)];
         enemy.ship.api_onslot = [18, 0, 0, 0, 0];
 
-        let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
-        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
+        let mut friendly = vec![BattleRuntimeShip::new(friend, Side::Friendly, true)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(4);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1496,8 +1497,8 @@ mod tests {
         enemy.slot_items = vec![slotitem_with_mst_id(bomber_id)];
         enemy.ship.api_onslot = [18, 0, 0, 0, 0];
 
-        let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
-        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
+        let mut friendly = vec![BattleRuntimeShip::new(friend, Side::Friendly, true)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(4);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1529,9 +1530,9 @@ mod tests {
         enemy.ship.api_nowhp = 200;
         enemy.ship.api_maxhp = 200;
 
-        let mut friendly = vec![BattleRuntimeShip::new(friend, true, true)];
+        let mut friendly = vec![BattleRuntimeShip::new(friend, Side::Friendly, true)];
         friendly[0].is_flagship = true;
-        let mut enemies = vec![BattleRuntimeShip::new(enemy, false, true)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(42);
 
         simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1560,7 +1561,7 @@ mod tests {
         enemy.ship.api_maxhp = 5;
 
         let mut friendly = vec![BattleRuntimeShip::from(friend)];
-        let mut enemies = vec![BattleRuntimeShip::from(enemy)];
+        let mut enemies = vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)];
         let mut rng = crate::random::SeededRng::new(4);
 
         let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1624,7 +1625,7 @@ mod tests {
         target.ship.api_soukou[0] = 0;
         target.ship.api_nowhp = 9999;
         target.ship.api_maxhp = 9999;
-        BattleRuntimeShip::new(target, false, true)
+        BattleRuntimeShip::new(target, Side::Enemy, true)
     }
 
     /// A torpedo bomber that hits takes its power ×0.8 or ×1.5 before the cap
@@ -1795,7 +1796,7 @@ mod tests {
         ];
         carrier.ship.api_onslot = [16, 16, 16, 0, 0];
         let los = codex.manifest.find_slotitem(scout).unwrap().api_saku;
-        (BattleRuntimeShip::new(carrier, true, true), los)
+        (BattleRuntimeShip::new(carrier, Side::Friendly, true), los)
     }
 
     #[test]
@@ -1830,7 +1831,7 @@ mod tests {
             let mut carrier = sample_ship(&codex, cv_mst, 50);
             carrier.slot_items = vec![slotitem_with_mst_id(bomber)];
             carrier.ship.api_onslot = [18, 0, 0, 0, 0];
-            BattleRuntimeShip::new(carrier, true, true)
+            BattleRuntimeShip::new(carrier, Side::Friendly, true)
         };
         let mut target = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::DD), 50);
         target.ship.api_nowhp = 1;
@@ -1839,7 +1840,7 @@ mod tests {
         let mut sunk = 0;
         for seed in 0..20 {
             let mut friendly = vec![carrier(), carrier()];
-            let mut enemies = vec![BattleRuntimeShip::new(target.clone(), false, true)];
+            let mut enemies = vec![BattleRuntimeShip::new(target.clone(), Side::Enemy, true)];
             let mut rng = crate::random::SeededRng::new(seed);
             let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
             assert_eq!(kouku.api_stage3.api_fbak, [0, 0], "seed {seed}: both flew at her");
@@ -1861,7 +1862,7 @@ mod tests {
 
         let fly = |carrier: &BattleRuntimeShip, seed: u64| {
             let mut friendly = vec![carrier.clone()];
-            let mut enemies = vec![BattleRuntimeShip::new(enemy.clone(), false, true)];
+            let mut enemies = vec![BattleRuntimeShip::new(enemy.clone(), Side::Enemy, true)];
             let mut rng = crate::random::SeededRng::new(seed);
             simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng)
                 .api_stage1
@@ -1899,10 +1900,10 @@ mod tests {
         target.ship.api_taiku[0] = 0;
 
         let covered = (0..40).any(|seed| {
-            let mut friendly = vec![BattleRuntimeShip::new(carrier.clone(), true, true)];
+            let mut friendly = vec![BattleRuntimeShip::new(carrier.clone(), Side::Friendly, true)];
             let mut enemies = vec![
-                BattleRuntimeShip::new(target.clone(), false, true),
-                BattleRuntimeShip::new(target.clone(), false, true),
+                BattleRuntimeShip::new(target.clone(), Side::Enemy, true),
+                BattleRuntimeShip::new(target.clone(), Side::Enemy, true),
             ];
             let mut rng = crate::random::SeededRng::new(seed);
             let kouku = simulate_kouku(&codex, &mut friendly, &mut enemies, [1, 1], &mut rng);
@@ -1920,7 +1921,7 @@ mod tests {
         let mut carrier = sample_ship(&codex, first_ship_mst_by_type(&codex, KcShipType::CV), 50);
         carrier.slot_items = vec![slotitem_with_mst_id(54), slotitem_with_mst_id(61)];
         carrier.ship.api_onslot = [16, 16, 0, 0, 0];
-        let carrier = BattleRuntimeShip::new(carrier, true, true);
+        let carrier = BattleRuntimeShip::new(carrier, Side::Friendly, true);
         assert!(
             contact_chance(&codex, &carried_planes(&[&carrier]), AirState::Supremacy).unwrap()
                 > 1.0

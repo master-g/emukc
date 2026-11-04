@@ -691,6 +691,7 @@ mod tests {
     use super::*;
     use crate::test_utils::*;
     use crate::types::AirSquadronInput;
+    use crate::types::Side;
     use emukc_model::kc2::types::KcShipType;
 
     /// 一式陸攻: 雷装 10, 爆装 12, 対空 2.
@@ -733,7 +734,7 @@ mod tests {
         enemy.ship.api_soukou[0] = 0;
         enemy.ship.api_taiku[0] = 0;
         enemy.ship.api_onslot = [0; 5];
-        vec![BattleRuntimeShip::new(enemy, false, true)]
+        vec![BattleRuntimeShip::new(enemy, Side::Enemy, true)]
     }
 
     #[test]

@@ -29,8 +29,8 @@ use serde::Serialize;
 use crate::{err::GameplayError, gameplay::Ctx};
 
 use emukc_battle::{
-    BattleAirRaid, BattleRng, BattleRuntimeShip, BattleType, CombinedFleetRole, SpecialAttacksMade,
-    simulate_air_raid,
+    BattleAirRaid, BattleRng, BattleRuntimeShip, BattleType, CombinedFleetRole, Side,
+    SpecialAttacksMade, simulate_air_raid,
 };
 
 use super::{
@@ -1085,9 +1085,9 @@ impl Ctx {
                 if let Some(mut snapshot) = store.take_pending_result(profile_id) {
                     snapshot.special_attacks.extend(night.packet.special_attacks());
                     snapshot.night_fought = true;
-                    snapshot.win_rank = night.outcome.win_rank.to_string();
+                    snapshot.win_rank = night.outcome.win_rank;
                     snapshot.get_exp =
-                        calculate_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
+                        calculate_admiral_exp(snapshot.get_base_exp, snapshot.win_rank);
                     snapshot.friendly_nowhps =
                         session.friendly.iter().map(|f| f.hp().max(0)).collect();
                     // Rescored over both decks: a combined night battle only moved
@@ -1258,7 +1258,7 @@ where
         .map(|(index, &ship_id)| {
             let level = composition.levels.get(index).copied().unwrap_or(1);
             build_sortie_enemy_ship(codex, ship_id, level)
-                .map(|ship| BattleRuntimeShip::new(ship, false, true))
+                .map(|ship| BattleRuntimeShip::new(ship, Side::Enemy, true))
         })
         .collect::<Result<Vec<_>, GameplayError>>()?;
 

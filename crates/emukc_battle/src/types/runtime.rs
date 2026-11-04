@@ -92,9 +92,18 @@ impl VanguardPlace {
     }
 }
 
+/// Which fleet a ship fights in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Side {
+    /// The player's fleet.
+    Friendly,
+    /// The enemy fleet.
+    Enemy,
+}
+
 impl BattleRuntimeShip {
     /// Create a runtime ship for battle simulation.
-    pub fn new(input: BattleShipInput, is_friendly: bool, is_sortie: bool) -> Self {
+    pub fn new(input: BattleShipInput, side: Side, is_sortie: bool) -> Self {
         Self {
             current_hp: input.ship.api_nowhp,
             entry_hp: input.ship.api_nowhp,
@@ -103,7 +112,7 @@ impl BattleRuntimeShip {
             slot_items: input.slot_items,
             aircraft_exp: input.aircraft_exp,
             effect_list: input.effect_list,
-            is_friendly,
+            is_friendly: side == Side::Friendly,
             is_sortie,
             is_flagship: false,
             combined: None,
@@ -287,9 +296,27 @@ pub(crate) struct Landing {
 impl From<BattleShipInput> for BattleRuntimeShip {
     /// Convenience conversion for tests.
     /// Defaults to friendly sortie ship (sinking protection enabled).
-    /// Use `BattleRuntimeShip::new(input, is_enemy, is_sortie)` for specific contexts.
+    /// Use `BattleRuntimeShip::new(input, side, is_sortie)` for specific contexts.
     fn from(input: BattleShipInput) -> Self {
-        Self::new(input, false, true)
+        Self::new(input, Side::Friendly, true)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::test_api_ship;
+
+    #[test]
+    fn a_ship_from_its_input_is_a_friendly_sortie_ship() {
+        let ship = BattleRuntimeShip::from(BattleShipInput {
+            ship: test_api_ship(40, 40),
+            slot_items: vec![],
+            aircraft_exp: vec![],
+            effect_list: vec![],
+            married: false,
+        });
+        assert!(ship.protected_from_sinking(), "a friendly sortie ship at full HP is protected");
     }
 }
 

@@ -119,6 +119,7 @@ pub(crate) fn accuracy(
 mod tests {
     use super::*;
     use crate::test_utils::{first_ship_mst_by_type, sample_ship, slotitem_with_mst_id};
+    use crate::types::Side;
     use emukc_model::kc2::KcShipType;
 
     /// Draws `self.0` of the range and counts the draws.
@@ -157,7 +158,7 @@ mod tests {
                         })
                         .collect();
                 }
-                BattleRuntimeShip::new(input, true, true)
+                BattleRuntimeShip::new(input, Side::Friendly, true)
             })
             .collect()
     }
@@ -203,14 +204,14 @@ mod tests {
     fn smoke_keeps_the_sources_estimated_share_of_each_attack() {
         let codex = Codex::load_without_cache_source("../../.data/codex").unwrap();
         let dd = first_ship_mst_by_type(&codex, KcShipType::DD);
-        let ship = |friendly, gear: &[i64]| {
+        let ship = |side, gear: &[i64]| {
             let mut input = sample_ship(&codex, dd, 50);
             input.slot_items = gear.iter().map(|&id| slotitem_with_mst_id(id)).collect();
-            BattleRuntimeShip::new(input, friendly, true)
+            BattleRuntimeShip::new(input, side, true)
         };
         // 28 is a 22号対水上電探.
-        let (bare, radar) = (ship(true, &[]), ship(true, &[28]));
-        let enemy = ship(false, &[]);
+        let (bare, radar) = (ship(Side::Friendly, &[]), ship(Side::Friendly, &[28]));
+        let enemy = ship(Side::Enemy, &[]);
         let at = |level, kind, ship| accuracy(&codex, level, kind, ship);
         assert_eq!(at(0, AttackKind::Shelling, &bare), 1.0);
         assert_eq!(at(1, AttackKind::Shelling, &bare), 0.01);

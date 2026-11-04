@@ -8,7 +8,7 @@ use crate::types::CombinedMembership;
 use crate::types::{
     AirCorpsInput, BattleAirBaseAttack, BattleContext, BattleHougeki, BattleKouku,
     BattleOpeningAttack, BattleOutcome, BattlePacket, BattleRaigeki, BattleRuntimeShip,
-    BattleSimulation, BattleType, NightBattlePacket, NightBattleSimulation, VanguardPlace,
+    BattleSimulation, BattleType, NightBattlePacket, NightBattleSimulation, Side, VanguardPlace,
 };
 
 /// Combined-fleet layout of [`BattleState::friendly`].
@@ -104,7 +104,7 @@ impl BattleState {
         let mut friendly = context
             .friend_ships
             .into_iter()
-            .map(|s| BattleRuntimeShip::new(s, true, is_sortie))
+            .map(|s| BattleRuntimeShip::new(s, Side::Friendly, is_sortie))
             .collect::<Vec<_>>();
         place_in_vanguard(&mut friendly, context.friendly_formation_id);
         mark_flagship(&mut friendly);
@@ -125,7 +125,7 @@ impl BattleState {
             }
             let escort_start = friendly.len();
             friendly.extend(setup.escort_ships.into_iter().map(|s| {
-                BattleRuntimeShip::new(s, true, is_sortie)
+                BattleRuntimeShip::new(s, Side::Friendly, is_sortie)
                     .in_combined_fleet(combined_type, CombinedFleetRole::Escort)
             }));
             mark_flagship(&mut friendly[escort_start..]);
@@ -138,7 +138,7 @@ impl BattleState {
         let mut enemy = context
             .enemy_ships
             .into_iter()
-            .map(|s| BattleRuntimeShip::new(s, false, is_sortie))
+            .map(|s| BattleRuntimeShip::new(s, Side::Enemy, is_sortie))
             .collect::<Vec<_>>();
         place_in_vanguard(&mut enemy, context.enemy_formation_id);
         // Same shape as the friendly side above, and the same guarantee: with
@@ -149,7 +149,8 @@ impl BattleState {
             }
             let escort_start = enemy.len();
             enemy.extend(context.enemy_escort_ships.into_iter().map(|s| {
-                BattleRuntimeShip::new(s, false, is_sortie).in_enemy_deck(CombinedFleetRole::Escort)
+                BattleRuntimeShip::new(s, Side::Enemy, is_sortie)
+                    .in_enemy_deck(CombinedFleetRole::Escort)
             }));
             escort_start
         });

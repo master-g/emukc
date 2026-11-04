@@ -1,3 +1,4 @@
+use emukc_internal::model::codex::map::{CellItem, CellItemKind};
 use emukc_internal::prelude::{
     KcApiMapAirSearch, KcApiMapCellData, KcApiMapEnemyDeckInfo, KcApiMapEoItem, KcApiMapHappening,
     KcApiMapItemGet, KcApiMapNext, KcApiMapSelectRoute, KcApiMapStart, SortieAirSearch,
@@ -39,7 +40,7 @@ pub(super) fn project_next(response: SortieNextResponse) -> KcApiMapNext {
         // plays the bonus only where `api_usemst` is 5.
         api_itemget_eo_comment: escort.map(|escort| KcApiMapEoItem {
             api_usemst: 4,
-            api_id: escort.gain.item.material_id().unwrap_or_default(),
+            api_id: material_id(escort.gain.item),
             api_getcount: escort.gain.amount,
         }),
         api_itemget_eo_result: escort.and_then(|escort| escort.bonus_use_item).map(
@@ -108,18 +109,27 @@ fn project_enemy_deck_preview(preview: SortieEnemyDeckPreview) -> KcApiMapEnemyD
     }
 }
 
+/// The material's `api_material` number; `0` for a furniture box, which neither an escort
+/// gain nor a maelstrom ever is.
+fn material_id(item: CellItem) -> i64 {
+    match item.kind() {
+        CellItemKind::Material(category) => category as i64,
+        CellItemKind::FurnitureBox(_) => 0,
+    }
+}
+
 const MATERIAL_NAMES: [&str; 8] =
     ["", "燃料", "弾薬", "鋼材", "ボーキサイト", "高速建造材", "高速修復材", "開発資材"];
 
 /// A material goes by `api_usemst` 4 and its number, which the client looks up in a table
 /// of its own; a furniture box by `api_usemst` 5 and its `api_mst_useitem` id.
 fn project_itemget(item: SortieItemGet) -> KcApiMapItemGet {
-    let (usemst, id, name) = match (item.item.furniture_box(), item.item.material_id()) {
-        (Some(use_item), _) => {
+    let (usemst, id, name) = match item.item.kind() {
+        CellItemKind::FurnitureBox(use_item) => {
             (5, use_item, ["家具箱(小)", "家具箱(中)", "家具箱(大)"][use_item as usize - 10])
         }
-        (None, material) => {
-            let id = material.unwrap_or_default();
+        CellItemKind::Material(category) => {
+            let id = category as i64;
             (4, id, MATERIAL_NAMES[id as usize])
         }
     };
@@ -134,7 +144,7 @@ fn project_itemget(item: SortieItemGet) -> KcApiMapItemGet {
 
 /// The client reads what was lost from `api_mst_id`: 1 for fuel, 2 for ammunition.
 fn project_happening(h: SortieHappening) -> KcApiMapHappening {
-    let id = h.item.material_id().unwrap_or_default();
+    let id = material_id(h.item);
     KcApiMapHappening {
         api_type: 1,
         api_count: h.amount,

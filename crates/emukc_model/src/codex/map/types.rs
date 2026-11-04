@@ -1,4 +1,5 @@
 use super::split_map_id;
+use crate::kc2::MaterialCategory;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use serde::{Deserialize, Deserializer as SerdeDeserializer, Serialize, Serializer};
@@ -75,21 +76,30 @@ pub enum CellItem {
     BoxLarge,
 }
 
-impl CellItem {
-    /// The `api_mst_useitem` id of a furniture box; `None` for a material.
-    pub fn furniture_box(self) -> Option<i64> {
-        match self {
-            Self::BoxSmall => Some(10),
-            Self::BoxMedium => Some(11),
-            Self::BoxLarge => Some(12),
-            _ => None,
-        }
-    }
+/// Where a [`CellItem`] goes when the fleet gets it.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CellItemKind {
+    /// A material, numbered as `api_material` numbers it.
+    Material(MaterialCategory),
+    /// A furniture box, by its `api_mst_useitem` id.
+    FurnitureBox(i64),
+}
 
-    /// The material's id, 1 for fuel to 7 for development material, as `api_material`
-    /// numbers them; `None` for a furniture box.
-    pub fn material_id(self) -> Option<i64> {
-        self.furniture_box().is_none().then_some(self as i64 + 1)
+impl CellItem {
+    /// Whether this is a material or a furniture box, and which.
+    pub fn kind(self) -> CellItemKind {
+        match self {
+            Self::Fuel => CellItemKind::Material(MaterialCategory::Fuel),
+            Self::Ammo => CellItemKind::Material(MaterialCategory::Ammo),
+            Self::Steel => CellItemKind::Material(MaterialCategory::Steel),
+            Self::Bauxite => CellItemKind::Material(MaterialCategory::Bauxite),
+            Self::Torch => CellItemKind::Material(MaterialCategory::Torch),
+            Self::Bucket => CellItemKind::Material(MaterialCategory::Bucket),
+            Self::DevMat => CellItemKind::Material(MaterialCategory::DevMat),
+            Self::BoxSmall => CellItemKind::FurnitureBox(10),
+            Self::BoxMedium => CellItemKind::FurnitureBox(11),
+            Self::BoxLarge => CellItemKind::FurnitureBox(12),
+        }
     }
 }
 
