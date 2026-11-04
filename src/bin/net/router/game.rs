@@ -163,3 +163,26 @@ async fn game(uri: Uri, Path(path): Path<String>, Query(query): Query<ViewerQuer
         Redirect::temporary(format!("//{host}/gadgets/{path}").as_str()).into_response()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use axum::{body::Body, http::Request};
+    use http::header::{HOST, LOCATION};
+    use tower::ServiceExt;
+
+    use super::router;
+
+    #[tokio::test]
+    async fn redirect_keeps_the_host_of_an_http1_request() {
+        // An HTTP/1 request carries its host only in the Host header; the URI is the bare path.
+        let req = Request::builder()
+            .uri("/game/does-not-exist.js")
+            .header(HOST, "example.test:9999")
+            .body(Body::empty())
+            .unwrap();
+
+        let resp = router().oneshot(req).await.unwrap();
+
+        assert_eq!(resp.headers()[LOCATION], "//example.test:9999/gadgets/does-not-exist.js");
+    }
+}
