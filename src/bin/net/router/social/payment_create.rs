@@ -54,8 +54,8 @@ pub(super) async fn exec(
         sku_id,
         price,
         count,
-        name: item.name.clone(),
-        description: item.description.clone(),
+        name: manifest_item.api_name.clone(),
+        description: manifest_item.api_description.clone(),
     };
 
     state.payment_store.insert(pay_session);
