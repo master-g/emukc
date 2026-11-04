@@ -120,12 +120,6 @@ fn find_config_file(arg: &str) -> anyhow::Result<PathBuf> {
         return Ok(config_path);
     }
 
-    let env_path = std::env::var("EMUKC_CONFIG")?;
-    let env_path = PathBuf::from(env_path);
-    if env_path.exists() {
-        return Ok(env_path);
-    }
-
     Err(anyhow::anyhow!(
         "Configuration file not found at '{}', '{}', or '{}'",
         arg,
