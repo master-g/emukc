@@ -59,9 +59,8 @@ pub async fn exec(args: &NewSessionArgs, cfg: &AppConfig, state: &State) -> Resu
         None => state.new_profile(token, &args.name).await?.profile.id,
     };
     let session = state.start_game(token, profile_id).await?;
-    let port = cfg.bind.port();
 
-    let url = format!("http://localhost:{port}/emukc?api_token={}", session.session.token);
+    let url = session_url(cfg, &session.session.token);
     println!("{url}");
 
     if !args.no_open {
@@ -70,4 +69,35 @@ pub async fn exec(args: &NewSessionArgs, cfg: &AppConfig, state: &State) -> Resu
     }
 
     Ok(())
+}
+
+fn session_url(cfg: &AppConfig, token: &str) -> String {
+    let port = cfg.bind.port();
+    format!("http://localhost:{port}/emukc?api_token={token}")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config(tls: bool) -> AppConfig {
+        AppConfig {
+            workspace_root: ".data".into(),
+            cache_root: "./z/cache".into(),
+            mods_root: None,
+            bind: "127.0.0.1:8443".parse().unwrap(),
+            tls_cert: tls.then(|| ".data/cert.pem".into()),
+            tls_key: tls.then(|| ".data/key.pem".into()),
+            proxy: None,
+            gadgets_cdn: vec![],
+            game_cdn: vec![],
+            season: None,
+        }
+    }
+
+    #[test]
+    fn the_session_url_follows_the_tls_config() {
+        assert_eq!(session_url(&config(true), "tok"), "https://localhost:8443/emukc?api_token=tok");
+        assert_eq!(session_url(&config(false), "tok"), "http://localhost:8443/emukc?api_token=tok");
+    }
 }
