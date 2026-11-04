@@ -2,7 +2,7 @@
 title: "Review Bugs - Plan"
 type: fix
 date: 2026-11-04
-status: in-progress
+status: implemented
 execution: code
 ---
 
@@ -34,7 +34,8 @@ execution: code
 
 ### U2 改装与舰船查询校验归属
 
-- 上述五个 `Ctx` 方法与对应 `_impl` 加 `profile_id`，舰船与装备都按 `ProfileId` 过滤，别人的当作不存在。改 `kaisou` 四个 handler 与 `ship2`、`ship3`，测试调用点随签名迁移。
+- 上述五个 `Ctx` 方法与对应 `_impl` 加 `profile_id`，舰船与装备都按 `ProfileId` 过滤，别人的当作不存在。改 `kaisou` 四个 handler 与 `ship2`、`ship3`、`ship_deck`，测试调用点随签名迁移。
+- 排查同类查询，又发现 13 处缺口（解体、改造、结婚、强化、装备转移、装备预设、补强增设、编成变更、入渠；入渠把船坞编号当主键用，第一个之后的玩家都在用第一个玩家的船坞）。这部分放在叠加的 `fix/ownership-checks` 里单独审查；同时修了编成变更里旗舰换位后同一艘船出现两次的问题。
 
 ### U3 給糧艦
 
@@ -64,4 +65,5 @@ execution: code
 
 - 每个单元的新测试先红后绿（U2、U5 的签名变化使测试只能与修复同提交）。
 - fmt、严格 clippy、`cargo test --workspace`；golden 不应变化。
-- U4、U5 另在 CLI 上手工复现与复验。
+- U4、U5 另在 CLI 上手工复现与复验。U4：`map build-overlays` 在去掉 `stat.json` 的数据目录上 panic，修复后下载成功，文件与本地缓存一致。U5：第二个账号 `new-session` 报 `Profile not found`，修复后每个会话都对应账号自己的 profile。
+- U7 并发取出没有能稳定失败的测试，原子性由同一把锁内完成检查与删除来保证。
