@@ -251,20 +251,18 @@ where
                 let m = am.update(c).await?;
                 docks.push(m);
 
-                // update ship
-                let mut ship =
-                    ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-                        GameplayError::EntryNotFound(format!(
-                            "Ship {ship_id} not found for repair dock {dock_id}",
-                        ))
-                    })?;
-
-                ship.hp_now = ship.hp_max;
-                if ship.condition < 40 {
-                    ship.condition = 40;
+                // A ship scrapped or used as powerup material while docked
+                // leaves nothing to heal; the dock is still freed.
+                if let Some(mut ship) = ship::Entity::find_by_id(ship_id).one(c).await? {
+                    ship.hp_now = ship.hp_max;
+                    if ship.condition < 40 {
+                        ship.condition = 40;
+                    }
+                    let ship_am = recalculate_ship_status_with_model(c, codex, &ship).await?;
+                    ship_am.update(c).await?;
+                } else {
+                    warn!("repair dock {dock_id} held ship {ship_id}, which no longer exists");
                 }
-                let ship_am = recalculate_ship_status_with_model(c, codex, &ship).await?;
-                ship_am.update(c).await?;
 
                 continue;
             }

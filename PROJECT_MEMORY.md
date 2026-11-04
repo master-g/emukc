@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-11-04 · branch `fix/review-bugs`
+Last updated: 2026-11-04 · branch `fix/stale-repair-dock`
 
 ## Verified Facts
 
@@ -171,9 +171,9 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-11-04] 审查后修 9 个 bug：`fix/review-bugs`（计划 001，U1–U8），叠加 `fix/ownership-checks`（另 13 处归属缺口与编成旗舰换位）。两分支各自 fmt、严格 clippy、`test --workspace --no-fail-fast` 通过（1691／1695 过，0 忽略），golden 不变。U4、U5 在 CLI 上复现并复验。未推送、未开 PR。
+- [2026-11-04] #306、#307 已合并。`fix/stale-repair-dock`：修理完成时舰船已不存在（解体、做了强化材料）不再让母港报错，直接空出船坞；#307 之前写进别的 profile 船坞的旧行，在该船坞主人打开母港时自行清掉并修好船（测试证明，无需迁移）。
 
 ## Next Session
 
-- [2026-11-04] 两分支待用户决定推送与开 PR（先底层，后叠加）；剩余审查发现按计划 002（P1–P10）逐个开 PR。10-27 对拍的三处公式差异开不开 issue 待用户定；第二刀（任务、海域、远征、基地、预设、图鉴形态 #302）未排期；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
+- [2026-11-04] 计划 002 按 P1–P10 每项一个分支、一个 PR，串行做，合并逐个问用户。10-27 对拍的三处公式差异开不开 issue 待用户定；第二刀（任务、海域、远征、基地、预设、图鉴形态 #302）未排期；#291、#282、#285 暂停；#293、#294、#300、#302 待 triage。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
   季节＝某天的状态，非常规版。暂不发版（用户定）；`CHANGELOG.md` 只到 2026-05，发版前重写。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。数字先读到再写。
