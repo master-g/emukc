@@ -71,7 +71,21 @@ pub(super) async fn handler(
 
     new_fleet.move_value_to_end(-1);
 
-    state.update_fleet_ships(pid, params.api_id, &new_fleet).await?;
+    let mut writes = vec![(params.api_id, new_fleet)];
+    if params.api_ship_id > 0 && origin_ship_idx < 0 {
+        // A ship taken from another fleet swaps with the one it replaces, as the client does.
+        let other = state.get_fleets(pid).await?.into_iter().find_map(|f| {
+            let pos = f.ships.iter().position(|&s| s == params.api_ship_id)?;
+            (f.index != params.api_id).then_some((f, pos))
+        });
+        if let Some((mut other, pos)) = other {
+            other.ships[pos] = *source_ship_id;
+            other.ships.move_value_to_end(-1);
+            writes.push((other.index, other.ships));
+        }
+    }
+
+    state.update_fleets_ships(pid, &writes).await?;
 
     Ok(KcApiResponse::success(&Resp {
         api_change_count: count,
