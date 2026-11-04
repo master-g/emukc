@@ -1,9 +1,8 @@
 //! Download requests and responses.
 
 use std::{
-    fs::{OpenOptions, create_dir_all},
-    io::Cursor,
     path::PathBuf,
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use emukc_crypto::SimpleHash;
@@ -12,6 +11,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::client::new_reqwest_client;
+
+/// Tells apart the partial files of concurrent downloads to the same target.
+static PARTIAL_SEQ: AtomicU64 = AtomicU64::new(0);
 
 /// Download request
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -361,7 +363,7 @@ impl Request {
 
         // create parent directory
         let parent = save_as.parent().expect("cannot get parent directory of the save path");
-        create_dir_all(parent).map_err(|source| DownloadError::Io {
+        tokio::fs::create_dir_all(parent).await.map_err(|source| DownloadError::Io {
             action: "creating parent directory",
             url: request_url.clone(),
             save_as: save_as.clone(),
@@ -369,28 +371,130 @@ impl Request {
             source,
         })?;
 
-        // open
-        let mut dest =
-            OpenOptions::new().write(true).create(true).truncate(true).open(&save_as).map_err(
-                |source| DownloadError::Io {
-                    action: "opening destination file",
-                    url: request_url.clone(),
-                    save_as: save_as.clone(),
-                    path: save_as.clone(),
-                    source,
-                },
-            )?;
-
-        // write
-        let mut content = Cursor::new(body);
-        std::io::copy(&mut content, &mut dest).map_err(|source| DownloadError::Io {
-            action: "writing response body",
-            url: request_url,
-            save_as: save_as.clone(),
-            path: save_as,
-            source,
-        })?;
+        // Stage the body beside the target and rename it over, so a failed write never leaves
+        // a truncated file the cache would later serve as present.
+        let seq = PARTIAL_SEQ.fetch_add(1, Ordering::Relaxed);
+        let partial = save_as.with_extension(format!("{}.{seq}.partial", std::process::id()));
+        if let Err(source) = tokio::fs::write(&partial, &body).await {
+            let _ = tokio::fs::remove_file(&partial).await;
+            return Err(DownloadError::Io {
+                action: "writing response body",
+                url: request_url,
+                save_as,
+                path: partial,
+                source,
+            });
+        }
+        if let Err(source) = tokio::fs::rename(&partial, &save_as).await {
+            let _ = tokio::fs::remove_file(&partial).await;
+            return Err(DownloadError::Io {
+                action: "moving downloaded file into place",
+                url: request_url,
+                save_as,
+                path: partial,
+                source,
+            });
+        }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::TcpListener,
+    };
+
+    use super::*;
+
+    const BODY: &[u8] = b"the whole new body";
+
+    async fn serve_once() -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut request = [0u8; 4096];
+            let _ = stream.read(&mut request).await;
+            let head = format!(
+                "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                BODY.len()
+            );
+            stream.write_all(head.as_bytes()).await.unwrap();
+            stream.write_all(BODY).await.unwrap();
+        });
+        format!("http://{addr}/res.png")
+    }
+
+    async fn download(url: String, save_as: &Path) -> Result<(), String> {
+        Request::builder()
+            .url(url)
+            .save_as(save_as)
+            .overwrite(true)
+            .skip_header_check(true)
+            .build()
+            .unwrap()
+            .execute(None)
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    fn entries(dir: &Path) -> Vec<String> {
+        let mut names = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    }
+
+    #[tokio::test]
+    async fn a_download_replaces_the_target_with_the_whole_body() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("res.png");
+        std::fs::write(&target, b"old").unwrap();
+
+        download(serve_once().await, &target).await.unwrap();
+
+        assert_eq!(std::fs::read(&target).unwrap(), BODY);
+        assert_eq!(entries(dir.path()), ["res.png"]);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn a_download_that_cannot_be_staged_leaves_the_target_alone() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("res.png");
+        std::fs::write(&target, b"old").unwrap();
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o555)).unwrap();
+
+        let result = download(serve_once().await, &target).await;
+        std::fs::set_permissions(dir.path(), std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        assert!(
+            result.is_err(),
+            "staging in a read-only directory must fail instead of writing the target in place"
+        );
+        assert_eq!(std::fs::read(&target).unwrap(), b"old");
+        assert_eq!(entries(dir.path()), ["res.png"]);
+    }
+
+    #[tokio::test]
+    async fn a_download_that_cannot_be_moved_into_place_leaves_no_partial_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("res.png");
+        std::fs::create_dir(&target).unwrap();
+
+        let result = download(serve_once().await, dir.path()).await;
+
+        assert!(result.is_err(), "a file cannot replace the directory at the target");
+        assert!(target.is_dir());
+        assert_eq!(entries(dir.path()), ["res.png"]);
     }
 }
