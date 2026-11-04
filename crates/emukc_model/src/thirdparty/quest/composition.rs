@@ -7,6 +7,7 @@ use super::{
 };
 
 /// Ship instance (from database)
+#[derive(Debug)]
 pub struct ShipInstance {
     pub id: i64,
     pub mst_id: i64,

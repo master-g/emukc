@@ -121,6 +121,7 @@ undocumented_unsafe_blocks = "warn"
 unwrap_or_default = "warn"
 
 [workspace.lints.rust]
+missing_debug_implementations = "warn"
 missing_docs = "warn"
 unsafe_code = "deny"
 unsafe_op_in_unsafe_fn = "warn"

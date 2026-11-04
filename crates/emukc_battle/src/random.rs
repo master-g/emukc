@@ -41,6 +41,7 @@ pub trait BattleRng {
 
 /// Deterministic RNG for tests. Wraps a seeded [`GameRng`](emukc_crypto::rng::GameRng).
 #[cfg(test)]
+#[derive(Debug)]
 pub struct SeededRng {
     inner: emukc_crypto::rng::GameRng,
 }

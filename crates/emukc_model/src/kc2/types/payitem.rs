@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N, Debug)]
 pub enum KcPayItemType {
     /// 燃料パック250
     FuelPack = 1,

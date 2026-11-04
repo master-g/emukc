@@ -6,6 +6,7 @@ use chrono::{DateTime, Datelike, FixedOffset, Local, NaiveDate, TimeZone, Timeli
 pub const JST: FixedOffset = FixedOffset::east_opt(9 * 3600).unwrap();
 
 /// A utility struct for time operations in `EmuKC`.
+#[derive(Debug)]
 pub struct KcTime;
 
 impl KcTime {

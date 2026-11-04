@@ -483,6 +483,7 @@ impl BattleContext {
 }
 
 /// Input parameters for [`execute_night`](crate::execute_night).
+#[derive(Debug)]
 pub struct NightBattleInput {
     pub friendly: Vec<BattleRuntimeShip>,
     pub enemy: Vec<BattleRuntimeShip>,

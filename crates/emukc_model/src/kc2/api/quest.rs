@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N, Debug)]
 pub enum KcApiQuestType {
     Daily = 1,
     Weekly = 2,
@@ -9,7 +9,7 @@ pub enum KcApiQuestType {
     Other = 5,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N, Debug)]
 pub enum KcApiQuestClearItemMaterialType {
     Fuel = 1,
     Ammo = 2,
@@ -21,7 +21,7 @@ pub enum KcApiQuestClearItemMaterialType {
     Screw = 8,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, enumn::N, Debug)]
 pub enum KcApiQuestClearItemBonusType {
     TuckYouTanaka = 0,
     Material = 1,
