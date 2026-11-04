@@ -95,7 +95,7 @@ pub fn run_day_battle(
     );
 
     let base_exp = calculate_base_exp(&input.rival);
-    let get_exp = calculate_admiral_exp(base_exp, &simulation.outcome.win_rank.to_string());
+    let get_exp = calculate_admiral_exp(base_exp, simulation.outcome.win_rank);
     let ct_flagship = simulation
         .friendly
         .first()

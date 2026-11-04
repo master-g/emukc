@@ -344,7 +344,7 @@ impl SortieBattleSetup {
     ) -> SortieBattleResultSnapshot {
         let base_exp =
             calculate_sortie_base_exp(self.active.map_level, self.active.current_cell_id);
-        let win_rank = session.outcome.win_rank.to_string();
+        let win_rank = session.outcome.win_rank;
         let friendly_nowhps: Vec<i64> = session.friendly.iter().map(|f| f.hp().max(0)).collect();
         let ct_flagship = self
             .friend_ships
@@ -397,7 +397,7 @@ impl SortieBattleSetup {
                 .iter()
                 .map(|&id| codex.find::<ApiMstShip>(&id).map(|m| m.api_stype).unwrap_or(0))
                 .collect(),
-            get_exp: calculate_admiral_exp(base_exp, &win_rank),
+            get_exp: calculate_admiral_exp(base_exp, win_rank),
             win_rank,
             member_lv: self.profile.hq_level,
             member_exp: self.profile.experience,

@@ -267,8 +267,7 @@ impl Ctx {
                         .unwrap_or_default();
                     existing.win_rank = snapshot.win_rank;
                     existing.mvp = snapshot.mvp;
-                    existing.get_exp =
-                        calculate_admiral_exp(base_exp, &existing.win_rank.to_string());
+                    existing.get_exp = calculate_admiral_exp(base_exp, existing.win_rank);
                     let (ship_exp, ship_lvup) = calculate_ship_exp(
                         &friend_ships,
                         base_exp,

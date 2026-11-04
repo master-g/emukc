@@ -57,7 +57,7 @@ pub struct SortieBattleResultSnapshot {
     /// kinds that cost otherwise ([`cell_supply_cost`]).
     pub cell_cost: Option<(i64, i64)>,
     pub enemy_ship_types: Vec<i64>,
-    pub win_rank: String,
+    pub win_rank: KcSortieResultRank,
     pub get_exp: i64,
     pub member_lv: i64,
     pub member_exp: i64,
@@ -194,13 +194,13 @@ where
     );
     record_stage_unlock(c, profile_id, definition, stage, current_cell.cell_no, &snapshot).await?;
     let landing_hp = if is_boss_cell {
-        land_transport(c, profile_id, definition, stage, active.landing_tp, &snapshot.win_rank)
+        land_transport(c, profile_id, definition, stage, active.landing_tp, snapshot.win_rank)
             .await?
     } else {
         None
     };
     // What the reconnaissances found is the fleet's with a B or better at the boss.
-    if is_boss_cell && matches!(snapshot.win_rank.as_str(), "S" | "A" | "B") {
+    if is_boss_cell && snapshot.win_rank <= KcSortieResultRank::B {
         for found in &active.recon_rewards {
             let category = emukc_model::kc2::MaterialCategory::from_id(
                 found.item.material_id().unwrap_or_default(),
@@ -229,15 +229,9 @@ where
         first_clear,
         "sortie_battle_result: map result applied"
     );
-    let ship_drop = try_grant_sortie_ship_drop(
-        c,
-        codex,
-        profile_id,
-        stage,
-        pending_cell_id,
-        &snapshot.win_rank,
-    )
-    .await?;
+    let ship_drop =
+        try_grant_sortie_ship_drop(c, codex, profile_id, stage, pending_cell_id, snapshot.win_rank)
+            .await?;
     let mut outcomes =
         vec![build_sortie_battle_outcome(definition, active, gauge_phase, &snapshot)?];
 
@@ -297,7 +291,7 @@ impl From<SortieSettlement> for SortieBattleResultResponse {
         } = settlement;
         Self {
             api_ship_id: snapshot.enemy_ship_ids,
-            api_win_rank: snapshot.win_rank,
+            api_win_rank: snapshot.win_rank.to_string(),
             api_get_exp: snapshot.get_exp,
             api_mvp: snapshot.mvp,
             api_mvp_combined: snapshot.mvp_combined,
@@ -489,33 +483,22 @@ pub(super) fn build_sortie_battle_outcome(
             .pending_battle_cell_id
             .and_then(|id| stage.cell(id))
             .and_then(|cell| cell.node_label.clone()),
-        win_rank: parse_sortie_result_rank(&snapshot.win_rank)?,
+        win_rank: snapshot.win_rank,
         fleet_id: active.deck_id,
         fleet_ships: snapshot.friendly_fleet_snapshot.clone(),
     })
-}
-
-fn parse_sortie_result_rank(win_rank: &str) -> Result<KcSortieResultRank, GameplayError> {
-    match win_rank {
-        "S" => Ok(KcSortieResultRank::S),
-        "A" => Ok(KcSortieResultRank::A),
-        "B" => Ok(KcSortieResultRank::B),
-        "C" => Ok(KcSortieResultRank::C),
-        "D" => Ok(KcSortieResultRank::D),
-        "E" => Ok(KcSortieResultRank::E),
-        _ => Err(GameplayError::WrongType(format!("unexpected sortie result rank `{win_rank}`",))),
-    }
 }
 
 pub(super) fn eligible_sortie_ship_drops<'a>(
     codex: &Codex,
     variant: &'a MapVariantDefinition,
     cell_no: i64,
-    win_rank: &str,
+    win_rank: KcSortieResultRank,
 ) -> Vec<&'a emukc_model::codex::map::ShipDropDefinition> {
-    if !matches!(win_rank, "S" | "A" | "B") {
+    if win_rank > KcSortieResultRank::B {
         return Vec::new();
     }
+    let win_rank = win_rank.to_string();
 
     variant
         .ship_drops(cell_no)
@@ -524,7 +507,7 @@ pub(super) fn eligible_sortie_ship_drops<'a>(
                 .iter()
                 .filter(|drop| {
                     !drop.tags.iter().any(|tag| tag == "limited")
-                        && (drop.ranks.is_empty() || drop.ranks.contains(win_rank))
+                        && (drop.ranks.is_empty() || drop.ranks.contains(&win_rank))
                         // `0` is the outcome "nothing drops".
                         && (drop.ship_id == 0 || codex.new_ship(drop.ship_id).is_some())
                 })
@@ -557,7 +540,7 @@ pub(super) async fn try_grant_sortie_ship_drop<C>(
     profile_id: i64,
     variant: &MapVariantDefinition,
     cell_no: i64,
-    win_rank: &str,
+    win_rank: KcSortieResultRank,
 ) -> Result<Option<SortieBattleResultGetShip>, GameplayError>
 where
     C: ConnectionTrait,
@@ -615,7 +598,7 @@ where
     let current_exp = am.experience.take().unwrap_or_default();
     let new_exp = current_exp + snapshot.get_exp;
     let (hq_level, _) = level::exp_to_hq_level(new_exp);
-    if matches!(snapshot.win_rank.as_str(), "S" | "A" | "B") {
+    if snapshot.win_rank <= KcSortieResultRank::B {
         am.sortie_wins = ActiveValue::Set(am.sortie_wins.take().unwrap_or_default() + 1);
     } else {
         am.sortie_loses = ActiveValue::Set(am.sortie_loses.take().unwrap_or_default() + 1);
@@ -791,7 +774,7 @@ async fn land_transport<C>(
     definition: &MapDefinition,
     stage: &MapStageDefinition,
     landing_tp: Option<i64>,
-    win_rank: &str,
+    win_rank: KcSortieResultRank,
 ) -> Result<Option<SortieLandingHp>, GameplayError>
 where
     C: ConnectionTrait,
@@ -859,7 +842,9 @@ async fn record_stage_unlock<C>(
 where
     C: ConnectionTrait,
 {
-    if snapshot.win_rank != "S" || !stage.advance_needs_s_rank_at.contains(&cell_no) {
+    if snapshot.win_rank != KcSortieResultRank::S
+        || !stage.advance_needs_s_rank_at.contains(&cell_no)
+    {
         return Ok(());
     }
     let record = find_map_record_impl(c, profile_id, definition.map_id).await?;
@@ -888,7 +873,7 @@ pub(super) async fn apply_sortie_map_result<C>(
 where
     C: ConnectionTrait,
 {
-    if !is_boss_cell || !matches!(snapshot.win_rank.as_str(), "S" | "A" | "B") {
+    if !is_boss_cell || snapshot.win_rank > KcSortieResultRank::B {
         tracing::debug!(
             map_id = definition.map_id,
             is_boss_cell,
@@ -1095,7 +1080,7 @@ mod tests {
 
     use super::*;
 
-    fn snapshot(win_rank: &str) -> SortieBattleResultSnapshot {
+    fn snapshot(win_rank: KcSortieResultRank) -> SortieBattleResultSnapshot {
         SortieBattleResultSnapshot {
             friendly_ship_ids: vec![],
             friendly_fleet_snapshot: vec![],
@@ -1109,7 +1094,7 @@ mod tests {
             enemy_combined: false,
             cell_cost: None,
             enemy_ship_types: vec![],
-            win_rank: win_rank.to_string(),
+            win_rank,
             get_exp: 0,
             member_lv: 0,
             member_exp: 0,
@@ -1181,7 +1166,7 @@ mod tests {
         }];
         let snapshot = SortieBattleResultSnapshot {
             friendly_fleet_snapshot: fleet.clone(),
-            ..snapshot("A")
+            ..snapshot(KcSortieResultRank::A)
         };
         let outcome = build_sortie_battle_outcome(&definition, &active, 2, &snapshot).unwrap();
 
@@ -1265,7 +1250,9 @@ mod tests {
             raided: false,
         };
 
-        let outcome = build_sortie_battle_outcome(&definition, &active, 1, &snapshot("S")).unwrap();
+        let outcome =
+            build_sortie_battle_outcome(&definition, &active, 1, &snapshot(KcSortieResultRank::S))
+                .unwrap();
         match outcome {
             GameplayOutcome::SortieBattleCompleted {
                 boss_cell,
@@ -1307,7 +1294,7 @@ mod tests {
             ..Default::default()
         };
 
-        let drops = eligible_sortie_ship_drops(&codex, &variant, 1, "S");
+        let drops = eligible_sortie_ship_drops(&codex, &variant, 1, KcSortieResultRank::S);
 
         assert_eq!(drops.len(), 1);
         assert_eq!(drops[0].ship_id, 1);
@@ -1398,7 +1385,7 @@ mod tests {
         let defeats = || async { get_record(&db, pid, definition.map_id).await.defeat_count };
 
         // An S rank that left the flagship afloat is a win, not a kill.
-        let snap = snapshot("S");
+        let snap = snapshot(KcSortieResultRank::S);
         apply_sortie_map_result(&db, pid, &definition, &stage, true, false, &snap).await.unwrap();
         assert_eq!(defeats().await.unwrap_or_default(), 0);
         apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap).await.unwrap();
@@ -1413,7 +1400,7 @@ mod tests {
         let stage = gauge_stage();
         insert_gauge_record(&db, pid, definition.map_id).await;
 
-        let snap = snapshot("S");
+        let snap = snapshot(KcSortieResultRank::S);
         let result = apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap)
             .await
             .unwrap();
@@ -1450,7 +1437,7 @@ mod tests {
         };
         record.insert(&db).await.unwrap();
 
-        let snap = snapshot("S");
+        let snap = snapshot(KcSortieResultRank::S);
         let result = apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap)
             .await
             .unwrap();
@@ -1468,7 +1455,7 @@ mod tests {
         let stage = gauge_stage();
         insert_gauge_record(&db, pid, definition.map_id).await;
 
-        let snap = snapshot("S");
+        let snap = snapshot(KcSortieResultRank::S);
         let result = apply_sortie_map_result(&db, pid, &definition, &stage, true, true, &snap)
             .await
             .unwrap();
@@ -1484,7 +1471,7 @@ mod tests {
         let stage = gauge_stage();
         insert_gauge_record(&db, pid, definition.map_id).await;
 
-        let snap = snapshot("S");
+        let snap = snapshot(KcSortieResultRank::S);
         let result = apply_sortie_map_result(&db, pid, &definition, &stage, false, true, &snap)
             .await
             .unwrap();
@@ -1537,10 +1524,10 @@ mod tests {
             parse_warnings: Vec::new(),
         };
 
-        let eligible = eligible_sortie_ship_drops(&codex, &variant, 1, "S");
+        let eligible = eligible_sortie_ship_drops(&codex, &variant, 1, KcSortieResultRank::S);
         assert_eq!(eligible.len(), 1);
         assert_eq!(eligible[0].ship_id, 1);
-        assert!(eligible_sortie_ship_drops(&codex, &variant, 1, "C").is_empty());
+        assert!(eligible_sortie_ship_drops(&codex, &variant, 1, KcSortieResultRank::C).is_empty());
     }
 
     #[test]
@@ -1577,13 +1564,13 @@ mod tests {
                 night_fought,
                 night_start,
                 enemy_combined,
-                ..snapshot("S")
+                ..snapshot(KcSortieResultRank::S)
             };
             battle_supply_cost(100, ammo_max, &snapshot, special)
         };
         // A day battle: a fifth of each, and at least 1.
         assert_eq!(cost(15, false, false, false, 1.0), (20, 3));
-        assert_eq!(battle_supply_cost(4, 4, &snapshot("S"), 1.0), (1, 1));
+        assert_eq!(battle_supply_cost(4, 4, &snapshot(KcSortieResultRank::S), 1.0), (1, 1));
         // Going on into the night: half as much ammunition again, rounded up; no more fuel.
         assert_eq!(cost(15, true, false, false, 1.0), (20, 5));
         // A battle that opens at night: a tenth of each.
@@ -1622,7 +1609,7 @@ mod tests {
             let snapshot = SortieBattleResultSnapshot {
                 cell_cost,
                 night_fought,
-                ..snapshot("S")
+                ..snapshot(KcSortieResultRank::S)
             };
             battle_supply_cost(100, 225, &snapshot, special)
         };
@@ -1633,7 +1620,7 @@ mod tests {
         // Less than 1 is 1, but nothing is nothing.
         let small = SortieBattleResultSnapshot {
             cell_cost: Some((4, 0)),
-            ..snapshot("S")
+            ..snapshot(KcSortieResultRank::S)
         };
         assert_eq!(battle_supply_cost(10, 10, &small, 1.0), (1, 0));
     }

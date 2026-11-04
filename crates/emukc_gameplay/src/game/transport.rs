@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 
 use emukc_db::{entity::profile::ship, sea_orm::ConnectionTrait};
-use emukc_model::codex::Codex;
+use emukc_model::{codex::Codex, kc2::KcSortieResultRank};
 
 use crate::err::GameplayError;
 
@@ -66,10 +66,10 @@ fn ship_points(ship_mst_id: i64, stype: i64, equip_types: impl Iterator<Item = i
 
 /// What an S rank lands from `points`; an A rank lands seven tenths, rounded down, and
 /// anything less nothing.
-pub(super) fn landed_points(points: i64, win_rank: &str) -> i64 {
+pub(super) fn landed_points(points: i64, win_rank: KcSortieResultRank) -> i64 {
     match win_rank {
-        "S" => points,
-        "A" => points * 7 / 10,
+        KcSortieResultRank::S => points,
+        KcSortieResultRank::A => points * 7 / 10,
         _ => 0,
     }
 }
@@ -133,8 +133,8 @@ mod tests {
 
     #[test]
     fn an_a_rank_lands_seven_tenths_rounded_down() {
-        assert_eq!(landed_points(46, "S"), 46);
-        assert_eq!(landed_points(46, "A"), 32);
-        assert_eq!(landed_points(46, "B"), 0);
+        assert_eq!(landed_points(46, KcSortieResultRank::S), 46);
+        assert_eq!(landed_points(46, KcSortieResultRank::A), 32);
+        assert_eq!(landed_points(46, KcSortieResultRank::B), 0);
     }
 }

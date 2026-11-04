@@ -1085,9 +1085,9 @@ impl Ctx {
                 if let Some(mut snapshot) = store.take_pending_result(profile_id) {
                     snapshot.special_attacks.extend(night.packet.special_attacks());
                     snapshot.night_fought = true;
-                    snapshot.win_rank = night.outcome.win_rank.to_string();
+                    snapshot.win_rank = night.outcome.win_rank;
                     snapshot.get_exp =
-                        calculate_admiral_exp(snapshot.get_base_exp, &snapshot.win_rank);
+                        calculate_admiral_exp(snapshot.get_base_exp, snapshot.win_rank);
                     snapshot.friendly_nowhps =
                         session.friendly.iter().map(|f| f.hp().max(0)).collect();
                     // Rescored over both decks: a combined night battle only moved
