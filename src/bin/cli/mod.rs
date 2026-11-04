@@ -263,3 +263,14 @@ pub async fn init() -> ExitCode {
         ExitCode::SUCCESS
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_missing_config_file_reports_where_it_looked() {
+        let err = find_config_file("definitely-not-here.emukc.toml").unwrap_err();
+        assert!(err.to_string().contains("Configuration file not found"), "got: {err}");
+    }
+}
