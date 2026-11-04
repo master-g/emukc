@@ -189,7 +189,7 @@ fn load_stat_catalog(data_root: &Path) -> (Option<MapCatalog>, usize, bool) {
     }
 
     // Try downloading
-    match download_stat_json(&cache_path) {
+    match download_stat_json() {
         Ok(raw) => match parse_stat_json(&raw) {
             Ok(catalog) => {
                 let count = catalog.maps.len();
@@ -211,7 +211,15 @@ fn load_stat_catalog(data_root: &Path) -> (Option<MapCatalog>, usize, bool) {
     }
 }
 
-fn download_stat_json(_cache_path: &Path) -> Result<String, String> {
+/// Callers reach this from inside a Tokio runtime, which cannot `block_on`, so the
+/// download runs on its own thread with its own runtime.
+fn download_stat_json() -> Result<String, String> {
+    std::thread::spawn(download_stat_json_blocking)
+        .join()
+        .map_err(|_| "download thread panicked".to_string())?
+}
+
+fn download_stat_json_blocking() -> Result<String, String> {
     let rt = tokio::runtime::Runtime::new().map_err(|e| format!("runtime create: {e}"))?;
     rt.block_on(async {
         let client = emukc_network::client::new_reqwest_client(None, None)
