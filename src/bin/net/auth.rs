@@ -1,7 +1,7 @@
 use axum::{
-    Extension, Form, RequestPartsExt,
+    Extension, RequestPartsExt,
     body::Body,
-    extract::{FromRef, FromRequest, FromRequestParts, Request},
+    extract::{FromRef, FromRequestParts, Request},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -88,50 +88,6 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(super) struct KcsApiFormWithToken {
     api_token: String,
-}
-
-impl<S> FromRequest<S> for KcsApiFormWithToken
-where
-    S: Send + Sync,
-{
-    type Rejection = (StatusCode, String);
-
-    async fn from_request(request: Request, _state: &S) -> Result<Self, Self::Rejection> {
-        let Form(form) = Form::<Self>::from_request(request, _state)
-            .await
-            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
-
-        Ok(form)
-    }
-}
-
-impl<S> FromRequest<S> for GameSession
-where
-    State: FromRef<S>,
-    S: Send + Sync + 'static,
-{
-    type Rejection = ApiError;
-
-    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let state = State::from_ref(state);
-
-        let Ok(form) = KcsApiFormWithToken::from_request(req, &state).await else {
-            return Err(ApiError::MissingToken);
-        };
-        let token = form.api_token;
-
-        match state.auth(&token).await {
-            Ok(AuthInfo::Profile(profile)) => Ok(Self {
-                token,
-                profile,
-            }),
-            Ok(AuthInfo::Account(_)) => {
-                info!("expected game session token, got access token");
-                Err(ApiError::InvalidToken)
-            }
-            Err(e) => Err(e.into()),
-        }
-    }
 }
 
 #[expect(clippy::result_large_err, reason = "the error is the response axum sends back")]
