@@ -62,7 +62,7 @@ pub(super) async fn handler(
     } else {
         let mut nf = fleet.ships;
         nf[params.api_ship_idx as usize] = params.api_ship_id;
-        if origin_ship_idx > 0 {
+        if origin_ship_idx >= 0 {
             // swap
             nf[origin_ship_idx as usize] = *source_ship_id;
         }
