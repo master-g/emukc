@@ -64,8 +64,10 @@ where
             should_commit |= split.is_some();
             let quest = split.as_ref().unwrap_or(quest);
             // recalculate progress only for activated quests
-            if quest.status == progress::Status::Activated {
-                let mst = codex.find::<Kc3rdQuest>(&quest.quest_id).unwrap();
+            // A rebuilt codex can drop a quest the profile still holds.
+            if quest.status == progress::Status::Activated
+                && let Ok(mst) = codex.find::<Kc3rdQuest>(&quest.quest_id)
+            {
                 should_commit |= recalculate_quest_progress(c, mst, quest).await?;
             }
             in_progress_quest_id.push(quest.quest_id);
@@ -262,7 +264,9 @@ where
     for quest in quests {
         let mut conditions: Vec<Kc3rdQuestCondition> =
             serde_json::from_value(quest.requirements.clone())?;
-        let mst = codex.find::<Kc3rdQuest>(&quest.quest_id)?;
+        let Ok(mst) = codex.find::<Kc3rdQuest>(&quest.quest_id) else {
+            continue;
+        };
         let master_conditions = match (&quest.requirement_type, &mst.requirements) {
             (progress::RequirementType::And, Kc3rdQuestRequirement::And(conditions))
             | (progress::RequirementType::OneOf, Kc3rdQuestRequirement::OneOf(conditions))
