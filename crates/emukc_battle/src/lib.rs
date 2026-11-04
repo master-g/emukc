@@ -27,7 +27,10 @@ mod state;
 mod targeting;
 /// Deterministic text renderer for battle simulations.
 pub mod transcript;
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "packet fields mirror the client's `api_*` keys and the runtime types are internal state; the module is private and only re-exported"
+)]
 mod types;
 
 #[cfg(test)]

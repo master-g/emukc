@@ -1,6 +1,9 @@
 //! User oss settings Entity
 
-#![allow(missing_docs)]
+#![expect(
+    missing_docs,
+    reason = "covers the `Language` column enum and the `pub fn n` that `enumn::N` derives for it"
+)]
 
 use emukc_model::kc2::KcApiOssSetting;
 use sea_orm::{ActiveValue, entity::prelude::*};
@@ -17,7 +20,10 @@ pub enum Language {
     English = 1,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "oss_settings")]
 pub struct Model {

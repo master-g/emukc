@@ -3,7 +3,10 @@
 use emukc_model::profile::user_item::UserItem;
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "use_item")]
 pub struct Model {

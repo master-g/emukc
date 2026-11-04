@@ -1362,7 +1362,10 @@ fn zuiun_night_chance(
 /// at night with more than half her hull, and a surface ship must be afloat. One roll per cut-in
 /// she makes, in order. Once it is made, her fleet counts as having fired a star shell for the
 /// rest of the night (the source's `star1 = true`), the cut-in's two hits included.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+)]
 fn zuiun_night_attack(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -1471,7 +1474,10 @@ impl SpecialRow {
 
 /// The one row of a special attack at night: each hit on a surface ship of its own, its
 /// multiplier applied before the cap.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+)]
 fn special_attack_row(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -1634,7 +1640,10 @@ pub(crate) fn simulate_night_hougeki(
 }
 
 /// One ship's night attack, if it can make one and has a target.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+)]
 fn night_turn(
     codex: &Codex,
     rng: &mut impl BattleRng,

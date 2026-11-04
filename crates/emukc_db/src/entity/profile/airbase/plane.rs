@@ -1,11 +1,14 @@
 //! Aircrafts belonging to an airbase.
-#![allow(missing_docs)]
+#![expect(missing_docs, reason = "`enumn::N` derives a `pub fn n` with no doc comment")]
 
 use chrono::{DateTime, Utc};
 use emukc_model::profile::airbase::{PlaneInfo, PlaneState};
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM column enum, named for the column it fills in the `Model` below"
+)]
 #[derive(
     Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, EnumIter, DeriveActiveEnum, enumn::N,
 )]
@@ -24,7 +27,10 @@ pub enum Status {
     Reassigning = 2,
 }
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "plane_info")]
 pub struct Model {

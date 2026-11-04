@@ -77,7 +77,10 @@ pub(crate) fn simulate_opening_taisen(
 
 /// One ship's opening ASW attack, if it is still afloat and has a submarine to
 /// attack. `attackers` and `defenders` are the slices of `volley`.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+)]
 fn asw_turn(
     codex: &Codex,
     rng: &mut impl BattleRng,

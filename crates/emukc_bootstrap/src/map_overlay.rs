@@ -1,4 +1,7 @@
-#![allow(missing_docs)]
+#![expect(
+    missing_docs,
+    reason = "overlay record types mirror the keys of the map overlay JSON they are read from"
+)]
 
 use std::path::{Path, PathBuf};
 

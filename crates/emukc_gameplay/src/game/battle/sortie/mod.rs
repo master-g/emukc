@@ -103,7 +103,13 @@ impl SortieBattleSession {
 
 #[derive(Debug, Clone)]
 pub struct SortieNightBattleSession {
-    #[cfg_attr(not(test), expect(dead_code))]
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "read only by the tests; the store already keys the session by profile"
+        )
+    )]
     pub profile_id: i64,
     pub packet: NightBattlePacket,
     pub outcome: BattleOutcome,

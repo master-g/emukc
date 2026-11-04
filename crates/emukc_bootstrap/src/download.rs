@@ -15,7 +15,10 @@ use crate::progress::{
 use crate::res::RES_LIST;
 
 /// Error that can occur during the download process
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "the variant fields are the url, path and proxy that the `#[error]` message prints"
+)]
 #[derive(Debug, Error)]
 pub enum BootstrapDownloadError {
     /// IO error

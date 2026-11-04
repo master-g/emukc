@@ -106,6 +106,7 @@ validator = { version = "0.21.0", features = ["derive"] }
 zip = { version = "9.0.5" }
 
 [workspace.lints.clippy]
+allow_attributes_without_reason = "warn"
 doc_markdown = "warn"
 manual_let_else = "warn"
 match_same_arms = "warn"

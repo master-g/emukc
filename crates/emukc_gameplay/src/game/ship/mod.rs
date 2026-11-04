@@ -286,7 +286,6 @@ impl Ctx {
 /// - `profile_id`: The profile ID.
 /// - `ship`: The ship to add.
 /// - `slots`: The slot items of the ship.
-#[expect(unused)]
 pub async fn add_ship_impl<C>(
     c: &C,
     codex: &Codex,
@@ -346,7 +345,7 @@ where
     codex.cal_ship_status(&mut ship, &slot_items, false)?;
 
     // add ship
-    let mut am = ship::ActiveModel {
+    let am = ship::ActiveModel {
         id: ActiveValue::NotSet,
         profile_id: ActiveValue::Set(profile_id),
         sort_num: ActiveValue::Set(ship.api_sortno),

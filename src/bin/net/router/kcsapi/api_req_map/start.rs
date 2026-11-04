@@ -11,7 +11,10 @@ pub(super) struct Params {
     pub(super) api_maparea_id: i64,
     pub(super) api_mapinfo_no: i64,
     #[serde(default)]
-    #[expect(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "the client sends it with every sortie start; the server does not track it"
+    )]
     pub(super) api_serial_cid: String,
 }
 

@@ -1,11 +1,12 @@
 //! User game settings Entity
 
-#![allow(missing_docs)]
-
 use emukc_model::kc2::KcApiGameSetting;
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "game_settings")]
 pub struct Model {

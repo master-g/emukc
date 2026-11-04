@@ -43,7 +43,10 @@ pub struct AirRaidBase {
 }
 
 /// `api_destruction_battle`: the raid as the client plays it.
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "field names are the client's `api_destruction_battle` keys verbatim"
+)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BattleAirRaid {
     pub api_formation: [i64; 3],
@@ -65,7 +68,10 @@ pub struct BattleAirRaid {
 }
 
 /// The one air battle of a raid.
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "field names are the client's `api_destruction_battle` keys verbatim"
+)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BattleAirRaidAttack {
     pub api_stage_flag: [i64; 3],

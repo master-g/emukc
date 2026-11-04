@@ -4,7 +4,10 @@ use chrono::{DateTime, Utc};
 use emukc_model::profile::quest::QuestOneshotRecord;
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "quest_record_oneshot")]
 pub struct Model {

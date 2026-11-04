@@ -171,7 +171,10 @@ pub(crate) fn balloon_contact(attacker_balloons: i64, target_balloons: i64) -> f
 /// When `ci_multiplier` is `Some(m)`, the multiplier is applied post-cap
 /// (after the daytime soft cap of 220) — matching `KanColle`'s artillery
 /// spotting damage pipeline.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+)]
 pub(crate) fn calculate_shelling_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -359,7 +362,10 @@ fn night_gun_power(
 ///
 /// `air_power` is the power of a carrier's night air attack (`night_air_power`) when she
 /// flies one; it stands in for her guns and torpedoes, and her aircraft's proficiency counts.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+)]
 pub(crate) fn calculate_night_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -399,7 +405,10 @@ pub(crate) fn calculate_night_damage(
 
 /// Calculate ASW damage against a submarine target. `planes` is the attacker's aircraft
 /// proficiency where the attack is flown ([`asw_proficiency`]), and none in the opening.
-#[expect(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "each argument is a separate input to one attack formula; a parameter struct would be built at the single call site and add nothing"
+)]
 pub(crate) fn calculate_asw_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,
@@ -432,7 +441,10 @@ pub(crate) fn calculate_asw_damage(
 
 /// Calculate airstrike damage for a single bomber slot.
 // TODO(#0): used by airstrike phase
-#[expect(dead_code)]
+#[expect(
+    dead_code,
+    reason = "no caller; `simulation::kouku` has its own copy that the airstrike phase uses"
+)]
 pub(crate) fn calculate_single_slot_airstrike_damage(
     codex: &Codex,
     rng: &mut impl BattleRng,

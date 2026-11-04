@@ -20,7 +20,6 @@ async fn get_kache() -> Result<Kache, Box<dyn std::error::Error>> {
     Ok(kache)
 }
 
-#[allow(dead_code)]
 async fn fetch_const() -> Result<(), Box<dyn std::error::Error>> {
     let kache = get_kache().await?;
     let mut f = kache.get("gadget_html5/js/kcs_const.js", NoVersion).await?;
@@ -32,7 +31,7 @@ async fn fetch_const() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[allow(dead_code)]
+#[expect(dead_code, reason = "alternative body for `main`; swap the call in to fetch these files")]
 async fn test_get() -> Result<(), Box<dyn std::error::Error>> {
     let kache = get_kache().await?;
     kache.get("kcs/sound/kcwjcrloeyiyxw/158288.mp3", 13).await?;

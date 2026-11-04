@@ -91,7 +91,10 @@ impl Builder {
 }
 
 /// Errors that can occur when downloading
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "the variant fields are the url, path and status that the `#[error]` message prints"
+)]
 #[derive(Debug, Error)]
 pub enum DownloadError {
     /// Reqwest client builder error
@@ -180,7 +183,7 @@ pub enum DownloadError {
     },
 }
 
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "the `Display` impl below spells out each phase")]
 #[derive(Debug, Clone, Copy)]
 pub enum DownloadPhase {
     SendHead,

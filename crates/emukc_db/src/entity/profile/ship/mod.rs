@@ -7,7 +7,10 @@ pub mod morale_timer;
 pub mod picturebook;
 pub mod sp_effect_item;
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "ship")]
 pub struct Model {

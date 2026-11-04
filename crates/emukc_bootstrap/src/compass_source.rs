@@ -33,7 +33,10 @@ pub fn compass_source_dir(data_root: impl AsRef<Path>) -> PathBuf {
 /// Fetch the pinned commit into [`compass_source_dir`], unless it is already there.
 ///
 /// Returns the directory and whether anything was downloaded.
-#[expect(clippy::result_large_err)]
+#[expect(
+    clippy::result_large_err,
+    reason = "carries the download error whole, once per bootstrap run"
+)]
 pub async fn sync_compass_source(
     data_root: impl AsRef<Path>,
     proxy: Option<&str>,
@@ -70,7 +73,10 @@ pub async fn sync_compass_source(
 
 /// Unpack `archive` into `target`, which only appears once the unpacked tree passed the
 /// license check — an interrupted or rejected unpack leaves no `target` behind.
-#[expect(clippy::result_large_err)]
+#[expect(
+    clippy::result_large_err,
+    reason = "carries the download error whole, once per bootstrap run"
+)]
 fn unpack_compass_archive(
     url: &str,
     archive: &Path,
@@ -103,7 +109,10 @@ fn unpack_compass_archive(
 
 /// The conversion redistributes rules derived from this source, which the MIT license
 /// allows. A different license at the pinned commit has to be looked at by a person.
-#[expect(clippy::result_large_err)]
+#[expect(
+    clippy::result_large_err,
+    reason = "carries the download error whole, once per bootstrap run"
+)]
 fn check_license(dir: &Path) -> Result<(), BootstrapDownloadError> {
     let path = dir.join("LICENSE");
     let license = std::fs::read_to_string(&path).map_err(|err| {

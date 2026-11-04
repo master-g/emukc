@@ -8,7 +8,10 @@ use super::projection::project_next;
 #[derive(Deserialize)]
 pub(super) struct Params {
     #[serde(default)]
-    #[expect(dead_code)]
+    #[expect(
+        dead_code,
+        reason = "the client sends it with every step; the server does not read it"
+    )]
     pub(super) api_recovery_type: i64,
     #[serde(default)]
     pub(super) api_cell_id: Option<i64>,

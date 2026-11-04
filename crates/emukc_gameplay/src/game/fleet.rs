@@ -164,7 +164,6 @@ where
 ///
 /// - `profile_id`: The profile ID.
 /// - `index`: The fleet index, must be one of 2, 3, 4.
-#[expect(unused)]
 pub(crate) async fn unlock_fleet_impl<C>(
     c: &C,
     profile_id: i64,
@@ -175,7 +174,7 @@ where
 {
     let fleet = Fleet::new(profile_id, index).unwrap();
 
-    let mut am: fleet::ActiveModel = fleet.into();
+    let am: fleet::ActiveModel = fleet.into();
 
     let m = am.save(c).await?;
 

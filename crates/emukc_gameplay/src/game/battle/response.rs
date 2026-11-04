@@ -14,7 +14,10 @@ use emukc_model::codex::Codex;
 use emukc_model::kc2::{KcApiShip, KcApiSlotItem};
 
 /// Day battle API response.
-#[expect(non_snake_case)]
+#[expect(
+    non_snake_case,
+    reason = "field names are the client's battle keys verbatim, such as `api_fParam` and `api_eSlot`"
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct DayBattleResponse {
     pub api_deck_id: i64,
@@ -78,7 +81,10 @@ pub struct DayBattleResponse {
 }
 
 /// Night battle API response.
-#[expect(non_snake_case)]
+#[expect(
+    non_snake_case,
+    reason = "field names are the client's battle keys verbatim, such as `api_fParam` and `api_eSlot`"
+)]
 #[derive(Debug, Clone, Serialize)]
 pub struct NightBattleResponse {
     pub api_deck_id: i64,

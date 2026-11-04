@@ -1,4 +1,7 @@
-#![allow(missing_docs)]
+#![expect(
+    missing_docs,
+    reason = "the rival enums are the client's practice ids, and `enumn::N` derives an undocumented `pub fn n`"
+)]
 
 use serde::{Deserialize, Serialize};
 

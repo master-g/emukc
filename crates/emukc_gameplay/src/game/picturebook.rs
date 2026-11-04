@@ -100,7 +100,6 @@ impl Ctx {
 /// - `sortno`: The ship's sort number.
 /// - `damaged`: Whether the ship is damaged.
 /// - `married`: Whether the ship is married.
-#[expect(unused)]
 pub(crate) async fn add_ship_to_picturebook_impl<C>(
     c: &C,
     profile_id: i64,
@@ -111,7 +110,7 @@ pub(crate) async fn add_ship_to_picturebook_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let mut am = match ship::picturebook::Entity::find()
+    let am = match ship::picturebook::Entity::find()
         .filter(ship::picturebook::Column::ProfileId.eq(profile_id))
         .filter(ship::picturebook::Column::SortNum.eq(sortno))
         .one(c)
@@ -145,7 +144,6 @@ where
 /// - `c`: The database connection.
 /// - `profile_id`: The profile ID.
 /// - `sortno`: The slot item's sort number.
-#[expect(unused)]
 pub(crate) async fn add_slot_item_to_picturebook_impl<C>(
     c: &C,
     profile_id: i64,
@@ -154,7 +152,7 @@ pub(crate) async fn add_slot_item_to_picturebook_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let mut am = match item::picturebook::Entity::find()
+    let am = match item::picturebook::Entity::find()
         .filter(item::picturebook::Column::ProfileId.eq(profile_id))
         .filter(item::picturebook::Column::SortNum.eq(sortno))
         .one(c)

@@ -1,11 +1,12 @@
 //! User option settings Entity
 
-#![allow(missing_docs)]
-
 use emukc_model::kc2::KcApiOptionSetting;
 use sea_orm::{ActiveValue, entity::prelude::*};
 
-#[expect(missing_docs)]
+#[expect(
+    missing_docs,
+    reason = "SeaORM names every row type `Model`; the module doc and `table_name` say which table it is"
+)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, DeriveEntityModel)]
 #[sea_orm(table_name = "option_settings")]
 pub struct Model {

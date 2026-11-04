@@ -1,4 +1,3 @@
-#![allow(clippy::single_component_path_imports)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![doc(html_favicon_url = "http://203.104.209.71/kcs2/resources/useitem/card_/090.png")]
 #![doc(html_logo_url = "http://203.104.209.71/kcs2/resources/useitem/card_/090.png")]
@@ -11,5 +10,9 @@
 pub use emukc_internal::*;
 
 #[cfg(all(feature = "dynamic_linking", not(target_family = "wasm")))]
-#[expect(unused_imports)]
+#[expect(
+    unused_imports,
+    clippy::single_component_path_imports,
+    reason = "the import only forces `emukc_dylib` to link; nothing names it"
+)]
 use emukc_dylib;

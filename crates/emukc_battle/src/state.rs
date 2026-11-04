@@ -412,7 +412,10 @@ impl BattleState {
     }
 
     /// Consume state, verify invariants, produce the night battle simulation result.
-    #[expect(clippy::too_many_arguments)]
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "each argument is one field of the night battle packet; the caller has them as separate values"
+    )]
     pub fn finalize_night(
         self,
         friendly_nowhps: Vec<i64>,
