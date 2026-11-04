@@ -10,7 +10,6 @@ emukc_model = { path = "../emukc_model" }
 emukc_time = { path = "../emukc_time" }
 
 # other
-async-trait = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
 enumn = { workspace = true }
 sea-orm = { workspace = true, features = [

@@ -24,7 +24,6 @@ rust-version = "1.96.0"
 
 [workspace.dependencies]
 anyhow = "1.0.102"
-async-trait = "0.1.89"
 axum = { version = "0.8.9", features = ["form"] }
 axum-extra = { version = "0.12.6", features = ["typed-header"] }
 headers = "0.4"
@@ -43,7 +42,6 @@ clap = { version = "4.6.1", features = [
 config = { version = "0.15.23", features = ["toml"] }
 dashmap = "6.2.1"
 enumn = "0.1.14"
-env_logger = "0.11.10"
 fontdue = { version = "0.9.3" }
 futures = { version = "0.3.32" }
 futures-util = { version = "0.3.32" }
@@ -156,7 +154,6 @@ clap = { workspace = true, features = [
 ] }
 config = { workspace = true, features = ["toml"] }
 emukc_internal = { path = "crates/emukc_internal" }
-env_logger.workspace = true
 fontdue = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
