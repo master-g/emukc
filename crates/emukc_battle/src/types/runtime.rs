@@ -293,6 +293,24 @@ impl From<BattleShipInput> for BattleRuntimeShip {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::test_api_ship;
+
+    #[test]
+    fn a_ship_from_its_input_is_a_friendly_sortie_ship() {
+        let ship = BattleRuntimeShip::from(BattleShipInput {
+            ship: test_api_ship(40, 40),
+            slot_items: vec![],
+            aircraft_exp: vec![],
+            effect_list: vec![],
+            married: false,
+        });
+        assert!(ship.protected_from_sinking(), "a friendly sortie ship at full HP is protected");
+    }
+}
+
 /// A ship's place in a combined fleet: which flavour of fleet, and which of its
 /// two decks. The two always travel together — a deck without a fleet type
 /// cannot be looked up in the correction table.
