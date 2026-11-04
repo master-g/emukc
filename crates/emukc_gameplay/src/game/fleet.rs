@@ -254,6 +254,20 @@ pub(crate) async fn update_fleet_ships_impl<C>(
 where
     C: ConnectionTrait,
 {
+    let mut placed: Vec<i64> = ship_ids.iter().copied().filter(|&id| id > 0).collect();
+    placed.sort_unstable();
+    placed.dedup();
+    let owned = ship::Entity::find()
+        .filter(ship::Column::Id.is_in(placed.clone()))
+        .filter(ship::Column::ProfileId.eq(profile_id))
+        .count(c)
+        .await?;
+    if owned != placed.len() as u64 {
+        return Err(GameplayError::EntryNotFound(format!(
+            "ships {placed:?} of profile {profile_id}"
+        )));
+    }
+
     let fleet = find_fleet(c, profile_id, index).await?;
     let mut am: fleet::ActiveModel = fleet.into();
     am.ship_1 = ActiveValue::Set(ship_ids[0]);

@@ -85,6 +85,8 @@ mod account_profiles;
 mod hangar_expand;
 #[path = "gameplay_tests/ship/kaisou.rs"]
 mod kaisou;
+#[path = "gameplay_tests/ownership.rs"]
+mod ownership;
 
 #[path = "gameplay_tests/api_alignment_e2e.rs"]
 mod api_alignment_e2e;

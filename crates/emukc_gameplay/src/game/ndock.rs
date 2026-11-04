@@ -1,3 +1,4 @@
+use crate::game::ship::find_owned_ship;
 use emukc_db::{
     entity::profile::{material, ndock, ship},
     sea_orm::{
@@ -314,15 +315,8 @@ pub(crate) async fn ndock_start_repair_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let dock = ndock::Entity::find_by_id(ndock_id).one(c).await?.ok_or_else(|| {
-        GameplayError::EntryNotFound(format!(
-            "Repair dock {ndock_id} not found for profile {profile_id}",
-        ))
-    })?;
-
-    let ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-        GameplayError::EntryNotFound(format!("Ship {ship_id} not found for profile {profile_id}",))
-    })?;
+    let dock = find_dock(c, profile_id, ndock_id).await?;
+    let ship = find_owned_ship(c, profile_id, ship_id).await?;
 
     let ship_mst = codex.find::<ApiMstShip>(&ship.mst_id)?;
 
@@ -416,11 +410,7 @@ pub(crate) async fn speed_up_ship_repairation_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let dock = ndock::Entity::find_by_id(ndock_id).one(c).await?.ok_or_else(|| {
-        GameplayError::EntryNotFound(format!(
-            "Repair dock {ndock_id} not found for profile {profile_id}",
-        ))
-    })?;
+    let dock = find_dock(c, profile_id, ndock_id).await?;
 
     let ship_id = dock.ship_id;
 

@@ -1,3 +1,4 @@
+use crate::game::ship::find_owned_ship;
 use emukc_crypto::rng;
 use emukc_db::{
     entity::profile::ship,
@@ -23,11 +24,7 @@ pub(crate) async fn marriage_impl<C>(
 where
     C: ConnectionTrait,
 {
-    let mut ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-        GameplayError::EntryNotFound(format!(
-            "No ship found for profile ID {profile_id} and ship ID {ship_id}",
-        ))
-    })?;
+    let mut ship = find_owned_ship(c, profile_id, ship_id).await?;
 
     if ship.married {
         return Ok(ship);

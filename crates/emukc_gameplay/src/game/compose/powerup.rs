@@ -1,3 +1,4 @@
+use crate::game::ship::find_owned_ship;
 use emukc_crypto::rng;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
@@ -78,11 +79,7 @@ where
     };
     // find target ship
 
-    let target_ship = ship::Entity::find_by_id(ship_id).one(c).await?.ok_or_else(|| {
-        GameplayError::EntryNotFound(format!(
-            "No ship found for profile ID {profile_id} and ship ID {ship_id}",
-        ))
-    })?;
+    let target_ship = find_owned_ship(c, profile_id, ship_id).await?;
 
     // calculate powerup potentials
 
@@ -98,12 +95,14 @@ where
 
     // find material ships
 
+    let requested = material_ships.len();
     let material_ships = ship::Entity::find()
         .filter(ship::Column::Id.is_in(material_ships.to_owned()))
+        .filter(ship::Column::ProfileId.eq(profile_id))
         .all(c)
         .await?;
 
-    if material_ships.is_empty() {
+    if material_ships.is_empty() || material_ships.len() != requested {
         return Err(GameplayError::EntryNotFound(format!(
             "one or more material ships not found for profile ID {} and ship IDs {:?}",
             profile_id,

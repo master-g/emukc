@@ -1,3 +1,4 @@
+use crate::game::ship::find_owned_ship;
 use emukc_db::{
     entity::profile::{item::slot_item, ship},
     sea_orm::{ActiveValue, entity::prelude::*},
@@ -14,22 +15,21 @@ use crate::{
 
 use super::{SlotDepriveParams, SlotDepriveResp};
 
-fn get_slot_mut(ship: &mut ship::Model, is_ex_slot: bool, slot_idx: Option<i64>) -> &mut i64 {
+fn get_slot_mut(
+    ship: &mut ship::Model,
+    is_ex_slot: bool,
+    slot_idx: Option<i64>,
+) -> Result<&mut i64, GameplayError> {
     if is_ex_slot {
-        &mut ship.slot_ex
-    } else {
-        debug_assert!(
-            matches!(slot_idx, Some(0..=4)),
-            "slot_idx must be Some(0..=4), got {slot_idx:?}"
-        );
-        match slot_idx {
-            Some(0) => &mut ship.slot_1,
-            Some(1) => &mut ship.slot_2,
-            Some(2) => &mut ship.slot_3,
-            Some(3) => &mut ship.slot_4,
-            Some(4) => &mut ship.slot_5,
-            _ => unreachable!(),
-        }
+        return Ok(&mut ship.slot_ex);
+    }
+    match slot_idx {
+        Some(0) => Ok(&mut ship.slot_1),
+        Some(1) => Ok(&mut ship.slot_2),
+        Some(2) => Ok(&mut ship.slot_3),
+        Some(3) => Ok(&mut ship.slot_4),
+        Some(4) => Ok(&mut ship.slot_5),
+        _ => Err(GameplayError::WrongType(format!("slot index {slot_idx:?}"))),
     }
 }
 
@@ -43,32 +43,26 @@ where
     C: ConnectionTrait,
 {
     // from ship
-    let mut from_ship_model =
-        ship::Entity::find_by_id(params.from_ship_id).one(c).await?.ok_or_else(|| {
-            GameplayError::EntryNotFound(format!("ship for ID {}", params.from_ship_id))
-        })?;
+    let mut from_ship_model = find_owned_ship(c, profile_id, params.from_ship_id).await?;
 
     let from_slot_idx = if params.from_ex_slot {
         None
     } else {
         Some(params.from_slot_idx)
     };
-    let from_slot = get_slot_mut(&mut from_ship_model, params.from_ex_slot, from_slot_idx);
+    let from_slot = get_slot_mut(&mut from_ship_model, params.from_ex_slot, from_slot_idx)?;
     let slot_item_id = *from_slot;
     *from_slot = -1;
 
     // to ship
-    let mut to_ship_model =
-        ship::Entity::find_by_id(params.to_ship_id).one(c).await?.ok_or_else(|| {
-            GameplayError::EntryNotFound(format!("ship for ID {}", params.to_ship_id))
-        })?;
+    let mut to_ship_model = find_owned_ship(c, profile_id, params.to_ship_id).await?;
 
     let to_slot_idx = if params.to_ex_slot {
         None
     } else {
         Some(params.to_slot_idx)
     };
-    let to_slot = get_slot_mut(&mut to_ship_model, params.to_ex_slot, to_slot_idx);
+    let to_slot = get_slot_mut(&mut to_ship_model, params.to_ex_slot, to_slot_idx)?;
     let unset_slot_item_id = *to_slot;
     *to_slot = slot_item_id;
 
