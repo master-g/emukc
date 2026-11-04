@@ -347,7 +347,12 @@ where
                 name: rival.name,
                 comment: rival.comment,
                 level: rival.level,
-                rank: UserHQRank::n(rival.rank).unwrap(),
+                rank: UserHQRank::n(rival.rank).ok_or_else(|| {
+                    GameplayError::WrongType(format!(
+                        "practice rival {} rank {} for profile {profile_id}",
+                        rival.id, rival.rank
+                    ))
+                })?,
                 flag: rival.flag.into(),
                 status: rival.status.into(),
                 medals: rival.medals,

@@ -117,7 +117,7 @@ pub fn md5(input: &str) -> String {
 /// use emukc_crypto::hash::md5_file;
 ///
 /// let hash = md5_file("Cargo.toml").unwrap();
-/// assert_eq!(hash, "0fe6a80587eaeb09b0a5e6b86a1fd47c");
+/// assert_eq!(hash, "9c304faee15e8f14d3f20ebff0880e79");
 /// ```
 pub fn md5_file<P: AsRef<Path>>(path: P) -> Result<String, std::io::Error> {
     let mut file = File::open(path)?;
@@ -158,6 +158,6 @@ mod tests {
     #[tokio::test]
     async fn test_md5_file_async() {
         let hash = md5_file_async("Cargo.toml").await.unwrap();
-        assert_eq!(hash, "0fe6a80587eaeb09b0a5e6b86a1fd47c");
+        assert_eq!(hash, "9c304faee15e8f14d3f20ebff0880e79");
     }
 }

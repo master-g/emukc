@@ -123,12 +123,10 @@ where
             .filter(slot_item::Column::Id.is_in(slot_item_ids.clone()))
             .all(c)
             .await?;
-        let slot_item_mst_map: BTreeMap<i64, ApiMstSlotitem> =
-            slot_items.iter().fold(BTreeMap::new(), |mut map, si| {
-                let mst = codex.find::<ApiMstSlotitem>(&si.mst_id).unwrap();
-                map.insert(si.id, mst.clone());
-                map
-            });
+        let slot_item_mst_map = slot_items
+            .iter()
+            .map(|si| Ok((si.id, codex.find::<ApiMstSlotitem>(&si.mst_id)?.clone())))
+            .collect::<Result<BTreeMap<i64, ApiMstSlotitem>, GameplayError>>()?;
         // update slot items' equip_on to target ship
         slot_item::Entity::update_many()
             .col_expr(slot_item::Column::EquipOn, Expr::value(0))

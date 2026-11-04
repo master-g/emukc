@@ -13,7 +13,10 @@ impl<T: AsRef<[u8]>> PasswordCrypto for T {
     }
 
     fn verify_password(&self, hash: &str) -> bool {
-        bcrypt::verify(self, hash).unwrap()
+        bcrypt::verify(self, hash).unwrap_or_else(|e| {
+            tracing::error!("stored password hash cannot be verified: {e}");
+            false
+        })
     }
 }
 

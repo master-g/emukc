@@ -13,6 +13,7 @@ md5 = { workspace = true }
 regex = { workspace = true }
 sha2 = { workspace = true, default-features = false }
 tokio = { workspace = true, optional = true }
+tracing = { workspace = true }
 
 [features]
 async = ["tokio"]

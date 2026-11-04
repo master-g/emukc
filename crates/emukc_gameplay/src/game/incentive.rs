@@ -4,7 +4,7 @@ use emukc_db::{
     entity::profile::incentive::{self, IncentiveMode, IncentiveType},
     sea_orm::{QueryOrder, TransactionTrait, entity::*},
 };
-use emukc_model::kc2::{KcApiIncentiveItem, MaterialCategory};
+use emukc_model::kc2::{KcApiIncentiveItem, MaterialCategory, start2::ApiMstShip};
 use prelude::{ConnectionTrait, QueryFilter};
 
 use crate::{err::GameplayError, gameplay::Ctx};
@@ -88,27 +88,22 @@ impl Ctx {
 
         let api_items: Vec<KcApiIncentiveItem> = items
             .iter()
-            .map(|i| KcApiIncentiveItem {
-                api_mode: i.mode as i64,
-                api_type: i.typ as i64,
-                api_mst_id: i.mst_id,
-                api_slotitem_level: i.stars,
-                api_getmes: if i.typ == IncentiveType::Ship {
-                    codex
-                        .manifest
-                        .api_mst_ship
-                        .iter()
-                        .find(|s| s.api_id == i.mst_id)
-                        .unwrap()
-                        .api_getmes
-                        .clone()
-                } else {
-                    None
-                },
-                amount: i.amount,
-                alv: i.alv.unwrap_or_default(),
+            .map(|i| {
+                Ok(KcApiIncentiveItem {
+                    api_mode: i.mode as i64,
+                    api_type: i.typ as i64,
+                    api_mst_id: i.mst_id,
+                    api_slotitem_level: i.stars,
+                    api_getmes: if i.typ == IncentiveType::Ship {
+                        codex.find::<ApiMstShip>(&i.mst_id)?.api_getmes.clone()
+                    } else {
+                        None
+                    },
+                    amount: i.amount,
+                    alv: i.alv.unwrap_or_default(),
+                })
             })
-            .collect();
+            .collect::<Result<_, GameplayError>>()?;
 
         // apply incentives
         for item in items {
