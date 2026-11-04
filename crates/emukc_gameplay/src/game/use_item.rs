@@ -695,8 +695,21 @@ where
 {
     let mut ships = get_fleet_ships_impl(c, profile_id, deck_id).await?;
 
-    deduct_use_item_impl(c, profile_id, KcUseItemType::Mamiya as i64, 1).await?;
-    deduct_use_item_impl(c, profile_id, KcUseItemType::Irako as i64, 1).await?;
+    let (mamiya, irako) = match use_type {
+        1 => (1, 0),
+        2 => (0, 1),
+        3 => (1, 1),
+        _ => {
+            return Err(GameplayError::WrongType(format!(
+                "use type: {use_type} for profile: {profile_id}",
+            )));
+        }
+    };
+    for (item, amount) in [(KcUseItemType::Mamiya, mamiya), (KcUseItemType::Irako, irako)] {
+        if amount > 0 {
+            deduct_use_item_impl(c, profile_id, item as i64, amount).await?;
+        }
+    }
 
     match use_type {
         1 => {
@@ -716,9 +729,11 @@ where
             let lucky_count = rng::i64_inclusive(0..=3);
             let mut luck_ship_id = vec![ships[0].id];
             for _ in 0..lucky_count {
-                let id = rng::choose_iter(ships.iter().skip(1)).unwrap().id;
-                if !luck_ship_id.contains(&id) {
-                    luck_ship_id.push(id);
+                let Some(escort) = rng::choose_iter(ships.iter().skip(1)) else {
+                    break;
+                };
+                if !luck_ship_id.contains(&escort.id) {
+                    luck_ship_id.push(escort.id);
                 }
             }
             for id in luck_ship_id {
@@ -748,11 +763,7 @@ where
                 ship.condition = ship.condition.min(100);
             });
         }
-        _ => {
-            return Err(GameplayError::WrongType(format!(
-                "use type: {use_type} for profile: {profile_id}",
-            )));
-        }
+        _ => unreachable!("use type {use_type} was checked above"),
     }
 
     for ship in ships {
