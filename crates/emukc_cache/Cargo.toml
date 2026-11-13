@@ -7,8 +7,6 @@ rust-version.workspace = true
 [dependencies]
 # emukc
 emukc_crypto = { path = "../emukc_crypto", features = ["async"] }
-emukc_db = { path = "../emukc_db" }
-emukc_model = { path = "../emukc_model" }
 emukc_network = { path = "../emukc_network" }
 
 # other
@@ -22,7 +20,6 @@ tracing.workspace = true
 [dev-dependencies]
 criterion = "0.8.2"
 tempfile = "3.27.0"
-tokio-test = "0.4"
 wiremock = "0.6.5"
 
 [lints]
