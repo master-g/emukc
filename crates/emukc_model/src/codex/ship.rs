@@ -594,10 +594,7 @@ impl Codex {
             + mst_souk[1]
             - mst_souk[0];
 
-        let mut total_kyouka = 0;
-        for i in 0..4 {
-            total_kyouka += ship.api_kyouka[i];
-        }
+        let total_kyouka: i64 = ship.api_kyouka[..4].iter().sum();
 
         // srate is ranged in [0, 4]
         let srate = total_kyouka as f64 / total_potentials as f64 * 5.0;
