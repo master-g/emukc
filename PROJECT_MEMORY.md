@@ -4,7 +4,7 @@ Cross-session persistent state. Each section cites its source. This file is an
 **index + session state** — authoritative detail lives in `CLAUDE.md`
 (architecture / commands / style) and `docs/solutions/` (detailed lessons).
 
-Last updated: 2026-11-04 · branch `fix/practice-rival-refresh`
+Last updated: 2026-11-13 · branch `chore/deps-cleanup`
 
 ## Verified Facts
 
@@ -132,6 +132,7 @@ Current verification baseline:
 - [2026-10-22] 敌舰 `api_*` 是本体加装备总值、`api_eParam` 给本体；对潜/回避/索敌/运取来源，其余五项取 kcwiki（两边各有错）；未处理的射程/速力差异：`abyssal-ship-stats.md`。
 - [2026-10-22] 弾着観測的舰队索敌每轮重算，用户定偏离来源整场沿用（沉没舰仍计）；实机无证据。
 - [2026-11-04] SQLite 只有 1 个连接（SeaORM 2.0 强制 `max_connections(1)`），进程内请求全串行。跨进程：SQLite 只给未持锁的事务调 busy handler，延迟事务读后再写遇别的进程持写锁立即 `database is locked`，WAL 无效；事务一律 `begin_immediate()`，`clippy.toml` 禁 `begin()`。
+- [2026-11-13] 等上游：`libsqlite3-sys` 0.37（RUSTSEC-2026-0459）被 sqlx-sqlite 0.9.0 限 <0.38；重复的 sha2 0.10、tower-http 0.6 来自 sqlx、reqwest。
 
 ## Failed Attempts / Pitfalls
 
@@ -173,9 +174,10 @@ Current verification baseline:
 
 ## Last Session
 
-- [2026-11-04] `fix/sqlite-immediate-tx`：131 处 `.begin()` 改为 `BEGIN IMMEDIATE`。`a_request_waits_for_another_process_writing_the_database` 先红后绿；真实服务器配 `sqlite3` 持写锁，修前 sign-up 0.56 秒 500，修后等到提交 2.51 秒 200。全量 1731 过。
+- [2026-11-13] `chore/deps-cleanup`：修 1.100 Clippy、删未用依赖（以 cargo 自带 `unused_dependencies` 告警为准）、钉 1.100.0。fmt、严格 Clippy 过，全量 1731 过。
 
 ## Next Session
 
-- [2026-11-04] 计划 002「执行中的新发现」余项待用户挑（SQLite 写锁已修）。10-27 对拍三处公式差异开不开 issue、#293、#294、#300、#302 的分诊，自 10-22／10-27 起每次原样顺延，下次请用户逐条定做或删；#291、#282、#285 暂停。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
+- [2026-11-13] 依赖升级续做：`cargo update`（修 3 个 audit 漏洞），再 lru 0.19、axum-server 0.9；parking_lot 0.13 等 tokio，serde_yaml 替换另定。
+  计划 002「执行中的新发现」余项待用户挑（SQLite 写锁已修）。10-27 对拍三处公式差异开不开 issue、#293、#294、#300、#302 的分诊，自 10-22／10-27 起每次原样顺延，下次请用户逐条定做或删；#291、#282、#285 暂停。战斗见 `docs/solutions/best-practices/battle-work-notes.md`。
   季节＝某天的状态。暂不发版；`CHANGELOG.md` 只到 2026-05，发版前重写。远征见 `expedition.md`；旧码典缺 `escort_carriers.json` 会加载失败，`--codex-only` 前先放 `kcanotify_ships_filter.json` 到 `.data/temp`。数字先读到再写。
